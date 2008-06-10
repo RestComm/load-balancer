@@ -186,13 +186,15 @@ public class SIPBalancerForwarder implements SipListener {
                 // Add the via header to the top of the header list.
                 request.addHeader(viaHeader);
                 RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
-                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
-                //FIXME check against a list of host we may have
-                if(routeUri.getHost().equalsIgnoreCase(myHost) && routeUri.getPort() == myExternalPort) {
-                	if(logger.isLoggable(Level.FINEST)) {
-                		logger.finest("this orute header is for us removing it " + routeUri);
-                	}
-                	request.removeFirst(RouteHeader.NAME);
+                if(routeHeader != null) {
+	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+	                //FIXME check against a list of host we may have
+	                if(routeUri.getHost().equalsIgnoreCase(myHost) && routeUri.getPort() == myExternalPort) {
+	                	if(logger.isLoggable(Level.FINEST)) {
+	                		logger.finest("this orute header is for us removing it " + routeUri);
+	                	}
+	                	request.removeFirst(RouteHeader.NAME);
+	                }
                 }
                 
                 // Record route the invite so the bye comes to me. FIXME: Add check, on reINVITE we wont add ourselvses twice
