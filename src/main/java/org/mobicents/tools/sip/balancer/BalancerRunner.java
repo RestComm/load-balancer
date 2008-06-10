@@ -3,19 +3,15 @@ package org.mobicents.tools.sip.balancer;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.rmi.RemoteException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 public class BalancerRunner {
 
+	public static final String SIP_BALANCER_JMX_NAME = "slee:name=Balancer,type=sip";
 	private static Logger logger = Logger.getLogger(BalancerRunner.class
 			.getCanonicalName());
 
@@ -23,7 +19,6 @@ public class BalancerRunner {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		args=new String[]{"127.0.0.1","5070","5080"};
 		if (args.length < 3) {
 			logger.fine("Insufficient args");
 			throw new IllegalArgumentException(
@@ -57,67 +52,57 @@ public class BalancerRunner {
 			return;
 		}
 		try {
-			//reg = new NodeRegisterImpl(addr, serverPort);
-
 			reg = new NodeRegisterImpl(addr);
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-			ObjectName on = new ObjectName("slee:name=Balancer,type=sip");
+			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
 
 			if (server.isRegistered(on)) {
 				server.unregisterMBean(on);
 			}
-
 			server.registerMBean(reg, on);
-
-		} catch (MalformedObjectNameException e) {
-
-			e.printStackTrace();
-			return;
-		} catch (NullPointerException e) {
-
-			e.printStackTrace();
-			return;
-		} catch (InstanceNotFoundException e) {
-			// Shouldnt happen
-
-			e.printStackTrace();
-			return;
-		} catch (MBeanRegistrationException e) {
-			// Shouldnt happen
-			e.printStackTrace();
-			return;
-		} catch (InstanceAlreadyExistsException e) {
-			// Shouldnt happen
-			e.printStackTrace();
-			return;
-		} catch (NotCompliantMBeanException e) {
-			// Shouldnt happen
-			e.printStackTrace();
-			return;
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return;
-		}
-
-		try {
 			RouterImpl.setRegister(reg);
 			SIPBalancerForwarder fwd = new SIPBalancerForwarder(addr
 					.getHostAddress(), port, externalPort, reg);
+			fwd.start();
 			reg.startServer();
-		} catch (Exception e) {
-			reg.stopServer();
-			e.printStackTrace();
-		} finally
-		{
-			try {
-
-				System.in.read();
-				reg.stopServer();
-			} catch (Exception e) {
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding shutdown hook");
 			}
-		}
-
+			Runtime.getRuntime().addShutdownHook(new SipBalancerShutdownHook(fwd, reg));
+		} catch (Exception e) {
+			e.printStackTrace();
+			return;
+		} 
 	}
+}
 
+class SipBalancerShutdownHook extends Thread {
+	private static Logger logger = Logger.getLogger(SipBalancerShutdownHook.class
+			.getCanonicalName());
+	SIPBalancerForwarder forwarder;
+	NodeRegisterImpl registry;
+	MBeanServer server;
+	
+	public SipBalancerShutdownHook(SIPBalancerForwarder fwd, NodeRegisterImpl registry) {
+		this.forwarder = fwd;
+		this.registry = registry;
+		this.server = ManagementFactory.getPlatformMBeanServer();
+	}
+	
+	@Override
+	public void run() {
+		logger.info("Stopping the sip forwarder");
+		forwarder.stop();
+		logger.info("Stopping the node registry");
+		registry.stopServer();
+		logger.info("Unregistering the node registry");
+		try {
+			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_JMX_NAME);
+			if (server.isRegistered(on)) {
+				server.unregisterMBean(on);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

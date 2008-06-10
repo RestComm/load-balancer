@@ -33,27 +33,18 @@
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>${log4j.version}</version>
-			<scope>provided</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
-			<version>${commons-logging.version}</version>
-			<scope>provided</scope>
-		</dependency>
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-api</artifactId>
 			<version>${jain-sip.version}</version>
-			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-ri</artifactId>
 			<version>${jain-sip.version}</version>
-			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 
@@ -67,6 +58,20 @@
 					</compilerArguments>
 					<source>1.5</source>
 					<target>1.5</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>
+								org.mobicents.tools.sip.balancer.BalancerRunner
+							</mainClass>
+							<addClasspath>true</addClasspath>
+						</manifest>
+					</archive>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -87,10 +92,50 @@
 					</eclipseProjectName>
 				</configuration>
 			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>
+								org.mobicents.tools.sip.balancer.BalancerRunner
+							</mainClass>
+						</manifest>
+					</archive>
+					<descriptorRefs>
+						<descriptorRef>
+							jar-with-dependencies
+						</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id><!-- this is used for inheritance merges -->
+						<phase>package</phase><!-- append to the packaging phase. -->
+						<goals>
+							<goal>attached</goal><!-- goals == mojos -->
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
+		<extensions>
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-webdav</artifactId>
+				<version>RELEASE</version>
+			</extension>
+		</extensions>
+
 	</build>
 	<!-- repositories -->
 	<repositories>
+		<repository>
+			<id>maven2-repository.dev.java.net</id>
+			<name>Java.net Repository for Maven</name>
+			<url>http://download.java.net/maven/2/</url>
+			<layout>default</layout>
+		</repository>
 		<repository>
 			<id>JbossRepository</id>
 			<name>Jboss Repository</name>

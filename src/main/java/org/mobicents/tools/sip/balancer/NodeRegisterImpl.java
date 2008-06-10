@@ -13,18 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.logging.Logger;
 
 public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	
 	public static final int REGISTRY_PORT = 2000;
 
-	private static Log logger = LogFactory.getLog(NodeRegisterImpl.class);
+	private static Logger logger = Logger.getLogger(NodeRegisterImpl.class.getCanonicalName());
 	
 	private long nodeInfoExpirationTaskInterval = 5000;
-	private long infoFetchInterval = 800;
 	private long nodeExpiration = 5100;
 	private Registry registry;
 	// is one timer enough for both task types?
@@ -95,22 +92,20 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	}
 
 	public boolean stopServer() {
-		return deregister(serverAddress);
+		boolean isDeregistered = deregister(serverAddress);
+		logger.info("Node registry stopped");
+		return isDeregistered;
 	}
 
 	
 	// ********* CLASS TO BE EXPOSED VIA RMI
-	private class RegisterRMIStub extends
-	UnicastRemoteObject implements NodeRegisterRMIStub
-	{
+	private class RegisterRMIStub extends UnicastRemoteObject implements NodeRegisterRMIStub {
 
 		protected RegisterRMIStub() throws RemoteException {
 			super();
-			
 		}
 		
-		public void handlePing(ArrayList<SIPNode> ping) throws RemoteException
-		{
+		public void handlePing(ArrayList<SIPNode> ping) throws RemoteException {
 			//CALL METHOD IN REGISTRY
 			handlePingInRegister(ping);
 		}

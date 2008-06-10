@@ -5,10 +5,6 @@ import java.util.ArrayList;
 
 public interface NodeRegister extends Remote{
 
-	
-	
-	
-
 	public SIPNode getNextNode() throws IndexOutOfBoundsException;
 
 	public SIPNode stickSessionToNode(String callID);

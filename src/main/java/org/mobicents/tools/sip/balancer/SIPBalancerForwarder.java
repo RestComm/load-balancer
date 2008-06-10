@@ -6,6 +6,8 @@ import gov.nist.javax.sip.header.CallID;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
@@ -30,9 +32,6 @@ import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 
 
 /**
@@ -44,7 +43,8 @@ import org.apache.commons.logging.LogFactory;
  * @author baranowb 
  */
 public class SIPBalancerForwarder implements SipListener {
-	private static Log logger = LogFactory.getLog(SIPBalancerForwarder.class);
+	private static Logger logger = Logger.getLogger(SIPBalancerForwarder.class
+			.getCanonicalName());
 	
 	private SipProvider internalSipProvider;
 
@@ -131,6 +131,7 @@ public class SIPBalancerForwarder implements SipListener {
         } catch (Exception ex) {
         	throw new IllegalStateException("Cant create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }
+        logger.info("Sip Balancer started on address " + myHost + ", external port : " + myExternalPort + ", port : "+ myPort);
 	}
 	
 	public void stop() {
@@ -154,7 +155,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		sipStack.stop();
 		sipStack = null;
-		logger.info("Sip stack stopped");
+		logger.info("Sip Balancer stopped");
 	}
 	
 	public void processDialogTerminated(
@@ -173,8 +174,8 @@ public class SIPBalancerForwarder implements SipListener {
             SipProvider sipProvider = (SipProvider) requestEvent.getSource();
             Request request = requestEvent.getRequest();
             if (sipProvider == this.externalSipProvider) {
-                if(logger.isDebugEnabled()) {
-                	logger.debug("GOT EXTERNAL REQUEST:\n"+request);
+                if(logger.isLoggable(Level.FINEST)) {
+                	logger.finest("GOT EXTERNAL REQUEST:\n"+request);
                 }
                 //if(request.getMethod().equals(Request.BYE))
                 //	return;
@@ -188,8 +189,8 @@ public class SIPBalancerForwarder implements SipListener {
                 SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
                 //FIXME check against a list of host we may have
                 if(routeUri.getHost().equalsIgnoreCase(myHost) && routeUri.getPort() == myExternalPort) {
-                	if(logger.isDebugEnabled()) {
-                		logger.debug("this orute header is for us removing it " + routeUri);
+                	if(logger.isLoggable(Level.FINEST)) {
+                		logger.finest("this orute header is for us removing it " + routeUri);
                 	}
                 	request.removeFirst(RouteHeader.NAME);
                 }
@@ -203,8 +204,8 @@ public class SIPBalancerForwarder implements SipListener {
                             .getPort());
                     Address address = this.addressFactory.createAddress(sipUri);
                     address.setURI(sipUri);
-                    if(logger.isDebugEnabled()) {
-                    	logger.debug("ADDING RRH:"+address);
+                    if(logger.isLoggable(Level.FINEST)) {
+                    	logger.finest("ADDING RRH:"+address);
                     }
 //                    sipUri.setLrParam();
                     RecordRouteHeader recordRoute = headerFactory
@@ -215,8 +216,8 @@ public class SIPBalancerForwarder implements SipListener {
                     request.removeFirst(RouteHeader.NAME);
                 } */
 
-                if(logger.isDebugEnabled()) {
-                	logger.debug("SENDING TO INTERNAL:"+request);
+                if(logger.isLoggable(Level.FINEST)) {
+                	logger.finest("SENDING TO INTERNAL:"+request);
                 }
             
                 this.internalSipProvider.sendRequest(request);
@@ -241,8 +242,8 @@ public class SIPBalancerForwarder implements SipListener {
             String method=((CSeq)response.getHeader(CSeq.NAME)).getMethod();
             String callID=((CallID)response.getHeader(CallID.NAME)).getCallId();
             if (sipProvider == this.internalSipProvider) {
-            	if(logger.isDebugEnabled()) {
-            		logger.debug("GOT RESPONSE INTERNAL:\n"+response);
+            	if(logger.isLoggable(Level.FINEST)) {
+            		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
             	}
             	 // Topmost via header is me. As it is reposne to external reqeust
                 response.removeFirst(ViaHeader.NAME);
@@ -257,8 +258,8 @@ public class SIPBalancerForwarder implements SipListener {
             } else {
                 //Topmost via header is proxy, we leave it
             	//This happens as proxy sets RR to external interface, but it sets Via to itself.
-            	if(logger.isDebugEnabled()) {
-            		logger.debug("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
+            	if(logger.isLoggable(Level.FINEST)) {
+            		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
             	}
             	sender=this.internalSipProvider;
             	
