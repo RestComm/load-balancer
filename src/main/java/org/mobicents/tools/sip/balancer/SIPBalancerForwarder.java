@@ -2,6 +2,7 @@ package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.CSeq;
 import gov.nist.javax.sip.header.CallID;
+import gov.nist.javax.sip.stack.HopImpl;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +24,7 @@ import javax.sip.TimeoutEvent;
 import javax.sip.TransactionTerminatedEvent;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
+import javax.sip.address.Hop;
 import javax.sip.address.SipURI;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.RecordRouteHeader;
@@ -38,6 +40,7 @@ import javax.sip.message.Response;
  * A stateless UDP Forwarder that listens at a port and forwards to multiple
  * outbound addresses. It keeps a timer thread around that pings the list of
  * proxy servers and sends to the first proxy server.
+ * 
  * 
  * @author M. Ranganathan
  * @author baranowb 
@@ -97,9 +100,9 @@ public class SIPBalancerForwarder implements SipListener {
         properties.setProperty("gov.nist.javax.sip.DEBUG_LOG",
                 "logs/sipbalancerforwarderdebug.txt");
         properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "logs/sipbalancerforwarder.xml");
-        properties.setProperty("javax.sip.ROUTER_PATH", "org.mobicents.tools.sip.balancer.RouterImpl");
-        properties.setProperty("javax.sip.OUTBOUND_PROXY", Integer
-                .toString(myPort));
+//        properties.setProperty("javax.sip.ROUTER_PATH", "org.mobicents.tools.sip.balancer.RouterImpl");
+//        properties.setProperty("javax.sip.OUTBOUND_PROXY", Integer
+//                .toString(myPort));
 
         try {
             // Create SipStack object
@@ -184,40 +187,92 @@ public class SIPBalancerForwarder implements SipListener {
                 ViaHeader viaHeader = headerFactory.createViaHeader(
                         this.myHost, this.myPort, "udp", "z9hG4bK"+Math.random()*31+""+System.currentTimeMillis());
                 // Add the via header to the top of the header list.
-                request.addHeader(viaHeader);
+                request.addHeader(viaHeader);               
                 RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
                 if(routeHeader != null) {
 	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
-	                //FIXME check against a list of host we may have
-	                if(routeUri.getHost().equalsIgnoreCase(myHost) && routeUri.getPort() == myExternalPort) {
+	                //FIXME check against a list of host we may have too
+	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
 	                	if(logger.isLoggable(Level.FINEST)) {
-	                		logger.finest("this orute header is for us removing it " + routeUri);
+	                		logger.finest("this route header is for us removing it " + routeUri);
 	                	}
 	                	request.removeFirst(RouteHeader.NAME);
+	                }	                
+                }
+                //since we used double record routing we may have 2 routes corresponding to us here
+                // for ACK and BYE from caller for example
+                routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+                if(routeHeader != null) {
+	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+	                //FIXME check against a list of host we may have too
+	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
+	                	logger.finest("this route header is for us removing it " + routeUri);
+	                	request.removeFirst(RouteHeader.NAME);
 	                }
+	                
                 }
                 
                 // Record route the invite so the bye comes to me. FIXME: Add check, on reINVITE we wont add ourselvses twice
                 if (request.getMethod().equals(Request.INVITE) || request.getMethod().equals(Request.SUBSCRIBE)) {
                     SipURI sipUri = this.addressFactory
                             .createSipURI(null, sipProvider.getListeningPoint(
-                                    "udp").getIPAddress());
-                    sipUri.setPort(sipProvider.getListeningPoint("udp")
-                            .getPort());
+                                    ListeningPoint.UDP).getIPAddress());
+                    sipUri.setPort(sipProvider.getListeningPoint(ListeningPoint.UDP).getPort());
+                    //See RFC 3261 19.1.1 for lr parameter
+                    sipUri.setLrParam();
                     Address address = this.addressFactory.createAddress(sipUri);
                     address.setURI(sipUri);
                     if(logger.isLoggable(Level.FINEST)) {
                     	logger.finest("ADDING RRH:"+address);
-                    }
-//                    sipUri.setLrParam();
+                    }                    
                     RecordRouteHeader recordRoute = headerFactory
                             .createRecordRouteHeader(address);                    
                     request.addHeader(recordRoute);
+                    //We need to use double record (better option than record route rewriting) routing otherwise it is impossible :
+                    //a) to forward BYE from the callee side to the caller
+                    //b) to support different transports
+		            SipURI internalSipUri = this.addressFactory
+		                    .createSipURI(null, internalSipProvider.getListeningPoint(
+		                            ListeningPoint.UDP).getIPAddress());
+		            internalSipUri.setPort(internalSipProvider.getListeningPoint(ListeningPoint.UDP).getPort());
+		            //See RFC 3261 19.1.1 for lr parameter
+		            internalSipUri.setLrParam();
+		            Address internalAddress = this.addressFactory.createAddress(internalSipUri);
+		            internalAddress.setURI(internalSipUri);
+		            if(logger.isLoggable(Level.FINEST)) {
+		            	logger.finest("ADDING RRH:"+internalAddress);
+		            }                    
+		            RecordRouteHeader internalRecordRoute = headerFactory
+		                    .createRecordRouteHeader(internalAddress);                    
+		            request.addHeader(internalRecordRoute);
                 } /* else if ( request.getMethod().equals(Request.BYE)) {
                     // Should have me on the route list.
                     request.removeFirst(RouteHeader.NAME);
                 } */
-
+                
+                //Route
+                String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
+        		SIPNode node = null;
+        		String method = request.getMethod();
+        		if (method.equals(Request.INVITE) || method.equals(Request.SUBSCRIBE)) {
+        			node = register.stickSessionToNode(callID);
+	        		SipURI routeSipUri = this.addressFactory
+	                	.createSipURI(null, node.getIp());
+	        		routeSipUri.setPort(node.getPort());
+	        		routeSipUri.setLrParam();
+	        		RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
+	        		request.addFirst(route);
+        		} else if (method.equals(Request.CANCEL)) {
+        			node = register.getGluedNode(callID);
+        			if (node == null) {
+        				for (int i = 0; i < 5 && node == null; i++) {
+        					try {
+        						node = register.getNextNode();
+        					} catch (IndexOutOfBoundsException ioobe) {
+        					}
+        				}
+        			}
+        		} 
                 if(logger.isLoggable(Level.FINEST)) {
                 	logger.finest("SENDING TO INTERNAL:"+request);
                 }
@@ -225,9 +280,38 @@ public class SIPBalancerForwarder implements SipListener {
                 this.internalSipProvider.sendRequest(request);
 
             } else {
-            	//We wont see any reqs from this side, we will only see responses
+            	//We wont see any dialog creating reqs from this side, we will only see responses
             	//Proxy sets RR to IP_ExternalPort of LB
-            	throw new IllegalStateException("Illegal state!! unexpected request");
+            	if (request.getMethod().equals(Request.INVITE) || request.getMethod().equals(Request.SUBSCRIBE)) {
+            		throw new IllegalStateException("Illegal state!! unexpected dialog creating request " + request);
+            	} else {
+            		// BYE coming from the callee by example
+            		ViaHeader viaHeader = headerFactory.createViaHeader(
+                            this.myHost, this.myPort, "udp", "z9hG4bK"+Math.random()*31+""+System.currentTimeMillis());
+                    // Add the via header to the top of the header list.
+                    request.addHeader(viaHeader);               
+                    RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+                    if(routeHeader != null) {
+    	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+    	                //FIXME check against a list of host we may have too
+    	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
+    	                	logger.finest("this route header is for us removing it " + routeUri);
+    	                	request.removeFirst(RouteHeader.NAME);
+    	                }    	               
+                    }
+                    //since we used double record routing we may have 2 routes corresponding to us here 
+                    routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+                    if(routeHeader != null) {
+    	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+    	                //FIXME check against a list of host we may have too
+    	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
+    	                	logger.finest("this route header is for us removing it " + routeUri);
+    	                	request.removeFirst(RouteHeader.NAME);
+    	                }
+    	                
+                    }
+                    this.externalSipProvider.sendRequest(request);
+            	}
             }
         } catch (Exception ex) {
             ex.printStackTrace();
