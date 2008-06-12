@@ -2,7 +2,6 @@ package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.CSeq;
 import gov.nist.javax.sip.header.CallID;
-import gov.nist.javax.sip.stack.HopImpl;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -24,9 +23,9 @@ import javax.sip.TimeoutEvent;
 import javax.sip.TransactionTerminatedEvent;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
-import javax.sip.address.Hop;
 import javax.sip.address.SipURI;
 import javax.sip.header.HeaderFactory;
+import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
@@ -34,16 +33,17 @@ import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
-
-
 /**
  * A stateless UDP Forwarder that listens at a port and forwards to multiple
  * outbound addresses. It keeps a timer thread around that pings the list of
  * proxy servers and sends to the first proxy server.
  * 
+ * It uses double record routing to be able to listen on one transport and sends on another transport
+ * or allows support for multihoming.
  * 
  * @author M. Ranganathan
  * @author baranowb 
+ * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  */
 public class SIPBalancerForwarder implements SipListener {
 	private static Logger logger = Logger.getLogger(SIPBalancerForwarder.class
@@ -60,21 +60,18 @@ public class SIPBalancerForwarder implements SipListener {
     private int myExternalPort;
 
     private AddressFactory addressFactory;
-
-    private MessageFactory messageFactory;
-
     private HeaderFactory headerFactory;
+    private MessageFactory messageFactory;
 
     private SipStack sipStack;
 	
-	
 	private NodeRegister register;
     
-    private static final HashSet<String> dialogCreatioMethods=new HashSet<String>(2);
+    private static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
     
     static{
-    	dialogCreatioMethods.add(Request.INVITE);
-    	dialogCreatioMethods.add(Request.SUBSCRIBE);
+    	dialogCreationMethods.add(Request.INVITE);
+    	dialogCreationMethods.add(Request.SUBSCRIBE);
     }
 	
 	public SIPBalancerForwarder(String myHost, int myPort, int myExternalPort, NodeRegister register) throws IllegalStateException{
@@ -186,8 +183,17 @@ public class SIPBalancerForwarder implements SipListener {
                 // Tack on our internal port so the other side responds to me.
                 ViaHeader viaHeader = headerFactory.createViaHeader(
                         this.myHost, this.myPort, "udp", "z9hG4bK"+Math.random()*31+""+System.currentTimeMillis());
+                //Decreasing the Max Forward Header
+                MaxForwardsHeader maxForwardsHeader = (MaxForwardsHeader) request.getHeader(MaxForwardsHeader.NAME);
+                if (maxForwardsHeader == null) {
+                	maxForwardsHeader = headerFactory.createMaxForwardsHeader(70);
+    				request.addHeader(maxForwardsHeader);
+    			} else {
+    				maxForwardsHeader.setMaxForwards(maxForwardsHeader.getMaxForwards() - 1);
+    			}
                 // Add the via header to the top of the header list.
-                request.addHeader(viaHeader);               
+                request.addHeader(viaHeader);    
+                //Removing first routeHeader if it is for the sip balancer
                 RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
                 if(routeHeader != null) {
 	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
@@ -197,20 +203,20 @@ public class SIPBalancerForwarder implements SipListener {
 	                		logger.finest("this route header is for us removing it " + routeUri);
 	                	}
 	                	request.removeFirst(RouteHeader.NAME);
+	                	//since we used double record routing we may have 2 routes corresponding to us here
+	                    // for ACK and BYE from caller for example
+	                    routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+	                    if(routeHeader != null) {
+	    	                routeUri = (SipURI)routeHeader.getAddress().getURI();
+	    	                //FIXME check against a list of host we may have too
+	    	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
+	    	                	logger.finest("this route header is for us removing it " + routeUri);
+	    	                	request.removeFirst(RouteHeader.NAME);
+	    	                }
+	    	                
+	                    }
 	                }	                
-                }
-                //since we used double record routing we may have 2 routes corresponding to us here
-                // for ACK and BYE from caller for example
-                routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
-                if(routeHeader != null) {
-	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
-	                //FIXME check against a list of host we may have too
-	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
-	                	logger.finest("this route header is for us removing it " + routeUri);
-	                	request.removeFirst(RouteHeader.NAME);
-	                }
-	                
-                }
+                }                
                 
                 // Record route the invite so the bye comes to me. FIXME: Add check, on reINVITE we wont add ourselvses twice
                 if (request.getMethod().equals(Request.INVITE) || request.getMethod().equals(Request.SUBSCRIBE)) {
@@ -250,18 +256,25 @@ public class SIPBalancerForwarder implements SipListener {
                     request.removeFirst(RouteHeader.NAME);
                 } */
                 
-                //Route
+                //Adding Route Header pointing to the node the sip balancer wants to forward to 
                 String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
         		SIPNode node = null;
         		String method = request.getMethod();
         		if (method.equals(Request.INVITE) || method.equals(Request.SUBSCRIBE)) {
         			node = register.stickSessionToNode(callID);
-	        		SipURI routeSipUri = this.addressFactory
-	                	.createSipURI(null, node.getIp());
-	        		routeSipUri.setPort(node.getPort());
-	        		routeSipUri.setLrParam();
-	        		RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
-	        		request.addFirst(route);
+        			if(node != null) {
+		        		SipURI routeSipUri = this.addressFactory
+		                	.createSipURI(null, node.getIp());
+		        		routeSipUri.setPort(node.getPort());
+		        		routeSipUri.setLrParam();
+		        		RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
+		        		request.addFirst(route);
+        			} else {
+        				//No node present yet to forward the request to, thus sending 500 final error response
+        				Response response = messageFactory.createResponse
+	        	        	(Response.SERVER_INTERNAL_ERROR,request);			
+	        	        sipProvider.sendResponse(response);
+        			}
         		} else if (method.equals(Request.CANCEL)) {
         			node = register.getGluedNode(callID);
         			if (node == null) {
@@ -272,11 +285,24 @@ public class SIPBalancerForwarder implements SipListener {
         					}
         				}
         			}
+        			if(node != null) {
+	        			SipURI routeSipUri = this.addressFactory
+		                	.createSipURI(null, node.getIp());
+		        		routeSipUri.setPort(node.getPort());
+		        		routeSipUri.setLrParam();
+		        		RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
+		        		request.addFirst(route);
+        			} else {
+        				//No node present yet to forward the request to, thus sending 500 final error response
+        				Response response = messageFactory.createResponse
+	        	        	(Response.SERVER_INTERNAL_ERROR,request);			
+	        	        sipProvider.sendResponse(response);
+        			}
         		} 
                 if(logger.isLoggable(Level.FINEST)) {
                 	logger.finest("SENDING TO INTERNAL:"+request);
                 }
-            
+                //sending request
                 this.internalSipProvider.sendRequest(request);
 
             } else {
@@ -289,7 +315,8 @@ public class SIPBalancerForwarder implements SipListener {
             		ViaHeader viaHeader = headerFactory.createViaHeader(
                             this.myHost, this.myPort, "udp", "z9hG4bK"+Math.random()*31+""+System.currentTimeMillis());
                     // Add the via header to the top of the header list.
-                    request.addHeader(viaHeader);               
+                    request.addHeader(viaHeader);
+                    //Removing first routeHeader if it is for the sip balancer
                     RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
                     if(routeHeader != null) {
     	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
@@ -297,19 +324,18 @@ public class SIPBalancerForwarder implements SipListener {
     	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
     	                	logger.finest("this route header is for us removing it " + routeUri);
     	                	request.removeFirst(RouteHeader.NAME);
+    	                	//since we used double record routing we may have 2 routes corresponding to us here 
+    	                    routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+    	                    if(routeHeader != null) {
+    	    	                routeUri = (SipURI)routeHeader.getAddress().getURI();
+    	    	                //FIXME check against a list of host we may have too
+    	    	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
+    	    	                	logger.finest("this route header is for us removing it " + routeUri);
+    	    	                	request.removeFirst(RouteHeader.NAME);
+    	    	                }
+    	                    }
     	                }    	               
-                    }
-                    //since we used double record routing we may have 2 routes corresponding to us here 
-                    routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
-                    if(routeHeader != null) {
-    	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
-    	                //FIXME check against a list of host we may have too
-    	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
-    	                	logger.finest("this route header is for us removing it " + routeUri);
-    	                	request.removeFirst(RouteHeader.NAME);
-    	                }
-    	                
-                    }
+                    }                    
                     this.externalSipProvider.sendRequest(request);
             	}
             }
@@ -337,7 +363,7 @@ public class SIPBalancerForwarder implements SipListener {
                 sender=this.externalSipProvider;
                 
                 //Here if we get response other than 100-2xx we have to clean register from this session
-                if(dialogCreatioMethods.contains(method) && !(100<=status && status<300)) 
+                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) 
                 {
                 	register.unStickSessionFromNode(callID);
                 }

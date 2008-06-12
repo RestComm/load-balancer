@@ -3,6 +3,22 @@ package org.mobicents.tools.sip.balancer;
 import java.io.Serializable;
 import java.util.Arrays;
 
+/**
+ * <p>
+ * Class holding information about a node such as hostname, ip address, port and
+ * transports supported.<br/>
+ * 
+ * This might contain health status information about the node later on. <br/>
+ * 
+ * The node is responsible for sending this information to the sip load
+ * balancer.
+ * </p>
+ *
+ * @author M. Ranganathan
+ * @author baranowb 
+ * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
+ * 
+ */
 public class SIPNode implements Serializable {
 
 	/**
@@ -13,10 +29,8 @@ public class SIPNode implements Serializable {
 	private String ip = null;
 	private int port = -1;
 	private String[] transports = null;
-	private long timeStamp=System.currentTimeMillis();
-	
-	//private transient Socket s=null;
-	
+	private long timeStamp = System.currentTimeMillis();
+
 	public SIPNode(String hostName, String ip, int port, String[] transports) {
 		super();
 		this.hostName = hostName;
@@ -41,26 +55,13 @@ public class SIPNode implements Serializable {
 		return transports;
 	}
 
-	
-	public long getTimeStamp()
-	{
+	public long getTimeStamp() {
 		return this.timeStamp;
 	}
-	
-	public void updateTimerStamp()
-	{
-		this.timeStamp=System.currentTimeMillis();
-	}
-	
-	
-	
-	//public Socket getSocket() {
-	//	return s;
-	//}
 
-	//public void setSocket(Socket s) {
-	//	this.s = s;
-	//}
+	public void updateTimerStamp() {
+		this.timeStamp = System.currentTimeMillis();
+	}
 
 	@Override
 	public int hashCode() {
@@ -100,11 +101,11 @@ public class SIPNode implements Serializable {
 		return true;
 	}
 
-	public String toString()
-	{
-		
-		return "SIPNode hostname["+this.hostName+"] ip["+this.ip+"] port["+this.port+"] transport["+Arrays.toString(this.transports)+"]";
+	public String toString() {
+
+		return "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
+				+ "] port[" + this.port + "] transport["
+				+ Arrays.toString(this.transports) + "]";
 	}
-	
-	
+
 }

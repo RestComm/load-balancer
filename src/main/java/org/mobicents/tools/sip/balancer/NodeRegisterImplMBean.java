@@ -4,8 +4,6 @@ import java.net.InetAddress;
 import java.util.List;
 
 public interface NodeRegisterImplMBean {
-
-	
 	
 	/**
 	 * Sets interval between runs of task that removes nodes that expired.
@@ -22,14 +20,6 @@ public interface NodeRegisterImplMBean {
 	public void setNodeExpiration(long value);
 	public long getNodeExpiration();
 	
-	///**
-	// * Sets new value of interval between fetching data sent via sockets to this balancer
-	// * @param value
-	// */
-	//public void setPingFetchInterval(long value);
-	//public long getPingFetchInterval();
-	
-	//public int getPort();
 	public InetAddress getAddress();
 	
 	public boolean startServer();

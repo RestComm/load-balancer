@@ -3,7 +3,16 @@ package org.mobicents.tools.sip.balancer;
 import java.rmi.Remote;
 import java.util.ArrayList;
 
-public interface NodeRegister extends Remote{
+/**
+ * <p>
+ * </p>
+ * 
+ * @author M. Ranganathan
+ * @author baranowb 
+ * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
+ *
+ */
+public interface NodeRegister extends Remote {
 
 	public SIPNode getNextNode() throws IndexOutOfBoundsException;
 

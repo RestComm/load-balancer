@@ -12,26 +12,20 @@ import javax.sip.address.Hop;
 import javax.sip.address.Router;
 import javax.sip.message.Request;
 
+/**
+ * This custom implementation is not used anymore in the new sip balancer version
+ * 
+ * @author M. Ranganathan
+ * @author baranowb 
+ * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
+ *
+ */
 public class RouterImpl implements Router {
 
 	private static NodeRegister register = null;
 
-	private String myHost;
-
-	private int myPort;
-	
-
 	public RouterImpl(SipStack sipStack, String proxyPort)
 			throws Exception {
-		try {
-			this.myHost = sipStack.getIPAddress();
-			this.myPort = Integer.parseInt(proxyPort);
-		
-
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-
 	}
 
 	public static void setRegister(NodeRegister register) {
@@ -39,9 +33,6 @@ public class RouterImpl implements Router {
 	}
 
 	public Hop getNextHop(Request request) throws SipException {
-
-		
-		//System.out.println(this.getClass().getName()+".getNextHop() for:\n"+request );
 		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
 
 		SIPNode node = null;
