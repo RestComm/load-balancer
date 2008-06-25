@@ -183,7 +183,7 @@ public class SIPBalancerForwarder implements SipListener {
                 // Tack on our internal port so the other side responds to me.
                 ViaHeader viaHeader = headerFactory.createViaHeader(
                         this.myHost, this.myPort, "udp", "z9hG4bK"+Math.random()*31+""+System.currentTimeMillis());
-                //Decreasing the Max Forward Header
+                // Decreasing the Max Forward Header
                 MaxForwardsHeader maxForwardsHeader = (MaxForwardsHeader) request.getHeader(MaxForwardsHeader.NAME);
                 if (maxForwardsHeader == null) {
                 	maxForwardsHeader = headerFactory.createMaxForwardsHeader(70);
