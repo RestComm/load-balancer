@@ -200,10 +200,14 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	}
 
 	class NodeExpirationTimerTask extends TimerTask {
+		List<SIPNode> nodesToRemove;
+		
+		public NodeExpirationTimerTask() {
+			nodesToRemove = new ArrayList<SIPNode>();
+		}
+		
 		public void run() {
 			logger.info("NodeExpirationTimerTask Running");
-			// for (SIPNode node : nodes) {
-			List<SIPNode> nodesToRemove = new ArrayList<SIPNode>(); 
 			synchronized (nodes) {
 				for (int i = 0; i < nodes.size(); i++) {
 					SIPNode node = nodes.get(i);
@@ -220,7 +224,8 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 				for (SIPNode node : nodesToRemove) {
 					nodes.remove(node);
 				}
-			}			
+			}
+			nodesToRemove.clear();			
 			logger.info("NodeExpirationTimerTask Done");
 		}
 

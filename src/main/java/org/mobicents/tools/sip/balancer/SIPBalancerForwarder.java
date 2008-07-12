@@ -1,6 +1,5 @@
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.header.CSeq;
 import gov.nist.javax.sip.header.CallID;
 
 import java.util.HashSet;
@@ -20,10 +19,12 @@ import javax.sip.SipListener;
 import javax.sip.SipProvider;
 import javax.sip.SipStack;
 import javax.sip.TimeoutEvent;
+import javax.sip.Transaction;
 import javax.sip.TransactionTerminatedEvent;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
+import javax.sip.header.CallIdHeader;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RecordRouteHeader;
@@ -88,7 +89,7 @@ public class SIPBalancerForwarder implements SipListener {
         sipStack = null;
         
         Properties properties = new Properties();
-        properties.setProperty("javax.sip.RETRANSMISSION_FILTER", "true");
+//        properties.setProperty("javax.sip.RETRANSMISSION_FILTER", "true");
         properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
         properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
         // You need 16 for logging traces. 32 for debug + traces.
@@ -97,6 +98,8 @@ public class SIPBalancerForwarder implements SipListener {
         properties.setProperty("gov.nist.javax.sip.DEBUG_LOG",
                 "logs/sipbalancerforwarderdebug.txt");
         properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "logs/sipbalancerforwarder.xml");
+        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "64");
+        properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 //        properties.setProperty("javax.sip.ROUTER_PATH", "org.mobicents.tools.sip.balancer.RouterImpl");
 //        properties.setProperty("javax.sip.OUTBOUND_PROXY", Integer
 //                .toString(myPort));
@@ -119,11 +122,11 @@ public class SIPBalancerForwarder implements SipListener {
             addressFactory = sipFactory.createAddressFactory();
             messageFactory = sipFactory.createMessageFactory();
 
-            ListeningPoint lp = sipStack.createListeningPoint(myHost, myPort, "udp");
+            ListeningPoint lp = sipStack.createListeningPoint(myHost, myPort, ListeningPoint.UDP);
             internalSipProvider = sipStack.createSipProvider(lp);
             internalSipProvider.addSipListener(this);
 
-            lp = sipStack.createListeningPoint(myHost, myExternalPort, "udp");
+            lp = sipStack.createListeningPoint(myHost, myExternalPort, ListeningPoint.UDP);
             externalSipProvider = sipStack.createSipProvider(lp);
             externalSipProvider.addSipListener(this);
 
@@ -131,7 +134,9 @@ public class SIPBalancerForwarder implements SipListener {
         } catch (Exception ex) {
         	throw new IllegalStateException("Cant create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }
-        logger.info("Sip Balancer started on address " + myHost + ", external port : " + myExternalPort + ", port : "+ myPort);
+        if(logger.isLoggable(Level.INFO)) {
+        	logger.info("Sip Balancer started on address " + myHost + ", external port : " + myExternalPort + ", port : "+ myPort);
+        }
 	}
 	
 	public void stop() {
@@ -141,11 +146,15 @@ public class SIPBalancerForwarder implements SipListener {
 				SipProvider sipProvider = sipProviderIterator.next();
 				ListeningPoint[] listeningPoints = sipProvider.getListeningPoints();
 				for (ListeningPoint listeningPoint : listeningPoints) {
-					logger.info("Removing the following Listening Point " + listeningPoint);
+					if(logger.isLoggable(Level.INFO)) {
+						logger.info("Removing the following Listening Point " + listeningPoint);
+					}
 					sipProvider.removeListeningPoint(listeningPoint);
 					sipStack.deleteListeningPoint(listeningPoint);
 				}
-				logger.info("Removing the sip provider");
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("Removing the sip provider");
+				}
 				sipProvider.removeSipListener(this);	
 				sipStack.deleteSipProvider(sipProvider);			
 			}
@@ -155,12 +164,15 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		sipStack.stop();
 		sipStack = null;
-		logger.info("Sip Balancer stopped");
+		if(logger.isLoggable(Level.INFO)) {
+			logger.info("Sip Balancer stopped");
+		}
 	}
 	
 	public void processDialogTerminated(
 			DialogTerminatedEvent dialogTerminatedEvent) {
 		// We wont see those
+		register.unStickSessionFromNode(dialogTerminatedEvent.getDialog().getCallId().getCallId());
 	}
 
 	public void processIOException(IOExceptionEvent exceptionEvent) {
@@ -210,7 +222,9 @@ public class SIPBalancerForwarder implements SipListener {
 	    	                routeUri = (SipURI)routeHeader.getAddress().getURI();
 	    	                //FIXME check against a list of host we may have too
 	    	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
-	    	                	logger.finest("this route header is for us removing it " + routeUri);
+	    	                	if(logger.isLoggable(Level.FINEST)) {
+	    	                		logger.finest("this route header is for us removing it " + routeUri);
+	    	                	}
 	    	                	request.removeFirst(RouteHeader.NAME);
 	    	                }
 	    	                
@@ -322,7 +336,9 @@ public class SIPBalancerForwarder implements SipListener {
     	                SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
     	                //FIXME check against a list of host we may have too
     	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
-    	                	logger.finest("this route header is for us removing it " + routeUri);
+    	                	if(logger.isLoggable(Level.FINEST)) {
+    	                		logger.finest("this route header is for us removing it " + routeUri);
+    	                	}
     	                	request.removeFirst(RouteHeader.NAME);
     	                	//since we used double record routing we may have 2 routes corresponding to us here 
     	                    routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
@@ -330,7 +346,9 @@ public class SIPBalancerForwarder implements SipListener {
     	    	                routeUri = (SipURI)routeHeader.getAddress().getURI();
     	    	                //FIXME check against a list of host we may have too
     	    	                if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
-    	    	                	logger.finest("this route header is for us removing it " + routeUri);
+    	    	                	if(logger.isLoggable(Level.FINEST)) {
+    	    	                		logger.finest("this route header is for us removing it " + routeUri);
+    	    	                	}
     	    	                	request.removeFirst(RouteHeader.NAME);
     	    	                }
     	                    }
@@ -350,23 +368,20 @@ public class SIPBalancerForwarder implements SipListener {
             Response response = responseEvent.getResponse();
             SipProvider sender=null;
             
-            int status=response.getStatusCode();
-            String method=((CSeq)response.getHeader(CSeq.NAME)).getMethod();
-            String callID=((CallID)response.getHeader(CallID.NAME)).getCallId();
             if (sipProvider == this.internalSipProvider) {
             	if(logger.isLoggable(Level.FINEST)) {
             		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
             	}
-            	 // Topmost via header is me. As it is reposne to external reqeust
+            	 // Topmost via header is me. As it is reponse to external request
                 response.removeFirst(ViaHeader.NAME);
             	
                 sender=this.externalSipProvider;
                 
-                //Here if we get response other than 100-2xx we have to clean register from this session
-                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) 
-                {
-                	register.unStickSessionFromNode(callID);
-                }
+                //Register will be cleaned in the processXXXTerminated jsip callback 
+                //Here if we get response other than 100-2xx we have to clean register from this session                
+//                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
+//                	register.unStickSessionFromNode(callID);
+//                }
             } else {
                 //Topmost via header is proxy, we leave it
             	//This happens as proxy sets RR to external interface, but it sets Via to itself.
@@ -375,12 +390,12 @@ public class SIPBalancerForwarder implements SipListener {
             	}
             	sender=this.internalSipProvider;
             	
+            	//Register will be cleaned in the processXXXTerminated jsip callback
             	//Here we should care only for BYE, all other are send without any change
             	//We dont even bother status, as BYE means that UAS wants to terminate.
-            	if(method.equals(Request.BYE))
-            	{
-            		register.unStickSessionFromNode(callID);
-            	}
+//            	if(method.equals(Request.BYE)) {
+//            		register.unStickSessionFromNode(callID);
+//            	}
             }
             sender.sendResponse(response);
         } catch (Exception ex) {
@@ -389,11 +404,37 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 
 	public void processTimeout(TimeoutEvent timeoutEvent) {
-		// TODO Auto-generated method stub
+		Transaction transaction = null;
+		if(timeoutEvent.isServerTransaction()) {
+			transaction = timeoutEvent.getServerTransaction();
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("timeout => " + transaction.getRequest().toString());
+			}
+		} else {
+			transaction = timeoutEvent.getClientTransaction();
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("timeout => " + transaction.getRequest().toString());
+			}
+		}
+		String callId = ((CallIdHeader)transaction.getRequest().getHeader(CallIdHeader.NAME)).getCallId();
+		register.unStickSessionFromNode(callId);
 	}
 
 	public void processTransactionTerminated(
 			TransactionTerminatedEvent transactionTerminatedEvent) {
-		// TODO Auto-generated method stub
+		Transaction transaction = null;
+		if(transactionTerminatedEvent.isServerTransaction()) {
+			transaction = transactionTerminatedEvent.getServerTransaction();
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("timeout => " + transaction.getRequest().toString());
+			}
+		} else {
+			transaction = transactionTerminatedEvent.getClientTransaction();
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("timeout => " + transaction.getRequest().toString());
+			}
+		}
+		String callId = ((CallIdHeader)transaction.getRequest().getHeader(CallIdHeader.NAME)).getCallId();
+		register.unStickSessionFromNode(callId);
 	}
 }
