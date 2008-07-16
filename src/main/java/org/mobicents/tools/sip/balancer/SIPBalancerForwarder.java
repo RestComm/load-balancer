@@ -1,6 +1,7 @@
 package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.CallID;
+import gov.nist.javax.sip.stack.SIPServerTransaction;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -8,12 +9,14 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.sip.ClientTransaction;
 import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
 import javax.sip.ListeningPoint;
 import javax.sip.PeerUnavailableException;
 import javax.sip.RequestEvent;
 import javax.sip.ResponseEvent;
+import javax.sip.ServerTransaction;
 import javax.sip.SipFactory;
 import javax.sip.SipListener;
 import javax.sip.SipProvider;
@@ -24,6 +27,7 @@ import javax.sip.TransactionTerminatedEvent;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
+import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
@@ -47,6 +51,8 @@ import javax.sip.message.Response;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  */
 public class SIPBalancerForwarder implements SipListener {
+	private static final String MAGIC_COOKIE = "z9hG4bK";
+
 	private static Logger logger = Logger.getLogger(SIPBalancerForwarder.class
 			.getCanonicalName());
 	
@@ -100,6 +106,7 @@ public class SIPBalancerForwarder implements SipListener {
         properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "logs/sipbalancerforwarder.xml");
         properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "64");
         properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
+        properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 //        properties.setProperty("javax.sip.ROUTER_PATH", "org.mobicents.tools.sip.balancer.RouterImpl");
 //        properties.setProperty("javax.sip.OUTBOUND_PROXY", Integer
 //                .toString(myPort));
@@ -181,10 +188,20 @@ public class SIPBalancerForwarder implements SipListener {
 
 	public void processRequest(RequestEvent requestEvent) {
 		// This will be invoked only by external endpoint
-		
+		SipProvider sipProvider = (SipProvider) requestEvent.getSource();
+        Request originalRequest = requestEvent.getRequest();
+        ServerTransaction serverTransaction = requestEvent.getServerTransaction();
+         
+        Request request = (Request) originalRequest.clone();
+        
+        logger.info("transaction " + serverTransaction);
+        logger.info("dialog " + requestEvent.getDialog());
+        
 		try {
-            SipProvider sipProvider = (SipProvider) requestEvent.getSource();
-            Request request = requestEvent.getRequest();
+			if(!Request.ACK.equals(request.getMethod()) && serverTransaction == null) {
+	         	serverTransaction = sipProvider.getNewServerTransaction(originalRequest);
+	        }
+			
             if (sipProvider == this.externalSipProvider) {
                 if(logger.isLoggable(Level.FINEST)) {
                 	logger.finest("GOT EXTERNAL REQUEST:\n"+request);
@@ -193,18 +210,26 @@ public class SIPBalancerForwarder implements SipListener {
                 //	return;
                 // Tack our own via header to the request.
                 // Tack on our internal port so the other side responds to me.
+//                String branchId = MAGIC_COOKIE + Math.random()*31 + "" + System.currentTimeMillis();
                 ViaHeader viaHeader = headerFactory.createViaHeader(
-                        this.myHost, this.myPort, "udp", "z9hG4bK"+Math.random()*31+""+System.currentTimeMillis());
+                        this.myHost, this.myPort, ListeningPoint.UDP, null);
+                
                 // Decreasing the Max Forward Header
                 MaxForwardsHeader maxForwardsHeader = (MaxForwardsHeader) request.getHeader(MaxForwardsHeader.NAME);
                 if (maxForwardsHeader == null) {
                 	maxForwardsHeader = headerFactory.createMaxForwardsHeader(70);
     				request.addHeader(maxForwardsHeader);
     			} else {
-    				maxForwardsHeader.setMaxForwards(maxForwardsHeader.getMaxForwards() - 1);
+    				if(maxForwardsHeader.getMaxForwards() - 1 > 0) {
+    					maxForwardsHeader.setMaxForwards(maxForwardsHeader.getMaxForwards() - 1);
+    				} else {
+    					//Max forward header equals to 0, thus sending too many hops response
+        				Response response = messageFactory.createResponse
+	        	        	(Response.TOO_MANY_HOPS,request);			
+	        	        sipProvider.sendResponse(response);
+    				}
     			}
-                // Add the via header to the top of the header list.
-                request.addHeader(viaHeader);    
+                
                 //Removing first routeHeader if it is for the sip balancer
                 RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
                 if(routeHeader != null) {
@@ -234,6 +259,7 @@ public class SIPBalancerForwarder implements SipListener {
                 
                 // Record route the invite so the bye comes to me. FIXME: Add check, on reINVITE we wont add ourselvses twice
                 if (request.getMethod().equals(Request.INVITE) || request.getMethod().equals(Request.SUBSCRIBE)) {
+//                	serverTransaction.setApplicationData(branchId);
                     SipURI sipUri = this.addressFactory
                             .createSipURI(null, sipProvider.getListeningPoint(
                                     ListeningPoint.UDP).getIPAddress());
@@ -286,10 +312,15 @@ public class SIPBalancerForwarder implements SipListener {
         			} else {
         				//No node present yet to forward the request to, thus sending 500 final error response
         				Response response = messageFactory.createResponse
-	        	        	(Response.SERVER_INTERNAL_ERROR,request);			
-	        	        sipProvider.sendResponse(response);
+	        	        	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
+	        	        serverTransaction.sendResponse(response);
         			}
-        		} else if (method.equals(Request.CANCEL)) {
+        		}
+        		// CANCEL is hop by hop, so replying to the CANCEL by generating a 200 OK and sending a CANCEL
+        		else if (method.equals(Request.CANCEL)) {
+        			Transaction inviteTransaction = ((SIPServerTransaction) requestEvent.getServerTransaction()).getCanceledInviteTransaction();
+//        			viaHeader.setBranch((String)inviteTransaction.getApplicationData());
+        			
         			node = register.getGluedNode(callID);
         			if (node == null) {
         				for (int i = 0; i < 5 && node == null; i++) {
@@ -300,36 +331,59 @@ public class SIPBalancerForwarder implements SipListener {
         				}
         			}
         			if(node != null) {
+        				Response response = messageFactory.createResponse
+        	        		(Response.OK,originalRequest);
+        				response.setReasonPhrase("Cancelling");
+        				serverTransaction.sendResponse(response);
+        				//
+        				ClientTransaction ctx = (ClientTransaction)inviteTransaction.getApplicationData();
+        				Request cancelRequest = ctx.createCancel();
+        				
+//        				cancelRequest.addHeader(viaHeader);
+        				
 	        			SipURI routeSipUri = this.addressFactory
 		                	.createSipURI(null, node.getIp());
 		        		routeSipUri.setPort(node.getPort());
 		        		routeSipUri.setLrParam();
 		        		RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
-		        		request.addFirst(route);
+		        		cancelRequest.addFirst(route);
+		        		
+		        		ClientTransaction cancelClientTransaction = internalSipProvider
+							.getNewClientTransaction(cancelRequest);
+		        		cancelClientTransaction.sendRequest();             
+		        		return ;
         			} else {
         				//No node present yet to forward the request to, thus sending 500 final error response
+        				logger.severe("No node present yet to forward the request " + request);
         				Response response = messageFactory.createResponse
-	        	        	(Response.SERVER_INTERNAL_ERROR,request);			
-	        	        sipProvider.sendResponse(response);
+	        	        	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
+	        	        serverTransaction.sendResponse(response);
         			}
         		} 
                 if(logger.isLoggable(Level.FINEST)) {
                 	logger.finest("SENDING TO INTERNAL:"+request);
                 }
+                
+                // Add the via header to the top of the header list.
+                request.addHeader(viaHeader);    
                 //sending request
-                this.internalSipProvider.sendRequest(request);
+                if(Request.ACK.equalsIgnoreCase(request.getMethod())) {
+                	internalSipProvider.sendRequest(request);
+                } else {
+                	ClientTransaction ctx = internalSipProvider.getNewClientTransaction(request);
+		                
+	                serverTransaction.setApplicationData(ctx);
+	                ctx.setApplicationData(serverTransaction);		                		               
+                
+	                ctx.sendRequest();
+                }
 
             } else {
             	//We wont see any dialog creating reqs from this side, we will only see responses
             	//Proxy sets RR to IP_ExternalPort of LB
             	if (request.getMethod().equals(Request.INVITE) || request.getMethod().equals(Request.SUBSCRIBE)) {
             		throw new IllegalStateException("Illegal state!! unexpected dialog creating request " + request);
-            	} else {
-            		// BYE coming from the callee by example
-            		ViaHeader viaHeader = headerFactory.createViaHeader(
-                            this.myHost, this.myPort, "udp", "z9hG4bK"+Math.random()*31+""+System.currentTimeMillis());
-                    // Add the via header to the top of the header list.
-                    request.addHeader(viaHeader);
+            	} else {            		
                     //Removing first routeHeader if it is for the sip balancer
                     RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
                     if(routeHeader != null) {
@@ -353,53 +407,89 @@ public class SIPBalancerForwarder implements SipListener {
     	    	                }
     	                    }
     	                }    	               
-                    }                    
-                    this.externalSipProvider.sendRequest(request);
+                    }   
+                    // BYE coming from the callee by example
+//                    String branchId = MAGIC_COOKIE + Math.random()*31 + "" + System.currentTimeMillis();
+                    ViaHeader viaHeader = headerFactory.createViaHeader(
+                            this.myHost, this.myPort, ListeningPoint.UDP, null);
+                    
+                    // Add the via header to the top of the header list.
+                    request.addHeader(viaHeader);
+                    
+                    ClientTransaction ctx = externalSipProvider.getNewClientTransaction(request);
+                    
+                    serverTransaction.setApplicationData(ctx);
+                    ctx.setApplicationData(serverTransaction);
+                    
+                    ctx.sendRequest();
             	}
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (Throwable throwable) {
+            logger.log(Level.SEVERE, "Unexpected exception while forwarding the request " + request, throwable);
+            if(!Request.ACK.equalsIgnoreCase(request.getMethod())) {
+	            try {
+	            	Response response=messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR,originalRequest);			
+	                if (serverTransaction !=null) {
+	                	serverTransaction.sendResponse(response);
+	                } else { 
+	                	if (sipProvider == this.externalSipProvider) {
+	                		externalSipProvider.sendResponse(response);	
+	                	} else {
+	                		internalSipProvider.sendResponse(response);	
+	                	}
+	                }	
+	            } catch (Exception e) {
+	            	logger.log(Level.SEVERE, "Unexpected exception while trying to send the error response for this " + request, e);
+				}
+            }
         }
 	}
 
 	public void processResponse(ResponseEvent responseEvent) {
-		try {
-            SipProvider sipProvider = (SipProvider) responseEvent.getSource();
-            Response response = responseEvent.getResponse();
-            SipProvider sender=null;
-            
-            if (sipProvider == this.internalSipProvider) {
-            	if(logger.isLoggable(Level.FINEST)) {
-            		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
-            	}
-            	 // Topmost via header is me. As it is reponse to external request
-                response.removeFirst(ViaHeader.NAME);
-            	
-                sender=this.externalSipProvider;
-                
-                //Register will be cleaned in the processXXXTerminated jsip callback 
-                //Here if we get response other than 100-2xx we have to clean register from this session                
-//                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
-//                	register.unStickSessionFromNode(callID);
-//                }
-            } else {
-                //Topmost via header is proxy, we leave it
-            	//This happens as proxy sets RR to external interface, but it sets Via to itself.
-            	if(logger.isLoggable(Level.FINEST)) {
-            		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
-            	}
-            	sender=this.internalSipProvider;
-            	
-            	//Register will be cleaned in the processXXXTerminated jsip callback
-            	//Here we should care only for BYE, all other are send without any change
-            	//We dont even bother status, as BYE means that UAS wants to terminate.
-//            	if(method.equals(Request.BYE)) {
-//            		register.unStickSessionFromNode(callID);
-//            	}
-            }
-            sender.sendResponse(response);
-        } catch (Exception ex) {
-            ex.printStackTrace();
+		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
+        Response originalResponse = responseEvent.getResponse();
+        if(!Request.CANCEL.equalsIgnoreCase(((CSeqHeader)originalResponse.getHeader(CSeqHeader.NAME)).getMethod())) {
+	        Response response = (Response) originalResponse.clone();
+	        
+			try {
+	//            SipProvider sender=null;
+	            if (sipProvider == this.internalSipProvider) {
+	            	if(logger.isLoggable(Level.FINEST)) {
+	            		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
+	            	}
+	            	 // Topmost via header is me. As it is reponse to external request
+	                response.removeFirst(ViaHeader.NAME);
+	            	
+	//                sender=this.externalSipProvider;
+	                
+	                //Register will be cleaned in the processXXXTerminated jsip callback 
+	                //Here if we get response other than 100-2xx we have to clean register from this session                
+	//                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
+	//                	register.unStickSessionFromNode(callID);
+	//                }
+	            } else {
+	                //Topmost via header is proxy, we leave it
+	            	//This happens as proxy sets RR to external interface, but it sets Via to itself.
+	            	if(logger.isLoggable(Level.FINEST)) {
+	            		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
+	            	}
+	            	// Topmost via header is me. As it is reponse to external request
+	                response.removeFirst(ViaHeader.NAME);
+	                
+	//            	sender=this.internalSipProvider;
+	            	
+	            	//Register will be cleaned in the processXXXTerminated jsip callback
+	            	//Here we should care only for BYE, all other are send without any change
+	            	//We dont even bother status, as BYE means that UAS wants to terminate.
+	//            	if(method.equals(Request.BYE)) {
+	//            		register.unStickSessionFromNode(callID);
+	//            	}
+	            }
+	            ServerTransaction serverTransaction = (ServerTransaction)responseEvent.getClientTransaction().getApplicationData();
+	            serverTransaction.sendResponse(response);
+	        } catch (Exception ex) {
+	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response, ex);
+	        }
         }
 	}
 
