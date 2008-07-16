@@ -1,8 +1,13 @@
 package org.mobicents.tools.sip.balancer;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,29 +24,46 @@ public class BalancerRunner {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		if (args.length < 3) {
+		if (args.length < 1) {
 			logger.fine("Insufficient args");
 			throw new IllegalArgumentException(
-					"Bad args: supply ip address and internal port and external port ");
+					"Bad args: supply configuration file location ");
 		}
 		
-		// This is my IP Address
-		String ipAddress = args[0];
-		int port;
-		int externalPort;
-		//int serverPort;
-		try {
-			// This is the proxy port at which I am listening.
-			port = Integer.parseInt(args[1]);
-			externalPort = Integer.parseInt(args[2]);
-			//serverPort = Integer.parseInt(args[3]);
-
-		} catch (NumberFormatException nfe) {
-			nfe.printStackTrace();
-			logger.fine("arguments are IPAddress port");
-			throw nfe;
+		// Configuration file Location
+		String configurationFileLocation = args[0];
+		File file = new File(configurationFileLocation);
+        FileInputStream fileInputStream = null;
+        try {
+        	fileInputStream = new FileInputStream(file);
+		} catch (FileNotFoundException e) {
+			throw new IllegalArgumentException("the configuration file location " + configurationFileLocation + " does not exists !");
 		}
+        
+        Properties properties = new Properties();
+        try {
+			properties.load(fileInputStream);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
+		}
+		
+//		int port;
+//		int externalPort;
+		//int serverPort;
+//		try {
+//			// This is the proxy port at which I am listening.
+//			port = Integer.parseInt(args[1]);
+//			externalPort = Integer.parseInt(args[2]);
+//			//serverPort = Integer.parseInt(args[3]);
+//
+//		} catch (NumberFormatException nfe) {
+//			nfe.printStackTrace();
+//			logger.fine("arguments are IPAddress port");
+//			throw nfe;
+//		}
 
+		String ipAddress = properties.getProperty("host");
+		
 		NodeRegisterImpl reg = null;
 		InetAddress addr = null;
 		try {
@@ -61,8 +83,7 @@ public class BalancerRunner {
 			}
 			server.registerMBean(reg, on);
 			RouterImpl.setRegister(reg);
-			SIPBalancerForwarder fwd = new SIPBalancerForwarder(addr
-					.getHostAddress(), port, externalPort, reg);
+			SIPBalancerForwarder fwd = new SIPBalancerForwarder(properties, reg);
 			fwd.start();
 			reg.startServer();
 			if(logger.isLoggable(Level.FINEST)) {
