@@ -569,8 +569,8 @@ public class SIPBalancerForwarder implements SipListener {
 //            		register.unStickSessionFromNode(callID);
 //            	}
             }
-            try {
-	            ClientTransaction clientTransaction = responseEvent.getClientTransaction();
+            ClientTransaction clientTransaction = responseEvent.getClientTransaction();
+            try {	           
 	            if(clientTransaction != null) {
 		            ServerTransaction serverTransaction = (ServerTransaction)clientTransaction.getApplicationData();
 		            serverTransaction.sendResponse(response);
@@ -579,7 +579,8 @@ public class SIPBalancerForwarder implements SipListener {
 	            	sender.sendResponse(response);
 	            }
 	        } catch (Exception ex) {
-	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response, ex);
+	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response + 
+	        			" (transaction=" + clientTransaction + " / dialog=" + responseEvent.getDialog() + "", ex);
 	        }
         }
 	}
