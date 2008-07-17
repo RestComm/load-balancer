@@ -60,8 +60,6 @@ public class SIPBalancerForwarder implements SipListener {
 	private static Logger logger = Logger.getLogger(SIPBalancerForwarder.class
 			.getCanonicalName());
 
-	private String configurationFileLocation;
-	
 	private SipProvider internalSipProvider;
 
     private SipProvider externalSipProvider;
@@ -72,9 +70,9 @@ public class SIPBalancerForwarder implements SipListener {
 
     private int myExternalPort;
 
-    private AddressFactory addressFactory;
-    private HeaderFactory headerFactory;
-    private MessageFactory messageFactory;
+    private static AddressFactory addressFactory;
+    private static HeaderFactory headerFactory;
+    private static MessageFactory messageFactory;
 
     private SipStack sipStack;
 	
@@ -208,9 +206,10 @@ public class SIPBalancerForwarder implements SipListener {
          
         Request request = (Request) originalRequest.clone();
         
-        logger.info("transaction " + serverTransaction);
-        logger.info("dialog " + requestEvent.getDialog());
-        
+        if(logger.isLoggable(Level.FINEST)) {
+        	logger.finest("transaction " + serverTransaction);
+        	logger.finest("dialog " + requestEvent.getDialog());
+        }
 		try {
 			if(!Request.ACK.equals(request.getMethod()) && serverTransaction == null) {
 	         	serverTransaction = sipProvider.getNewServerTransaction(originalRequest);
@@ -353,13 +352,13 @@ public class SIPBalancerForwarder implements SipListener {
 	private void addLBRecordRoute(SipProvider sipProvider, Request request)
 			throws ParseException {
 		// Record route the invite so the bye comes to me. FIXME: Add check, on reINVITE we wont add ourselvses twice
-		SipURI sipUri = this.addressFactory
+		SipURI sipUri = addressFactory
 		        .createSipURI(null, sipProvider.getListeningPoint(
 		                ListeningPoint.UDP).getIPAddress());
 		sipUri.setPort(sipProvider.getListeningPoint(ListeningPoint.UDP).getPort());
 		//See RFC 3261 19.1.1 for lr parameter
 		sipUri.setLrParam();
-		Address address = this.addressFactory.createAddress(sipUri);
+		Address address = addressFactory.createAddress(sipUri);
 		address.setURI(sipUri);
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("ADDING RRH:"+address);
@@ -370,13 +369,13 @@ public class SIPBalancerForwarder implements SipListener {
 		//We need to use double record (better option than record route rewriting) routing otherwise it is impossible :
 		//a) to forward BYE from the callee side to the caller
 		//b) to support different transports
-		SipURI internalSipUri = this.addressFactory
+		SipURI internalSipUri = addressFactory
 		        .createSipURI(null, internalSipProvider.getListeningPoint(
 		                ListeningPoint.UDP).getIPAddress());
 		internalSipUri.setPort(internalSipProvider.getListeningPoint(ListeningPoint.UDP).getPort());
 		//See RFC 3261 19.1.1 for lr parameter
 		internalSipUri.setLrParam();
-		Address internalAddress = this.addressFactory.createAddress(internalSipUri);
+		Address internalAddress = addressFactory.createAddress(internalSipUri);
 		internalAddress.setURI(internalSipUri);
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("ADDING RRH:"+internalAddress);
@@ -401,7 +400,7 @@ public class SIPBalancerForwarder implements SipListener {
 		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
 		SIPNode node = register.stickSessionToNode(callID);
 		if(node != null) {
-			SipURI routeSipUri = this.addressFactory
+			SipURI routeSipUri = addressFactory
 		    	.createSipURI(null, node.getIp());
 			routeSipUri.setPort(node.getPort());
 			routeSipUri.setLrParam();
@@ -509,7 +508,7 @@ public class SIPBalancerForwarder implements SipListener {
 			
 //        	cancelRequest.addHeader(viaHeader);
 			
-			SipURI routeSipUri = this.addressFactory
+			SipURI routeSipUri = addressFactory
 		    	.createSipURI(null, node.getIp());
 			routeSipUri.setPort(node.getPort());
 			routeSipUri.setLrParam();
@@ -536,44 +535,49 @@ public class SIPBalancerForwarder implements SipListener {
 		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
         Response originalResponse = responseEvent.getResponse();
         if(!Request.CANCEL.equalsIgnoreCase(((CSeqHeader)originalResponse.getHeader(CSeqHeader.NAME)).getMethod())) {
+        	
 	        Response response = (Response) originalResponse.clone();
-	        
-			try {
-	//            SipProvider sender=null;
-	            if (sipProvider == this.internalSipProvider) {
-	            	if(logger.isLoggable(Level.FINEST)) {
-	            		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
-	            	}
-	            	 // Topmost via header is me. As it is reponse to external request
-	                response.removeFirst(ViaHeader.NAME);
-	            	
-	//                sender=this.externalSipProvider;
-	                
-	                //Register will be cleaned in the processXXXTerminated jsip callback 
-	                //Here if we get response other than 100-2xx we have to clean register from this session                
-	//                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
-	//                	register.unStickSessionFromNode(callID);
-	//                }
+	        // Topmost via header is me. As it is reponse to external request
+        	ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+        	//FIXME check against a list of host we may have too
+		    if(viaHeader.getHost().equalsIgnoreCase(myHost) && (viaHeader.getPort() == myExternalPort || viaHeader.getPort() == myPort)) {
+		    	response.removeFirst(ViaHeader.NAME);
+		    }
+		    			
+            SipProvider sender=null;
+            if (sipProvider == this.internalSipProvider) {
+            	if(logger.isLoggable(Level.FINEST)) {
+            		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
+            	}
+                sender=this.externalSipProvider;
+                //Register will be cleaned in the processXXXTerminated jsip callback 
+                //Here if we get response other than 100-2xx we have to clean register from this session                
+//                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
+//                	register.unStickSessionFromNode(callID);
+//                }
+            } else {
+                //Topmost via header is proxy, we leave it
+            	//This happens as proxy sets RR to external interface, but it sets Via to itself.
+            	if(logger.isLoggable(Level.FINEST)) {
+            		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
+            	}
+            	sender=this.internalSipProvider;
+            	//Register will be cleaned in the processXXXTerminated jsip callback
+            	//Here we should care only for BYE, all other are send without any change
+            	//We dont even bother status, as BYE means that UAS wants to terminate.
+//            	if(method.equals(Request.BYE)) {
+//            		register.unStickSessionFromNode(callID);
+//            	}
+            }
+            try {
+	            ClientTransaction clientTransaction = responseEvent.getClientTransaction();
+	            if(clientTransaction != null) {
+		            ServerTransaction serverTransaction = (ServerTransaction)clientTransaction.getApplicationData();
+		            serverTransaction.sendResponse(response);
 	            } else {
-	                //Topmost via header is proxy, we leave it
-	            	//This happens as proxy sets RR to external interface, but it sets Via to itself.
-	            	if(logger.isLoggable(Level.FINEST)) {
-	            		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
-	            	}
-	            	// Topmost via header is me. As it is reponse to external request
-	                response.removeFirst(ViaHeader.NAME);
-	                
-	//            	sender=this.internalSipProvider;
-	            	
-	            	//Register will be cleaned in the processXXXTerminated jsip callback
-	            	//Here we should care only for BYE, all other are send without any change
-	            	//We dont even bother status, as BYE means that UAS wants to terminate.
-	//            	if(method.equals(Request.BYE)) {
-	//            		register.unStickSessionFromNode(callID);
-	//            	}
+	            	//retransmission
+	            	sender.sendResponse(response);
 	            }
-	            ServerTransaction serverTransaction = (ServerTransaction)responseEvent.getClientTransaction().getApplicationData();
-	            serverTransaction.sendResponse(response);
 	        } catch (Exception ex) {
 	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response, ex);
 	        }
