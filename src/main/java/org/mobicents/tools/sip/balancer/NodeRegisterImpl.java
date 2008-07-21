@@ -159,9 +159,8 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public SIPNode getNextNode() throws IndexOutOfBoundsException {
-
-		int oldPtr = pointer++;
-		synchronized (nodes) {
+		synchronized (nodes) {			
+			int oldPtr = pointer++;
 			if (pointer >= nodes.size())
 				pointer = 0;
 			SIPNode chosen = this.nodes.get(oldPtr);
