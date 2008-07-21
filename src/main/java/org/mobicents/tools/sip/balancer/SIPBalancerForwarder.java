@@ -101,23 +101,6 @@ public class SIPBalancerForwarder implements SipListener {
         this.myHost = properties.getProperty("host");        
 		this.myPort = Integer.parseInt(properties.getProperty("internalPort"));
 		this.myExternalPort = Integer.parseInt(properties.getProperty("externalPort"));
-
-//        properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
-//        properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
-//        // You need 16 for logging traces. 32 for debug + traces.
-//        // Your code will limp at 32 but it is best for debugging.
-//        properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "32");
-//        properties.setProperty("gov.nist.javax.sip.DEBUG_LOG",
-//                "logs/sipbalancerforwarderdebug.txt");
-//        properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "logs/sipbalancerforwarder.xml");
-//        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "64");
-//        properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
-//        properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
-
-//        properties.setProperty("javax.sip.ROUTER_PATH", "org.mobicents.tools.sip.balancer.RouterImpl");
-//        properties.setProperty("javax.sip.OUTBOUND_PROXY", Integer
-//                .toString(myPort));
-//      properties.setProperty("javax.sip.RETRANSMISSION_FILTER", "true");
         
         try {
             // Create SipStack object
@@ -213,7 +196,13 @@ public class SIPBalancerForwarder implements SipListener {
 		try {
 			if(!Request.ACK.equals(request.getMethod()) && serverTransaction == null) {
 	         	serverTransaction = sipProvider.getNewServerTransaction(originalRequest);
-	        }
+	        }			
+			//send a Trying to stop retransmissions
+			if(Request.INVITE.equals(request.getMethod())) {
+				Response tryingResponse = messageFactory.createResponse
+	        		(Response.TRYING,request);
+				serverTransaction.sendResponse(tryingResponse);
+			}
 			
             if (sipProvider == this.externalSipProvider) {
                 processExternalRequest(requestEvent, sipProvider,
@@ -534,9 +523,16 @@ public class SIPBalancerForwarder implements SipListener {
 	public void processResponse(ResponseEvent responseEvent) {
 		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
         Response originalResponse = responseEvent.getResponse();
+        ClientTransaction clientTransaction = responseEvent.getClientTransaction();
+        
         //stateful proxy must not forward 100 Trying
         if (originalResponse.getStatusCode() == 100)
 			return;
+        //we drop retransmissions since the proxy tx will retransmit for us
+        if(clientTransaction == null) {
+        	return;
+        }
+        
         if(!Request.CANCEL.equalsIgnoreCase(((CSeqHeader)originalResponse.getHeader(CSeqHeader.NAME)).getMethod())) {
         	
 	        Response response = (Response) originalResponse.clone();
@@ -547,12 +543,12 @@ public class SIPBalancerForwarder implements SipListener {
 		    	response.removeFirst(ViaHeader.NAME);
 		    }
 		    			
-            SipProvider sender=null;
+//            SipProvider sender=null;
             if (sipProvider == this.internalSipProvider) {
             	if(logger.isLoggable(Level.FINEST)) {
             		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
             	}
-                sender=this.externalSipProvider;
+//                sender=this.externalSipProvider;
                 //Register will be cleaned in the processXXXTerminated jsip callback 
                 //Here if we get response other than 100-2xx we have to clean register from this session                
 //                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
@@ -564,7 +560,7 @@ public class SIPBalancerForwarder implements SipListener {
             	if(logger.isLoggable(Level.FINEST)) {
             		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
             	}
-            	sender=this.internalSipProvider;
+//            	sender=this.internalSipProvider;
             	//Register will be cleaned in the processXXXTerminated jsip callback
             	//Here we should care only for BYE, all other are send without any change
             	//We dont even bother status, as BYE means that UAS wants to terminate.
@@ -572,15 +568,12 @@ public class SIPBalancerForwarder implements SipListener {
 //            		register.unStickSessionFromNode(callID);
 //            	}
             }
-            ClientTransaction clientTransaction = responseEvent.getClientTransaction();
+            
             try {	           
 	            if(clientTransaction != null) {
 		            ServerTransaction serverTransaction = (ServerTransaction)clientTransaction.getApplicationData();
 		            serverTransaction.sendResponse(response);
-	            } else {
-	            	//retransmission
-	            	sender.sendResponse(response);
-	            }
+	            } 
 	        } catch (Exception ex) {
 	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response + 
 	        			" (transaction=" + clientTransaction + " / dialog=" + responseEvent.getDialog() + "", ex);
