@@ -534,6 +534,9 @@ public class SIPBalancerForwarder implements SipListener {
 	public void processResponse(ResponseEvent responseEvent) {
 		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
         Response originalResponse = responseEvent.getResponse();
+        //stateful proxy must not forward 100 Trying
+        if (originalResponse.getStatusCode() == 100)
+			return;
         if(!Request.CANCEL.equalsIgnoreCase(((CSeqHeader)originalResponse.getHeader(CSeqHeader.NAME)).getMethod())) {
         	
 	        Response response = (Response) originalResponse.clone();
