@@ -31,6 +31,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	
 	//FIXME make them configurable
 	public static final int REGISTRY_PORT = 2000;
+	public static final int POINTER_START = -1;
 	private long nodeInfoExpirationTaskInterval = 5000;
 	private long nodeExpiration = 5100;
 	
@@ -38,7 +39,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	private Timer taskTimer = new Timer();
 	private TimerTask nodeExpirationTask = null;
 
-	private int pointer = -1;
+	private int pointer = POINTER_START;
 
 	private List<SIPNode> nodes;
 	private ConcurrentHashMap<String, SIPNode> gluedSessions;
@@ -100,7 +101,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		nodes = null;
 		gluedSessions.clear();
 		gluedSessions = null;
-		pointer = -1;
+		pointer = POINTER_START;
 		logger.info("Node registry stopped.");
 		return isDeregistered;
 	}
@@ -158,12 +159,17 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	/**
 	 * {@inheritDoc}
 	 */
-	public SIPNode getNextNode() throws IndexOutOfBoundsException {
+	public SIPNode getNextNode() {
 		synchronized (nodes) {			
-			int oldPtr = pointer++;
-			if (pointer >= nodes.size())
-				pointer = -1;
-			SIPNode chosen = this.nodes.get(oldPtr);
+			if(nodes.size() < 1) {
+				return null;
+			}
+			pointer++;
+			if (pointer >= nodes.size()) {
+				pointer = 0;
+			}
+			SIPNode chosen = this.nodes.get(pointer);
+			
 			return chosen;	
 		}
 	}
@@ -172,18 +178,10 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public SIPNode stickSessionToNode(String callID) {
-
 		SIPNode node = gluedSessions.get(callID);
 		
 		if(node == null) {
-			SIPNode newStickyNode = null;
-			for (int i = 0; i < 5 && node == null; i++) {
-				try {
-					newStickyNode = this.getNextNode();
-				} catch (IndexOutOfBoundsException ioobe) {
-
-				}	
-			}
+			SIPNode newStickyNode = this.getNextNode();
 			if (newStickyNode  != null) {
 				node = gluedSessions.putIfAbsent(callID, newStickyNode);
 				if(node == null) {

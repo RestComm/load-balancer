@@ -479,12 +479,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		SIPNode node = register.getGluedNode(callID);
 		if (node == null) {
-			for (int i = 0; i < 5 && node == null; i++) {
-				try {
-					node = register.getNextNode();
-				} catch (IndexOutOfBoundsException ioobe) {
-				}
-			}
+			node = register.getNextNode();
 		}
 		if(node != null) {
 			Response response = messageFactory.createResponse
