@@ -38,7 +38,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	private Timer taskTimer = new Timer();
 	private TimerTask nodeExpirationTask = null;
 
-	private int pointer = 0;
+	private int pointer = -1;
 
 	private List<SIPNode> nodes;
 	private ConcurrentHashMap<String, SIPNode> gluedSessions;
@@ -100,7 +100,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		nodes = null;
 		gluedSessions.clear();
 		gluedSessions = null;
-		pointer = 0;
+		pointer = -1;
 		logger.info("Node registry stopped.");
 		return isDeregistered;
 	}
@@ -162,7 +162,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		synchronized (nodes) {			
 			int oldPtr = pointer++;
 			if (pointer >= nodes.size())
-				pointer = 0;
+				pointer = -1;
 			SIPNode chosen = this.nodes.get(oldPtr);
 			return chosen;	
 		}
@@ -173,19 +173,24 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 */
 	public SIPNode stickSessionToNode(String callID) {
 
-		if (this.gluedSessions.containsKey(callID))
-			return gluedSessions.get(callID);
+		SIPNode node = gluedSessions.get(callID);
+		
+		if(node == null) {
+			SIPNode newStickyNode = null;
+			for (int i = 0; i < 5 && node == null; i++) {
+				try {
+					newStickyNode = this.getNextNode();
+				} catch (IndexOutOfBoundsException ioobe) {
 
-		SIPNode node = null;
-		for (int i = 0; i < 5 && node == null; i++)
-			try {
-				node = this.getNextNode();
-			} catch (IndexOutOfBoundsException ioobe) {
-
+				}	
 			}
-		if (node != null) {
-			gluedSessions.putIfAbsent(callID, node);
-		}
+			if (newStickyNode  != null) {
+				node = gluedSessions.putIfAbsent(callID, newStickyNode);
+				if(node == null) {
+					node = newStickyNode; 
+				}
+			}
+		}		
 
 		return node;
 	}
