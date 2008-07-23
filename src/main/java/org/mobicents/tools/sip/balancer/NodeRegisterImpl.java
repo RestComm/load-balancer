@@ -8,10 +8,12 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,7 +33,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	
 	//FIXME make them configurable
 	public static final int REGISTRY_PORT = 2000;
-	public static final int POINTER_START = -1;
+	public static final int POINTER_START = 0;
 	private long nodeInfoExpirationTaskInterval = 5000;
 	private long nodeExpiration = 5100;
 	
@@ -39,9 +41,10 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	private Timer taskTimer = new Timer();
 	private TimerTask nodeExpirationTask = null;
 
+	private Object lock = new Object();
 	private int pointer = POINTER_START;
 
-	private List<SIPNode> nodes;
+	private CopyOnWriteArrayList<SIPNode> nodes;
 	private ConcurrentHashMap<String, SIPNode> gluedSessions;
 	
 	private InetAddress serverAddress = null;
@@ -56,9 +59,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public List<SIPNode> getGatheredInfo() {
-		synchronized (nodes) {
-			return new ArrayList<SIPNode>(this.nodes);	
-		}
+		return new ArrayList<SIPNode>(this.nodes);	
 	}
 	
 	/**
@@ -67,7 +68,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	public boolean startServer() {
 		logger.info("Node registry starting...");
 		try {
-			nodes = new ArrayList<SIPNode>();
+			nodes = new CopyOnWriteArrayList<SIPNode>();
 			gluedSessions = new ConcurrentHashMap<String, SIPNode>();
 
 			register(serverAddress);
@@ -95,9 +96,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		boolean isDeregistered = deregister(serverAddress);
 		boolean taskCancelled = nodeExpirationTask.cancel();
 		logger.info("Node Expiration Task cancelled " + taskCancelled);
-		synchronized (nodes) {
-			nodes.clear();
-		}
+		nodes.clear();
 		nodes = null;
 		gluedSessions.clear();
 		gluedSessions = null;
@@ -160,18 +159,16 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public SIPNode getNextNode() {
-		synchronized (nodes) {			
-			if(nodes.size() < 1) {
-				return null;
-			}
-			pointer++;
-			if (pointer >= nodes.size()) {
-				pointer = 0;
-			}
-			SIPNode chosen = this.nodes.get(pointer);
-			
-			return chosen;	
+		int nodesSize = nodes.size(); 
+		if(nodesSize < 1) {
+			return null;
 		}
+		int index = 0;
+		synchronized (lock) {
+			pointer++;
+			index = pointer % nodesSize;
+		}
+		return this.nodes.get(index);
 	}
 	
 	/**
@@ -202,33 +199,35 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	}
 
 	class NodeExpirationTimerTask extends TimerTask {
-		List<SIPNode> nodesToRemove;
+//		List<SIPNode> nodesToRemove;
 		
 		public NodeExpirationTimerTask() {
-			nodesToRemove = new ArrayList<SIPNode>();
+//			nodesToRemove = new ArrayList<SIPNode>();
 		}
 		
 		public void run() {
-			logger.info("NodeExpirationTimerTask Running");
-			synchronized (nodes) {
-				for (int i = 0; i < nodes.size(); i++) {
-					SIPNode node = nodes.get(i);
-					logger.info("NodeExpirationTimerTask Run Sync["
-									+ node + "]");
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("NodeExpirationTimerTask Running");
+			}
+			for (SIPNode node : nodes) {
 				
-					if (node.getTimeStamp() + nodeExpiration < System
-							.currentTimeMillis()) {
-						nodesToRemove.add(node);
-					}
-					logger.info("NodeExpirationTimerTask Run NSync["
-									+ node + "]");
-				}	
-				for (SIPNode node : nodesToRemove) {
+				if (node.getTimeStamp() + nodeExpiration < System
+						.currentTimeMillis()) {
 					nodes.remove(node);
+					if(logger.isLoggable(Level.INFO)) {
+						logger.info("NodeExpirationTimerTask Run NSync["
+							+ node + "] removed");
+					}
+				} else {
+					if(logger.isLoggable(Level.INFO)) {
+						logger.info("node time stamp : " + (node.getTimeStamp() + nodeExpiration) + " , current time : "
+							+ System.currentTimeMillis());
+					}
 				}
 			}
-			nodesToRemove.clear();			
-			logger.info("NodeExpirationTimerTask Done");
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("NodeExpirationTimerTask Done");
+			}
 		}
 
 	}
@@ -237,15 +236,32 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public void handlePingInRegister(ArrayList<SIPNode> ping) {
-
-		for (SIPNode node : ping) {
-			synchronized (nodes) {
-				if (nodes.contains(node)) {
-					nodes.get(nodes.indexOf(node)).updateTimerStamp();
-				} else {
-					nodes.add(node);
-				}	
-			}	
+		for (SIPNode pingNode : ping) {
+			if(nodes.size() < 1) {
+				nodes.add(pingNode);
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("NodeExpirationTimerTask Run NSync["
+						+ pingNode + "] added");
+				}
+				return ;
+			}
+			SIPNode nodePresent = null;
+			Iterator<SIPNode> nodesIterator = nodes.iterator();
+			while (nodesIterator.hasNext() && nodePresent == null) {
+				SIPNode node = (SIPNode) nodesIterator.next();
+				if (node.equals(pingNode)) {
+					nodePresent = node;
+				}
+			}
+			if(nodePresent != null) {
+				nodePresent.updateTimerStamp();
+			} else {
+				nodes.add(pingNode);
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("NodeExpirationTimerTask Run NSync["
+						+ pingNode + "] added");
+				}
+			}					
 		}
 	}
 	
