@@ -44,7 +44,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	private Object lock = new Object();
 	private int pointer = POINTER_START;
 
-	private CopyOnWriteArrayList<SIPNode> nodes;
+	private List<SIPNode> nodes;
 	private ConcurrentHashMap<String, SIPNode> gluedSessions;
 	
 	private InetAddress serverAddress = null;
