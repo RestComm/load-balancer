@@ -14,6 +14,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,8 +42,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	private Timer taskTimer = new Timer();
 	private TimerTask nodeExpirationTask = null;
 
-	private Object lock = new Object();
-	private int pointer = POINTER_START;
+	private AtomicInteger pointer;
 
 	private List<SIPNode> nodes;
 	private ConcurrentHashMap<String, SIPNode> gluedSessions;
@@ -59,7 +59,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public List<SIPNode> getGatheredInfo() {
-		return new ArrayList<SIPNode>(this.nodes);	
+		return this.nodes;	
 	}
 	
 	/**
@@ -70,7 +70,8 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		try {
 			nodes = new CopyOnWriteArrayList<SIPNode>();
 			gluedSessions = new ConcurrentHashMap<String, SIPNode>();
-
+			pointer = new AtomicInteger(POINTER_START);
+			
 			register(serverAddress);
 			
 			this.nodeExpirationTask = new NodeExpirationTimerTask();
@@ -100,7 +101,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		nodes = null;
 		gluedSessions.clear();
 		gluedSessions = null;
-		pointer = POINTER_START;
+		pointer = new AtomicInteger(POINTER_START);
 		logger.info("Node registry stopped.");
 		return isDeregistered;
 	}
@@ -163,11 +164,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		if(nodesSize < 1) {
 			return null;
 		}
-		int index = 0;
-		synchronized (lock) {
-			pointer++;
-			index = pointer % nodesSize;
-		}
+		int index = pointer.getAndIncrement() % nodesSize;
 		return this.nodes.get(index);
 	}
 	
