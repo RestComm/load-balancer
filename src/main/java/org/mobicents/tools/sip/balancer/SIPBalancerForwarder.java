@@ -4,9 +4,13 @@ import gov.nist.javax.sip.header.CallID;
 import gov.nist.javax.sip.stack.SIPServerTransaction;
 
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,8 +59,6 @@ import javax.sip.message.Response;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  */
 public class SIPBalancerForwarder implements SipListener {
-	private static final String MAGIC_COOKIE = "z9hG4bK";
-
 	private static Logger logger = Logger.getLogger(SIPBalancerForwarder.class
 			.getCanonicalName());
 
@@ -248,7 +250,7 @@ public class SIPBalancerForwarder implements SipListener {
 		if (request.getMethod().equals(Request.INVITE) || request.getMethod().equals(Request.SUBSCRIBE)) {
 			throw new IllegalStateException("Illegal state!! unexpected dialog creating request " + request);
 		} else {            		
-		    removeRouteHeaderMeantForLB(request);   
+		    removeRouteHeadersMeantForLB(request);   
 		    // BYE coming from the callee by example
 //                    String branchId = MAGIC_COOKIE + Math.random()*31 + "" + System.currentTimeMillis();
 		    ViaHeader viaHeader = headerFactory.createViaHeader(
@@ -285,29 +287,42 @@ public class SIPBalancerForwarder implements SipListener {
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("GOT EXTERNAL REQUEST:\n"+request);
 		}
-		//if(request.getMethod().equals(Request.BYE))
-		//	return;
-		// Tack our own via header to the request.
-		// Tack on our internal port so the other side responds to me.
-//                String branchId = MAGIC_COOKIE + Math.random()*31 + "" + System.currentTimeMillis();
 		ViaHeader viaHeader = headerFactory.createViaHeader(
 		        this.myHost, this.myPort, ListeningPoint.UDP, null);
 		
 		decreaseMaxForwardsHeader(sipProvider, request);
 		
-		removeRouteHeaderMeantForLB(request);                
+		removeRouteHeadersMeantForLB(request);                		
 		
 		if (request.getMethod().equals(Request.INVITE) || request.getMethod().equals(Request.SUBSCRIBE)) {
-//                	serverTransaction.setApplicationData(branchId);
 			addLBRecordRoute(sipProvider, request);
-		} /* else if ( request.getMethod().equals(Request.BYE)) {
-		    // Should have me on the route list.
-		    request.removeFirst(RouteHeader.NAME);
-		} */
+		} else if (!request.getMethod().equals(Request.ACK)) {
+		    // Check if the node is still alive for subsequent requests
+			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+			Map<String, String> parameters = null;
+			boolean isSIPNodePresent = true;
+			if(routeHeader != null) {
+				SipURI route = ((SipURI)routeHeader.getAddress().getURI());
+				parameters = new HashMap<String, String>();
+				Iterator<String> routeParametersIt = route.getParameterNames();
+				while(routeParametersIt.hasNext()) {
+					String routeParameterName = routeParametersIt.next();
+					String routeParameterValue = route.getParameter(routeParameterName);
+					parameters.put(routeParameterName, routeParameterValue);
+				}
+				isSIPNodePresent = register.isSIPNodePresent(route.getHost(), route.getPort(), route.getTransportParam());
+			}			
+			if(!isSIPNodePresent) {
+				String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
+				register.unStickSessionFromNode(callID);
+				request.removeFirst(RouteHeader.NAME);
+				addRouteToNode(originalRequest, serverTransaction, request, parameters);
+			}
+		}
 				 		
 		String method = request.getMethod();
 		if (method.equals(Request.INVITE) || method.equals(Request.SUBSCRIBE)) {
-			addRouteToNode(originalRequest, serverTransaction, request);
+			addRouteToNode(originalRequest, serverTransaction, request, null);
 		}
 		// CANCEL is hop by hop, so replying to the CANCEL by generating a 200 OK and sending a CANCEL
 		else if (method.equals(Request.CANCEL)) {
@@ -373,17 +388,18 @@ public class SIPBalancerForwarder implements SipListener {
 		        .createRecordRouteHeader(internalAddress);                    
 		request.addHeader(internalRecordRoute);
 	}
-
+	
 	/**
 	 * @param originalRequest
 	 * @param serverTransaction
 	 * @param request
+	 * @param parameters 
 	 * @throws ParseException
 	 * @throws SipException
 	 * @throws InvalidArgumentException
 	 */
 	private void addRouteToNode(Request originalRequest,
-			ServerTransaction serverTransaction, Request request)
+			ServerTransaction serverTransaction, Request request, Map<String, String> parameters)
 			throws ParseException, SipException, InvalidArgumentException {
 		//Adding Route Header pointing to the node the sip balancer wants to forward to
 		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
@@ -393,6 +409,12 @@ public class SIPBalancerForwarder implements SipListener {
 		    	.createSipURI(null, node.getIp());
 			routeSipUri.setPort(node.getPort());
 			routeSipUri.setLrParam();
+			if(parameters != null) {
+				Set<Entry<String, String>> routeParameters= parameters.entrySet();
+				for (Entry<String, String> entry : routeParameters) {
+					routeSipUri.setParameter(entry.getKey(), entry.getValue());	
+				}				
+			}
 			RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
 			request.addFirst(route);
 		} else {
@@ -406,7 +428,7 @@ public class SIPBalancerForwarder implements SipListener {
 	/**
 	 * @param request
 	 */
-	private void removeRouteHeaderMeantForLB(Request request) {
+	private void removeRouteHeadersMeantForLB(Request request) {
 		//Removing first routeHeader if it is for the sip balancer
 		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
@@ -538,12 +560,10 @@ public class SIPBalancerForwarder implements SipListener {
 		    	response.removeFirst(ViaHeader.NAME);
 		    }
 		    			
-//            SipProvider sender=null;
             if (sipProvider == this.internalSipProvider) {
             	if(logger.isLoggable(Level.FINEST)) {
             		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
             	}
-//                sender=this.externalSipProvider;
                 //Register will be cleaned in the processXXXTerminated jsip callback 
                 //Here if we get response other than 100-2xx we have to clean register from this session                
 //                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
@@ -555,7 +575,6 @@ public class SIPBalancerForwarder implements SipListener {
             	if(logger.isLoggable(Level.FINEST)) {
             		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
             	}
-//            	sender=this.internalSipProvider;
             	//Register will be cleaned in the processXXXTerminated jsip callback
             	//Here we should care only for BYE, all other are send without any change
             	//We dont even bother status, as BYE means that UAS wants to terminate.

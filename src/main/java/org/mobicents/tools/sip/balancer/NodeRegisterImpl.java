@@ -195,16 +195,34 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		return this.gluedSessions.get(callID);
 	}
 
-	class NodeExpirationTimerTask extends TimerTask {
-//		List<SIPNode> nodesToRemove;
-		
-		public NodeExpirationTimerTask() {
-//			nodesToRemove = new ArrayList<SIPNode>();
+	/**
+	 * {@inheritDoc}
+	 */
+	public boolean isSIPNodePresent(String host, int port, String transport)  {
+		logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport);
+		for (SIPNode node : nodes) {
+			logger.info("node to check against " + node);
+			if(node.getIp().equals(host) && node.getPort() == port) {
+				String[] nodeTransports = node.getTransports();
+				if(nodeTransports.length > 0) {
+					for(String nodeTransport : nodeTransports) {
+						if(nodeTransport.equals(transport)) {
+							return true;
+						}
+					}
+				} else {
+					return true;
+				}
+			}
 		}
+		return false;
+	}
+	
+	class NodeExpirationTimerTask extends TimerTask {
 		
 		public void run() {
-			if(logger.isLoggable(Level.INFO)) {
-				logger.info("NodeExpirationTimerTask Running");
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("NodeExpirationTimerTask Running");
 			}
 			for (SIPNode node : nodes) {
 				
@@ -216,14 +234,14 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 							+ node + "] removed");
 					}
 				} else {
-					if(logger.isLoggable(Level.INFO)) {
-						logger.info("node time stamp : " + (node.getTimeStamp() + nodeExpiration) + " , current time : "
+					if(logger.isLoggable(Level.FINEST)) {
+						logger.finest("node time stamp : " + (node.getTimeStamp() + nodeExpiration) + " , current time : "
 							+ System.currentTimeMillis());
 					}
 				}
 			}
-			if(logger.isLoggable(Level.INFO)) {
-				logger.info("NodeExpirationTimerTask Done");
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("NodeExpirationTimerTask Done");
 			}
 		}
 
@@ -236,8 +254,8 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		for (SIPNode pingNode : ping) {
 			if(nodes.size() < 1) {
 				nodes.add(pingNode);
-				if(logger.isLoggable(Level.INFO)) {
-					logger.info("NodeExpirationTimerTask Run NSync["
+				if(logger.isLoggable(Level.FINEST)) {
+					logger.finest("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] added");
 				}
 				return ;
