@@ -302,22 +302,22 @@ public class SIPBalancerForwarder implements SipListener {
 			Map<String, String> parameters = null;
 			boolean isSIPNodePresent = true;
 			if(routeHeader != null) {
-				SipURI route = ((SipURI)routeHeader.getAddress().getURI());
-				parameters = new HashMap<String, String>();
-				Iterator<String> routeParametersIt = route.getParameterNames();
-				while(routeParametersIt.hasNext()) {
-					String routeParameterName = routeParametersIt.next();
-					String routeParameterValue = route.getParameter(routeParameterName);
-					parameters.put(routeParameterName, routeParameterValue);
-				}
+				SipURI route = ((SipURI)routeHeader.getAddress().getURI());				
 				isSIPNodePresent = register.isSIPNodePresent(route.getHost(), route.getPort(), route.getTransportParam());
-			}			
-			if(!isSIPNodePresent) {
-				String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
-				register.unStickSessionFromNode(callID);
-				request.removeFirst(RouteHeader.NAME);
-				addRouteToNode(originalRequest, serverTransaction, request, parameters);
-			}
+				if(!isSIPNodePresent) {
+					parameters = new HashMap<String, String>();
+					Iterator<String> routeParametersIt = route.getParameterNames();
+					while(routeParametersIt.hasNext()) {
+						String routeParameterName = routeParametersIt.next();
+						String routeParameterValue = route.getParameter(routeParameterName);
+						parameters.put(routeParameterName, routeParameterValue);
+					}
+					String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
+					register.unStickSessionFromNode(callID);
+					request.removeFirst(RouteHeader.NAME);
+					addRouteToNode(originalRequest, serverTransaction, request, parameters);
+				}				
+			}						
 		}
 				 		
 		String method = request.getMethod();

@@ -206,7 +206,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 				String[] nodeTransports = node.getTransports();
 				if(nodeTransports.length > 0) {
 					for(String nodeTransport : nodeTransports) {
-						if(nodeTransport.equals(transport)) {
+						if(nodeTransport.equalsIgnoreCase(transport)) {
 							return true;
 						}
 					}
