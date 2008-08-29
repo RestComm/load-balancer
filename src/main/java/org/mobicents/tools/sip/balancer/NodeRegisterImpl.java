@@ -254,8 +254,8 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		for (SIPNode pingNode : ping) {
 			if(nodes.size() < 1) {
 				nodes.add(pingNode);
-				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("NodeExpirationTimerTask Run NSync["
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] added");
 				}
 				return ;
