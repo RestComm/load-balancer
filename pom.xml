@@ -5,7 +5,7 @@
 	<parent>
 		<artifactId>mobicents</artifactId>
 		<groupId>org.mobicents</groupId>
-		<version>2-SNAPSHOT</version>
+		<version>5</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<groupId>org.mobicents.tools</groupId>
@@ -17,7 +17,7 @@
 	<properties>
 		<!-- MOBICENTS TOOL VERSIONS -->
 		<mobicents.tools.mavenplugin.eclipse.version>
-			1.0.0.BETA1-SNAPSHOT
+			1.0.0.BETA2
 		</mobicents.tools.mavenplugin.eclipse.version>
 	</properties>
 
