@@ -23,6 +23,7 @@ public interface NodeRegister extends Remote {
 	public void unStickSessionFromNode(String callID);
 	
 	public void handlePingInRegister(ArrayList<SIPNode> ping);
+	public void forceRemovalInRegister(ArrayList<SIPNode> ping);
 
 	public boolean isSIPNodePresent(String host, int port, String transportParam);
 	

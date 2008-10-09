@@ -66,7 +66,9 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public boolean startServer() {
-		logger.info("Node registry starting...");
+		if(logger.isLoggable(Level.INFO)) {
+			logger.info("Node registry starting...");
+		}
 		try {
 			nodes = new CopyOnWriteArrayList<SIPNode>();
 			gluedSessions = new ConcurrentHashMap<String, SIPNode>();
@@ -78,9 +80,10 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 			this.taskTimer.scheduleAtFixedRate(this.nodeExpirationTask,
 					this.nodeInfoExpirationTaskInterval,
 					this.nodeInfoExpirationTaskInterval);
-			logger.info("Node expiration task created");
-			
-			logger.info("Node registry started");
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Node expiration task created");							
+				logger.info("Node registry started");
+			}
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Unexpected exception while starting the registry", e);
 			return false;
@@ -93,16 +96,22 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public boolean stopServer() {
-		logger.info("Stopping node registry...");
+		if(logger.isLoggable(Level.INFO)) {
+			logger.info("Stopping node registry...");
+		}
 		boolean isDeregistered = deregister(serverAddress);
 		boolean taskCancelled = nodeExpirationTask.cancel();
-		logger.info("Node Expiration Task cancelled " + taskCancelled);
+		if(logger.isLoggable(Level.INFO)) {
+			logger.info("Node Expiration Task cancelled " + taskCancelled);
+		}
 		nodes.clear();
 		nodes = null;
 		gluedSessions.clear();
 		gluedSessions = null;
 		pointer = new AtomicInteger(POINTER_START);
-		logger.info("Node registry stopped.");
+		if(logger.isLoggable(Level.INFO)) {
+			logger.info("Node registry stopped.");
+		}
 		return isDeregistered;
 	}
 
@@ -114,9 +123,21 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 			super();
 		}
 		
+		/*
+		 * (non-Javadoc)
+		 * @see org.mobicents.tools.sip.balancer.NodeRegisterRMIStub#handlePing(java.util.ArrayList)
+		 */
 		public void handlePing(ArrayList<SIPNode> ping) throws RemoteException {
-			//CALL METHOD IN REGISTRY
 			handlePingInRegister(ping);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.mobicents.tools.sip.balancer.NodeRegisterRMIStub#forceRemoval(java.util.ArrayList)
+		 */
+		public void forceRemoval(ArrayList<SIPNode> ping)
+				throws RemoteException {
+			forceRemovalInRegister(ping);
 		}
 		
 	}
@@ -173,7 +194,12 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 */
 	public SIPNode stickSessionToNode(String callID) {
 		SIPNode node = gluedSessions.get(callID);
-		
+		// Issue 308 (http://code.google.com/p/mobicents/issues/detail?id=308)
+		// if we already stick a request to this node, but the server crashed and this is a retransmission
+		// we need to check if the node is still alive and pick another one if not
+		if(node != null && isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
+			node = null;
+		}
 		if(node == null) {
 			SIPNode newStickyNode = this.getNextNode();
 			if (newStickyNode  != null) {
@@ -198,22 +224,32 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	/**
 	 * {@inheritDoc}
 	 */
-	public boolean isSIPNodePresent(String host, int port, String transport)  {
-		logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport);
+	public boolean isSIPNodePresent(String host, int port, String transport)  {		
 		for (SIPNode node : nodes) {
-			logger.info("node to check against " + node);
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("node to check against " + node);
+			}
 			if(node.getIp().equals(host) && node.getPort() == port) {
 				String[] nodeTransports = node.getTransports();
 				if(nodeTransports.length > 0) {
 					for(String nodeTransport : nodeTransports) {
 						if(nodeTransport.equalsIgnoreCase(transport)) {
+							if(logger.isLoggable(Level.INFO)) {
+								logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
+							}
 							return true;
 						}
 					}
 				} else {
+					if(logger.isLoggable(Level.INFO)) {
+						logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
+					}
 					return true;
 				}
 			}
+		}
+		if(logger.isLoggable(Level.INFO)) {
+			logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : false");
 		}
 		return false;
 	}
@@ -268,6 +304,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 					nodePresent = node;
 				}
 			}
+			// adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
 			if(nodePresent != null) {
 				nodePresent.updateTimerStamp();
 			} else {
@@ -275,6 +312,38 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] added");
+				}
+			}					
+		}
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	public void forceRemovalInRegister(ArrayList<SIPNode> ping) {
+		for (SIPNode pingNode : ping) {
+			if(nodes.size() < 1) {
+				nodes.remove(pingNode);
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("NodeExpirationTimerTask Run NSync["
+						+ pingNode + "] forcibly removed due to a clean shutdown of a node");
+				}
+				return ;
+			}
+			boolean nodePresent = false;
+			Iterator<SIPNode> nodesIterator = nodes.iterator();
+			while (nodesIterator.hasNext() && !nodePresent) {
+				SIPNode node = (SIPNode) nodesIterator.next();
+				if (node.equals(pingNode)) {
+					nodePresent = true;
+				}
+			}
+			// removal done afterwards to avoid ConcurrentModificationException when removing the node while goign through the iterator
+			if(nodePresent) {
+				nodes.remove(pingNode);
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("NodeExpirationTimerTask Run NSync["
+						+ pingNode + "] forcibly removed due to a clean shutdown of a node. Numbers of nodes present in the balancer : " + nodes.size());
 				}
 			}					
 		}
