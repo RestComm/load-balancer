@@ -59,9 +59,24 @@ import javax.sip.message.Response;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  */
 public class SIPBalancerForwarder implements SipListener {
-	private static Logger logger = Logger.getLogger(SIPBalancerForwarder.class
+	private static final Logger logger = Logger.getLogger(SIPBalancerForwarder.class
 			.getCanonicalName());
 
+	private static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
+    
+    static{
+    	dialogCreationMethods.add(Request.INVITE);
+    	dialogCreationMethods.add(Request.SUBSCRIBE);
+    }
+	
+	/*
+	 * Those parameters is to indicate to the SIP Load Balancer, from which node comes from the request
+	 * so that it can stick the Call Id to this node and correctly route the subsequent requests. 
+	 */
+	public static final String ROUTE_PARAM_NODE_HOST = "node_host";
+
+	public static final String ROUTE_PARAM_NODE_PORT = "node_port";
+	
 	private SipProvider internalSipProvider;
 
     private SipProvider externalSipProvider;
@@ -80,14 +95,7 @@ public class SIPBalancerForwarder implements SipListener {
 	
 	private NodeRegister register;
 
-	private Properties properties;
-    
-    private static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
-    
-    static{
-    	dialogCreationMethods.add(Request.INVITE);
-    	dialogCreationMethods.add(Request.SUBSCRIBE);
-    }
+	private Properties properties;       
 	
 	public SIPBalancerForwarder(Properties properties, NodeRegister register) throws IllegalStateException{
 		super();
@@ -249,11 +257,10 @@ public class SIPBalancerForwarder implements SipListener {
 		if (request.getMethod().equals(Request.CANCEL)) {
 			processCancel(sipProvider, originalRequest, serverTransaction);
 			return;
-		} 
-		removeRouteHeadersMeantForLB(request);   
-		
+		}
 		decreaseMaxForwardsHeader(sipProvider, request);
 		
+		SIPNode sipNode = removeRouteHeadersMeantForLB(request);   
 		if (!request.getMethod().equals(Request.ACK)) {
 		    // Check if the node is still alive for subsequent requests
 			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
@@ -273,7 +280,7 @@ public class SIPBalancerForwarder implements SipListener {
 					String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
 					register.unStickSessionFromNode(callID);
 					request.removeFirst(RouteHeader.NAME);
-					addRouteToNode(originalRequest, serverTransaction, request, parameters);
+					addRouteToNode(originalRequest, serverTransaction, request, parameters, sipNode);
 				}				
 			}	
 		}		            			    
@@ -323,11 +330,10 @@ public class SIPBalancerForwarder implements SipListener {
 		        this.myHost, this.myPort, ListeningPoint.UDP, null);
 		
 		decreaseMaxForwardsHeader(sipProvider, request);
-		
-		removeRouteHeadersMeantForLB(request);                		
-		
 		addLBRecordRoute(sipProvider, request);
-		addRouteToNode(originalRequest, serverTransaction, request, null);
+		
+		SIPNode sipNode = removeRouteHeadersMeantForLB(request);                						
+		addRouteToNode(originalRequest, serverTransaction, request, null, sipNode);
 				 				
 //		if(logger.isLoggable(Level.FINEST)) {
 //			logger.finest("SENDING TO INTERNAL:"+request);
@@ -407,11 +413,11 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @throws InvalidArgumentException
 	 */
 	private void addRouteToNode(Request originalRequest,
-			ServerTransaction serverTransaction, Request request, Map<String, String> parameters)
+			ServerTransaction serverTransaction, Request request, Map<String, String> parameters, SIPNode sipNode)
 			throws ParseException, SipException, InvalidArgumentException {
 		//Adding Route Header pointing to the node the sip balancer wants to forward to
 		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
-		SIPNode node = register.stickSessionToNode(callID);
+		SIPNode node = register.stickSessionToNode(callID, sipNode);
 		if(node != null) {
 			SipURI routeSipUri = addressFactory
 		    	.createSipURI(null, node.getIp());
@@ -434,9 +440,19 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 
 	/**
+	 * Remove the different route headers that are meant for the Load balancer. 
+	 * There is two cases here :
+	 * <ul>
+	 * <li>* Requests coming from external and going to the cluster : dialog creating requests can have route header so that they go through the LB and subsequent requests 
+	 * will have route headers since the LB record routed</li>
+	 * <li>* Requests coming from the cluster and going to external : dialog creating requests can have route header so that they go through the LB - those requests will define in the route header
+	 * the originating node of the request so that that subsequent requests are routed to the originating node if still alive</li>
+	 * </ul>
+	 * 
 	 * @param request
 	 */
-	private void removeRouteHeadersMeantForLB(Request request) {
+	private SIPNode removeRouteHeadersMeantForLB(Request request) {
+		SIPNode node = null; 
 		//Removing first routeHeader if it is for the sip balancer
 		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
@@ -447,6 +463,7 @@ public class SIPBalancerForwarder implements SipListener {
 		    		logger.finest("this route header is for us removing it " + routeUri);
 		    	}
 		    	request.removeFirst(RouteHeader.NAME);
+		    	node = checkRouteHeaderForSipNode(routeHeader);
 		    	//since we used double record routing we may have 2 routes corresponding to us here
 		        // for ACK and BYE from caller for example
 		        routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
@@ -458,11 +475,33 @@ public class SIPBalancerForwarder implements SipListener {
 		            		logger.finest("this route header is for us removing it " + routeUri);
 		            	}
 		            	request.removeFirst(RouteHeader.NAME);
+		            	if(node == null) {
+		            		node = checkRouteHeaderForSipNode(routeHeader);
+		            	}
 		            }
 		            
 		        }
 		    }	                
 		}
+		return node;
+	}
+
+	/**
+	 * This will check if in the route header there is information on which node from the cluster send the request.
+	 * If the request is not received from the cluster, this information will not be present. 
+	 * @param routeHeader the route header to check
+	 * @return the corresponding Sip Node
+	 */
+	private SIPNode checkRouteHeaderForSipNode(RouteHeader routeHeader) {
+		SIPNode node = null;
+		SipURI routeSipUri = (SipURI)routeHeader.getAddress().getURI();
+		String hostNode = routeSipUri.getParameter(ROUTE_PARAM_NODE_HOST);
+		String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
+		if(hostNode != null && hostPort != null) {
+			int port = Integer.parseInt(hostPort);
+			node = register.getNode(hostNode, port, routeSipUri.getTransportParam());
+		}
+		return node;
 	}
 
 	/**
@@ -551,7 +590,7 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @see javax.sip.SipListener#processResponse(javax.sip.ResponseEvent)
 	 */
 	public void processResponse(ResponseEvent responseEvent) {
-		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
+//		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
         Response originalResponse = responseEvent.getResponse();
         ClientTransaction clientTransaction = responseEvent.getClientTransaction();
         

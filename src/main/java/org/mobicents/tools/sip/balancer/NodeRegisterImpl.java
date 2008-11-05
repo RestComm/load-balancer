@@ -192,8 +192,16 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	/**
 	 * {@inheritDoc}
 	 */
-	public SIPNode stickSessionToNode(String callID) {
-		SIPNode node = gluedSessions.get(callID);
+	public SIPNode stickSessionToNode(String callID, SIPNode sipNode) {
+		SIPNode node = null;
+		if(sipNode != null) {
+			node = gluedSessions.putIfAbsent(callID, sipNode);
+			if(node == null) {
+				node = sipNode; 
+			}
+		} else {
+			node = gluedSessions.get(callID);
+		}
 		// Issue 308 (http://code.google.com/p/mobicents/issues/detail?id=308)
 		// if we already stick a request to this node, but the server crashed and this is a retransmission
 		// we need to check if the node is still alive and pick another one if not
@@ -209,7 +217,9 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 				}
 			}
 		}		
-
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("sticking  CallId " + callID + " to node " + node);
+		}
 		return node;
 	}
 	
@@ -225,33 +235,43 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public boolean isSIPNodePresent(String host, int port, String transport)  {		
+		if(getNode(host, port, transport) != null) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	public SIPNode getNode(String host, int port, String transport)  {		
 		for (SIPNode node : nodes) {
-			if(logger.isLoggable(Level.INFO)) {
-				logger.info("node to check against " + node);
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("node to check against " + node);
 			}
 			if(node.getIp().equals(host) && node.getPort() == port) {
 				String[] nodeTransports = node.getTransports();
 				if(nodeTransports.length > 0) {
 					for(String nodeTransport : nodeTransports) {
 						if(nodeTransport.equalsIgnoreCase(transport)) {
-							if(logger.isLoggable(Level.INFO)) {
-								logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
+							if(logger.isLoggable(Level.FINEST)) {
+								logger.finest("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
 							}
-							return true;
+							return node;
 						}
 					}
 				} else {
-					if(logger.isLoggable(Level.INFO)) {
-						logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
+					if(logger.isLoggable(Level.FINEST)) {
+						logger.finest("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
 					}
-					return true;
+					return node;
 				}
 			}
 		}
-		if(logger.isLoggable(Level.INFO)) {
-			logger.info("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : false");
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : false");
 		}
-		return false;
+		return null;
 	}
 	
 	class NodeExpirationTimerTask extends TimerTask {

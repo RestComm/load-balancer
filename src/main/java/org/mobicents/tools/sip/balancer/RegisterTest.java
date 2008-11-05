@@ -15,6 +15,11 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
+/**
+ * @deprecated
+ * @author deruelle
+ *
+ */
 public class RegisterTest {
 
 	

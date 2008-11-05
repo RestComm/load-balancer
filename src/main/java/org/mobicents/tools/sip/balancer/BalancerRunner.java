@@ -14,6 +14,11 @@ import java.util.logging.Logger;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
+/**
+ * @deprecated
+ * @author deruelle
+ *
+ */
 public class BalancerRunner {
 
 	public static final String SIP_BALANCER_JMX_NAME = "slee:name=Balancer,type=sip";

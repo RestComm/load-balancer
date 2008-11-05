@@ -13,6 +13,7 @@ import javax.sip.address.Router;
 import javax.sip.message.Request;
 
 /**
+ * @deprecated
  * This custom implementation is not used anymore in the new sip balancer version
  * 
  * @author M. Ranganathan
@@ -41,7 +42,7 @@ public class RouterImpl implements Router {
 		String method = request.getMethod();
 
 		if (method.equals(Request.INVITE) || method.equals(Request.SUBSCRIBE)) {
-			node = register.stickSessionToNode(callID);
+			node = register.stickSessionToNode(callID, null);
 		} else if (method.equals(Request.BYE) || method.equals(Request.CANCEL)) {
 			// We have to clean, other side wants to go BYE ;/
 			node = register.getGluedNode(callID);

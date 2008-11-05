@@ -2,6 +2,7 @@ package org.mobicents.tools.sip.balancer;
 
 
 /**
+ * @deprecated
  * @author baranowb
  *
  */

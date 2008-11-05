@@ -16,7 +16,7 @@ public interface NodeRegister extends Remote {
 
 	public SIPNode getNextNode() throws IndexOutOfBoundsException;
 
-	public SIPNode stickSessionToNode(String callID);
+	public SIPNode stickSessionToNode(String callID, SIPNode node);
 	
 	public SIPNode getGluedNode(String callID);
 
@@ -26,5 +26,7 @@ public interface NodeRegister extends Remote {
 	public void forceRemovalInRegister(ArrayList<SIPNode> ping);
 
 	public boolean isSIPNodePresent(String host, int port, String transportParam);
+	
+	public SIPNode getNode(String host, int port, String transportParam);
 	
 }
