@@ -252,25 +252,31 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	private void processNonDialogCreatingRequest(SipProvider sipProvider, Request originalRequest,
 			ServerTransaction serverTransaction, Request request) throws ParseException, InvalidArgumentException,
-			TransactionUnavailableException, SipException {
+			TransactionUnavailableException, SipException {		
 		// CANCEL is hop by hop, so replying to the CANCEL by generating a 200 OK and sending a CANCEL
 		if (request.getMethod().equals(Request.CANCEL)) {
 			processCancel(sipProvider, originalRequest, serverTransaction);
 			return;
 		}
+		if(logger.isLoggable(Level.FINEST)) {
+        	logger.finest("got NON dialog creating request:\n " + request);
+        }
 		decreaseMaxForwardsHeader(sipProvider, request);
 		
 		SIPNode sipNode = removeRouteHeadersMeantForLB(request);   
-		if (!request.getMethod().equals(Request.ACK)) {
+		if (!request.getMethod().equals(Request.ACK)) {			
 		    // Check if the node is still alive for subsequent requests
 			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 			Map<String, String> parameters = null;
 			boolean isSIPNodePresent = true;
-			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
-			if(routeHeader != null) {
+			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();			
+			if(routeHeader != null ) {			
 				SipURI route = ((SipURI)routeHeader.getAddress().getURI());				
 				isSIPNodePresent = register.isSIPNodePresent(route.getHost(), route.getPort(), route.getTransportParam());
 				if(!isSIPNodePresent) {
+					if(logger.isLoggable(Level.FINEST)) {
+			    		logger.finest("node " + route + " is not alive anymore, picking another one ");
+			    	}
 					parameters = new HashMap<String, String>();
 					Iterator<String> routeParametersIt = route.getParameterNames();
 					while(routeParametersIt.hasNext()) {
@@ -280,37 +286,28 @@ public class SIPBalancerForwarder implements SipListener {
 					}					
 					register.unStickSessionFromNode(callID);
 					request.removeFirst(RouteHeader.NAME);
-					
-					if(sipNode == null) {
-						//if the sip node is null it means the request comes from external
-						//thus we need to add a route header
-						addRouteToNode(originalRequest, serverTransaction, request, parameters);
-					} else {
-						//if the sip node is not null it means the request comes from internal
-						//so we stick the node to the call id but don't add a route
-						SIPNode node = register.stickSessionToNode(callID, null);
-						if(node == null) {							
-							//No node present yet to forward the request to, thus sending 500 final error response
-							Response response = messageFactory.createResponse
-						    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
-						    serverTransaction.sendResponse(response);
-						}
-					}
+					addRouteToNode(originalRequest, serverTransaction, request, parameters);
 				}				
 			} else {
-				//it means that this is a UAC case
 				SIPNode node = register.getGluedNode(callID);
 				// checking if the gleued node is still alive, if not we pick a new node
-				if(!register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {					
+				if(!register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
+					if(logger.isLoggable(Level.FINEST)) {
+			    		logger.finest("node " + node + " is not alive anymore, picking another one ");
+			    	}
 					register.unStickSessionFromNode(callID);
 					node = register.stickSessionToNode(callID, null);					
 				} 
-				if(node != null) {
+				//we change the request uri only if the request is coming from the external side
+				if(sipProvider == externalSipProvider && node != null) {
+					if(logger.isLoggable(Level.FINEST)) {
+			    		logger.finest("request coming from external, setting the request URI to the one of the node " + node);
+			    	}	
 					SipURI requestURI = (SipURI)request.getRequestURI();
 					requestURI.setHost(node.getIp());
 					requestURI.setPort(node.getPort());
 					requestURI.setTransportParam(node.getTransports()[0]);
-				} else {
+				} else if(sipProvider == externalSipProvider) {
 					//No node present yet to forward the request to, thus sending 500 final error response
 					Response response = messageFactory.createResponse
 				    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
@@ -320,23 +317,25 @@ public class SIPBalancerForwarder implements SipListener {
 		}		            			    
 	    // BYE coming from the callee by example
 	    ViaHeader viaHeader = headerFactory.createViaHeader(
-	            this.myHost, this.myPort, ListeningPoint.UDP, null);
-	    
+	            this.myHost, this.myPort, ListeningPoint.UDP, null);	    
 	    // Add the via header to the top of the header list.
 	    request.addHeader(viaHeader);
-	    
+	    if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("ViaHeader added " + viaHeader);
+    	}
 	    SipProvider sendingSipProvider = externalSipProvider;
 		if(sipProvider == externalSipProvider) {
 			sendingSipProvider = internalSipProvider;
 		}
+		if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("sending the request:\n" + request + "\n on the other side");
+    	}
 		if(Request.ACK.equalsIgnoreCase(request.getMethod())) {
 			sendingSipProvider.sendRequest(request);
 		} else {	    
 		    ClientTransaction ctx = sendingSipProvider.getNewClientTransaction(request);
-		    
 		    serverTransaction.setApplicationData(ctx);
 		    ctx.setApplicationData(serverTransaction);
-		    
 		    ctx.sendRequest();
 		}
 	}
@@ -360,8 +359,6 @@ public class SIPBalancerForwarder implements SipListener {
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("got dialog creating request:\n"+request);
 		}
-		ViaHeader viaHeader = headerFactory.createViaHeader(
-		        this.myHost, this.myPort, ListeningPoint.UDP, null);
 		
 		decreaseMaxForwardsHeader(sipProvider, request);
 		addLBRecordRoute(sipProvider, request);
@@ -370,8 +367,14 @@ public class SIPBalancerForwarder implements SipListener {
 		if(sipNode == null) {
 			//if the sip node is null it means the request comes from external
 			//thus we need to add a route header
+			if(logger.isLoggable(Level.FINEST)) {
+	    		logger.finest("request is for UAS or proxy case");
+	    	}
 			addRouteToNode(originalRequest, serverTransaction, request, null);
 		} else {
+			if(logger.isLoggable(Level.FINEST)) {
+	    		logger.finest("request is coming from UAC");
+	    	}
 			//if the sip node is not null it means the request comes from internal
 			//so we stick the node to the call id but don't add a route
 			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
@@ -383,26 +386,27 @@ public class SIPBalancerForwarder implements SipListener {
 			    serverTransaction.sendResponse(response);
 			}
 		}		
-				 				
-//		if(logger.isLoggable(Level.FINEST)) {
-//			logger.finest("SENDING TO INTERNAL:"+request);
-//		}
-		
 		// Add the via header to the top of the header list.
-		request.addHeader(viaHeader);    
+		ViaHeader viaHeader = headerFactory.createViaHeader(
+		        this.myHost, this.myPort, ListeningPoint.UDP, null);
+		request.addHeader(viaHeader); 
+		if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("ViaHeader added " + viaHeader);
+    	}		
+		SipProvider sendingSipProvider = internalSipProvider;
+		if(sipProvider == internalSipProvider) {
+			sendingSipProvider = externalSipProvider;
+		}
+		if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("sending the request:\n" + request + "\n on the other side");
+    	}
 		//sending request
 		if(Request.ACK.equalsIgnoreCase(request.getMethod())) {
-			internalSipProvider.sendRequest(request);
+			sendingSipProvider.sendRequest(request);
 		} else {
-			SipProvider sendingSipProvider = internalSipProvider;
-			if(sipProvider == internalSipProvider) {
-				sendingSipProvider = externalSipProvider;
-			}
 			ClientTransaction ctx = sendingSipProvider.getNewClientTransaction(request);
-		        
 		    serverTransaction.setApplicationData(ctx);
 		    ctx.setApplicationData(serverTransaction);		                		               
-		
 		    ctx.sendRequest();
 		}
 	}
@@ -424,7 +428,7 @@ public class SIPBalancerForwarder implements SipListener {
 		Address address = addressFactory.createAddress(sipUri);
 		address.setURI(sipUri);
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("ADDING RRH:"+address);
+			logger.finest("adding Record Router Header :"+address);
 		}                    
 		RecordRouteHeader recordRoute = headerFactory
 		        .createRecordRouteHeader(address);                    
@@ -445,7 +449,7 @@ public class SIPBalancerForwarder implements SipListener {
 		Address sendingAddress = addressFactory.createAddress(sendingSipUri);
 		sendingAddress.setURI(sendingSipUri);
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("ADDING RRH:"+sendingAddress);
+			logger.finest("adding Record Router Header :"+sendingAddress);
 		}                    
 		RecordRouteHeader sendingRecordRoute = headerFactory
 		        .createRecordRouteHeader(sendingAddress);                    
@@ -464,10 +468,11 @@ public class SIPBalancerForwarder implements SipListener {
 	private void addRouteToNode(Request originalRequest,
 			ServerTransaction serverTransaction, Request request, Map<String, String> parameters)
 			throws ParseException, SipException, InvalidArgumentException {
-		//Adding Route Header pointing to the node the sip balancer wants to forward to
+		
 		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
 		SIPNode node = register.stickSessionToNode(callID, null);
 		if(node != null) {
+			//Adding Route Header pointing to the node the sip balancer wants to forward to
 			SipURI routeSipUri = addressFactory
 		    	.createSipURI(null, node.getIp());
 			routeSipUri.setPort(node.getPort());
@@ -501,15 +506,18 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @param request
 	 */
 	private SIPNode removeRouteHeadersMeantForLB(Request request) {
+		if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("Checking if there is any route headers meant for the LB to remove...");
+    	}
 		SIPNode node = null; 
 		//Removing first routeHeader if it is for the sip balancer
 		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
 		    SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
 		    //FIXME check against a list of host we may have too
-		    if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
+		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
 		    	if(logger.isLoggable(Level.FINEST)) {
-		    		logger.finest("this route header is for us removing it " + routeUri);
+		    		logger.finest("this route header is for the LB removing it " + routeUri);
 		    	}
 		    	request.removeFirst(RouteHeader.NAME);
 		    	node = checkRouteHeaderForSipNode(routeHeader);
@@ -519,9 +527,9 @@ public class SIPBalancerForwarder implements SipListener {
 		        if(routeHeader != null) {
 		            routeUri = (SipURI)routeHeader.getAddress().getURI();
 		            //FIXME check against a list of host we may have too
-		            if(routeUri.getHost().equalsIgnoreCase(myHost) && (routeUri.getPort() == myExternalPort || routeUri.getPort() == myPort)) {
+		            if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
 		            	if(logger.isLoggable(Level.FINEST)) {
-		            		logger.finest("this route header is for us removing it " + routeUri);
+		            		logger.finest("this route header is for the LB removing it " + routeUri);
 		            	}
 		            	request.removeFirst(RouteHeader.NAME);
 		            	if(node == null) {
@@ -532,9 +540,27 @@ public class SIPBalancerForwarder implements SipListener {
 		        }
 		    }	                
 		}
+		if(node !=null) {
+			if(logger.isLoggable(Level.FINEST)) {
+	    		logger.finest("Following node information has been found in one of the route Headers " + node);
+	    	}
+		}
 		return node;
 	}
-
+	
+	/**
+	 * Check if the sip uri is meant for the LB same host and same port
+	 * @param sipUri sip Uri to check 
+	 * @return
+	 */
+	private boolean isRouteHeaderExternal(String host, int port) {
+		 //FIXME check against a list of host we may have too
+		if(host.equalsIgnoreCase(myHost) && (port == myExternalPort || port == myPort)) {
+			return false;
+		}
+		return true;
+	}
+	
 	/**
 	 * This will check if in the route header there is information on which node from the cluster send the request.
 	 * If the request is not received from the cluster, this information will not be present. 
@@ -564,6 +590,9 @@ public class SIPBalancerForwarder implements SipListener {
 			Request request) throws InvalidArgumentException, ParseException,
 			SipException {
 		// Decreasing the Max Forward Header
+		if(logger.isLoggable(Level.FINEST)) {
+        	logger.finest("Decreasing  the Max Forward Header ");
+        }
 		MaxForwardsHeader maxForwardsHeader = (MaxForwardsHeader) request.getHeader(MaxForwardsHeader.NAME);
 		if (maxForwardsHeader == null) {
 			maxForwardsHeader = headerFactory.createMaxForwardsHeader(70);
@@ -592,6 +621,9 @@ public class SIPBalancerForwarder implements SipListener {
 			SipException, InvalidArgumentException,
 			TransactionUnavailableException {
 
+		if(logger.isLoggable(Level.FINEST)) {
+        	logger.finest("process Cancel " + originalRequest);
+        }
 		Transaction inviteTransaction = ((SIPServerTransaction) serverTransaction).getCanceledInviteTransaction();
 		String callID = ((CallID) originalRequest.getHeader(CallID.NAME)).getCallId();
 		
@@ -642,12 +674,21 @@ public class SIPBalancerForwarder implements SipListener {
 //		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
         Response originalResponse = responseEvent.getResponse();
         ClientTransaction clientTransaction = responseEvent.getClientTransaction();
-        
+        if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("got response :\n" + originalResponse);
+    	}
         //stateful proxy must not forward 100 Trying
-        if (originalResponse.getStatusCode() == 100)
-			return;
+        if (originalResponse.getStatusCode() == 100) {
+        	if(logger.isLoggable(Level.FINEST)) {
+         		logger.finest("dropping 100 response");
+         	}
+        	return;	
+        }		
         //we drop retransmissions since the proxy tx will retransmit for us
         if(clientTransaction == null) {
+        	if(logger.isLoggable(Level.FINEST)) {
+         		logger.finest("dropping retransmissions");
+         	}
         	return;
         }
         
@@ -657,7 +698,7 @@ public class SIPBalancerForwarder implements SipListener {
 	        // Topmost via header is me. As it is reponse to external request
         	ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
         	//FIXME check against a list of host we may have too
-		    if(viaHeader.getHost().equalsIgnoreCase(myHost) && (viaHeader.getPort() == myExternalPort || viaHeader.getPort() == myPort)) {
+		    if(!isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
 		    	response.removeFirst(ViaHeader.NAME);
 		    }
 		    			
@@ -693,6 +734,10 @@ public class SIPBalancerForwarder implements SipListener {
 	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response + 
 	        			" (transaction=" + clientTransaction + " / dialog=" + responseEvent.getDialog() + "", ex);
 	        }
+        } else {
+        	if(logger.isLoggable(Level.FINEST)) {
+         		logger.finest("dropping CANCEL responses, snce it hop by hop");
+         	}
         }
 	}
 
