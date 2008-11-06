@@ -266,6 +266,7 @@ public class SIPBalancerForwarder implements SipListener {
 			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 			Map<String, String> parameters = null;
 			boolean isSIPNodePresent = true;
+			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
 			if(routeHeader != null) {
 				SipURI route = ((SipURI)routeHeader.getAddress().getURI());				
 				isSIPNodePresent = register.isSIPNodePresent(route.getHost(), route.getPort(), route.getTransportParam());
@@ -276,13 +277,46 @@ public class SIPBalancerForwarder implements SipListener {
 						String routeParameterName = routeParametersIt.next();
 						String routeParameterValue = route.getParameter(routeParameterName);
 						parameters.put(routeParameterName, routeParameterValue);
-					}
-					String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
+					}					
 					register.unStickSessionFromNode(callID);
 					request.removeFirst(RouteHeader.NAME);
-					addRouteToNode(originalRequest, serverTransaction, request, parameters, sipNode);
+					
+					if(sipNode == null) {
+						//if the sip node is null it means the request comes from external
+						//thus we need to add a route header
+						addRouteToNode(originalRequest, serverTransaction, request, parameters);
+					} else {
+						//if the sip node is not null it means the request comes from internal
+						//so we stick the node to the call id but don't add a route
+						SIPNode node = register.stickSessionToNode(callID, null);
+						if(node == null) {							
+							//No node present yet to forward the request to, thus sending 500 final error response
+							Response response = messageFactory.createResponse
+						    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
+						    serverTransaction.sendResponse(response);
+						}
+					}
 				}				
-			}	
+			} else {
+				//it means that this is a UAC case
+				SIPNode node = register.getGluedNode(callID);
+				// checking if the gleued node is still alive, if not we pick a new node
+				if(!register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {					
+					register.unStickSessionFromNode(callID);
+					node = register.stickSessionToNode(callID, null);					
+				} 
+				if(node != null) {
+					SipURI requestURI = (SipURI)request.getRequestURI();
+					requestURI.setHost(node.getIp());
+					requestURI.setPort(node.getPort());
+					requestURI.setTransportParam(node.getTransports()[0]);
+				} else {
+					//No node present yet to forward the request to, thus sending 500 final error response
+					Response response = messageFactory.createResponse
+				    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
+				    serverTransaction.sendResponse(response);
+				}
+			}
 		}		            			    
 	    // BYE coming from the callee by example
 	    ViaHeader viaHeader = headerFactory.createViaHeader(
@@ -332,8 +366,23 @@ public class SIPBalancerForwarder implements SipListener {
 		decreaseMaxForwardsHeader(sipProvider, request);
 		addLBRecordRoute(sipProvider, request);
 		
-		SIPNode sipNode = removeRouteHeadersMeantForLB(request);                						
-		addRouteToNode(originalRequest, serverTransaction, request, null, sipNode);
+		SIPNode sipNode = removeRouteHeadersMeantForLB(request);    
+		if(sipNode == null) {
+			//if the sip node is null it means the request comes from external
+			//thus we need to add a route header
+			addRouteToNode(originalRequest, serverTransaction, request, null);
+		} else {
+			//if the sip node is not null it means the request comes from internal
+			//so we stick the node to the call id but don't add a route
+			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
+			SIPNode node = register.stickSessionToNode(callID, null);
+			if(node == null) {							
+				//No node present yet to forward the request to, thus sending 500 final error response
+				Response response = messageFactory.createResponse
+			    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
+			    serverTransaction.sendResponse(response);
+			}
+		}		
 				 				
 //		if(logger.isLoggable(Level.FINEST)) {
 //			logger.finest("SENDING TO INTERNAL:"+request);
@@ -413,11 +462,11 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @throws InvalidArgumentException
 	 */
 	private void addRouteToNode(Request originalRequest,
-			ServerTransaction serverTransaction, Request request, Map<String, String> parameters, SIPNode sipNode)
+			ServerTransaction serverTransaction, Request request, Map<String, String> parameters)
 			throws ParseException, SipException, InvalidArgumentException {
 		//Adding Route Header pointing to the node the sip balancer wants to forward to
 		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
-		SIPNode node = register.stickSessionToNode(callID, sipNode);
+		SIPNode node = register.stickSessionToNode(callID, null);
 		if(node != null) {
 			SipURI routeSipUri = addressFactory
 		    	.createSipURI(null, node.getIp());
@@ -686,7 +735,9 @@ public class SIPBalancerForwarder implements SipListener {
 				logger.finest("timeout => " + transaction.getRequest().toString());
 			}
 		}
-		String callId = ((CallIdHeader)transaction.getRequest().getHeader(CallIdHeader.NAME)).getCallId();
-		register.unStickSessionFromNode(callId);
+		if(Request.BYE.equals(transaction.getRequest().getMethod())) {
+			String callId = ((CallIdHeader)transaction.getRequest().getHeader(CallIdHeader.NAME)).getCallId();
+			register.unStickSessionFromNode(callId);
+		}
 	}
 }

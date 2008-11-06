@@ -173,8 +173,11 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	/**
 	 * {@inheritDoc}
 	 */
-	public void unStickSessionFromNode(String callID) {
-		gluedSessions.remove(callID);	
+	public void unStickSessionFromNode(String callID) {		
+		SIPNode node = gluedSessions.remove(callID);
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("unsticked  CallId " + callID + " from node " + node);
+		}
 	}
 
 	/**
@@ -205,7 +208,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 		// Issue 308 (http://code.google.com/p/mobicents/issues/detail?id=308)
 		// if we already stick a request to this node, but the server crashed and this is a retransmission
 		// we need to check if the node is still alive and pick another one if not
-		if(node != null && isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
+		if(node != null && !isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
 			node = null;
 		}
 		if(node == null) {
@@ -227,8 +230,11 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	 * {@inheritDoc}
 	 */
 	public SIPNode getGluedNode(String callID) {
-
-		return this.gluedSessions.get(callID);
+		SIPNode sipNode = this.gluedSessions.get(callID);;
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("glueued node " + sipNode + " for CallId " + callID);
+		}
+		return sipNode;
 	}
 
 	/**
