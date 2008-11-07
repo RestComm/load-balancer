@@ -291,7 +291,7 @@ public class SIPBalancerForwarder implements SipListener {
 			} else {
 				SIPNode node = register.getGluedNode(callID);
 				// checking if the gleued node is still alive, if not we pick a new node
-				if(!register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
+				if(node == null || !register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
 					if(logger.isLoggable(Level.FINEST)) {
 			    		logger.finest("node " + node + " is not alive anymore, picking another one ");
 			    	}
