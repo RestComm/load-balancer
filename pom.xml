@@ -8,7 +8,7 @@
 	</parent>
 	<groupId>org.mobicents.tools</groupId>
 	<artifactId>sip-balancer</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.0.BETA2</version>
 	<packaging>jar</packaging>
 	<name>sip-balancer</name>
 	<url>http://mobicents.org/</url>
@@ -163,4 +163,10 @@
 			</snapshots>
 		</repository>
 	</repositories>
+
+  <scm>
+    <connection>scm:svn:https://mobicents.googlecode.com/svn/tags/tools/sip-balancer/mobicents-tools-sip-balancer-1.0.BETA2</connection>
+    <developerConnection>scm:svn:https://mobicents.googlecode.com/svn/tags/tools/sip-balancer/mobicents-tools-sip-balancer-1.0.BETA2</developerConnection>
+    <url>http://mobicents.googlecode.com/svn/tags/tools/sip-balancer/mobicents-tools-sip-balancer-1.0.BETA2</url>
+  </scm>
 </project>
