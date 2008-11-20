@@ -92,7 +92,7 @@
 						true
 					</resolveTransitiveDependencies>
 					<eclipseProjectName>
-						sip-servlets-bootstrap
+						sip-load-balancer
 					</eclipseProjectName>
 				</configuration>
 			</plugin>
