@@ -15,7 +15,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 /**
- * @deprecated
  * @author deruelle
  *
  */
@@ -45,27 +44,12 @@ public class BalancerRunner {
 			throw new IllegalArgumentException("the configuration file location " + configurationFileLocation + " does not exists !");
 		}
         
-        Properties properties = new Properties();
+        Properties properties = new Properties(System.getProperties());
         try {
 			properties.load(fileInputStream);
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
 		}
-		
-//		int port;
-//		int externalPort;
-		//int serverPort;
-//		try {
-//			// This is the proxy port at which I am listening.
-//			port = Integer.parseInt(args[1]);
-//			externalPort = Integer.parseInt(args[2]);
-//			//serverPort = Integer.parseInt(args[3]);
-//
-//		} catch (NumberFormatException nfe) {
-//			nfe.printStackTrace();
-//			logger.fine("arguments are IPAddress port");
-//			throw nfe;
-//		}
 
 		String ipAddress = properties.getProperty("host");
 		
