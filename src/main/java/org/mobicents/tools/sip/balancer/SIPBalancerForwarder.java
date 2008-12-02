@@ -231,23 +231,23 @@ public class SIPBalancerForwarder implements SipListener {
         ServerTransaction serverTransaction = requestEvent.getServerTransaction();
          
         Request request = (Request) originalRequest.clone();
-        
+        String requestMethod = request.getMethod();
         if(logger.isLoggable(Level.FINEST)) {
         	logger.finest("transaction " + serverTransaction);
         	logger.finest("dialog " + requestEvent.getDialog());
         }
 		try {
-			if(!Request.ACK.equals(request.getMethod()) && serverTransaction == null) {
+			if(!Request.ACK.equals(requestMethod) && serverTransaction == null) {
 	         	serverTransaction = sipProvider.getNewServerTransaction(originalRequest);
 	        }			
 			//send a Trying to stop retransmissions
-			if(Request.INVITE.equals(request.getMethod())) {
+			if(Request.INVITE.equals(requestMethod)) {
 				Response tryingResponse = messageFactory.createResponse
 	        		(Response.TRYING,request);
 				serverTransaction.sendResponse(tryingResponse);
 			}
 			
-            if (dialogCreationMethods.contains(request.getMethod())) {
+            if (dialogCreationMethods.contains(requestMethod)) {
                 processDialogCreatingRequest(sipProvider,
 						originalRequest, serverTransaction, request);
             } else {
@@ -259,7 +259,7 @@ public class SIPBalancerForwarder implements SipListener {
 			return;				
         } catch (Throwable throwable) {
             logger.log(Level.SEVERE, "Unexpected exception while forwarding the request " + request, throwable);
-            if(!Request.ACK.equalsIgnoreCase(request.getMethod())) {
+            if(!Request.ACK.equalsIgnoreCase(requestMethod)) {
 	            try {
 	            	Response response=messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR,originalRequest);			
 	                if (serverTransaction !=null) {
@@ -288,9 +288,11 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	private void processNonDialogCreatingRequest(SipProvider sipProvider, Request originalRequest,
 			ServerTransaction serverTransaction, Request request) throws ParseException, InvalidArgumentException,
-			TransactionUnavailableException, SipException {		
+			TransactionUnavailableException, SipException {
+		String requestMethod = request.getMethod();
+		boolean isAck = false;
 		// CANCEL is hop by hop, so replying to the CANCEL by generating a 200 OK and sending a CANCEL
-		if (request.getMethod().equals(Request.CANCEL)) {
+		if (Request.CANCEL.equals(requestMethod)) {
 			processCancel(sipProvider, originalRequest, serverTransaction);
 			return;
 		}
@@ -299,8 +301,8 @@ public class SIPBalancerForwarder implements SipListener {
         }
 		decreaseMaxForwardsHeader(sipProvider, request);
 		
-		SIPNode sipNode = removeRouteHeadersMeantForLB(request);   
-		if (!request.getMethod().equals(Request.ACK)) {			
+		SIPNode sipNode = removeRouteHeadersMeantForLB(request);		
+		if (!Request.ACK.equals(requestMethod)) {			
 		    // Check if the node is still alive for subsequent requests
 			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 			Map<String, String> parameters = null;
@@ -350,7 +352,9 @@ public class SIPBalancerForwarder implements SipListener {
 				    serverTransaction.sendResponse(response);
 				}
 			}
-		}		            			    
+		} else {
+			isAck = true;
+		}
 	    // BYE coming from the callee by example
 	    ViaHeader viaHeader = headerFactory.createViaHeader(
 	            this.myHost, this.myPort, ListeningPoint.UDP, null);	    
@@ -366,7 +370,7 @@ public class SIPBalancerForwarder implements SipListener {
 		if(logger.isLoggable(Level.FINEST)) {
     		logger.finest("sending the request:\n" + request + "\n on the other side");
     	}
-		if(Request.ACK.equalsIgnoreCase(request.getMethod())) {
+		if(isAck) {
 			sendingSipProvider.sendRequest(request);
 		} else {	    
 		    ClientTransaction ctx = sendingSipProvider.getNewClientTransaction(request);
@@ -541,7 +545,7 @@ public class SIPBalancerForwarder implements SipListener {
 		    		logger.finest("this route header is for the LB removing it " + routeUri);
 		    	}
 		    	request.removeFirst(RouteHeader.NAME);
-		    	node = checkRouteHeaderForSipNode(routeHeader);
+		    	node = checkRouteHeaderForSipNode(routeUri);
 		    	//since we used double record routing we may have 2 routes corresponding to us here
 		        // for ACK and BYE from caller for example
 		        routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
@@ -554,7 +558,7 @@ public class SIPBalancerForwarder implements SipListener {
 		            	}
 		            	request.removeFirst(RouteHeader.NAME);
 		            	if(node == null) {
-		            		node = checkRouteHeaderForSipNode(routeHeader);
+		            		node = checkRouteHeaderForSipNode(routeUri);
 		            	}
 		            }
 		            
@@ -588,9 +592,8 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @param routeHeader the route header to check
 	 * @return the corresponding Sip Node
 	 */
-	private SIPNode checkRouteHeaderForSipNode(RouteHeader routeHeader) {
+	private SIPNode checkRouteHeaderForSipNode(SipURI routeSipUri) {
 		SIPNode node = null;
-		SipURI routeSipUri = (SipURI)routeHeader.getAddress().getURI();
 		String hostNode = routeSipUri.getParameter(ROUTE_PARAM_NODE_HOST);
 		String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
 		if(hostNode != null && hostPort != null) {
