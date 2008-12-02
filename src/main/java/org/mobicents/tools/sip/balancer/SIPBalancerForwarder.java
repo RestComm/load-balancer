@@ -30,6 +30,7 @@ import javax.sip.SipProvider;
 import javax.sip.SipStack;
 import javax.sip.TimeoutEvent;
 import javax.sip.Transaction;
+import javax.sip.TransactionAlreadyExistsException;
 import javax.sip.TransactionTerminatedEvent;
 import javax.sip.TransactionUnavailableException;
 import javax.sip.address.Address;
@@ -67,8 +68,7 @@ public class SIPBalancerForwarder implements SipListener {
     static{
     	dialogCreationMethods.add(Request.INVITE);
     	dialogCreationMethods.add(Request.SUBSCRIBE);
-    }
-	
+    }      
 	/*
 	 * Those parameters is to indicate to the SIP Load Balancer, from which node comes from the request
 	 * so that it can stick the Call Id to this node and correctly route the subsequent requests. 
@@ -95,7 +95,10 @@ public class SIPBalancerForwarder implements SipListener {
 	
 	private NodeRegister register;
 
-	private Properties properties;       
+	private Properties properties;  
+	
+	private RecordRouteHeader internalRecordRouteHeader;
+	private RecordRouteHeader externalRecordRouteHeader;
 	
 	public SIPBalancerForwarder(Properties properties, NodeRegister register) throws IllegalStateException{
 		super();
@@ -130,21 +133,51 @@ public class SIPBalancerForwarder implements SipListener {
             addressFactory = sipFactory.createAddressFactory();
             messageFactory = sipFactory.createMessageFactory();
 
-            ListeningPoint lp = sipStack.createListeningPoint(myHost, myPort, ListeningPoint.UDP);
-            internalSipProvider = sipStack.createSipProvider(lp);
+            ListeningPoint internalLp = sipStack.createListeningPoint(myHost, myPort, ListeningPoint.UDP);
+            internalSipProvider = sipStack.createSipProvider(internalLp);
             internalSipProvider.addSipListener(this);
 
-            lp = sipStack.createListeningPoint(myHost, myExternalPort, ListeningPoint.UDP);
-            externalSipProvider = sipStack.createSipProvider(lp);
+            ListeningPoint externalLp = sipStack.createListeningPoint(myHost, myExternalPort, ListeningPoint.UDP);
+            externalSipProvider = sipStack.createSipProvider(externalLp);
             externalSipProvider.addSipListener(this);
 
+            //Creating the Record Route headers on startup since they can't be changed at runtime and this will avoid the overhead of creating them
+            //for each request
+            
+            // Record route the invite so the bye comes to me. FIXME: Add check, on reINVITE we wont add ourselvses twice
+    		SipURI sipUri = addressFactory
+    		        .createSipURI(null, internalLp.getIPAddress());
+    		sipUri.setPort(internalLp.getPort());
+    		//See RFC 3261 19.1.1 for lr parameter
+    		sipUri.setLrParam();
+    		Address address = addressFactory.createAddress(sipUri);
+    		address.setURI(sipUri);
+    		                    
+    		internalRecordRouteHeader = headerFactory
+    		        .createRecordRouteHeader(address);                    
+    		//We need to use double record (better option than record route rewriting) routing otherwise it is impossible :
+    		//a) to forward BYE from the callee side to the caller
+    		//b) to support different transports		
+    		SipURI sendingSipUri = addressFactory
+    		        .createSipURI(null, externalLp.getIPAddress());
+    		sendingSipUri.setPort(externalLp.getPort());
+    		//See RFC 3261 19.1.1 for lr parameter
+    		sendingSipUri.setLrParam();
+    		Address sendingAddress = addressFactory.createAddress(sendingSipUri);
+    		sendingAddress.setURI(sendingSipUri);
+    		if(logger.isLoggable(Level.FINEST)) {
+    			logger.finest("adding Record Router Header :"+sendingAddress);
+    		}                    
+    		externalRecordRouteHeader = headerFactory
+    		        .createRecordRouteHeader(sendingAddress);    
+            
             sipStack.start();
         } catch (Exception ex) {
-        	throw new IllegalStateException("Cant create sip objects and lps due to["+ex.getMessage()+"]", ex);
+        	throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }
         if(logger.isLoggable(Level.INFO)) {
         	logger.info("Sip Balancer started on address " + myHost + ", external port : " + myExternalPort + ", port : "+ myPort);
-        }
+        }              
 	}
 	
 	public void stop() {
@@ -221,6 +254,9 @@ public class SIPBalancerForwarder implements SipListener {
             	processNonDialogCreatingRequest(sipProvider,
 						originalRequest, serverTransaction, request);
             }
+		} catch (TransactionAlreadyExistsException taex ) {
+			// Already processed this request so just return.
+			return;				
         } catch (Throwable throwable) {
             logger.log(Level.SEVERE, "Unexpected exception while forwarding the request " + request, throwable);
             if(!Request.ACK.equalsIgnoreCase(request.getMethod())) {
@@ -417,43 +453,28 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @throws ParseException
 	 */
 	private void addLBRecordRoute(SipProvider sipProvider, Request request)
-			throws ParseException {
-		// Record route the invite so the bye comes to me. FIXME: Add check, on reINVITE we wont add ourselvses twice
-		SipURI sipUri = addressFactory
-		        .createSipURI(null, sipProvider.getListeningPoint(
-		                ListeningPoint.UDP).getIPAddress());
-		sipUri.setPort(sipProvider.getListeningPoint(ListeningPoint.UDP).getPort());
-		//See RFC 3261 19.1.1 for lr parameter
-		sipUri.setLrParam();
-		Address address = addressFactory.createAddress(sipUri);
-		address.setURI(sipUri);
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("adding Record Router Header :"+address);
-		}                    
-		RecordRouteHeader recordRoute = headerFactory
-		        .createRecordRouteHeader(address);                    
-		request.addHeader(recordRoute);
-		//We need to use double record (better option than record route rewriting) routing otherwise it is impossible :
-		//a) to forward BYE from the callee side to the caller
-		//b) to support different transports
-		SipProvider sendingSipProvider = internalSipProvider;
+			throws ParseException {				
 		if(sipProvider == internalSipProvider) {
-			sendingSipProvider = externalSipProvider;
-		}
-		SipURI sendingSipUri = addressFactory
-		        .createSipURI(null, sendingSipProvider.getListeningPoint(
-		                ListeningPoint.UDP).getIPAddress());
-		sendingSipUri.setPort(sendingSipProvider.getListeningPoint(ListeningPoint.UDP).getPort());
-		//See RFC 3261 19.1.1 for lr parameter
-		sendingSipUri.setLrParam();
-		Address sendingAddress = addressFactory.createAddress(sendingSipUri);
-		sendingAddress.setURI(sendingSipUri);
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("adding Record Router Header :"+sendingAddress);
-		}                    
-		RecordRouteHeader sendingRecordRoute = headerFactory
-		        .createRecordRouteHeader(sendingAddress);                    
-		request.addHeader(sendingRecordRoute);
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding Record Router Header :" + externalRecordRouteHeader);
+			}
+			request.addHeader(externalRecordRouteHeader);
+			
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding Record Router Header :" + internalRecordRouteHeader);
+			}
+			request.addHeader(internalRecordRouteHeader);
+		} else {
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding Record Router Header :" + internalRecordRouteHeader);
+			}
+			request.addHeader(internalRecordRouteHeader);
+			
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding Record Router Header :" + externalRecordRouteHeader);
+			}
+			request.addHeader(externalRecordRouteHeader);			
+		}		
 	}
 	
 	/**
