@@ -265,7 +265,7 @@ public class SIPBalancerForwarder implements SipListener {
 	                if (serverTransaction !=null) {
 	                	serverTransaction.sendResponse(response);
 	                } else { 
-	                	if (sipProvider == this.externalSipProvider) {
+	                	if (sipProvider.equals(this.externalSipProvider)) {
 	                		externalSipProvider.sendResponse(response);	
 	                	} else {
 	                		internalSipProvider.sendResponse(response);	
@@ -337,19 +337,21 @@ public class SIPBalancerForwarder implements SipListener {
 					node = register.stickSessionToNode(callID, null);					
 				} 
 				//we change the request uri only if the request is coming from the external side
-				if(sipProvider == externalSipProvider && node != null) {
-					if(logger.isLoggable(Level.FINEST)) {
-			    		logger.finest("request coming from external, setting the request URI to the one of the node " + node);
-			    	}	
-					SipURI requestURI = (SipURI)request.getRequestURI();
-					requestURI.setHost(node.getIp());
-					requestURI.setPort(node.getPort());
-					requestURI.setTransportParam(node.getTransports()[0]);
-				} else if(sipProvider == externalSipProvider) {
-					//No node present yet to forward the request to, thus sending 500 final error response
-					Response response = messageFactory.createResponse
-				    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
-				    serverTransaction.sendResponse(response);
+				if(sipProvider.equals(this.externalSipProvider)) {
+					if(node != null) {
+						if(logger.isLoggable(Level.FINEST)) {
+				    		logger.finest("request coming from external, setting the request URI to the one of the node " + node);
+				    	}	
+						SipURI requestURI = (SipURI)request.getRequestURI();
+						requestURI.setHost(node.getIp());
+						requestURI.setPort(node.getPort());
+						requestURI.setTransportParam(node.getTransports()[0]);
+					} else  {
+						//No node present yet to forward the request to, thus sending 500 final error response
+						Response response = messageFactory.createResponse
+					    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
+					    serverTransaction.sendResponse(response);
+					}
 				}
 			}
 		} else {
@@ -364,7 +366,7 @@ public class SIPBalancerForwarder implements SipListener {
     		logger.finest("ViaHeader added " + viaHeader);
     	}
 	    SipProvider sendingSipProvider = externalSipProvider;
-		if(sipProvider == externalSipProvider) {
+		if(sipProvider.equals(this.externalSipProvider)) {
 			sendingSipProvider = internalSipProvider;
 		}
 		if(logger.isLoggable(Level.FINEST)) {
@@ -418,7 +420,7 @@ public class SIPBalancerForwarder implements SipListener {
 			//if the sip node is not null it means the request comes from internal
 			//so we stick the node to the call id but don't add a route
 			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
-			SIPNode node = register.stickSessionToNode(callID, null);
+			SIPNode node = register.stickSessionToNode(callID, sipNode);
 			if(node == null) {							
 				//No node present yet to forward the request to, thus sending 500 final error response
 				Response response = messageFactory.createResponse
@@ -434,7 +436,7 @@ public class SIPBalancerForwarder implements SipListener {
     		logger.finest("ViaHeader added " + viaHeader);
     	}		
 		SipProvider sendingSipProvider = internalSipProvider;
-		if(sipProvider == internalSipProvider) {
+		if(sipProvider.equals(this.internalSipProvider)) {
 			sendingSipProvider = externalSipProvider;
 		}
 		if(logger.isLoggable(Level.FINEST)) {
@@ -458,7 +460,7 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	private void addLBRecordRoute(SipProvider sipProvider, Request request)
 			throws ParseException {				
-		if(sipProvider == internalSipProvider) {
+		if(sipProvider.equals(externalSipProvider)) {
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding Record Router Header :" + externalRecordRouteHeader);
 			}
@@ -674,7 +676,7 @@ public class SIPBalancerForwarder implements SipListener {
 			cancelRequest.addFirst(route);
 			
 			SipProvider sendingSipProvider = internalSipProvider;
-			if(sipProvider == internalSipProvider) {
+			if(sipProvider.equals(internalSipProvider)) {
 				sendingSipProvider = externalSipProvider;
 			}
 			
