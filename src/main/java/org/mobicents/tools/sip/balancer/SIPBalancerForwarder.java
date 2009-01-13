@@ -1,3 +1,24 @@
+/*
+ * JBoss, Home of Professional Open Source
+ * Copyright 2008, Red Hat Middleware LLC, and individual contributors
+ * by the @authors tag. See the copyright.txt in the distribution for a
+ * full listing of individual contributors.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
 package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.CallID;
@@ -11,6 +32,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,6 +65,7 @@ import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
+import javax.sip.message.Message;
 import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -59,11 +82,11 @@ import javax.sip.message.Response;
  * @author baranowb 
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  */
-public class SIPBalancerForwarder implements SipListener {
+public class SIPBalancerForwarder implements SipListener, SIPBalancerForwarderMBean {
 	private static final Logger logger = Logger.getLogger(SIPBalancerForwarder.class
 			.getCanonicalName());
 
-	private static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
+	protected static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
     
     static{
     	dialogCreationMethods.add(Request.INVITE);
@@ -77,28 +100,32 @@ public class SIPBalancerForwarder implements SipListener {
 
 	public static final String ROUTE_PARAM_NODE_PORT = "node_port";
 	
-	private SipProvider internalSipProvider;
+	protected SipProvider internalSipProvider;
 
-    private SipProvider externalSipProvider;
+	protected SipProvider externalSipProvider;
 
-    private String myHost;
+	protected String myHost;
 
-    private int myPort;
+	protected int myPort;
 
-    private int myExternalPort;
+	protected int myExternalPort;
 
-    private static AddressFactory addressFactory;
-    private static HeaderFactory headerFactory;
-    private static MessageFactory messageFactory;
+	protected static AddressFactory addressFactory;
+    protected static HeaderFactory headerFactory;
+    protected static MessageFactory messageFactory;
 
-    private SipStack sipStack;
+    protected SipStack sipStack;
 	
-	private NodeRegister register;
+    protected NodeRegister register;
 
-	private Properties properties;  
+    protected Properties properties;  
 	
-	private RecordRouteHeader internalRecordRouteHeader;
-	private RecordRouteHeader externalRecordRouteHeader;
+    protected RecordRouteHeader internalRecordRouteHeader;
+    protected RecordRouteHeader externalRecordRouteHeader;
+    
+    protected AtomicLong requestsProcessed = new AtomicLong(0);
+	
+    protected AtomicLong responsesProcessed = new AtomicLong(0);
 	
 	public SIPBalancerForwarder(Properties properties, NodeRegister register) throws IllegalStateException{
 		super();
@@ -247,6 +274,8 @@ public class SIPBalancerForwarder implements SipListener {
 				serverTransaction.sendResponse(tryingResponse);
 			}
 			
+			updateStats(request);
+			
             if (dialogCreationMethods.contains(requestMethod)) {
                 processDialogCreatingRequest(sipProvider,
 						originalRequest, serverTransaction, request);
@@ -276,6 +305,14 @@ public class SIPBalancerForwarder implements SipListener {
 				}
             }
         }
+	}
+
+	private void updateStats(Message message) {
+		if(message instanceof Request) {
+			requestsProcessed.incrementAndGet();
+		} else {
+			responsesProcessed.incrementAndGet();
+		}		
 	}
 
 	/**
@@ -810,5 +847,19 @@ public class SIPBalancerForwarder implements SipListener {
 			String callId = ((CallIdHeader)transaction.getRequest().getHeader(CallIdHeader.NAME)).getCallId();
 			register.unStickSessionFromNode(callId);
 		}
+	}
+	
+	/**
+	 * @return the requestsProcessed
+	 */
+	public long getNumberOfRequestsProcessed() {
+		return requestsProcessed.get();
+	}
+	
+	/**
+	 * @return the requestsProcessed
+	 */
+	public long getNumberOfResponsesProcessed() {
+		return responsesProcessed.get();
 	}
 }

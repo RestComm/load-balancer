@@ -15,15 +15,18 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 /**
- * @author deruelle
+ * @author jean.deruelle@gmail.com
  *
  */
-public class BalancerRunner {
+public class BalancerRunner implements BalancerRunnerMBean {
 
-	public static final String SIP_BALANCER_JMX_NAME = "slee:name=Balancer,type=sip";
+	public static final String SIP_BALANCER_NODE_REGISTRAR_JMX_NAME = "mobicents:type=LoadBalancerNodeRegistrar,name=registrar";
+	public static final String SIP_BALANCER_FORWARDER_JMX_NAME = "mobicents:type=LoadBalancerForwarder,name=forwarder";
+	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
 	private static Logger logger = Logger.getLogger(BalancerRunner.class
 			.getCanonicalName());
-
+	protected SIPBalancerForwarder fwd = null;
+	protected NodeRegisterImpl reg = null;
 	/**
 	 * @param args
 	 */
@@ -36,6 +39,14 @@ public class BalancerRunner {
 		
 		// Configuration file Location
 		String configurationFileLocation = args[0];
+		BalancerRunner balancerRunner = new BalancerRunner();
+		balancerRunner.start(configurationFileLocation); 
+	}
+
+	/**
+	 * @param configurationFileLocation
+	 */
+	public void start(String configurationFileLocation) {
 		File file = new File(configurationFileLocation);
         FileInputStream fileInputStream = null;
         try {
@@ -52,8 +63,7 @@ public class BalancerRunner {
 		}
 
 		String ipAddress = properties.getProperty("host");
-		
-		NodeRegisterImpl reg = null;
+				
 		InetAddress addr = null;
 		try {
 			addr = InetAddress.getByName(ipAddress);
@@ -62,57 +72,89 @@ public class BalancerRunner {
 			e1.printStackTrace();
 			return;
 		}
-		try {
-			reg = new NodeRegisterImpl(addr);
+		try {								
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
 
 			if (server.isRegistered(on)) {
 				server.unregisterMBean(on);
 			}
-			server.registerMBean(reg, on);
+			server.registerMBean(this, on);
+			
+			reg = new NodeRegisterImpl(addr);			
+			on = new ObjectName(SIP_BALANCER_NODE_REGISTRAR_JMX_NAME);
+			if (server.isRegistered(on)) {
+				server.unregisterMBean(on);
+			}
+			server.registerMBean(reg, on);			
 			RouterImpl.setRegister(reg);
-			SIPBalancerForwarder fwd = new SIPBalancerForwarder(properties, reg);
+			fwd = new SIPBalancerForwarder(properties, reg);
 			fwd.start();
+			on = new ObjectName(SIP_BALANCER_FORWARDER_JMX_NAME);
+
+			if (server.isRegistered(on)) {
+				server.unregisterMBean(on);
+			}
+			server.registerMBean(fwd, on);
+			
 			reg.startServer();
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding shutdown hook");
 			}
-			Runtime.getRuntime().addShutdownHook(new SipBalancerShutdownHook(fwd, reg));
+			Runtime.getRuntime().addShutdownHook(new SipBalancerShutdownHook(this));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "An unexpected error occurred while starting the load balancer", e);
 			return;
-		} 
-	}
-}
-
-class SipBalancerShutdownHook extends Thread {
-	private static Logger logger = Logger.getLogger(SipBalancerShutdownHook.class
-			.getCanonicalName());
-	SIPBalancerForwarder forwarder;
-	NodeRegisterImpl registry;
-	MBeanServer server;
-	
-	public SipBalancerShutdownHook(SIPBalancerForwarder fwd, NodeRegisterImpl registry) {
-		this.forwarder = fwd;
-		this.registry = registry;
-		this.server = ManagementFactory.getPlatformMBeanServer();
+		}
 	}
 	
-	@Override
-	public void run() {
+	public void stop() {
 		logger.info("Stopping the sip forwarder");
-		forwarder.stop();
+		fwd.stop();
 		logger.info("Stopping the node registry");
-		registry.stopServer();
+		reg.stopServer();
 		logger.info("Unregistering the node registry");
+		MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+		try {
+			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_NODE_REGISTRAR_JMX_NAME);
+			if (server.isRegistered(on)) {
+				server.unregisterMBean(on);
+			}
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
+		}
+		try {
+			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_FORWARDER_JMX_NAME);
+			if (server.isRegistered(on)) {
+				server.unregisterMBean(on);
+			}
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
+		}
 		try {
 			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_JMX_NAME);
 			if (server.isRegistered(on)) {
 				server.unregisterMBean(on);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}
+	}
+	
+	
+}
+
+class SipBalancerShutdownHook extends Thread {
+	private static Logger logger = Logger.getLogger(SipBalancerShutdownHook.class
+			.getCanonicalName());
+	BalancerRunner balancerRunner;
+	
+	public SipBalancerShutdownHook(BalancerRunner balancerRunner) {
+		this.balancerRunner = balancerRunner;
+	}
+	
+	@Override
+	public void run() {
+		balancerRunner.stop();
 	}
 }

@@ -21,12 +21,20 @@
  */
 package org.mobicents.tools.sip.balancer;
 
-/**
- * @deprecated
- * @author deruelle
- *
- */
-public enum BalancerMessageType {
 
-	PING, DISCONNECT_REQUEST;
+/**
+ * A transaction stateful UDP Forwarder that listens at a port and forwards to multiple
+ * outbound addresses. It keeps a timer thread around that pings the list of
+ * proxy servers and sends to the first proxy server.
+ * 
+ * It uses double record routing to be able to listen on one transport and sends on another transport
+ * or allows support for multihoming.
+ * 
+ * @author M. Ranganathan
+ * @author baranowb 
+ * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
+ */
+public interface SIPBalancerForwarderMBean {
+	long getNumberOfRequestsProcessed();
+	long getNumberOfResponsesProcessed();
 }
