@@ -50,10 +50,9 @@ import java.util.logging.Logger;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
  *
  */
-public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
+public class NodeRegisterImpl  implements NodeRegister {
 	private static Logger logger = Logger.getLogger(NodeRegisterImpl.class.getCanonicalName());
 	
-	//FIXME make them configurable	
 	public static final int POINTER_START = 0;
 	private long nodeInfoExpirationTaskInterval = 5000;
 	private long nodeExpiration = 5100;
@@ -78,8 +77,14 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	/**
 	 * {@inheritDoc}
 	 */
-	public List<SIPNode> getGatheredInfo() {
-		return this.nodes;	
+	public String[] getNodes() {
+		String[] nodeList = new String[nodes.size()];
+		int i = 0;
+		for (SIPNode node : nodes) {			
+			nodeList[0] = node.toString();
+			i++;
+		}
+		return nodeList;	
 	}
 	
 	/**

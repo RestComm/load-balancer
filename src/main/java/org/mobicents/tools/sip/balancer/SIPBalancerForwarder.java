@@ -82,7 +82,7 @@ import javax.sip.message.Response;
  * @author baranowb 
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  */
-public class SIPBalancerForwarder implements SipListener, SIPBalancerForwarderMBean {
+public class SIPBalancerForwarder implements SipListener {
 	private static final Logger logger = Logger.getLogger(SIPBalancerForwarder.class
 			.getCanonicalName());
 

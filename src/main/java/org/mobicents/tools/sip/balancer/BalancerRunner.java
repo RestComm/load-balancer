@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,8 +29,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	private static final String HOST_PROP = "host";
 	private static final String RMI_REGISTRY_PORT_PROP = "rmiRegistryPort";
 	private static final String JMX_HTML_ADAPTER_PORT_PROP = "jmxHtmlAdapterPort";
-	public static final String SIP_BALANCER_NODE_REGISTRAR_JMX_NAME = "mobicents:type=LoadBalancerNodeRegistrar,name=registrar";
-	public static final String SIP_BALANCER_FORWARDER_JMX_NAME = "mobicents:type=LoadBalancerForwarder,name=forwarder";
 	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
 	public static final String HTML_ADAPTOR_PORT = "8000";
 	public static final String REGISTRY_PORT = "2000";
@@ -109,7 +108,17 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			//register the jmx html adapter
 			adapterName = new ObjectName(HTML_ADAPTOR_JMX_NAME);
 	        adapter.setPort(jmxHtmlPort);	        	        
-			server.registerMBean(adapter, adapterName);
+			server.registerMBean(adapter, adapterName);					
+			
+			RouterImpl.setRegister(reg);
+			fwd = new SIPBalancerForwarder(properties, reg);
+			fwd.start();
+
+			reg = new NodeRegisterImpl(addr);	
+			reg.startRegistry(rmiRegistryPort);
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding shutdown hook");
+			}
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
@@ -118,27 +127,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			}
 			server.registerMBean(this, on);
 			
-			//register the sip balancer registrar
-			reg = new NodeRegisterImpl(addr);			
-			on = new ObjectName(SIP_BALANCER_NODE_REGISTRAR_JMX_NAME);
-			if (server.isRegistered(on)) {
-				server.unregisterMBean(on);
-			}
-			server.registerMBean(reg, on);			
-			RouterImpl.setRegister(reg);
-			fwd = new SIPBalancerForwarder(properties, reg);
-			fwd.start();
-			//register the sip balancer forwarder
-			on = new ObjectName(SIP_BALANCER_FORWARDER_JMX_NAME);
-			if (server.isRegistered(on)) {
-				server.unregisterMBean(on);
-			}			
-			server.registerMBean(fwd, on);			
-			
-			reg.startRegistry(rmiRegistryPort);
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding shutdown hook");
-			}
 			// Create an RMI connector and start it
 	        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + ipAddress + ":" + rmiRegistryPort + "/server");
 	        cs = JMXConnectorServerFactory.newJMXConnectorServer(url, null, server);
@@ -158,23 +146,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		logger.info("Stopping the node registry");
 		reg.stopRegistry();
 		logger.info("Unregistering the node registry");
-		MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-		try {
-			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_NODE_REGISTRAR_JMX_NAME);
-			if (server.isRegistered(on)) {
-				server.unregisterMBean(on);
-			}
-		} catch (Exception e) {
-			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
-		}
-		try {
-			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_FORWARDER_JMX_NAME);
-			if (server.isRegistered(on)) {
-				server.unregisterMBean(on);
-			}
-		} catch (Exception e) {
-			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
-		}
+		MBeanServer server = ManagementFactory.getPlatformMBeanServer();		
 		try {
 			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_JMX_NAME);
 			if (server.isRegistered(on)) {
@@ -189,6 +161,35 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}	
 		adapter.stop();
+	}
+
+	//JMX 
+	public long getNodeExpiration() {		
+		return reg.getNodeExpiration();
+	}
+
+	public long getNodeExpirationTaskInterval() {
+		return reg.getNodeExpirationTaskInterval();
+	}
+
+	public long getNumberOfRequestsProcessed() {
+		return fwd.getNumberOfRequestsProcessed();
+	}
+
+	public long getNumberOfResponsesProcessed() {
+		return fwd.getNumberOfResponsesProcessed();
+	}
+
+	public void setNodeExpiration(long value) {
+		reg.setNodeExpiration(value);
+	}
+
+	public void setNodeExpirationTaskInterval(long value) {
+		reg.setNodeExpirationTaskInterval(value);
+	}
+
+	public String[] getNodes() {
+		return reg.getNodes();
 	}
 	
 	
