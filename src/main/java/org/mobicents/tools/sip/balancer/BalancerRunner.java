@@ -13,6 +13,11 @@ import java.util.logging.Logger;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.management.remote.JMXConnectorServer;
+import javax.management.remote.JMXConnectorServerFactory;
+import javax.management.remote.JMXServiceURL;
+
+import com.sun.jdmk.comm.HtmlAdaptorServer;
 
 /**
  * @author jean.deruelle@gmail.com
@@ -23,10 +28,16 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String SIP_BALANCER_NODE_REGISTRAR_JMX_NAME = "mobicents:type=LoadBalancerNodeRegistrar,name=registrar";
 	public static final String SIP_BALANCER_FORWARDER_JMX_NAME = "mobicents:type=LoadBalancerForwarder,name=forwarder";
 	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
+	public static final int HTML_ADAPTOR_PORT = 8000;
+	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port="+ HTML_ADAPTOR_PORT;
 	private static Logger logger = Logger.getLogger(BalancerRunner.class
 			.getCanonicalName());
 	protected SIPBalancerForwarder fwd = null;
 	protected NodeRegisterImpl reg = null;
+	HtmlAdaptorServer adapter = new HtmlAdaptorServer();
+	ObjectName adapterName = null;
+	JMXConnectorServer cs = null;
+
 	/**
 	 * @param args
 	 */
@@ -72,8 +83,14 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			e1.printStackTrace();
 			return;
 		}
-		try {								
+		try {
+			
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+			
+			adapterName = new ObjectName(HTML_ADAPTOR_JMX_NAME);
+	        adapter.setPort(HTML_ADAPTOR_PORT);	        	        
+			server.registerMBean(adapter, adapterName);
+			
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
 
 			if (server.isRegistered(on)) {
@@ -94,13 +111,19 @@ public class BalancerRunner implements BalancerRunnerMBean {
 
 			if (server.isRegistered(on)) {
 				server.unregisterMBean(on);
-			}
-			server.registerMBean(fwd, on);
+			}			
+			server.registerMBean(fwd, on);			
 			
 			reg.startServer();
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding shutdown hook");
 			}
+			// Create an RMI connector and start it
+	        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + ipAddress + ":" + NodeRegister.REGISTRY_PORT + "/server");
+	        cs = JMXConnectorServerFactory.newJMXConnectorServer(url, null, server);
+	        cs.start();
+	        adapter.start();
+	         
 			Runtime.getRuntime().addShutdownHook(new SipBalancerShutdownHook(this));
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "An unexpected error occurred while starting the load balancer", e);
@@ -139,6 +162,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}
+		try {
+			cs.stop();
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
+		}	
+		adapter.stop();
 	}
 	
 	

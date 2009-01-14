@@ -53,8 +53,7 @@ import java.util.logging.Logger;
 public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	private static Logger logger = Logger.getLogger(NodeRegisterImpl.class.getCanonicalName());
 	
-	//FIXME make them configurable
-	public static final int REGISTRY_PORT = 2000;
+	//FIXME make them configurable	
 	public static final int POINTER_START = 0;
 	private long nodeInfoExpirationTaskInterval = 5000;
 	private long nodeExpiration = 5100;
