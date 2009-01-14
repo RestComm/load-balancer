@@ -85,7 +85,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	/**
 	 * {@inheritDoc}
 	 */
-	public boolean startServer() {
+	public boolean startRegistry(int rmiRegistryPort) {
 		if(logger.isLoggable(Level.INFO)) {
 			logger.info("Node registry starting...");
 		}
@@ -94,7 +94,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 			gluedSessions = new ConcurrentHashMap<String, SIPNode>();
 			pointer = new AtomicInteger(POINTER_START);
 			
-			register(serverAddress);
+			register(serverAddress, rmiRegistryPort);
 			
 			this.nodeExpirationTask = new NodeExpirationTimerTask();
 			this.taskTimer.scheduleAtFixedRate(this.nodeExpirationTask,
@@ -115,7 +115,7 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	/**
 	 * {@inheritDoc}
 	 */
-	public boolean stopServer() {
+	public boolean stopRegistry() {
 		if(logger.isLoggable(Level.INFO)) {
 			logger.info("Stopping node registry...");
 		}
@@ -163,10 +163,10 @@ public class NodeRegisterImpl  implements NodeRegister, NodeRegisterImplMBean {
 	}
 	// ***** SOME PRIVATE HELPERS
 
-	private void register(InetAddress serverAddress) {
+	private void register(InetAddress serverAddress, int rmiRegistryPort) {
 
 		try {
-			registry = LocateRegistry.createRegistry(REGISTRY_PORT);
+			registry = LocateRegistry.createRegistry(rmiRegistryPort);
 			registry.bind("SIPBalancer", new RegisterRMIStub());
 		} catch (RemoteException e) {
 			throw new RuntimeException("Failed to bind due to:", e);

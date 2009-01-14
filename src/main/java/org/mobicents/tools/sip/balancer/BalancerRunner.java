@@ -25,10 +25,14 @@ import com.sun.jdmk.comm.HtmlAdaptorServer;
  */
 public class BalancerRunner implements BalancerRunnerMBean {
 
+	private static final String HOST_PROP = "host";
+	private static final String RMI_REGISTRY_PORT_PROP = "rmiRegistryPort";
+	private static final String JMX_HTML_ADAPTER_PORT_PROP = "jmxHtmlAdapterPort";
 	public static final String SIP_BALANCER_NODE_REGISTRAR_JMX_NAME = "mobicents:type=LoadBalancerNodeRegistrar,name=registrar";
 	public static final String SIP_BALANCER_FORWARDER_JMX_NAME = "mobicents:type=LoadBalancerForwarder,name=forwarder";
 	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
-	public static final int HTML_ADAPTOR_PORT = 8000;
+	public static final String HTML_ADAPTOR_PORT = "8000";
+	public static final String REGISTRY_PORT = "2000";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port="+ HTML_ADAPTOR_PORT;
 	private static Logger logger = Logger.getLogger(BalancerRunner.class
 			.getCanonicalName());
@@ -49,7 +53,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		}
 		
 		// Configuration file Location
-		String configurationFileLocation = args[0];
+		String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());
 		BalancerRunner balancerRunner = new BalancerRunner();
 		balancerRunner.start(configurationFileLocation); 
 	}
@@ -73,31 +77,48 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
 		}
 
-		String ipAddress = properties.getProperty("host");
+		String ipAddress = properties.getProperty(HOST_PROP);
 				
 		InetAddress addr = null;
 		try {
 			addr = InetAddress.getByName(ipAddress);
-		} catch (UnknownHostException e1) {
-
-			e1.printStackTrace();
+		} catch (UnknownHostException e) {
+			logger.log(Level.SEVERE, "Couldn't get the InetAddress from the host " + ipAddress, e);
 			return;
+		}
+		int jmxHtmlPort = -1;
+		String portAsString = properties.getProperty(JMX_HTML_ADAPTER_PORT_PROP,HTML_ADAPTOR_PORT);
+		try {
+			jmxHtmlPort = Integer.parseInt(portAsString);
+		} catch(NumberFormatException nfe) {
+			logger.log(Level.SEVERE, "Couldn't convert jmxHtmlAdapterPort to a valid integer", nfe);
+			return ; 
+		}
+		int rmiRegistryPort = -1;
+		portAsString = properties.getProperty(RMI_REGISTRY_PORT_PROP,REGISTRY_PORT);
+		try {
+			rmiRegistryPort = Integer.parseInt(portAsString);
+		} catch(NumberFormatException nfe) {
+			logger.log(Level.SEVERE, "Couldn't convert rmiRegistryPort to a valid integer", nfe);
+			return ; 
 		}
 		try {
 			
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
 			
+			//register the jmx html adapter
 			adapterName = new ObjectName(HTML_ADAPTOR_JMX_NAME);
-	        adapter.setPort(HTML_ADAPTOR_PORT);	        	        
+	        adapter.setPort(jmxHtmlPort);	        	        
 			server.registerMBean(adapter, adapterName);
 			
+			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
-
 			if (server.isRegistered(on)) {
 				server.unregisterMBean(on);
 			}
 			server.registerMBean(this, on);
 			
+			//register the sip balancer registrar
 			reg = new NodeRegisterImpl(addr);			
 			on = new ObjectName(SIP_BALANCER_NODE_REGISTRAR_JMX_NAME);
 			if (server.isRegistered(on)) {
@@ -107,19 +128,19 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			RouterImpl.setRegister(reg);
 			fwd = new SIPBalancerForwarder(properties, reg);
 			fwd.start();
+			//register the sip balancer forwarder
 			on = new ObjectName(SIP_BALANCER_FORWARDER_JMX_NAME);
-
 			if (server.isRegistered(on)) {
 				server.unregisterMBean(on);
 			}			
 			server.registerMBean(fwd, on);			
 			
-			reg.startServer();
+			reg.startRegistry(rmiRegistryPort);
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding shutdown hook");
 			}
 			// Create an RMI connector and start it
-	        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + ipAddress + ":" + NodeRegister.REGISTRY_PORT + "/server");
+	        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + ipAddress + ":" + rmiRegistryPort + "/server");
 	        cs = JMXConnectorServerFactory.newJMXConnectorServer(url, null, server);
 	        cs.start();
 	        adapter.start();
@@ -135,7 +156,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		logger.info("Stopping the sip forwarder");
 		fwd.stop();
 		logger.info("Stopping the node registry");
-		reg.stopServer();
+		reg.stopRegistry();
 		logger.info("Unregistering the node registry");
 		MBeanServer server = ManagementFactory.getPlatformMBeanServer();
 		try {

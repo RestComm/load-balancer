@@ -51,9 +51,9 @@ public class NodeRegisterTest extends TestCase {
 
 	public void testNodeRegistryStartupShutdown2x() throws RemoteException, UnknownHostException {
 		NodeRegisterImpl reg = new NodeRegisterImpl(InetAddress.getByName("127.0.0.1"));
-		reg.startServer();
-		reg.stopServer();
-		reg.startServer();
-		reg.stopServer();
+		reg.startRegistry(2000);
+		reg.stopRegistry();
+		reg.startRegistry(2000);
+		reg.stopRegistry();
 	}
 }

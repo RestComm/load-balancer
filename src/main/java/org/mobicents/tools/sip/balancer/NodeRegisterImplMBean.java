@@ -48,8 +48,8 @@ public interface NodeRegisterImplMBean {
 	
 	public InetAddress getAddress();
 	
-	public boolean startServer();
-	public boolean stopServer();
+	public boolean startRegistry(int rmiRegistryPort);
+	public boolean stopRegistry();
 	
 	public List<SIPNode> getGatheredInfo();
 	

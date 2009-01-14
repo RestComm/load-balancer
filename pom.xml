@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<artifactId>mobicents</artifactId>
@@ -17,6 +18,15 @@
 		<mobicents.tools.mavenplugin.eclipse.version>
 			1.0.0.BETA2
 		</mobicents.tools.mavenplugin.eclipse.version>
+		<manifest.url>http://www.mobicents.org
+		</manifest.url>
+		<manifest.implementation.title>${pom.groupId}:${pom.artifactId}
+		</manifest.implementation.title>
+		<manifest.implementation.version>${pom.version}
+		</manifest.implementation.version>
+		<manifest.implementation.vendor>JBoss, a Red Hat division
+		</manifest.implementation.vendor>
+
 	</properties>
 
 	<dependencies>
@@ -32,13 +42,14 @@
 			<artifactId>log4j</artifactId>
 			<version>${log4j.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.sun.jdmk</groupId>
 			<artifactId>jmxtools</artifactId>
 			<version>1.2.1</version>
 			<scope>system</scope>
-			<systemPath>${basedir}/lib/jmxtools-1.2.1.jar</systemPath>
+			<systemPath>${basedir}/lib/jmxtools-1.2.1.jar
+			</systemPath>
 		</dependency>
 
 		<dependency>
@@ -57,11 +68,13 @@
 	<build>
 		<plugins>
 			<plugin>
-                  <artifactId>maven-release-plugin</artifactId>
-                  <configuration>
-                       <tagBase>https://mobicents.googlecode.com/svn/tags/tools/sip-balancer</tagBase>
-                </configuration>
-            </plugin>
+				<artifactId>maven-release-plugin</artifactId>
+				<configuration>
+					<tagBase>
+						https://mobicents.googlecode.com/svn/tags/tools/sip-balancer
+					</tagBase>
+				</configuration>
+			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
@@ -83,6 +96,20 @@
 							</mainClass>
 							<addClasspath>true</addClasspath>
 						</manifest>
+						<manifestEntries>
+							<Implementation-Title>
+								${manifest.implementation.title}
+                           </Implementation-Title>
+							<Implementation-Version>
+								${manifest.implementation.version}
+                               </Implementation-Version>
+							<Implementation-Vendor-Id>
+								${manifest.implementation.vendor}
+                               </Implementation-Vendor-Id>
+							<Implementation-URL>
+								${manifest.url}
+                               </Implementation-URL>
+						</manifestEntries>
 					</archive>
 				</configuration>
 			</plugin>
@@ -113,15 +140,36 @@
 								org.mobicents.tools.sip.balancer.BalancerRunner
 							</mainClass>
 						</manifest>
+						<manifestEntries>
+							<Implementation-Title>
+								${manifest.implementation.title}
+                            </Implementation-Title>
+							<Implementation-Version>
+								${manifest.implementation.version}
+                                </Implementation-Version>
+							<Implementation-Vendor-Id>
+								${manifest.implementation.vendor}
+                                </Implementation-Vendor-Id>
+							<Implementation-URL>
+								${manifest.url}
+                                </Implementation-URL>
+						</manifestEntries>
 					</archive>
 					<descriptors>
-						<descriptor>src/main/assembly/src.xml</descriptor>
+						<descriptor>src/main/assembly/src.xml
+						</descriptor>
 					</descriptors>
-				</configuration>				
+				</configuration>
 				<executions>
 					<execution>
-						<id>make-assembly</id><!-- this is used for inheritance merges -->
-						<phase>package</phase><!-- append to the packaging phase. -->
+						<id>make-assembly</id>
+						<!--
+							this is used for inheritance merges
+						-->
+						<phase>package</phase>
+						<!--
+							append to the packaging phase.
+						-->
 						<goals>
 							<goal>attached</goal><!-- goals == mojos -->
 						</goals>
@@ -143,13 +191,15 @@
 		<repository>
 			<id>maven2-repository.dev.java.net</id>
 			<name>Java.net Repository for Maven</name>
-			<url>http://download.java.net/maven/2/</url>
+			<url>http://download.java.net/maven/2/
+			</url>
 			<layout>default</layout>
 		</repository>
 		<repository>
 			<id>JbossRepository</id>
 			<name>Jboss Repository</name>
-			<url>http://repository.jboss.org/maven2</url>
+			<url>http://repository.jboss.org/maven2
+			</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -160,7 +210,8 @@
 		<repository>
 			<id>jboss-snapshots</id>
 			<name>JBoss Snapshot Repository</name>
-			<url>http://snapshots.jboss.org/maven2</url>
+			<url>http://snapshots.jboss.org/maven2
+			</url>
 			<releases>
 				<enabled>false</enabled>
 			</releases>

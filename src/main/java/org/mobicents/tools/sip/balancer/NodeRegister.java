@@ -34,7 +34,6 @@ import java.util.ArrayList;
  *
  */
 public interface NodeRegister extends Remote {
-	public static final int REGISTRY_PORT = 2000;
 	
 	public SIPNode getNextNode() throws IndexOutOfBoundsException;
 

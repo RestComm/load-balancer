@@ -93,7 +93,7 @@ public class RegisterTest {
 		try {
 			NodeRegisterImpl reg = prepareRegister();
 
-			reg.startServer();
+			reg.startRegistry(2000);
 			RouterImpl.setRegister(reg);
 			SIPBalancerForwarder fwd = new SIPBalancerForwarder(properties, reg);
 		} catch (Exception e) {
@@ -167,7 +167,7 @@ public class RegisterTest {
 				MBeanServer server=ManagementFactory.getPlatformMBeanServer();
 				ObjectName on = new ObjectName("slee:name=Balancer,type=sip");
 				server.unregisterMBean(on);
-				reg.stopServer();
+				reg.stopRegistry();
 			} catch (MalformedObjectNameException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
