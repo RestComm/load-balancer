@@ -755,6 +755,8 @@ public class SIPBalancerForwarder implements SipListener {
         	return;
         }
         
+        updateStats(originalResponse);
+        
         if(!Request.CANCEL.equalsIgnoreCase(((CSeqHeader)originalResponse.getHeader(CSeqHeader.NAME)).getMethod())) {
         	
 	        Response response = (Response) originalResponse.clone();

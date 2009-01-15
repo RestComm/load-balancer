@@ -110,15 +110,16 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	        adapter.setPort(jmxHtmlPort);	        	        
 			server.registerMBean(adapter, adapterName);					
 			
-			RouterImpl.setRegister(reg);
-			fwd = new SIPBalancerForwarder(properties, reg);
-			fwd.start();
+			RouterImpl.setRegister(reg);			
 
 			reg = new NodeRegisterImpl(addr);	
 			reg.startRegistry(rmiRegistryPort);
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding shutdown hook");
 			}
+			
+			fwd = new SIPBalancerForwarder(properties, reg);
+			fwd.start();
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
@@ -188,10 +189,25 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		reg.setNodeExpirationTaskInterval(value);
 	}
 
-	public String[] getNodes() {
+	public List<SIPNode> getNodes() {
 		return reg.getNodes();
 	}
 	
+	public String[] getNodeList() {
+		List<SIPNode> nodes = getNodes();
+		String[] nodeList = new String[nodes.size()];
+		int i = 0;
+		for (SIPNode node : nodes) {			
+			nodeList[0] = node.toString();
+			i++;
+		}
+		return nodeList;
+	}
+	
+	public int getNumberOfGluedSessions() {
+		
+		return reg.getGluedSessions().size();
+	}
 	
 }
 

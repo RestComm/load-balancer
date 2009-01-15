@@ -21,6 +21,8 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import java.util.List;
+
 
 /**
  * 
@@ -49,5 +51,8 @@ public interface BalancerRunnerMBean {
 	long getNumberOfRequestsProcessed();
 	long getNumberOfResponsesProcessed();
 	
-	String[] getNodes();
+	int getNumberOfGluedSessions();
+	
+	List<SIPNode> getNodes();
+	String[] getNodeList();		
 }

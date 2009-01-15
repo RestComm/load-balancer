@@ -23,8 +23,6 @@ package org.mobicents.tools.sip.balancer;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * <p>
@@ -76,6 +74,10 @@ public class SIPNode implements Serializable {
 
 	public String[] getTransports() {
 		return transports;
+	}
+	
+	public String getTransportsAsString() {
+		return Arrays.toString(this.transports);
 	}
 	
 	public long getTimeStamp() {

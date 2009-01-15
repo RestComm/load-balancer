@@ -29,8 +29,10 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -77,16 +79,10 @@ public class NodeRegisterImpl  implements NodeRegister {
 	/**
 	 * {@inheritDoc}
 	 */
-	public String[] getNodes() {
-		String[] nodeList = new String[nodes.size()];
-		int i = 0;
-		for (SIPNode node : nodes) {			
-			nodeList[0] = node.toString();
-			i++;
-		}
-		return nodeList;	
+	public List<SIPNode> getNodes() {
+		return this.nodes;	
 	}
-	
+		
 	/**
 	 * {@inheritDoc}
 	 */
@@ -440,5 +436,12 @@ public class NodeRegisterImpl  implements NodeRegister {
 		if (value < 150)
 			throw new IllegalArgumentException("Value cant be less than 150");
 		this.nodeInfoExpirationTaskInterval = value;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public Map<String, SIPNode> getGluedSessions() {
+		return gluedSessions;
 	}
 }
