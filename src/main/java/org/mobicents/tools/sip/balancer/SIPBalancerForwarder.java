@@ -388,6 +388,7 @@ public class SIPBalancerForwarder implements SipListener {
 						Response response = messageFactory.createResponse
 					    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
 					    serverTransaction.sendResponse(response);
+					    return;
 					}
 				}
 			}
@@ -463,6 +464,7 @@ public class SIPBalancerForwarder implements SipListener {
 				Response response = messageFactory.createResponse
 			    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
 			    serverTransaction.sendResponse(response);
+			    return;
 			}
 		}		
 		// Add the via header to the top of the header list.
