@@ -475,7 +475,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 				}
 			}
 			if(logger.isLoggable(Level.INFO)) {
-				logger.info("Switchover occured where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute + "with " + 
+				logger.info("Switchover occured where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute + " with " + 
 						updatedRoutes + " updated routes.");
 			}
 		} else {
