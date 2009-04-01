@@ -52,4 +52,6 @@ public interface NodeRegister extends Remote {
 	
 	public SIPNode getNode(String host, int port, String transportParam);
 	
+	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute);
+	
 }

@@ -46,4 +46,13 @@ public interface NodeRegisterRMIStub extends Remote {
 	 */
 	public void forceRemoval(ArrayList<SIPNode> ping) throws RemoteException;
 	
+	/**
+	 * Migrate from one jvmRoute to another.
+	 * 
+	 * @param fromJvmRoute
+	 * @param toJvmRoute
+	 * @throws RemoteException 
+	 */
+	public void switchover(String fromJvmRoute, String toJvmRoute) throws RemoteException;
+	
 }

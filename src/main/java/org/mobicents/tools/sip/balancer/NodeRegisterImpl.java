@@ -66,6 +66,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	private AtomicInteger pointer;
 
 	private List<SIPNode> nodes;
+	private ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	private ConcurrentHashMap<String, SIPNode> gluedSessions;
 	
 	private InetAddress serverAddress = null;
@@ -93,6 +94,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 		try {
 			nodes = new CopyOnWriteArrayList<SIPNode>();
 			gluedSessions = new ConcurrentHashMap<String, SIPNode>();
+			jvmRouteToSipNode = new ConcurrentHashMap<String, SIPNode>();
 			pointer = new AtomicInteger(POINTER_START);
 			
 			register(serverAddress, rmiRegistryPort);
@@ -159,6 +161,11 @@ public class NodeRegisterImpl  implements NodeRegister {
 		public void forceRemoval(ArrayList<SIPNode> ping)
 				throws RemoteException {
 			forceRemovalInRegister(ping);
+		}
+
+		public void switchover(String fromJvmRoute, String toJvmRoute) throws RemoteException {
+			jvmRouteSwitchover(fromJvmRoute, toJvmRoute);
+			
 		}
 		
 	}
@@ -335,8 +342,14 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 */
 	public void handlePingInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
+			if(pingNode.getJvmRoute() != null) {
+				// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
+				// We need info about inative nodes to do the failover
+				jvmRouteToSipNode.put(pingNode.getJvmRoute(), pingNode);				
+			}
 			if(nodes.size() < 1) {
 				nodes.add(pingNode);
+				
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] added");
@@ -447,5 +460,28 @@ public class NodeRegisterImpl  implements NodeRegister {
 
 	public SIPNode[] getAllNodes() {
 		return this.nodes.toArray(new SIPNode[]{});
+	}
+
+	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
+		SIPNode oldNode = this.jvmRouteToSipNode.get(fromJvmRoute);
+		SIPNode newNode = this.jvmRouteToSipNode.get(toJvmRoute);
+		if(oldNode != null && newNode != null) {
+			int updatedRoutes = 0;
+			for(String key : gluedSessions.keySet()) {
+				SIPNode n = gluedSessions.get(key);
+				if(n.equals(oldNode)) {
+					gluedSessions.replace(key, newNode);
+					updatedRoutes++;
+				}
+			}
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Switchover occured where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute + "with " + 
+						updatedRoutes + " updated routes.");
+			}
+		} else {
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Switchover failed where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute);
+			}
+		}
 	}
 }
