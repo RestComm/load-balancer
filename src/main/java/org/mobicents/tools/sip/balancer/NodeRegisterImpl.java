@@ -444,4 +444,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	public Map<String, SIPNode> getGluedSessions() {
 		return gluedSessions;
 	}
+
+	public SIPNode[] getAllNodes() {
+		return this.nodes.toArray(new SIPNode[]{});
+	}
 }

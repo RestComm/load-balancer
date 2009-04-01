@@ -51,13 +51,15 @@ public class SIPNode implements Serializable {
 	private int port = -1;
 	private String[] transports = null;
 	private long timeStamp = System.currentTimeMillis();
+	private String jvmRoute;
 
-	public SIPNode(String hostName, String ip, int port, String[] transports) {
+	public SIPNode(String hostName, String ip, int port, String[] transports, String jvmRoute) {
 		super();
 		this.hostName = hostName;
 		this.ip = ip;
 		this.port = port;
-		this.transports = transports;		
+		this.transports = transports;	
+		this.jvmRoute = jvmRoute;
 	}
 
 	public String getHostName() {
@@ -82,6 +84,14 @@ public class SIPNode implements Serializable {
 	
 	public long getTimeStamp() {
 		return this.timeStamp;
+	}
+
+	public String getJvmRoute() {
+		return jvmRoute;
+	}
+
+	public void setJvmRoute(String jvmRoute) {
+		this.jvmRoute = jvmRoute;
 	}
 
 	public void updateTimerStamp() {
@@ -130,7 +140,7 @@ public class SIPNode implements Serializable {
 
 		return "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
 				+ "] port[" + this.port + "] transport["
-				+ Arrays.toString(this.transports) + "]";
+				+ Arrays.toString(this.transports) + "] jvmRoute[" + this.jvmRoute + "]";
 	}
 
 }

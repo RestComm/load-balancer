@@ -40,6 +40,8 @@ public interface NodeRegister extends Remote {
 	public SIPNode stickSessionToNode(String callID, SIPNode node);
 	
 	public SIPNode getGluedNode(String callID);
+	
+	public SIPNode[] getAllNodes();
 
 	public void unStickSessionFromNode(String callID);
 	
