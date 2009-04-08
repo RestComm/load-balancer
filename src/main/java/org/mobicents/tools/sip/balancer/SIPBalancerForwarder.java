@@ -21,8 +21,7 @@
  */
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.header.CallID;
-import gov.nist.javax.sip.stack.SIPServerTransaction;
+import gov.nist.javax.sip.ServerTransactionExt;
 
 import java.text.ParseException;
 import java.util.HashMap;
@@ -344,7 +343,7 @@ public class SIPBalancerForwarder implements SipListener {
 			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 			Map<String, String> parameters = null;
 			boolean isSIPNodePresent = true;
-			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();			
+			String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();			
 			if(routeHeader != null ) {			
 				SipURI route = ((SipURI)routeHeader.getAddress().getURI());				
 				isSIPNodePresent = register.isSIPNodePresent(route.getHost(), route.getPort(), route.getTransportParam());
@@ -457,7 +456,7 @@ public class SIPBalancerForwarder implements SipListener {
 	    	}
 			//if the sip node is not null it means the request comes from internal
 			//so we stick the node to the call id but don't add a route
-			String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
+			String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 			SIPNode node = register.stickSessionToNode(callID, sipNode);
 			if(node == null) {							
 				//No node present yet to forward the request to, thus sending 500 final error response
@@ -535,7 +534,7 @@ public class SIPBalancerForwarder implements SipListener {
 			ServerTransaction serverTransaction, Request request, Map<String, String> parameters)
 			throws ParseException, SipException, InvalidArgumentException {
 		
-		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
+		String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 		SIPNode node = register.stickSessionToNode(callID, null);
 		if(node != null) {
 			//Adding Route Header pointing to the node the sip balancer wants to forward to
@@ -689,8 +688,8 @@ public class SIPBalancerForwarder implements SipListener {
 		if(logger.isLoggable(Level.FINEST)) {
         	logger.finest("process Cancel " + originalRequest);
         }
-		Transaction inviteTransaction = ((SIPServerTransaction) serverTransaction).getCanceledInviteTransaction();
-		String callID = ((CallID) originalRequest.getHeader(CallID.NAME)).getCallId();
+		Transaction inviteTransaction = ((ServerTransactionExt) serverTransaction).getCanceledInviteTransaction();
+		String callID = ((CallIdHeader) originalRequest.getHeader(CallIdHeader.NAME)).getCallId();
 		
 		SIPNode node = register.getGluedNode(callID);
 		if (node == null) {
