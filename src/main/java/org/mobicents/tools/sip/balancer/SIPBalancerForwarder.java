@@ -275,7 +275,10 @@ public class SIPBalancerForwarder implements SipListener {
 			
 			updateStats(request);
 			
-            if (dialogCreationMethods.contains(requestMethod)) {
+			String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
+			// we check if the callID is already linked to a node if it is it means that the request is a subsequent request
+			// reINVITE, etc...
+            if (dialogCreationMethods.contains(requestMethod) && register.getGluedNode(callID) == null) {
                 processDialogCreatingRequest(sipProvider,
 						originalRequest, serverTransaction, request);
             } else {
