@@ -46,9 +46,13 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	 */
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			logger.fine("Insufficient args");
-			throw new IllegalArgumentException(
-					"Bad args: supply configuration file location ");
+			logger.severe("Please specify mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			return;
+		}
+		
+		if(!args[0].startsWith("-mobicents-balancer-config=")) {
+			logger.severe("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			return;
 		}
 		
 		// Configuration file Location
