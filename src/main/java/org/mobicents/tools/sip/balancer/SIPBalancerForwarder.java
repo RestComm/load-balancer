@@ -752,12 +752,13 @@ public class SIPBalancerForwarder implements SipListener {
         	return;	
         }		
         //we drop retransmissions since the proxy tx will retransmit for us
-        if(clientTransaction == null) {
-        	if(logger.isLoggable(Level.FINEST)) {
-         		logger.finest("dropping retransmissions");
-         	}
-        	return;
-        }
+        // wrong see Issue 805 http://code.google.com/p/mobicents/issues/detail?id=805
+//        if(clientTransaction == null) {
+//        	if(logger.isLoggable(Level.FINEST)) {
+//         		logger.finest("dropping retransmissions");
+//         	}
+//        	return;
+//        }
         
         updateStats(originalResponse);
         
