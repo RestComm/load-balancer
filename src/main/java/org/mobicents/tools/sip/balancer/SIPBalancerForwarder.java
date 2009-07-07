@@ -738,7 +738,7 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @see javax.sip.SipListener#processResponse(javax.sip.ResponseEvent)
 	 */
 	public void processResponse(ResponseEvent responseEvent) {
-//		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
+		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
         Response originalResponse = responseEvent.getResponse();
         ClientTransaction clientTransaction = responseEvent.getClientTransaction();
         if(logger.isLoggable(Level.FINEST)) {
@@ -797,9 +797,17 @@ public class SIPBalancerForwarder implements SipListener {
             
             try {	           
 	            if(clientTransaction != null) {
+	            	// non retransmission case
 		            ServerTransaction serverTransaction = (ServerTransaction)clientTransaction.getApplicationData();
 		            serverTransaction.sendResponse(response);
-	            } 
+	            } else {
+	            	// retransmission case : we forward on the other sip provider
+	            	if(sipProvider.equals(externalSipProvider)) {
+	            		internalSipProvider.sendResponse(response);
+	            	} else {
+	            		externalSipProvider.sendResponse(response);
+	            	}
+	            }
 	        } catch (Exception ex) {
 	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response + 
 	        			" (transaction=" + clientTransaction + " / dialog=" + responseEvent.getDialog() + "", ex);
