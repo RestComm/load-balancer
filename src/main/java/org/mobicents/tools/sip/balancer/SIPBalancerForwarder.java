@@ -695,20 +695,25 @@ public class SIPBalancerForwarder implements SipListener {
 		String callID = ((CallIdHeader) originalRequest.getHeader(CallIdHeader.NAME)).getCallId();
 		
 		SIPNode node = register.getGluedNode(callID);
-		if (node == null) {
+		if (node == null || !register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("Previous node has failed. New node is " + node);
+			}
 			node = register.getNextNode();
 		}
 		if(node != null) {
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("Using node " + node);
+			}
 			Response response = messageFactory.createResponse
 				(Response.OK,originalRequest);
-			response.setReasonPhrase("Cancelling");
 			serverTransaction.sendResponse(response);
 			//
 			ClientTransaction ctx = (ClientTransaction)inviteTransaction.getApplicationData();
 			Request cancelRequest = ctx.createCancel();
 			
 //        	cancelRequest.addHeader(viaHeader);
-			
+			cancelRequest.removeFirst(RouteHeader.NAME);
 			SipURI routeSipUri = addressFactory
 		    	.createSipURI(null, node.getIp());
 			routeSipUri.setPort(node.getPort());
@@ -716,14 +721,19 @@ public class SIPBalancerForwarder implements SipListener {
 			RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
 			cancelRequest.addFirst(route);
 			
+			
 			SipProvider sendingSipProvider = internalSipProvider;
 			if(sipProvider.equals(internalSipProvider)) {
 				sendingSipProvider = externalSipProvider;
 			}
 			
+			// Create a new transaction just to add the Via Header
 			ClientTransaction cancelClientTransaction = sendingSipProvider
 				.getNewClientTransaction(cancelRequest);
-			cancelClientTransaction.sendRequest();             
+			
+			// And send statelessly because tx-stateful doesnt respect the Route header
+			sendingSipProvider.sendRequest(
+					cancelRequest);           
 		} else {
 			//No node present yet to forward the request to, thus sending 500 final error response
 			logger.severe("No node present yet to forward the request " + originalRequest);
