@@ -258,33 +258,15 @@ public class SIPBalancerForwarder implements SipListener {
          
         Request request = (Request) originalRequest.clone();
         String requestMethod = request.getMethod();
-        if(logger.isLoggable(Level.FINEST)) {
-        	logger.finest("transaction " + serverTransaction);
-        	logger.finest("dialog " + requestEvent.getDialog());
-        }
-		try {
-			if(!Request.ACK.equals(requestMethod) && serverTransaction == null) {
-	         	serverTransaction = sipProvider.getNewServerTransaction(originalRequest);
-	        }			
-			//send a Trying to stop retransmissions
-			if(Request.INVITE.equals(requestMethod)) {
-				Response tryingResponse = messageFactory.createResponse
-	        		(Response.TRYING,request);
-				serverTransaction.sendResponse(tryingResponse);
-			}
+		try {	
+
 			
 			updateStats(request);
 			
 			String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
-			// we check if the callID is already linked to a node if it is it means that the request is a subsequent request
-			// reINVITE, etc...
-            if (dialogCreationMethods.contains(requestMethod) && register.getGluedNode(callID) == null) {
-                processDialogCreatingRequest(sipProvider,
-						originalRequest, serverTransaction, request);
-            } else {
-            	processNonDialogCreatingRequest(sipProvider,
-						originalRequest, serverTransaction, request);
-            }
+            forwardRequest(sipProvider,
+						originalRequest, request);
+          
 		} catch (TransactionAlreadyExistsException taex ) {
 			// Already processed this request so just return.
 			return;				
@@ -318,111 +300,6 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 
 	/**
-	 * @param serverTransaction
-	 * @param request
-	 * @throws ParseException
-	 * @throws InvalidArgumentException
-	 * @throws TransactionUnavailableException
-	 * @throws SipException
-	 */
-	private void processNonDialogCreatingRequest(SipProvider sipProvider, Request originalRequest,
-			ServerTransaction serverTransaction, Request request) throws ParseException, InvalidArgumentException,
-			TransactionUnavailableException, SipException {
-		String requestMethod = request.getMethod();
-		boolean isAck = false;
-		// CANCEL is hop by hop, so replying to the CANCEL by generating a 200 OK and sending a CANCEL
-		if (Request.CANCEL.equals(requestMethod)) {
-			processCancel(sipProvider, originalRequest, serverTransaction);
-			return;
-		}
-		if(logger.isLoggable(Level.FINEST)) {
-        	logger.finest("got NON dialog creating request:\n " + request);
-        }
-		decreaseMaxForwardsHeader(sipProvider, request);
-		
-		SIPNode sipNode = removeRouteHeadersMeantForLB(request);		
-		if (!Request.ACK.equals(requestMethod)) {			
-		    // Check if the node is still alive for subsequent requests
-			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
-			Map<String, String> parameters = null;
-			boolean isSIPNodePresent = true;
-			String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();			
-			if(routeHeader != null ) {			
-				SipURI route = ((SipURI)routeHeader.getAddress().getURI());				
-				isSIPNodePresent = register.isSIPNodePresent(route.getHost(), route.getPort(), route.getTransportParam());
-				if(!isSIPNodePresent) {
-					if(logger.isLoggable(Level.FINEST)) {
-			    		logger.finest("node " + route + " is not alive anymore, picking another one ");
-			    	}
-					parameters = new HashMap<String, String>();
-					Iterator<String> routeParametersIt = route.getParameterNames();
-					while(routeParametersIt.hasNext()) {
-						String routeParameterName = routeParametersIt.next();
-						String routeParameterValue = route.getParameter(routeParameterName);
-						parameters.put(routeParameterName, routeParameterValue);
-					}					
-					register.unStickSessionFromNode(callID);
-					request.removeFirst(RouteHeader.NAME);
-					addRouteToNode(originalRequest, serverTransaction, request, parameters);
-				}				
-			} else {
-				SIPNode node = register.getGluedNode(callID);
-				// checking if the gleued node is still alive, if not we pick a new node
-				if(node == null || !register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
-					if(logger.isLoggable(Level.FINEST)) {
-			    		logger.finest("node " + node + " is not alive anymore, picking another one ");
-			    	}
-					register.unStickSessionFromNode(callID);
-					node = register.stickSessionToNode(callID, null);					
-				} 
-				//we change the request uri only if the request is coming from the external side
-				if(sipProvider.equals(this.externalSipProvider)) {
-					if(node != null) {
-						if(logger.isLoggable(Level.FINEST)) {
-				    		logger.finest("request coming from external, setting the request URI to the one of the node " + node);
-				    	}	
-						SipURI requestURI = (SipURI)request.getRequestURI();
-						requestURI.setHost(node.getIp());
-						requestURI.setPort(node.getPort());
-						requestURI.setTransportParam(node.getTransports()[0]);
-					} else  {
-						//No node present yet to forward the request to, thus sending 500 final error response
-						Response response = messageFactory.createResponse
-					    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
-					    serverTransaction.sendResponse(response);
-					    return;
-					}
-				}
-			}
-		} else {
-			isAck = true;
-		}
-	    // BYE coming from the callee by example
-	    ViaHeader viaHeader = headerFactory.createViaHeader(
-	            this.myHost, this.myPort, ListeningPoint.UDP, null);	    
-	    // Add the via header to the top of the header list.
-	    request.addHeader(viaHeader);
-	    if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("ViaHeader added " + viaHeader);
-    	}
-	    SipProvider sendingSipProvider = externalSipProvider;
-		if(sipProvider.equals(this.externalSipProvider)) {
-			sendingSipProvider = internalSipProvider;
-		}
-		if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("sending the request:\n" + request + "\n on the other side");
-    	}
-		if(isAck) {
-			sendingSipProvider.sendRequest(request);
-		} else {	    
-		    ClientTransaction ctx = sendingSipProvider.getNewClientTransaction(request);
-		    serverTransaction.setApplicationData(ctx);
-		    ctx.setApplicationData(serverTransaction);
-		    ctx.sendRequest();
-		}
-	}
-
-	/**
 	 * @param requestEvent
 	 * @param sipProvider
 	 * @param originalRequest
@@ -433,65 +310,71 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @throws SipException
 	 * @throws TransactionUnavailableException
 	 */
-	private void processDialogCreatingRequest(
+	private void forwardRequest(
 			SipProvider sipProvider, Request originalRequest,
-			ServerTransaction serverTransaction, Request request)
+			Request request)
 			throws ParseException, InvalidArgumentException, SipException,
 			TransactionUnavailableException {
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("got dialog creating request:\n"+request);
 		}
 		
-		decreaseMaxForwardsHeader(sipProvider, request);
-		addLBRecordRoute(sipProvider, request);
+		boolean isCancel = Request.CANCEL.equals(request.getMethod());
 		
-		SIPNode sipNode = removeRouteHeadersMeantForLB(request);    
+		if(!isCancel) {
+			decreaseMaxForwardsHeader(sipProvider, request);
+		}
+		
+		if(dialogCreationMethods.contains(request.getMethod())) {
+			addLBRecordRoute(sipProvider, request);
+		}
+		
+		String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
+		
+		SIPNode sipNode = removeRouteHeadersMeantForLB(request);
 		if(sipNode == null) {
 			//if the sip node is null it means the request comes from external
 			//thus we need to add a route header
 			if(logger.isLoggable(Level.FINEST)) {
 	    		logger.finest("request is for UAS or proxy case");
 	    	}
-			addRouteToNode(originalRequest, serverTransaction, request, null);
+			addRouteToNode(originalRequest, request, null);
 		} else {
 			if(logger.isLoggable(Level.FINEST)) {
 	    		logger.finest("request is coming from UAC");
 	    	}
 			//if the sip node is not null it means the request comes from internal
 			//so we stick the node to the call id but don't add a route
-			String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
+			
 			SIPNode node = register.stickSessionToNode(callID, sipNode);
 			if(node == null) {							
-				//No node present yet to forward the request to, thus sending 500 final error response
-				Response response = messageFactory.createResponse
-			    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
-			    serverTransaction.sendResponse(response);
+				//No node present yet to forward the request to
+				logger.warning("No nodes present");
 			    return;
 			}
-		}		
+		}
+		
+		// Stateless proxies must not use internal state or ransom values when creating branch because they
+		// must repeat exactly the same branches for retransmissions
+		ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
+		String newBranch = via.getBranch() + callID.substring(0, Math.min(callID.length(), 5));
 		// Add the via header to the top of the header list.
 		ViaHeader viaHeader = headerFactory.createViaHeader(
-		        this.myHost, this.myPort, ListeningPoint.UDP, null);
+				this.myHost, this.myPort, ListeningPoint.UDP, newBranch);
 		request.addHeader(viaHeader); 
+
 		if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("ViaHeader added " + viaHeader);
-    	}		
+			logger.finest("ViaHeader added " + viaHeader);
+		}		
+
 		SipProvider sendingSipProvider = internalSipProvider;
 		if(sipProvider.equals(this.internalSipProvider)) {
 			sendingSipProvider = externalSipProvider;
 		}
 		if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("sending the request:\n" + request + "\n on the other side");
+    		logger.finest("Sending the request:\n" + request + "\n on the other side");
     	}
-		//sending request
-		if(Request.ACK.equalsIgnoreCase(request.getMethod())) {
-			sendingSipProvider.sendRequest(request);
-		} else {
-			ClientTransaction ctx = sendingSipProvider.getNewClientTransaction(request);
-		    serverTransaction.setApplicationData(ctx);
-		    ctx.setApplicationData(serverTransaction);		                		               
-		    ctx.sendRequest();
-		}
+		sendingSipProvider.sendRequest(request);
 	}
 
 	/**
@@ -506,21 +389,11 @@ public class SIPBalancerForwarder implements SipListener {
 				logger.finest("adding Record Router Header :" + externalRecordRouteHeader);
 			}
 			request.addHeader(externalRecordRouteHeader);
-			
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding Record Router Header :" + internalRecordRouteHeader);
-			}
-			request.addHeader(internalRecordRouteHeader);
 		} else {
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding Record Router Header :" + internalRecordRouteHeader);
 			}
-			request.addHeader(internalRecordRouteHeader);
-			
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding Record Router Header :" + externalRecordRouteHeader);
-			}
-			request.addHeader(externalRecordRouteHeader);			
+			request.addHeader(internalRecordRouteHeader);		
 		}		
 	}
 	
@@ -533,8 +406,7 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @throws SipException
 	 * @throws InvalidArgumentException
 	 */
-	private void addRouteToNode(Request originalRequest,
-			ServerTransaction serverTransaction, Request request, Map<String, String> parameters)
+	private void addRouteToNode(Request originalRequest,Request request, Map<String, String> parameters)
 			throws ParseException, SipException, InvalidArgumentException {
 		
 		String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
@@ -553,11 +425,6 @@ public class SIPBalancerForwarder implements SipListener {
 			}
 			RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
 			request.addFirst(route);
-		} else {
-			//No node present yet to forward the request to, thus sending 500 final error response
-			Response response = messageFactory.createResponse
-		    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
-		    serverTransaction.sendResponse(response);
 		}
 	}
 
@@ -589,23 +456,7 @@ public class SIPBalancerForwarder implements SipListener {
 		    	}
 		    	request.removeFirst(RouteHeader.NAME);
 		    	node = checkRouteHeaderForSipNode(routeUri);
-		    	//since we used double record routing we may have 2 routes corresponding to us here
-		        // for ACK and BYE from caller for example
-		        routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
-		        if(routeHeader != null) {
-		            routeUri = (SipURI)routeHeader.getAddress().getURI();
-		            //FIXME check against a list of host we may have too
-		            if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
-		            	if(logger.isLoggable(Level.FINEST)) {
-		            		logger.finest("this route header is for the LB removing it " + routeUri);
-		            	}
-		            	request.removeFirst(RouteHeader.NAME);
-		            	if(node == null) {
-		            		node = checkRouteHeaderForSipNode(routeUri);
-		            	}
-		            }
-		            
-		        }
+
 		    }	                
 		}
 		if(node !=null) {
@@ -684,64 +535,6 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @throws InvalidArgumentException
 	 * @throws TransactionUnavailableException
 	 */
-	private void processCancel(SipProvider sipProvider, Request originalRequest, ServerTransaction serverTransaction) throws ParseException,
-			SipException, InvalidArgumentException,
-			TransactionUnavailableException {
-
-		if(logger.isLoggable(Level.FINEST)) {
-        	logger.finest("process Cancel " + originalRequest);
-        }
-		Transaction inviteTransaction = ((ServerTransactionExt) serverTransaction).getCanceledInviteTransaction();
-		String callID = ((CallIdHeader) originalRequest.getHeader(CallIdHeader.NAME)).getCallId();
-		
-		SIPNode node = register.getGluedNode(callID);
-		if (node == null || !register.isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("Previous node has failed. New node is " + node);
-			}
-			node = register.getNextNode();
-		}
-		if(node != null) {
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("Using node " + node);
-			}
-			Response response = messageFactory.createResponse
-				(Response.OK,originalRequest);
-			serverTransaction.sendResponse(response);
-			//
-			ClientTransaction ctx = (ClientTransaction)inviteTransaction.getApplicationData();
-			Request cancelRequest = ctx.createCancel();
-			
-//        	cancelRequest.addHeader(viaHeader);
-			cancelRequest.removeFirst(RouteHeader.NAME);
-			SipURI routeSipUri = addressFactory
-		    	.createSipURI(null, node.getIp());
-			routeSipUri.setPort(node.getPort());
-			routeSipUri.setLrParam();
-			RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
-			cancelRequest.addFirst(route);
-			
-			
-			SipProvider sendingSipProvider = internalSipProvider;
-			if(sipProvider.equals(internalSipProvider)) {
-				sendingSipProvider = externalSipProvider;
-			}
-			
-			// Create a new transaction just to add the Via Header
-			ClientTransaction cancelClientTransaction = sendingSipProvider
-				.getNewClientTransaction(cancelRequest);
-			
-			// And send statelessly because tx-stateful doesnt respect the Route header
-			sendingSipProvider.sendRequest(
-					cancelRequest);           
-		} else {
-			//No node present yet to forward the request to, thus sending 500 final error response
-			logger.severe("No node present yet to forward the request " + originalRequest);
-			Response response = messageFactory.createResponse
-		    	(Response.SERVER_INTERNAL_ERROR,originalRequest);			
-		    serverTransaction.sendResponse(response);
-		}
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -749,84 +542,33 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	public void processResponse(ResponseEvent responseEvent) {
 		SipProvider sipProvider = (SipProvider) responseEvent.getSource();
-        Response originalResponse = responseEvent.getResponse();
-        ClientTransaction clientTransaction = responseEvent.getClientTransaction();
-        if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("got response :\n" + originalResponse);
-    	}
-        //stateful proxy must not forward 100 Trying
-        if (originalResponse.getStatusCode() == 100) {
-        	if(logger.isLoggable(Level.FINEST)) {
-         		logger.finest("dropping 100 response");
-         	}
-        	return;	
-        }		
-        //we drop retransmissions since the proxy tx will retransmit for us
-        // wrong see Issue 805 http://code.google.com/p/mobicents/issues/detail?id=805
-//        if(clientTransaction == null) {
-//        	if(logger.isLoggable(Level.FINEST)) {
-//         		logger.finest("dropping retransmissions");
-//         	}
-//        	return;
-//        }
-        
-        updateStats(originalResponse);
-        
-        if(!Request.CANCEL.equalsIgnoreCase(((CSeqHeader)originalResponse.getHeader(CSeqHeader.NAME)).getMethod())) {
-        	
-	        Response response = (Response) originalResponse.clone();
-	        // Topmost via header is me. As it is reponse to external request
-        	ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
-        	//FIXME check against a list of host we may have too
-		    if(!isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
-		    	response.removeFirst(ViaHeader.NAME);
-		    }
-		    			
-//            if (sipProvider == this.internalSipProvider) {
-//            	if(logger.isLoggable(Level.FINEST)) {
-//            		logger.finest("GOT RESPONSE INTERNAL:\n"+response);
-//            	}
-//                //Register will be cleaned in the processXXXTerminated jsip callback 
-//                //Here if we get response other than 100-2xx we have to clean register from this session                
-////                if(dialogCreationMethods.contains(method) && !(100<=status && status<300)) {
-////                	register.unStickSessionFromNode(callID);
-////                }
-//            } else {
-//                //Topmost via header is proxy, we leave it
-//            	//This happens as proxy sets RR to external interface, but it sets Via to itself.
-//            	if(logger.isLoggable(Level.FINEST)) {
-//            		logger.finest("GOT RESPONSE INTERNAL, FOR UAS REQ:\n"+response);
-//            	}
-//            	//Register will be cleaned in the processXXXTerminated jsip callback
-//            	//Here we should care only for BYE, all other are send without any change
-//            	//We dont even bother status, as BYE means that UAS wants to terminate.
-////            	if(method.equals(Request.BYE)) {
-////            		register.unStickSessionFromNode(callID);
-////            	}
-//            }
-            
-            try {	           
-	            if(clientTransaction != null) {
-	            	// non retransmission case
-		            ServerTransaction serverTransaction = (ServerTransaction)clientTransaction.getApplicationData();
-		            serverTransaction.sendResponse(response);
-	            } else {
-	            	// retransmission case : we forward on the other sip provider
-	            	if(sipProvider.equals(externalSipProvider)) {
-	            		internalSipProvider.sendResponse(response);
-	            	} else {
-	            		externalSipProvider.sendResponse(response);
-	            	}
-	            }
-	        } catch (Exception ex) {
-	        	logger.log(Level.SEVERE, "Unexpected exception while forwarding the response " + response + 
-	        			" (transaction=" + clientTransaction + " / dialog=" + responseEvent.getDialog() + "", ex);
-	        }
-        } else {
-        	if(logger.isLoggable(Level.FINEST)) {
-         		logger.finest("dropping CANCEL responses, snce it hop by hop");
-         	}
-        }
+		Response originalResponse = responseEvent.getResponse();
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("got response :\n" + originalResponse);
+		}
+
+		updateStats(originalResponse);
+
+		Response response = (Response) originalResponse.clone();
+		
+		// Topmost via header is me. As it is response to external request
+		ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+		
+		if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
+			response.removeFirst(ViaHeader.NAME);
+		}
+
+		try {	
+			// retransmission case : we forward on the other sip provider
+			if(sipProvider.equals(externalSipProvider)) {
+				internalSipProvider.sendResponse(response);
+			} else {
+				externalSipProvider.sendResponse(response);
+			}
+		} catch (Exception ex) {
+			logger.log(Level.SEVERE, "Unexpected exception while forwarding the response \n" + response, ex);
+		}
+
 	}
 
 	/*
