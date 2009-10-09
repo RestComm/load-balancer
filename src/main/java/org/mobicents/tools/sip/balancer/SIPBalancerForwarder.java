@@ -21,10 +21,7 @@
  */
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.ServerTransactionExt;
-
 import java.text.ParseException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,7 +32,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.sip.ClientTransaction;
 import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
 import javax.sip.InvalidArgumentException;
@@ -43,7 +39,6 @@ import javax.sip.ListeningPoint;
 import javax.sip.PeerUnavailableException;
 import javax.sip.RequestEvent;
 import javax.sip.ResponseEvent;
-import javax.sip.ServerTransaction;
 import javax.sip.SipException;
 import javax.sip.SipFactory;
 import javax.sip.SipListener;
@@ -51,13 +46,11 @@ import javax.sip.SipProvider;
 import javax.sip.SipStack;
 import javax.sip.TimeoutEvent;
 import javax.sip.Transaction;
-import javax.sip.TransactionAlreadyExistsException;
 import javax.sip.TransactionTerminatedEvent;
 import javax.sip.TransactionUnavailableException;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
-import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
@@ -252,38 +245,21 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	public void processRequest(RequestEvent requestEvent) {
 		// This will be invoked only by external endpoint
-		SipProvider sipProvider = (SipProvider) requestEvent.getSource();
-        Request originalRequest = requestEvent.getRequest();
-        ServerTransaction serverTransaction = requestEvent.getServerTransaction();
+		final SipProvider sipProvider = (SipProvider) requestEvent.getSource();
+		final Request originalRequest = requestEvent.getRequest();
          
-        Request request = (Request) originalRequest.clone();
-        String requestMethod = request.getMethod();
+		final Request request = originalRequest;
+		final String requestMethod = request.getMethod();
 		try {	
-
-			
 			updateStats(request);
-			
-			String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
             forwardRequest(sipProvider,
-						originalRequest, request);
-          
-		} catch (TransactionAlreadyExistsException taex ) {
-			// Already processed this request so just return.
-			return;				
+						originalRequest, request);          						
         } catch (Throwable throwable) {
             logger.log(Level.SEVERE, "Unexpected exception while forwarding the request " + request, throwable);
             if(!Request.ACK.equalsIgnoreCase(requestMethod)) {
 	            try {
 	            	Response response=messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR,originalRequest);			
-	                if (serverTransaction !=null) {
-	                	serverTransaction.sendResponse(response);
-	                } else { 
-	                	if (sipProvider.equals(this.externalSipProvider)) {
-	                		externalSipProvider.sendResponse(response);	
-	                	} else {
-	                		internalSipProvider.sendResponse(response);	
-	                	}
-	                }	
+	                sipProvider.sendResponse(response);	
 	            } catch (Exception e) {
 	            	logger.log(Level.SEVERE, "Unexpected exception while trying to send the error response for this " + request, e);
 				}
@@ -319,7 +295,7 @@ public class SIPBalancerForwarder implements SipListener {
 			logger.finest("got dialog creating request:\n"+request);
 		}
 		
-		boolean isCancel = Request.CANCEL.equals(request.getMethod());
+		final boolean isCancel = Request.CANCEL.equals(request.getMethod());
 		
 		if(!isCancel) {
 			decreaseMaxForwardsHeader(sipProvider, request);
@@ -329,9 +305,9 @@ public class SIPBalancerForwarder implements SipListener {
 			addLBRecordRoute(sipProvider, request);
 		}
 		
-		String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
+		final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 		
-		SIPNode sipNode = removeRouteHeadersMeantForLB(request);
+		final SIPNode sipNode = removeRouteHeadersMeantForLB(request);
 		if(sipNode == null) {
 			//if the sip node is null it means the request comes from external
 			//thus we need to add a route header
@@ -356,10 +332,10 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		// Stateless proxies must not use internal state or ransom values when creating branch because they
 		// must repeat exactly the same branches for retransmissions
-		ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
+		final ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
 		String newBranch = via.getBranch() + callID.substring(0, Math.min(callID.length(), 5));
 		// Add the via header to the top of the header list.
-		ViaHeader viaHeader = headerFactory.createViaHeader(
+		final ViaHeader viaHeader = headerFactory.createViaHeader(
 				this.myHost, this.myPort, ListeningPoint.UDP, newBranch);
 		request.addHeader(viaHeader); 
 
@@ -409,21 +385,21 @@ public class SIPBalancerForwarder implements SipListener {
 	private void addRouteToNode(Request originalRequest,Request request, Map<String, String> parameters)
 			throws ParseException, SipException, InvalidArgumentException {
 		
-		String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
-		SIPNode node = register.stickSessionToNode(callID, null);
+		final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
+		final SIPNode node = register.stickSessionToNode(callID, null);
 		if(node != null) {
 			//Adding Route Header pointing to the node the sip balancer wants to forward to
-			SipURI routeSipUri = addressFactory
+			final SipURI routeSipUri = addressFactory
 		    	.createSipURI(null, node.getIp());
 			routeSipUri.setPort(node.getPort());
 			routeSipUri.setLrParam();
 			if(parameters != null) {
-				Set<Entry<String, String>> routeParameters= parameters.entrySet();
+				final Set<Entry<String, String>> routeParameters= parameters.entrySet();
 				for (Entry<String, String> entry : routeParameters) {
 					routeSipUri.setParameter(entry.getKey(), entry.getValue());	
 				}				
 			}
-			RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
+			final RouteHeader route = headerFactory.createRouteHeader(addressFactory.createAddress(routeSipUri));
 			request.addFirst(route);
 		}
 	}
@@ -446,9 +422,9 @@ public class SIPBalancerForwarder implements SipListener {
     	}
 		SIPNode node = null; 
 		//Removing first routeHeader if it is for the sip balancer
-		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+		final RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
-		    SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+			final SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
 		    //FIXME check against a list of host we may have too
 		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
 		    	if(logger.isLoggable(Level.FINEST)) {
@@ -488,10 +464,10 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	private SIPNode checkRouteHeaderForSipNode(SipURI routeSipUri) {
 		SIPNode node = null;
-		String hostNode = routeSipUri.getParameter(ROUTE_PARAM_NODE_HOST);
-		String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
+		final String hostNode = routeSipUri.getParameter(ROUTE_PARAM_NODE_HOST);
+		final String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
 		if(hostNode != null && hostPort != null) {
-			int port = Integer.parseInt(hostPort);
+			final int port = Integer.parseInt(hostPort);
 			node = register.getNode(hostNode, port, routeSipUri.getTransportParam());
 		}
 		return node;
@@ -549,10 +525,10 @@ public class SIPBalancerForwarder implements SipListener {
 
 		updateStats(originalResponse);
 
-		Response response = (Response) originalResponse.clone();
+		final Response response = originalResponse;
 		
 		// Topmost via header is me. As it is response to external request
-		ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+		final ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
 		
 		if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
 			response.removeFirst(ViaHeader.NAME);
