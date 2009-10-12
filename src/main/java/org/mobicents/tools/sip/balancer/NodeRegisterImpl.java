@@ -237,6 +237,10 @@ public class NodeRegisterImpl  implements NodeRegister {
 		// if we already stick a request to this node, but the server crashed and this is a retransmission
 		// we need to check if the node is still alive and pick another one if not
 		if(node != null && !isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
+			if(logger.isLoggable(Level.FINEST)) {
+	    		logger.finest("node " + node + " is not alive anymore, picking another one ");
+	    	}
+			unStickSessionFromNode(callID);
 			node = null;
 		}
 		if(node == null) {

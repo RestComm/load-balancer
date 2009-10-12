@@ -292,7 +292,7 @@ public class SIPBalancerForwarder implements SipListener {
 			throws ParseException, InvalidArgumentException, SipException,
 			TransactionUnavailableException {
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("got dialog creating request:\n"+request);
+			logger.finest("got request:\n"+request);
 		}
 		
 		final boolean isCancel = Request.CANCEL.equals(request.getMethod());
