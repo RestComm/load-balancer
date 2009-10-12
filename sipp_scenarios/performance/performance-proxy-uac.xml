@@ -59,21 +59,24 @@
     ]]>
   </send>
 
- <recv request="BYE" timeout="5000"/>
-<send retrans="500">
-
-<![CDATA[
-      SIP/2.0 200 OK
+  <pause milliseconds="1000" /> 
+  
+  <send retrans="1000">
+    <![CDATA[
+      BYE [$1] SIP/2.0
       [last_Via:]
       [last_From:]
       [last_To:]
-      [last_Call-ID:]
-      [last_CSeq:]
-      [last_Contact:]
+      Call-ID: [call_id]
+      [routes]
+      CSeq: 2 BYE
+      Contact: sip:barreiro@[local_ip]:[local_port]
       Max-Forwards: 70
+      Subject: Test
       Content-Length: 0
- ]]>
+    ]]>
+  </send>
 
-</send>
+  <recv response="200" optional="false"/>
 
 </scenario>
