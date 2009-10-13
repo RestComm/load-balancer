@@ -29,10 +29,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,9 +62,9 @@ public class NodeRegisterImpl  implements NodeRegister {
 
 	private AtomicInteger pointer;
 
-	private List<SIPNode> nodes;
+	private CopyOnWriteArrayList<SIPNode> nodes;
 	private ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
-	private ConcurrentHashMap<String, SIPNode> gluedSessions;
+	private BalancerAlgorithm balancerAlgorithm;
 	
 	private InetAddress serverAddress = null;
 
@@ -80,8 +77,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	/**
 	 * {@inheritDoc}
 	 */
-	public List<SIPNode> getNodes() {
-		return this.nodes;	
+	public CopyOnWriteArrayList<SIPNode> getNodes() {
+		return this.nodes;
 	}
 		
 	/**
@@ -93,7 +90,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 		}
 		try {
 			nodes = new CopyOnWriteArrayList<SIPNode>();
-			gluedSessions = new ConcurrentHashMap<String, SIPNode>();
+			SIPBalancerForwarder.balancerContext.nodes = this.nodes;
 			jvmRouteToSipNode = new ConcurrentHashMap<String, SIPNode>();
 			pointer = new AtomicInteger(POINTER_START);
 			
@@ -129,8 +126,6 @@ public class NodeRegisterImpl  implements NodeRegister {
 		}
 		nodes.clear();
 		nodes = null;
-		gluedSessions.clear();
-		gluedSessions = null;
 		pointer = new AtomicInteger(POINTER_START);
 		if(logger.isLoggable(Level.INFO)) {
 			logger.info("Node registry stopped.");
@@ -181,7 +176,6 @@ public class NodeRegisterImpl  implements NodeRegister {
 		} catch (AlreadyBoundException e) {
 			throw new RuntimeException("Failed to bind due to:", e);
 		}
-
 	}
 	
 	private boolean deregister(InetAddress serverAddress) {
@@ -202,71 +196,32 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 * {@inheritDoc}
 	 */
 	public void unStickSessionFromNode(String callID) {		
-		SIPNode node = gluedSessions.remove(callID);
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("unsticked  CallId " + callID + " from node " + node);
+			logger.finest("unsticked  CallId " + callID + " from node " + null);
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public SIPNode getNextNode() {
-		int nodesSize = nodes.size(); 
-		if(nodesSize < 1) {
-			return null;
-		}
-		int index = pointer.getAndIncrement() % nodesSize;
-		return this.nodes.get(index);
-	}
+
 	
 	/**
 	 * {@inheritDoc}
 	 */
 	public SIPNode stickSessionToNode(String callID, SIPNode sipNode) {
-		SIPNode node = null;
-		if(sipNode != null) {
-			node = gluedSessions.putIfAbsent(callID, sipNode);
-			if(node == null) {
-				node = sipNode; 
-			}
-		} else {
-			node = gluedSessions.get(callID);
-		}
-		// Issue 308 (http://code.google.com/p/mobicents/issues/detail?id=308)
-		// if we already stick a request to this node, but the server crashed and this is a retransmission
-		// we need to check if the node is still alive and pick another one if not
-		if(node != null && !isSIPNodePresent(node.getIp(), node.getPort(), node.getTransports()[0])) {
-			if(logger.isLoggable(Level.FINEST)) {
-	    		logger.finest("node " + node + " is not alive anymore, picking another one ");
-	    	}
-			unStickSessionFromNode(callID);
-			node = null;
-		}
-		if(node == null) {
-			SIPNode newStickyNode = this.getNextNode();
-			if (newStickyNode  != null) {
-				node = gluedSessions.putIfAbsent(callID, newStickyNode);
-				if(node == null) {
-					node = newStickyNode; 
-				}
-			}
-		}		
+		
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("sticking  CallId " + callID + " to node " + node);
+			logger.finest("sticking  CallId " + callID + " to node " + null);
 		}
-		return node;
+		return null;
 	}
 	
 	/**
 	 * {@inheritDoc}
 	 */
 	public SIPNode getGluedNode(String callID) {
-		SIPNode sipNode = this.gluedSessions.get(callID);;
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("glueued node " + sipNode + " for CallId " + callID);
+			logger.finest("glueued node " + null + " for CallId " + callID);
 		}
-		return sipNode;
+		return null;
 	}
 
 	/**
@@ -323,6 +278,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 				if (node.getTimeStamp() + nodeExpiration < System
 						.currentTimeMillis()) {
 					nodes.remove(node);
+					balancerAlgorithm.nodeRemoved(node);
 					if(logger.isLoggable(Level.INFO)) {
 						logger.info("NodeExpirationTimerTask Run NSync["
 							+ node + "] removed");
@@ -348,11 +304,12 @@ public class NodeRegisterImpl  implements NodeRegister {
 		for (SIPNode pingNode : ping) {
 			if(pingNode.getJvmRoute() != null) {
 				// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
-				// We need info about inative nodes to do the failover
+				// We need info about inactive nodes to do the failover
 				jvmRouteToSipNode.put(pingNode.getJvmRoute(), pingNode);				
 			}
 			if(nodes.size() < 1) {
 				nodes.add(pingNode);
+				balancerAlgorithm.nodeAdded(pingNode);
 				
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
@@ -373,6 +330,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 				nodePresent.updateTimerStamp();
 			} else {
 				nodes.add(pingNode);
+				balancerAlgorithm.nodeAdded(pingNode);
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] added");
@@ -388,6 +346,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 		for (SIPNode pingNode : ping) {
 			if(nodes.size() < 1) {
 				nodes.remove(pingNode);
+				balancerAlgorithm.nodeRemoved(pingNode);
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] forcibly removed due to a clean shutdown of a node");
@@ -405,6 +364,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 			// removal done afterwards to avoid ConcurrentModificationException when removing the node while goign through the iterator
 			if(nodePresent) {
 				nodes.remove(pingNode);
+				balancerAlgorithm.nodeRemoved(pingNode);
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] forcibly removed due to a clean shutdown of a node. Numbers of nodes present in the balancer : " + nodes.size());
@@ -412,7 +372,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 			}					
 		}
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -455,37 +415,25 @@ public class NodeRegisterImpl  implements NodeRegister {
 		this.nodeInfoExpirationTaskInterval = value;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public Map<String, SIPNode> getGluedSessions() {
-		return gluedSessions;
-	}
-
 	public SIPNode[] getAllNodes() {
 		return this.nodes.toArray(new SIPNode[]{});
 	}
 
+	public SIPNode getNextNode() throws IndexOutOfBoundsException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
-		SIPNode oldNode = this.jvmRouteToSipNode.get(fromJvmRoute);
-		SIPNode newNode = this.jvmRouteToSipNode.get(toJvmRoute);
-		if(oldNode != null && newNode != null) {
-			int updatedRoutes = 0;
-			for(String key : gluedSessions.keySet()) {
-				SIPNode n = gluedSessions.get(key);
-				if(n.equals(oldNode)) {
-					gluedSessions.replace(key, newNode);
-					updatedRoutes++;
-				}
-			}
-			if(logger.isLoggable(Level.INFO)) {
-				logger.info("Switchover occured where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute + " with " + 
-						updatedRoutes + " updated routes.");
-			}
-		} else {
-			if(logger.isLoggable(Level.INFO)) {
-				logger.info("Switchover failed where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute);
-			}
-		}
+		// TODO Auto-generated method stub
+		
+	}
+
+	public BalancerAlgorithm getBalancerAlgorithm() {
+		return balancerAlgorithm;
+	}
+
+	public void setBalancerAlgorithm(BalancerAlgorithm balancerAlgorithm) {
+		this.balancerAlgorithm = balancerAlgorithm;
 	}
 }

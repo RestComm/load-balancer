@@ -23,6 +23,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.rmi.Remote;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * <p>
@@ -42,6 +43,8 @@ public interface NodeRegister extends Remote {
 	public SIPNode getGluedNode(String callID);
 	
 	public SIPNode[] getAllNodes();
+	
+	public CopyOnWriteArrayList<SIPNode> getNodes();
 
 	public void unStickSessionFromNode(String callID);
 	

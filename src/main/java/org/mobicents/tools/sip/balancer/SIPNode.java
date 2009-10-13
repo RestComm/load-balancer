@@ -40,7 +40,7 @@ import java.util.Arrays;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  * 
  */
-public class SIPNode implements Serializable {
+public class SIPNode implements Serializable, Comparable {
 
 	/**
 	 * 
@@ -52,6 +52,7 @@ public class SIPNode implements Serializable {
 	private String[] transports = null;
 	private long timeStamp = System.currentTimeMillis();
 	private String jvmRoute;
+	private boolean dead;
 
 	public SIPNode(String hostName, String ip, int port, String[] transports, String jvmRoute) {
 		super();
@@ -98,6 +99,14 @@ public class SIPNode implements Serializable {
 		this.timeStamp = System.currentTimeMillis();
 	}
 
+	public boolean isDead() {
+		return dead;
+	}
+
+	public void setDead(boolean dead) {
+		this.dead = dead;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -141,6 +150,17 @@ public class SIPNode implements Serializable {
 		return "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
 				+ "] port[" + this.port + "] transport["
 				+ Arrays.toString(this.transports) + "] jvmRoute[" + this.jvmRoute + "]";
+	}
+	
+	public String toStringWithoutJvmroute() {
+
+		return "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
+				+ "] port[" + this.port + "] transport["
+				+ Arrays.toString(this.transports) + "]";
+	}
+
+	public int compareTo(Object arg0) {
+		return this.toStringWithoutJvmroute().compareTo(((SIPNode)arg0).toStringWithoutJvmroute());
 	}
 
 }

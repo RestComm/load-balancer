@@ -29,6 +29,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	private static final String HOST_PROP = "host";
 	private static final String RMI_REGISTRY_PORT_PROP = "rmiRegistryPort";
 	private static final String JMX_HTML_ADAPTER_PORT_PROP = "jmxHtmlAdapterPort";
+	private static final String ALGORITHM_PROP = "algorithmClass";
+	private static final String DEFAULT_ALGORITHM = CallIDAffinityBalancerAlgorithm.class.getCanonicalName();
 	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
 	public static final String HTML_ADAPTOR_PORT = "8000";
 	public static final String REGISTRY_PORT = "2000";
@@ -40,6 +42,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	HtmlAdaptorServer adapter = new HtmlAdaptorServer();
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
+	BalancerAlgorithm balancerAlgorithm;
 
 	/**
 	 * @param args
@@ -105,6 +108,18 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.log(Level.SEVERE, "Couldn't convert rmiRegistryPort to a valid integer", nfe);
 			return ; 
 		}
+		
+		String algorithmClassname = properties.getProperty(ALGORITHM_PROP, DEFAULT_ALGORITHM);
+		
+		try {
+			Class clazz = Class.forName(algorithmClassname);
+			balancerAlgorithm = (BalancerAlgorithm) clazz.newInstance();
+			balancerAlgorithm.setProperties(properties);
+			logger.info("Balancer algorithm " + algorithmClassname + " loaded succesfully");
+		} catch (Exception e) {
+			throw new RuntimeException("Error loading the algorithm class: " + algorithmClassname, e);
+		}
+		
 		try {
 			
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
@@ -117,13 +132,17 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			RouterImpl.setRegister(reg);			
 
 			reg = new NodeRegisterImpl(addr);	
+			reg.setBalancerAlgorithm(balancerAlgorithm);
 			reg.startRegistry(rmiRegistryPort);
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding shutdown hook");
 			}
 			
 			fwd = new SIPBalancerForwarder(properties, reg);
+			fwd.setBalancerAlgorithm(balancerAlgorithm);
 			fwd.start();
+			
+			balancerAlgorithm.init();
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
@@ -165,6 +184,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}	
+		
+		balancerAlgorithm.stop();
 		adapter.stop();
 	}
 
@@ -207,12 +228,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		}
 		return nodeList;
 	}
-	
-	public int getNumberOfGluedSessions() {
-		
-		return reg.getGluedSessions().size();
-	}
-	
 }
 
 class SipBalancerShutdownHook extends Thread {

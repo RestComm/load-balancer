@@ -51,8 +51,6 @@ public interface BalancerRunnerMBean {
 	long getNumberOfRequestsProcessed();
 	long getNumberOfResponsesProcessed();
 	
-	int getNumberOfGluedSessions();
-	
 	List<SIPNode> getNodes();
 	String[] getNodeList();		
 }
