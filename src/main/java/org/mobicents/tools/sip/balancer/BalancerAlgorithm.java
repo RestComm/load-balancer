@@ -80,7 +80,7 @@ public interface BalancerAlgorithm {
 	void init();
 	
 	/**
-	 * Lifecucle method. Notifies the algorithm when it's being shut down.
+	 * Lifecycle method. Notifies the algorithm when it's being shut down.
 	 */
 	void stop();
 	

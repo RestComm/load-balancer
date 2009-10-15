@@ -27,6 +27,12 @@ public class BalancerContext {
 	public int myPort;
 
 	public int myExternalPort;
+	
+	public String externalIpLoadBalancerAddress;
+	public int externalLoadBalancerPort;
+	
+	public String internalIpLoadBalancerAddress;
+	public int internalLoadBalancerPort;
 
 	public AddressFactory addressFactory;
 	public HeaderFactory headerFactory;
@@ -38,6 +44,10 @@ public class BalancerContext {
 	
 	public RecordRouteHeader internalRecordRouteHeader;
 	public RecordRouteHeader externalRecordRouteHeader;
+	public RecordRouteHeader externalIpBalancerRecordRouteHeader; 
+	public RecordRouteHeader internalIpBalancerRecordRouteHeader; 
+	public RecordRouteHeader activeInternalHeader;
+	public RecordRouteHeader activeExternalHeader;
     
 	public AtomicLong requestsProcessed = new AtomicLong(0);
 	

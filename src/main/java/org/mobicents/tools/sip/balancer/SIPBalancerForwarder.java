@@ -21,6 +21,7 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.header.RecordRoute;
 import gov.nist.javax.sip.header.SIPHeader;
 
 import java.text.ParseException;
@@ -52,6 +53,7 @@ import javax.sip.address.Address;
 import javax.sip.address.SipURI;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.MaxForwardsHeader;
+import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Message;
@@ -109,7 +111,9 @@ public class SIPBalancerForwarder implements SipListener {
 		balancerContext.myHost = balancerContext.properties.getProperty("host");        
 		balancerContext.myPort = Integer.parseInt(balancerContext.properties.getProperty("internalPort"));
 		balancerContext.myExternalPort = Integer.parseInt(balancerContext.properties.getProperty("externalPort"));
-        
+		balancerContext.externalIpLoadBalancerAddress = balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
+		balancerContext.internalIpLoadBalancerAddress = balancerContext.properties.getProperty("internalIpLoadBalancerAddress");
+		
         try {
             // Create SipStack object
         	sipFactory = SipFactory.getInstance();
@@ -147,9 +151,10 @@ public class SIPBalancerForwarder implements SipListener {
     		sipUri.setLrParam();
     		Address address = balancerContext.addressFactory.createAddress(sipUri);
     		address.setURI(sipUri);
-    		                    
+
     		balancerContext.internalRecordRouteHeader = balancerContext.headerFactory
-    		        .createRecordRouteHeader(address);                    
+    		.createRecordRouteHeader(address);            
+
     		//We need to use double record (better option than record route rewriting) routing otherwise it is impossible :
     		//a) to forward BYE from the callee side to the caller
     		//b) to support different transports		
@@ -165,7 +170,37 @@ public class SIPBalancerForwarder implements SipListener {
     		}                    
     		balancerContext.externalRecordRouteHeader = balancerContext.headerFactory
     		        .createRecordRouteHeader(sendingAddress);    
-            
+    		
+    		if(balancerContext.externalIpLoadBalancerAddress != null) {
+    			SipURI ipLbSipUri = balancerContext.addressFactory
+    			.createSipURI(null, balancerContext.externalIpLoadBalancerAddress);
+    			String portString = balancerContext.properties.getProperty("externalIpLoadBalancerPort", "5060");
+    			balancerContext.externalLoadBalancerPort = Integer.parseInt(portString);
+    			ipLbSipUri.setPort(balancerContext.externalLoadBalancerPort);
+    			ipLbSipUri.setLrParam();
+    			Address ipLbAdress = balancerContext.addressFactory.createAddress(ipLbSipUri);
+    			address.setURI(ipLbSipUri);
+    			balancerContext.externalIpBalancerRecordRouteHeader = balancerContext.headerFactory
+    			.createRecordRouteHeader(ipLbAdress);
+    		}
+    		
+    		if(balancerContext.internalIpLoadBalancerAddress != null) {
+    			SipURI ipLbSipUri = balancerContext.addressFactory
+    			.createSipURI(null, balancerContext.internalIpLoadBalancerAddress);
+    			String portString = balancerContext.properties.getProperty("internalIpLoadBalancerPort", "5060");
+    			balancerContext.internalLoadBalancerPort = Integer.parseInt(portString);
+    			ipLbSipUri.setPort(balancerContext.internalLoadBalancerPort);
+    			ipLbSipUri.setLrParam();
+    			Address ipLbAdress = balancerContext.addressFactory.createAddress(ipLbSipUri);
+    			address.setURI(ipLbSipUri);
+    			balancerContext.internalIpBalancerRecordRouteHeader = balancerContext.headerFactory
+    			.createRecordRouteHeader(ipLbAdress);
+    		}
+    		balancerContext.activeExternalHeader = balancerContext.externalIpBalancerRecordRouteHeader != null ?
+    				balancerContext.externalIpBalancerRecordRouteHeader : balancerContext.externalRecordRouteHeader;
+    		balancerContext.activeInternalHeader = balancerContext.internalIpBalancerRecordRouteHeader != null ?
+    				balancerContext.internalIpBalancerRecordRouteHeader : balancerContext.internalRecordRouteHeader;
+    		
     		balancerContext.sipStack.start();
         } catch (Exception ex) {
         	throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
@@ -322,24 +357,24 @@ public class SIPBalancerForwarder implements SipListener {
 	throws ParseException {				
 		if(sipProvider.equals(balancerContext.externalSipProvider)) {
 			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding Record Router Header :" + balancerContext.externalRecordRouteHeader);
+				logger.finest("adding Record Router Header :" + balancerContext.activeExternalHeader);
 			}
-			request.addHeader(balancerContext.externalRecordRouteHeader);
+			request.addHeader(balancerContext.activeExternalHeader);
 
 			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding Record Router Header :" + balancerContext.internalRecordRouteHeader);
+				logger.finest("adding Record Router Header :" + balancerContext.activeInternalHeader);
 			}
-			request.addHeader(balancerContext.internalRecordRouteHeader);
+			request.addHeader(balancerContext.activeInternalHeader);
 		} else {
 			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding Record Router Header :" + balancerContext.internalRecordRouteHeader);
+				logger.finest("adding Record Router Header :" + balancerContext.activeInternalHeader);
 			}
-			request.addHeader(balancerContext.internalRecordRouteHeader);
+			request.addHeader(balancerContext.activeInternalHeader);
 
 			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding Record Router Header :" + balancerContext.externalRecordRouteHeader);
+				logger.finest("adding Record Router Header :" + balancerContext.activeExternalHeader);
 			}
-			request.addHeader(balancerContext.externalRecordRouteHeader);			
+			request.addHeader(balancerContext.activeExternalHeader);			
 		}		
 	}
 	
@@ -422,8 +457,14 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @return
 	 */
 	private boolean isRouteHeaderExternal(String host, int port) {
-		 //FIXME check against a list of host we may have too
+		 //FIXME check against a list of host we may have too and add transport
 		if(host.equalsIgnoreCase(balancerContext.myHost) && (port == balancerContext.myExternalPort || port == balancerContext.myPort)) {
+			return false;
+		}
+		if((host.equalsIgnoreCase(balancerContext.externalIpLoadBalancerAddress) && port == balancerContext.externalLoadBalancerPort)) {
+			return false;
+		}
+		if((host.equalsIgnoreCase(balancerContext.internalIpLoadBalancerAddress) && port == balancerContext.internalLoadBalancerPort)) {
 			return false;
 		}
 		return true;
