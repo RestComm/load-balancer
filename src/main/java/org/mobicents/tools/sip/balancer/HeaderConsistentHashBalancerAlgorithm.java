@@ -135,8 +135,10 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 
 	@Override
 	public void init() {
-		// TODO Auto-generated method stub
-		
+		String headerName = getProperties().getProperty("CONSISTENT_HASH_AFFINITY_HEADER");
+		if(headerName != null) {
+			this.headerName = headerName;
+		}
 	}
 
 	@Override

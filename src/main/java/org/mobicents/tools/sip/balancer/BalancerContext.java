@@ -1,6 +1,7 @@
 package org.mobicents.tools.sip.balancer;
 
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -13,6 +14,7 @@ import javax.sip.message.MessageFactory;
 
 public class BalancerContext {
 	public CopyOnWriteArrayList<SIPNode> nodes;
+	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	
 	public Object parameters;
 	

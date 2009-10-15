@@ -3,6 +3,7 @@ package org.mobicents.tools.sip.balancer;
 import java.util.Properties;
 
 import javax.sip.message.Request;
+import javax.sip.message.Response;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
@@ -17,6 +18,14 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 
 	public Properties getProperties() {
 		return properties;
+	}
+	
+	public void processResponse(Response response) {
+		
+	}
+	
+	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
+		
 	}
 
 	public abstract void nodeAdded(SIPNode node);

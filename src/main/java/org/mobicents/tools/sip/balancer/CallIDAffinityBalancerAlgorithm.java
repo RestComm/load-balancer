@@ -2,17 +2,26 @@ package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.SIPHeader;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.sip.address.SipURI;
 import javax.sip.header.RouteHeader;
 import javax.sip.message.Request;
 
 public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
+	private static Logger logger = Logger.getLogger(CallIDAffinityBalancerAlgorithm.class.getCanonicalName());
 	
-	ConcurrentHashMap<String, SIPNode> callIdMap = new ConcurrentHashMap<String, SIPNode>();
-	AtomicInteger nextNodeCounter = new AtomicInteger(0);
+	private ConcurrentHashMap<String, SIPNode> callIdMap = new ConcurrentHashMap<String, SIPNode>();
+	private ConcurrentHashMap<String, Long> callIdTimestamps = new ConcurrentHashMap<String, Long>();
+	private AtomicInteger nextNodeCounter = new AtomicInteger(0);
+	private int maxCallIdleTime = 500;
+	private Timer cacheEvictionTimer = new Timer();
 
 	public void nodeAdded(SIPNode node) {
 		// DONT CARE
@@ -27,12 +36,18 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	public SIPNode processRequest(Request request) {
 		String callId = ((SIPHeader) request.getHeader("Call-ID"))
 			.getValue();
-		SIPNode node = callIdMap.get(callId);
+		SIPNode node;
+		if(callId == null) {
+			node = null;
+		} else {
+			node = callIdMap.get(callId);
+			callIdTimestamps.put(callId, System.currentTimeMillis());
+		}
 		BalancerContext balancerContext = getBalancerContext();
 		if(node == null) { //
 			node = nextAvailableNode();
 			if(node == null) return null;
-			callIdMap.put(callId, node);
+			if(callId != null) callIdMap.put(callId, node);
 		} else {
 			if(!balancerContext.nodes.contains(node)) { // If the assigned node is now dead
 				node = nextAvailableNode();
@@ -54,7 +69,8 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 
 			routeSipUri.setPort(node.getPort());
 			routeSipUri.setLrParam();
-			final RouteHeader route = balancerContext.headerFactory.createRouteHeader(balancerContext.addressFactory.createAddress(routeSipUri));
+			final RouteHeader route = balancerContext.headerFactory.createRouteHeader(
+					balancerContext.addressFactory.createAddress(routeSipUri));
 			request.addFirst(route);
 		} catch (Exception e) {
 			throw new RuntimeException("Error adding route header", e);
@@ -62,6 +78,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		
 		if(request.getMethod().equals("BYE")) {
 			callIdMap.remove(callId);
+			callIdTimestamps.remove(callId);
 		}
 		return node;
 		
@@ -76,13 +93,65 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	}
 
 	public void init() {
-		// DONT CARE
-		
+		String maxTimeInCacheString = getProperties().getProperty("CALLID_AFFINITY_MAX_TIME_IN_CACHE");
+		if(maxTimeInCacheString != null) {
+			this.maxCallIdleTime = Integer.parseInt(maxTimeInCacheString);
+		}
+		logger.info("Call Idle Time is " + this.maxCallIdleTime + " seconds. Inactive calls will be evicted.");
+		this.cacheEvictionTimer.schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				try {
+					ArrayList<String> oldCalls = new ArrayList<String>();
+					Iterator<String> keys = callIdTimestamps.keySet().iterator();
+					while(keys.hasNext()) {
+						String key = keys.next();
+						long time = callIdTimestamps.get(key);
+						if(System.currentTimeMillis() - time > 1000*maxCallIdleTime) {
+							oldCalls.add(key);
+						}
+					}
+					for(String key : oldCalls) {
+						callIdMap.remove(key);
+						callIdTimestamps.remove(key);
+					}
+					logger.info("Reaping idle calls... Evicted " + oldCalls.size() + " calls.");
+				} catch (Exception e) {
+					logger.log(Level.WARNING, "Failed to clean up old calls. If you continue to se this message frequestly and the memory is growing, report this problem.", e);
+				}
+			}
+		}, 0, 6000);
+
 	}
 
 	public void stop() {
 		// DONT CARE
 		
+	}
+	
+	@Override
+	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
+		SIPNode oldNode = getBalancerContext().jvmRouteToSipNode.get(fromJvmRoute);
+		SIPNode newNode = getBalancerContext().jvmRouteToSipNode.get(toJvmRoute);
+		if(oldNode != null && newNode != null) {
+			int updatedRoutes = 0;
+			for(String key : callIdMap.keySet()) {
+				SIPNode n = callIdMap.get(key);
+				if(n.equals(oldNode)) {
+					callIdMap.replace(key, newNode);
+					updatedRoutes++;
+				}
+			}
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Switchover occured where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute + " with " + 
+						updatedRoutes + " updated routes.");
+			}
+		} else {
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Switchover failed where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute);
+			}
+		}
 	}
 	
 }

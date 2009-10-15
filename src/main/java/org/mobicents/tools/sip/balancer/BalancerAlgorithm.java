@@ -3,6 +3,7 @@ package org.mobicents.tools.sip.balancer;
 import java.util.Properties;
 
 import javax.sip.message.Request;
+import javax.sip.message.Response;
 
 /**
  * The BalancerAlgortihm interface exposes the methods implemented by decision making algorithms
@@ -23,6 +24,13 @@ public interface BalancerAlgorithm {
 	 * @return
 	 */
 	SIPNode processRequest(Request request);
+	
+	/**
+	 * Allow algorithms to process responses
+	 * 
+	 * @param response
+	 */
+	void processResponse(Response response);
 	
 	/**
 	 * Notifying the algorithm when a node is dead.
@@ -57,6 +65,13 @@ public interface BalancerAlgorithm {
 	 * @return
 	 */
 	BalancerContext getBalancerContext();
+	
+	/**
+	 * Move load from one node to another to follow mod_jk/mod_cluster
+	 * @param fromJvmRoute
+	 * @param toJvmRoute
+	 */
+	void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute);
 	
 	/**
 	 * Lifecycle method. Notifies the algorithm when it's initialized with properties and balancer context.
