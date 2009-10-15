@@ -85,7 +85,7 @@ public interface BalancerAlgorithm {
 	void stop();
 	
 	/**
-	 * Assign id/header to node (usually callid to node)
+	 * Assign callid to node
 	 */
 	void assignToNode(String id, SIPNode node);
 }

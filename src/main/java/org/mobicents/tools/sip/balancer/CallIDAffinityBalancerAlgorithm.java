@@ -19,6 +19,7 @@ import javax.sip.message.Request;
 public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(CallIDAffinityBalancerAlgorithm.class.getCanonicalName());
 	
+	private String headerName = "Call-ID";
 	private ConcurrentHashMap<String, SIPNode> callIdMap = new ConcurrentHashMap<String, SIPNode>();
 	private ConcurrentHashMap<String, Long> callIdTimestamps = new ConcurrentHashMap<String, Long>();
 	private AtomicInteger nextNodeCounter = new AtomicInteger(0);
@@ -36,33 +37,23 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		
 	}
 
-	private SIPNode getNode(String host, int port, String transport) {
-		for(SIPNode node : getBalancerContext().nodes) {
-			if(node.getHostName().equals(host)
-					&& node.getPort() == port && node.getTransportsAsString().contains(transport)) {
-				return node;
-			}
-		}
-		return null;
-	}
-
 	public SIPNode processRequest(SipProvider sipProvider, Request request) {
-		String callId = ((SIPHeader) request.getHeader("Call-ID"))
-			.getValue();
-		SIPNode node;
-		if(callId == null) {
-			node = null;
-		} else {
-			node = callIdMap.get(callId);
-			callIdTimestamps.put(callId, System.currentTimeMillis());
+		if(sipProvider.equals(getBalancerContext().internalSipProvider)) {
+			return null;
 		}
 		
+		String callId = ((SIPHeader) request.getHeader(headerName))
+		.getValue();
+		SIPNode node;
+		node = callIdMap.get(callId);
+		callIdTimestamps.put(callId, System.currentTimeMillis());
+
 		BalancerContext balancerContext = getBalancerContext();
 
 		if(node == null) { //
 			node = nextAvailableNode();
 			if(node == null) return null;
-			if(callId != null) callIdMap.put(callId, node);
+			callIdMap.put(callId, node);
 		} else {
 			if(!balancerContext.nodes.contains(node)) { // If the assigned node is now dead
 				node = nextAvailableNode();

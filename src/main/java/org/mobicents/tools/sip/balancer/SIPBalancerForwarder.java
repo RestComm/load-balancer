@@ -21,6 +21,8 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.header.SIPHeader;
+
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -284,7 +286,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		SIPNode nextNode = this.balancerAlgorithm.processRequest(sipProvider, request);
 		
-		if(nextNode == null) {
+		if(nextNode == null && sipProvider.equals(balancerContext.externalSipProvider)) {
 			throw new RuntimeException("No nodes available");
 		}
 		
@@ -405,6 +407,8 @@ public class SIPBalancerForwarder implements SipListener {
 		    }	                
 		}
 		if(node !=null) {
+			String callId = ((SIPHeader) request.getHeader("Call-ID")).getValue();
+			balancerAlgorithm.assignToNode(callId, node);
 			if(logger.isLoggable(Level.FINEST)) {
 	    		logger.finest("Following node information has been found in one of the route Headers " + node);
 	    	}

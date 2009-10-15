@@ -35,6 +35,10 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 
 	public SIPNode processRequest(SipProvider sipProvider, Request request) {
+		if(sipProvider.equals(getBalancerContext().internalSipProvider)) {
+			return null;
+		}
+		
 		Integer nodeIndex = hashHeader(request);
 		if(nodeIndex<0) {
 			return null;
