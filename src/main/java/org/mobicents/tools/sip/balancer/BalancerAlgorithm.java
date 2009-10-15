@@ -2,6 +2,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.util.Properties;
 
+import javax.sip.SipProvider;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -23,14 +24,14 @@ public interface BalancerAlgorithm {
 	 * @param request
 	 * @return
 	 */
-	SIPNode processRequest(Request request);
+	SIPNode processRequest(SipProvider sipProvider, Request request);
 	
 	/**
 	 * Allow algorithms to process responses
 	 * 
 	 * @param response
 	 */
-	void processResponse(Response response);
+	void processResponse(SipProvider provider, Response response);
 	
 	/**
 	 * Notifying the algorithm when a node is dead.
@@ -82,4 +83,9 @@ public interface BalancerAlgorithm {
 	 * Lifecucle method. Notifies the algorithm when it's being shut down.
 	 */
 	void stop();
+	
+	/**
+	 * Assign id/header to node (usually callid to node)
+	 */
+	void assignToNode(String id, SIPNode node);
 }

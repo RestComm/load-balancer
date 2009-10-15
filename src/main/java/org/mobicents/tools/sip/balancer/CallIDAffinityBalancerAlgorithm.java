@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.sip.SipProvider;
 import javax.sip.address.SipURI;
 import javax.sip.header.RouteHeader;
 import javax.sip.message.Request;
@@ -23,6 +25,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private int maxCallIdleTime = 500;
 	private Timer cacheEvictionTimer = new Timer();
 
+
 	public void nodeAdded(SIPNode node) {
 		// DONT CARE
 		
@@ -33,7 +36,17 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		
 	}
 
-	public SIPNode processRequest(Request request) {
+	private SIPNode getNode(String host, int port, String transport) {
+		for(SIPNode node : getBalancerContext().nodes) {
+			if(node.getHostName().equals(host)
+					&& node.getPort() == port && node.getTransportsAsString().contains(transport)) {
+				return node;
+			}
+		}
+		return null;
+	}
+
+	public SIPNode processRequest(SipProvider sipProvider, Request request) {
 		String callId = ((SIPHeader) request.getHeader("Call-ID"))
 			.getValue();
 		SIPNode node;
@@ -43,7 +56,9 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			node = callIdMap.get(callId);
 			callIdTimestamps.put(callId, System.currentTimeMillis());
 		}
+		
 		BalancerContext balancerContext = getBalancerContext();
+
 		if(node == null) { //
 			node = nextAvailableNode();
 			if(node == null) return null;
@@ -117,13 +132,20 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 						callIdMap.remove(key);
 						callIdTimestamps.remove(key);
 					}
-					logger.info("Reaping idle calls... Evicted " + oldCalls.size() + " calls.");
+					if(oldCalls.size()>0) {
+						logger.info("Reaping idle calls... Evicted " + oldCalls.size() + " calls.");
+					}
 				} catch (Exception e) {
 					logger.log(Level.WARNING, "Failed to clean up old calls. If you continue to se this message frequestly and the memory is growing, report this problem.", e);
 				}
 			}
 		}, 0, 6000);
 
+	}
+	
+	public void assignToNode(String id, SIPNode node) {
+		callIdMap.put(id, node);
+		callIdTimestamps.put(id, System.currentTimeMillis());
 	}
 
 	public void stop() {

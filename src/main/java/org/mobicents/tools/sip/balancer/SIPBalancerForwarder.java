@@ -72,6 +72,14 @@ public class SIPBalancerForwarder implements SipListener {
 	private static final Logger logger = Logger.getLogger(SIPBalancerForwarder.class
 			.getCanonicalName());
 
+	/*
+	 * Those parameters is to indicate to the SIP Load Balancer, from which node comes from the request
+	 * so that it can stick the Call Id to this node and correctly route the subsequent requests. 
+	 */
+	public static final String ROUTE_PARAM_NODE_HOST = "node_host";
+
+	public static final String ROUTE_PARAM_NODE_PORT = "node_port";
+
 	protected static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
     
     static{
@@ -274,7 +282,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		removeRouteHeadersMeantForLB(request);
 		
-		SIPNode nextNode = this.balancerAlgorithm.processRequest(request);
+		SIPNode nextNode = this.balancerAlgorithm.processRequest(sipProvider, request);
 		
 		if(nextNode == null) {
 			throw new RuntimeException("No nodes available");
@@ -309,49 +317,45 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @throws ParseException
 	 */
 	private void addLBRecordRoute(SipProvider sipProvider, Request request)
-			throws ParseException {				
+	throws ParseException {				
 		if(sipProvider.equals(balancerContext.externalSipProvider)) {
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding Record Router Header :" + balancerContext.externalRecordRouteHeader);
 			}
 			request.addHeader(balancerContext.externalRecordRouteHeader);
+
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding Record Router Header :" + balancerContext.internalRecordRouteHeader);
+			}
+			request.addHeader(balancerContext.internalRecordRouteHeader);
 		} else {
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding Record Router Header :" + balancerContext.internalRecordRouteHeader);
 			}
-			request.addHeader(balancerContext.internalRecordRouteHeader);		
+			request.addHeader(balancerContext.internalRecordRouteHeader);
+
+			if(logger.isLoggable(Level.FINEST)) {
+				logger.finest("adding Record Router Header :" + balancerContext.externalRecordRouteHeader);
+			}
+			request.addHeader(balancerContext.externalRecordRouteHeader);			
 		}		
 	}
 	
 	/**
-	 * @param originalRequest
-	 * @param serverTransaction
-	 * @param request
-	 * @param parameters 
-	 * @throws ParseException
-	 * @throws SipException
-	 * @throws InvalidArgumentException
+	 * This will check if in the route header there is information on which node from the cluster send the request.
+	 * If the request is not received from the cluster, this information will not be present. 
+	 * @param routeHeader the route header to check
+	 * @return the corresponding Sip Node
 	 */
-	private void addRouteToNode(Request originalRequest,Request request, Map<String, String> parameters)
-			throws ParseException, SipException, InvalidArgumentException {
-		
-		final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
-		final SIPNode node = register.stickSessionToNode(callID, null);
-		if(node != null) {
-			//Adding Route Header pointing to the node the sip balancer wants to forward to
-			final SipURI routeSipUri = balancerContext.addressFactory
-		    	.createSipURI(null, node.getIp());
-			routeSipUri.setPort(node.getPort());
-			routeSipUri.setLrParam();
-			if(parameters != null) {
-				final Set<Entry<String, String>> routeParameters= parameters.entrySet();
-				for (Entry<String, String> entry : routeParameters) {
-					routeSipUri.setParameter(entry.getKey(), entry.getValue());	
-				}				
-			}
-			final RouteHeader route = balancerContext.headerFactory.createRouteHeader(balancerContext.addressFactory.createAddress(routeSipUri));
-			request.addFirst(route);
+	private SIPNode checkRouteHeaderForSipNode(SipURI routeSipUri) {
+		SIPNode node = null;
+		String hostNode = routeSipUri.getParameter(ROUTE_PARAM_NODE_HOST);
+		String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
+		if(hostNode != null && hostPort != null) {
+			int port = Integer.parseInt(hostPort);
+			node = register.getNode(hostNode, port, routeSipUri.getTransportParam());
 		}
+		return node;
 	}
 
 	/**
@@ -366,23 +370,46 @@ public class SIPBalancerForwarder implements SipListener {
 	 * 
 	 * @param request
 	 */
-	private void removeRouteHeadersMeantForLB(Request request) {
+	private SIPNode removeRouteHeadersMeantForLB(Request request) {
 		if(logger.isLoggable(Level.FINEST)) {
     		logger.finest("Checking if there is any route headers meant for the LB to remove...");
     	}
+		SIPNode node = null; 
 		//Removing first routeHeader if it is for the sip balancer
-		final RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
-			final SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+		    SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
 		    //FIXME check against a list of host we may have too
 		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
 		    	if(logger.isLoggable(Level.FINEST)) {
 		    		logger.finest("this route header is for the LB removing it " + routeUri);
 		    	}
 		    	request.removeFirst(RouteHeader.NAME);
-
+		    	routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+		    	//since we used double record routing we may have 2 routes corresponding to us here
+		        // for ACK and BYE from caller for example
+		        node = checkRouteHeaderForSipNode(routeUri);
+		        if(routeHeader != null) {
+		            routeUri = (SipURI)routeHeader.getAddress().getURI();
+		            //FIXME check against a list of host we may have too
+		            if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
+		            	if(logger.isLoggable(Level.FINEST)) {
+		            		logger.finest("this route header is for the LB removing it " + routeUri);
+		            	}
+		            	request.removeFirst(RouteHeader.NAME);
+		            	if(node == null) {
+		            		node = checkRouteHeaderForSipNode(routeUri);
+		            	}
+		            }
+		        }
 		    }	                
 		}
+		if(node !=null) {
+			if(logger.isLoggable(Level.FINEST)) {
+	    		logger.finest("Following node information has been found in one of the route Headers " + node);
+	    	}
+		}
+		return node;
 	}
 	
 	/**

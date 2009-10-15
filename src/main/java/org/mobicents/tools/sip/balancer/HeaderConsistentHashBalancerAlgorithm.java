@@ -7,6 +7,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import javax.sip.SipProvider;
 import javax.sip.address.SipURI;
 import javax.sip.header.RouteHeader;
 import javax.sip.message.Message;
@@ -33,7 +34,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		this.headerName = headerName;
 	}
 
-	public SIPNode processRequest(Request request) {
+	public SIPNode processRequest(SipProvider sipProvider, Request request) {
 		Integer nodeIndex = hashHeader(request);
 		if(nodeIndex<0) {
 			return null;
@@ -133,7 +134,6 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		
 	}
 
-	@Override
 	public void init() {
 		String headerName = getProperties().getProperty("CONSISTENT_HASH_AFFINITY_HEADER");
 		if(headerName != null) {
@@ -141,7 +141,6 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		}
 	}
 
-	@Override
 	public void stop() {
 		// TODO Auto-generated method stub
 		
