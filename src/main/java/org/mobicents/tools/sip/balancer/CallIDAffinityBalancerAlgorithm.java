@@ -76,10 +76,11 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			throw new RuntimeException("Error adding route header", e);
 		}
 		
-		if(request.getMethod().equals("BYE")) {
-			callIdMap.remove(callId);
-			callIdTimestamps.remove(callId);
-		}
+// Don't try to be smart here, the retransmissions of BYE will come and will not know where to go.
+//		if(request.getMethod().equals("BYE")) {
+//			callIdMap.remove(callId);
+//			callIdTimestamps.remove(callId);
+//		}
 		return node;
 		
 	}
