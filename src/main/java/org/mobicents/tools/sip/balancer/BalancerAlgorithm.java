@@ -24,14 +24,16 @@ public interface BalancerAlgorithm {
 	 * @param request
 	 * @return
 	 */
-	SIPNode processRequest(SipProvider sipProvider, Request request);
+	SIPNode processExternalRequest(Request request);
+	void processInternalRequest(Request request);
 	
 	/**
 	 * Allow algorithms to process responses
 	 * 
 	 * @param response
 	 */
-	void processResponse(SipProvider provider, Response response);
+	void processExternalResponse(Response response);
+	void processInternalResponse(Response response);
 	
 	/**
 	 * Notifying the algorithm when a node is dead.

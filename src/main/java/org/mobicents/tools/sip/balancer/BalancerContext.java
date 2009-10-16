@@ -17,23 +17,15 @@ public class BalancerContext {
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	
 	public Object parameters;
-	
-	public SipProvider internalSipProvider;
 
-	public SipProvider externalSipProvider;
+	public SipProvider sipProvider;
 
-	public String myHost;
-
-	public int myPort;
-
-	public int myExternalPort;
+	public String host;
+	public int externalPort;
 	
 	public String externalIpLoadBalancerAddress;
 	public int externalLoadBalancerPort;
 	
-	public String internalIpLoadBalancerAddress;
-	public int internalLoadBalancerPort;
-
 	public AddressFactory addressFactory;
 	public HeaderFactory headerFactory;
 	public MessageFactory messageFactory;
@@ -42,11 +34,8 @@ public class BalancerContext {
 
 	public Properties properties;  
 	
-	public RecordRouteHeader internalRecordRouteHeader;
 	public RecordRouteHeader externalRecordRouteHeader;
 	public RecordRouteHeader externalIpBalancerRecordRouteHeader; 
-	public RecordRouteHeader internalIpBalancerRecordRouteHeader; 
-	public RecordRouteHeader activeInternalHeader;
 	public RecordRouteHeader activeExternalHeader;
     
 	public AtomicLong requestsProcessed = new AtomicLong(0);

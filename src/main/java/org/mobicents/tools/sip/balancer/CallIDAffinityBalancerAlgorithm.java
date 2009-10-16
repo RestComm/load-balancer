@@ -15,6 +15,7 @@ import javax.sip.SipProvider;
 import javax.sip.address.SipURI;
 import javax.sip.header.RouteHeader;
 import javax.sip.message.Request;
+import javax.sip.message.Response;
 
 public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(CallIDAffinityBalancerAlgorithm.class.getCanonicalName());
@@ -25,23 +26,19 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private AtomicInteger nextNodeCounter = new AtomicInteger(0);
 	private int maxCallIdleTime = 500;
 	private Timer cacheEvictionTimer = new Timer();
-
-
-	public void nodeAdded(SIPNode node) {
-		// DONT CARE
-		
+	public void processInternalRequest(Request request) {
+		logger.info("internal request");
 	}
-
-	public void nodeRemoved(SIPNode node) {
-		// DONT CARE
-		
+	
+	public void processInternalResponse(Response request) {
+		logger.info("internal response");
 	}
-
-	public SIPNode processRequest(SipProvider sipProvider, Request request) {
-		if(sipProvider.equals(getBalancerContext().internalSipProvider)) {
-			return null;
-		}
-		
+	
+	public void processExternalResponse(Response request) {
+		logger.info("external response");
+	}
+	
+	public SIPNode processExternalRequest(Request request) {
 		String callId = ((SIPHeader) request.getHeader(headerName))
 		.getValue();
 		SIPNode node;
@@ -137,11 +134,6 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	public void assignToNode(String id, SIPNode node) {
 		callIdMap.put(id, node);
 		callIdTimestamps.put(id, System.currentTimeMillis());
-	}
-
-	public void stop() {
-		// DONT CARE
-		
 	}
 	
 	@Override

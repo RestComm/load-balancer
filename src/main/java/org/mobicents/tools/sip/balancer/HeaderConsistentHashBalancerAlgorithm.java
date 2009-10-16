@@ -34,11 +34,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		this.headerName = headerName;
 	}
 
-	public SIPNode processRequest(SipProvider sipProvider, Request request) {
-		if(sipProvider.equals(getBalancerContext().internalSipProvider)) {
-			return null;
-		}
-		
+	public SIPNode processExternalRequest(Request request) {
 		Integer nodeIndex = hashHeader(request);
 		if(nodeIndex<0) {
 			return null;
@@ -144,10 +140,4 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			this.headerName = headerName;
 		}
 	}
-
-	public void stop() {
-		// TODO Auto-generated method stub
-		
-	}
-
 }
