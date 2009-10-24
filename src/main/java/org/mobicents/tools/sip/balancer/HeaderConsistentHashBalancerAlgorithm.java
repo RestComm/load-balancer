@@ -135,7 +135,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 
 	public void init() {
-		String headerName = getProperties().getProperty("CONSISTENT_HASH_AFFINITY_HEADER");
+		String headerName = getProperties().getProperty("consistentHashAffinityHeader");
 		if(headerName != null) {
 			this.headerName = headerName;
 		}

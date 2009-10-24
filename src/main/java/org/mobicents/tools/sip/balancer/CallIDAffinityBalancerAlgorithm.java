@@ -97,7 +97,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	}
 
 	public void init() {
-		String maxTimeInCacheString = getProperties().getProperty("CALLID_AFFINITY_MAX_TIME_IN_CACHE");
+		String maxTimeInCacheString = getProperties().getProperty("callIdAffinityMaxTimeInCache");
 		if(maxTimeInCacheString != null) {
 			this.maxCallIdleTime = Integer.parseInt(maxTimeInCacheString);
 		}

@@ -96,6 +96,9 @@ public class SIPBalancerForwarder implements SipListener {
     static BalancerContext balancerContext = new BalancerContext();
     
     protected BalancerAlgorithm balancerAlgorithm;
+    
+    protected String[] extraServerAddresses;
+    protected int[] extraServerPorts;
 	
 	public SIPBalancerForwarder(Properties properties, NodeRegister register) throws IllegalStateException{
 		super();
@@ -111,6 +114,21 @@ public class SIPBalancerForwarder implements SipListener {
 		balancerContext.host = balancerContext.properties.getProperty("host");        
 		balancerContext.externalPort = Integer.parseInt(balancerContext.properties.getProperty("externalPort"));
 		balancerContext.externalIpLoadBalancerAddress = balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
+		String extraServerNodesString = balancerContext.properties.getProperty("extraServerNodes");
+		if(extraServerNodesString != null) {
+			extraServerAddresses = extraServerNodesString.split(",");
+			extraServerPorts = new int[extraServerAddresses.length];
+			for(int q=0; q<extraServerAddresses.length; q++) {
+				int indexOfPort = extraServerAddresses[q].indexOf(':');
+				if(indexOfPort > 0) {
+					extraServerPorts[q] = Integer.parseInt(extraServerAddresses[q].substring(indexOfPort + 1, extraServerAddresses[q].length()));
+					extraServerAddresses[q] = extraServerAddresses[q].substring(0, indexOfPort);
+					logger.info("Extra Server: " + extraServerAddresses[q] + ":" + extraServerPorts[q]);
+				} else {
+					extraServerPorts[q] = 5060;
+				}
+			}
+		}
 		
         try {
             // Create SipStack object
@@ -271,11 +289,17 @@ public class SIPBalancerForwarder implements SipListener {
 		String transport = viaHeader.getTransport();
 		if(transport == null) transport = "udp";
 		int port = viaHeader.getPort();
-		if(getNode(host, port, transport) == null) {
-			return false;
-		} else {
+		if(extraServerAddresses != null) {
+			for(int q=0; q<extraServerAddresses.length; q++) {
+				if(extraServerAddresses[q].equals(host) && extraServerPorts[q] == port) {
+					return true;
+				}
+			}
+		}
+		if(getNode(host, port, transport) != null) {
 			return true;
 		}
+		return false;
 	}
 	
 	private boolean isResponseFromServer(Response response) {
@@ -284,11 +308,17 @@ public class SIPBalancerForwarder implements SipListener {
 		String transport = viaHeader.getTransport();
 		if(transport == null) transport = "udp";
 		int port = viaHeader.getPort();
-		if(getNode(host, port, transport) == null) {
-			return true;
-		} else {
+		if(extraServerAddresses != null) {
+			for(int q=0; q<extraServerAddresses.length; q++) {
+				if(extraServerAddresses[q].equals(host) && extraServerPorts[q] == port) {
+					return false;
+				}
+			}
+		}
+		if(getNode(host, port, transport) != null) {
 			return false;
 		}
+		return true;
 	}
 
 	/**
