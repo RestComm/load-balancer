@@ -21,16 +21,12 @@
  */
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.header.RecordRoute;
 import gov.nist.javax.sip.header.SIPHeader;
 
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,7 +49,6 @@ import javax.sip.address.Address;
 import javax.sip.address.SipURI;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.MaxForwardsHeader;
-import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Message;
@@ -212,7 +207,8 @@ public class SIPBalancerForwarder implements SipListener {
 					logger.info("Removing the sip provider");
 				}
 				sipProvider.removeSipListener(this);	
-				balancerContext.sipStack.deleteSipProvider(sipProvider);			
+				balancerContext.sipStack.deleteSipProvider(sipProvider);	
+				sipProviderIterator = balancerContext.sipStack.getSipProviders();
 			}
 		} catch (Exception e) {
 			throw new IllegalStateException("Cant remove the listening points or sip providers", e);
