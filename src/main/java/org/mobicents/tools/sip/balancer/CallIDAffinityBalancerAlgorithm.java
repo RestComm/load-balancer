@@ -27,15 +27,15 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private int maxCallIdleTime = 500;
 	private Timer cacheEvictionTimer = new Timer();
 	public void processInternalRequest(Request request) {
-		logger.info("internal request");
+		logger.fine("internal request");
 	}
 	
 	public void processInternalResponse(Response request) {
-		logger.info("internal response");
+		logger.fine("internal response");
 	}
 	
 	public void processExternalResponse(Response request) {
-		logger.info("external response");
+		logger.fine("external response");
 	}
 	
 	public SIPNode processExternalRequest(Request request) {
