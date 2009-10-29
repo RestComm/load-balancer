@@ -52,7 +52,6 @@ public class SIPNode implements Serializable, Comparable {
 	private String[] transports = null;
 	private long timeStamp = System.currentTimeMillis();
 	private String jvmRoute;
-	private boolean dead;
 
 	public SIPNode(String hostName, String ip, int port, String[] transports, String jvmRoute) {
 		super();
@@ -97,14 +96,6 @@ public class SIPNode implements Serializable, Comparable {
 
 	public void updateTimerStamp() {
 		this.timeStamp = System.currentTimeMillis();
-	}
-
-	public boolean isDead() {
-		return dead;
-	}
-
-	public void setDead(boolean dead) {
-		this.dead = dead;
 	}
 
 	@Override
