@@ -16,12 +16,20 @@ public class BalancerContext {
 	public CopyOnWriteArrayList<SIPNode> nodes;
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	
+	public String externalTransport = "UDP";
+	public String internalTransport = "UDP";
+	
 	public Object parameters;
 
-	public SipProvider sipProvider;
+	public SipProvider externalSipProvider;
+	public SipProvider internalSipProvider;
 
 	public String host;
 	public int externalPort;
+	public int internalPort;
+	
+	public String internalIpLoadBalancerAddress;
+	public int internalLoadBalancerPort;
 	
 	public String externalIpLoadBalancerAddress;
 	public int externalLoadBalancerPort;
@@ -36,9 +44,16 @@ public class BalancerContext {
 	
 	public RecordRouteHeader externalRecordRouteHeader;
 	public RecordRouteHeader externalIpBalancerRecordRouteHeader; 
+	public RecordRouteHeader internalRecordRouteHeader;
+	public RecordRouteHeader internalIpBalancerRecordRouteHeader; 
 	public RecordRouteHeader activeExternalHeader;
+	public RecordRouteHeader activeInternalHeader;
     
 	public AtomicLong requestsProcessed = new AtomicLong(0);
 	
     public AtomicLong responsesProcessed = new AtomicLong(0);
+    
+    public boolean isTwoEntrypoints() {
+    	return internalPort>0;
+    }
 }
