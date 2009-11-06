@@ -12,7 +12,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.sip.address.SipURI;
+import javax.sip.header.FromHeader;
 import javax.sip.header.RouteHeader;
+import javax.sip.header.ToHeader;
 import javax.sip.message.Message;
 import javax.sip.message.Request;
 
@@ -35,7 +37,8 @@ import org.jboss.cache.notifications.event.ViewChangedEvent;
 public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(PersistentConsistentHashBalancerAlgorithm.class.getCanonicalName());
 	
-	protected String headerName;
+	protected String sipHeaderAffinityKey;
+	protected String httpAffinityKey;
 	
 	protected Cache cache;
 	
@@ -45,11 +48,10 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 	private boolean nodesAreDirty = true;
 	
 	public PersistentConsistentHashBalancerAlgorithm() {
-			this.headerName = "Call-ID";
 	}
 	
 	public PersistentConsistentHashBalancerAlgorithm(String headerName) {
-		this.headerName = headerName;
+		this.sipHeaderAffinityKey = headerName;
 	}
 
 	public SIPNode processExternalRequest(Request request) {
@@ -122,12 +124,31 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 	}
 	
 	private Integer hashHeader(Message message) {
-		String headerValue = ((SIPHeader) message.getHeader(headerName))
-		.getValue();
+		String headerValue = null;
+		if(sipHeaderAffinityKey.equals("from.user")) {
+			headerValue = ((SipURI)((FromHeader) message.getHeader(FromHeader.NAME))
+					.getAddress().getURI()).getUser();
+		} else if(sipHeaderAffinityKey.equals("to.user")) {
+			headerValue = ((SipURI)((ToHeader) message.getHeader(ToHeader.NAME))
+			.getAddress().getURI()).getUser();
+		} else {
+			headerValue = ((SIPHeader) message.getHeader(sipHeaderAffinityKey))
+			.getValue();
+		}
 
 		if(nodesArray.length == 0) throw new RuntimeException("No Application Servers registered. All servers are dead.");
 		
-		int nodeIndex = Math.abs(headerValue.hashCode()) % nodesArray.length;
+		int nodeIndex = hashAffinityKeyword(headerValue);
+		
+		if(isAlive((SIPNode)nodesArray[nodeIndex])) {
+			return nodeIndex;
+		} else {
+			return -1;
+		}
+	}
+	
+	protected int hashAffinityKeyword(String keyword) {
+		int nodeIndex = Math.abs(keyword.hashCode()) % nodesArray.length;
 
 		SIPNode computedNode = (SIPNode) nodesArray[nodeIndex];
 		
@@ -140,14 +161,9 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 				}
 			}
 		}
-		
-		if(isAlive((SIPNode)nodesArray[nodeIndex])) {
-			return nodeIndex;
-		} else {
-			return -1;
-		}
-		
+		return nodeIndex;
 	}
+
 	
 	@ViewChanged
 	public void viewChanged(ViewChangedEvent event) {
@@ -171,8 +187,6 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 			configurationInputStream = this.getClass().getClassLoader().getResourceAsStream("META-INF/PHA-balancer-cache.xml");
 			if(configurationInputStream == null) throw new RuntimeException("Problem loading resource META-INF/PHA-balancer-cache.xml");
 		}
-	
-
 
 		Cache cache = cacheFactory.createCache(configurationInputStream);
 		cache.addCacheListener(this);
@@ -185,10 +199,8 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 		}
 		syncNodes();
 
-		String headerName = getProperties().getProperty("consistentHashAffinityHeader");
-		if(headerName != null) {
-			this.headerName = headerName;
-		}
+		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
+		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
 	}
 	
 	private void syncNodes() {

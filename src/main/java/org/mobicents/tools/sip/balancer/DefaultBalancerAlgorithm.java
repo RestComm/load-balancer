@@ -5,6 +5,8 @@ import java.util.Properties;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import org.jboss.netty.handler.codec.http.HttpRequest;
+
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
 
@@ -13,7 +15,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	}
 
 	public BalancerContext getBalancerContext() {
-		return SIPBalancerForwarder.balancerContext;
+		return BalancerContext.balancerContext;
 	}
 
 	public Properties getProperties() {
@@ -22,6 +24,14 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
 	public void processInternalRequest(Request request) {
 		
+	}
+	
+	public SIPNode processHttpRequest(HttpRequest request) {
+		if(BalancerContext.balancerContext.nodes.size()>0) {
+			return BalancerContext.balancerContext.nodes.get(0);
+		} else {
+			return null;
+		}
 	}
 	
 	public void processInternalResponse(Response response) {

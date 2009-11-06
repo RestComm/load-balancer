@@ -10,6 +10,7 @@ import javax.sip.SipStack;
 import javax.sip.address.AddressFactory;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.RecordRouteHeader;
+import javax.sip.header.ViaHeader;
 import javax.sip.message.MessageFactory;
 
 public class BalancerContext {
@@ -56,4 +57,10 @@ public class BalancerContext {
     public boolean isTwoEntrypoints() {
     	return internalPort>0;
     }
+    
+    public static BalancerContext balancerContext = new BalancerContext();
+
+	
+    
+    public BalancerAlgorithm balancerAlgorithm = null;
 }

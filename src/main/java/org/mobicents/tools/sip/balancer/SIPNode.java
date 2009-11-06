@@ -52,6 +52,9 @@ public class SIPNode implements Serializable, Comparable {
 	private String[] transports = null;
 	private long timeStamp = System.currentTimeMillis();
 	private String jvmRoute;
+	private int httpPort;
+	private int sslPort;
+	private String properties;
 
 	public SIPNode(String hostName, String ip, int port, String[] transports, String jvmRoute) {
 		super();
@@ -60,6 +63,18 @@ public class SIPNode implements Serializable, Comparable {
 		this.port = port;
 		this.transports = transports;	
 		this.jvmRoute = jvmRoute;
+	}
+	
+	public SIPNode(String hostName, String ip, int port, String[] transports, String jvmRoute, int httpPort, int sslPort, String properties) {
+		super();
+		this.hostName = hostName;
+		this.ip = ip;
+		this.port = port;
+		this.transports = transports;	
+		this.jvmRoute = jvmRoute;
+		this.httpPort = httpPort;
+		this.sslPort = sslPort;
+		this.properties = properties;
 	}
 
 	public String getHostName() {
@@ -98,6 +113,30 @@ public class SIPNode implements Serializable, Comparable {
 		this.timeStamp = System.currentTimeMillis();
 	}
 
+	public int getHttpPort() {
+		return httpPort;
+	}
+
+	public void setHttpPort(int httpPort) {
+		this.httpPort = httpPort;
+	}
+
+	public int getSslPort() {
+		return sslPort;
+	}
+
+	public void setSslPort(int sslPort) {
+		this.sslPort = sslPort;
+	}
+
+	public String getProperties() {
+		return properties;
+	}
+
+	public void setProperties(String properties) {
+		this.properties = properties;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

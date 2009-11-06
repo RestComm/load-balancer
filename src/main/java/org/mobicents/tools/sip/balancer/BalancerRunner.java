@@ -18,6 +18,8 @@ import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
 
+import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
+
 import com.sun.jdmk.comm.HtmlAdaptorServer;
 
 /**
@@ -42,7 +44,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	HtmlAdaptorServer adapter = new HtmlAdaptorServer();
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
-	BalancerAlgorithm balancerAlgorithm;
 
 	/**
 	 * @param args
@@ -113,8 +114,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		
 		try {
 			Class clazz = Class.forName(algorithmClassname);
-			balancerAlgorithm = (BalancerAlgorithm) clazz.newInstance();
-			balancerAlgorithm.setProperties(properties);
+			BalancerContext.balancerContext.balancerAlgorithm = (BalancerAlgorithm) clazz.newInstance();
+			BalancerContext.balancerContext.balancerAlgorithm.setProperties(properties);
 			logger.info("Balancer algorithm " + algorithmClassname + " loaded succesfully");
 		} catch (Exception e) {
 			throw new RuntimeException("Error loading the algorithm class: " + algorithmClassname, e);
@@ -132,17 +133,16 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			RouterImpl.setRegister(reg);			
 
 			reg = new NodeRegisterImpl(addr);	
-			reg.setBalancerAlgorithm(balancerAlgorithm);
 			reg.startRegistry(rmiRegistryPort);
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding shutdown hook");
 			}
 			
 			fwd = new SIPBalancerForwarder(properties, reg);
-			fwd.setBalancerAlgorithm(balancerAlgorithm);
 			fwd.start();
+			new HttpBalancerForwarder().start();
 			
-			balancerAlgorithm.init();
+			BalancerContext.balancerContext.balancerAlgorithm.init();
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
@@ -185,7 +185,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}	
 		
-		balancerAlgorithm.stop();
+		BalancerContext.balancerContext.balancerAlgorithm.stop();
 		adapter.stop();
 	}
 

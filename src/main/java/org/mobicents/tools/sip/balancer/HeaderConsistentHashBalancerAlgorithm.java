@@ -3,19 +3,28 @@ package org.mobicents.tools.sip.balancer;
 import gov.nist.javax.sip.header.SIPHeader;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.sip.SipProvider;
 import javax.sip.address.SipURI;
+import javax.sip.header.FromHeader;
 import javax.sip.header.RouteHeader;
+import javax.sip.header.ToHeader;
 import javax.sip.message.Message;
 import javax.sip.message.Request;
 
+import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
+
+import sun.reflect.ReflectionFactory.GetReflectionFactoryAction;
+
 public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	
-	protected String headerName;
+	protected String sipHeaderAffinityKey;
+	protected String httpAffinityKey;
 	
 	// We will maintain a sorted list of the nodes so all SIP LBs will see them in the same order
 	// no matter at what order the events arrived
@@ -27,11 +36,10 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	private boolean nodesAreDirty = true;
 	
 	public HeaderConsistentHashBalancerAlgorithm() {
-			this.headerName = "Call-ID";
 	}
 	
 	public HeaderConsistentHashBalancerAlgorithm(String headerName) {
-		this.headerName = headerName;
+		this.sipHeaderAffinityKey = headerName;
 	}
 
 	public SIPNode processExternalRequest(Request request) {
@@ -94,50 +102,59 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 	
 	private Integer hashHeader(Message message) {
-		String headerValue = ((SIPHeader) message.getHeader(headerName))
-		.getValue();
-
-		CopyOnWriteArrayList<SIPNode> nodes = getBalancerContext().nodes;
+		String headerValue = null;
+		if(sipHeaderAffinityKey.equals("from.user")) {
+			headerValue = ((SipURI)((FromHeader) message.getHeader(FromHeader.NAME))
+					.getAddress().getURI()).getUser();
+		} else if(sipHeaderAffinityKey.equals("to.user")) {
+			headerValue = ((SipURI)((ToHeader) message.getHeader(ToHeader.NAME))
+			.getAddress().getURI()).getUser();
+		} else {
+			headerValue = ((SIPHeader) message.getHeader(sipHeaderAffinityKey))
+			.getValue();
+		}
 
 		if(nodes.size() == 0) throw new RuntimeException("No Application Servers registered. All servers are dead.");
 		
-		int nodeIndex = Math.abs(headerValue.hashCode()) % nodes.size();
+		int nodeIndex = hashAffinityKeyword(headerValue);
 
-		/*
-		// Persistent hash (requires replication across LBs)
-		if(nodes.get(nodeIndex).isDead()) {
-			int numberOfDeadNodes = 0;
-			for(SIPNode node : nodes) {
-				if(node.isDead()) numberOfDeadNodes++;
-			}
-			
-			if(numberOfDeadNodes == nodes.size()) {
-				return -1; // all nodes are dead
-			}
-			
-			if(nodes.size()>3) {
-				if(numberOfDeadNodes > nodes.size()/2) {
-					for(SIPNode node : nodes) {
-						if(node.isDead()) nodes.remove(node);
-					}
-				}
-			}
-			
-			for(int q = 0; q<nodes.size(); q++) {
-				nodeIndex = (nodeIndex + 1)%nodes.size();
-				if(!nodes.get(nodeIndex).isDead()) {
-					break;
-				}
-			}
-		} */
 		return nodeIndex;
 		
 	}
-
-	public void init() {
-		String headerName = getProperties().getProperty("consistentHashAffinityHeader");
-		if(headerName != null) {
-			this.headerName = headerName;
-		}
+	
+	public SIPNode processHttpRequest(HttpRequest request) {
+		String affinityKeyword = getUrlParameters(request.getUri()).get(this.httpAffinityKey);
+		return (SIPNode) nodesArray[hashAffinityKeyword(affinityKeyword)];
 	}
+	
+	protected int hashAffinityKeyword(String keyword) {
+		int nodeIndex = Math.abs(keyword.hashCode()) % nodes.size();
+		return nodeIndex;
+	}
+
+    HashMap<String,String> getUrlParameters(String url) {
+    	HashMap<String,String> parameters = new HashMap<String, String>();
+    	int start = url.lastIndexOf('?');
+    	if(start>0 && url.length() > start +1) {
+    		url = url.substring(start + 1);
+    	} else {
+    		return parameters;
+    	}
+    	String[] tokens = url.split("&");
+    	for(String token : tokens) {
+    		String[] params = token.split("=");
+    		if(params.length<2) {
+    			parameters.put(token, "");
+    		} else {
+    			parameters.put(params[0], params[1]);
+    		}
+    	}
+    	return parameters;
+    }
+
+    public void init() {
+    	this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
+    	this.sipHeaderAffinityKey = getProperties().getProperty("httpAffinityKey", "Call-ID");
+
+    }
 }
