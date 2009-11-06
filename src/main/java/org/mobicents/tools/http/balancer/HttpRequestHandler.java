@@ -69,7 +69,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	
         	SIPNode node = null;
         	try {
-        		BalancerContext.balancerContext.balancerAlgorithm.processHttpRequest(request);
+        		node = BalancerContext.balancerContext.balancerAlgorithm.processHttpRequest(request);
         	} catch (Exception ex) {
         		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Mobicents Load Balancer Error: Exception in the balancer algorithm: " + ex.getMessage());
         		return;
