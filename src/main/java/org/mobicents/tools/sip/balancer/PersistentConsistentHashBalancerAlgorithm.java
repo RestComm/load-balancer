@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,6 +28,7 @@ import org.jboss.cache.notifications.annotation.NodeModified;
 import org.jboss.cache.notifications.annotation.ViewChanged;
 import org.jboss.cache.notifications.event.Event;
 import org.jboss.cache.notifications.event.ViewChangedEvent;
+import org.jboss.netty.handler.codec.http.HttpRequest;
 
 /**
  * Persistent Consistent Hash algorithm - see http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm Example algorithms section
@@ -145,6 +147,34 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 		} else {
 			return -1;
 		}
+	}
+	
+    HashMap<String,String> getUrlParameters(String url) {
+    	HashMap<String,String> parameters = new HashMap<String, String>();
+    	int start = url.lastIndexOf('?');
+    	if(start>0 && url.length() > start +1) {
+    		url = url.substring(start + 1);
+    	} else {
+    		return parameters;
+    	}
+    	String[] tokens = url.split("&");
+    	for(String token : tokens) {
+    		String[] params = token.split("=");
+    		if(params.length<2) {
+    			parameters.put(token, "");
+    		} else {
+    			parameters.put(params[0], params[1]);
+    		}
+    	}
+    	return parameters;
+    }
+    
+	public SIPNode processHttpRequest(HttpRequest request) {
+		String affinityKeyword = getUrlParameters(request.getUri()).get(this.httpAffinityKey);
+		if(affinityKeyword == null) {
+			affinityKeyword = "null";
+		}
+		return (SIPNode) nodesArray[hashAffinityKeyword(affinityKeyword)];
 	}
 	
 	protected int hashAffinityKeyword(String keyword) {
