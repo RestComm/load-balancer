@@ -172,7 +172,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 	public SIPNode processHttpRequest(HttpRequest request) {
 		String affinityKeyword = getUrlParameters(request.getUri()).get(this.httpAffinityKey);
 		if(affinityKeyword == null) {
-			affinityKeyword = "null";
+			affinityKeyword = Long.toString(System.nanoTime());
 		}
 		return (SIPNode) nodesArray[hashAffinityKeyword(affinityKeyword)];
 	}

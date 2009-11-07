@@ -142,7 +142,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 			}
 		}
 		HttpChannelAssocialtions.channels.remove(channel);
-		logger.info("Channel closed. Channels remaining: " + HttpChannelAssocialtions.channels.size());
+		//logger.info("Channel closed. Channels remaining: " + HttpChannelAssocialtions.channels.size());
 		if(logger.isLoggable(Level.FINE)) {
 			try {
 			logger.fine("Channel closed " + HttpChannelAssocialtions.channels.size() + " " + channel);

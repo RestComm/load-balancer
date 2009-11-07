@@ -125,7 +125,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	public SIPNode processHttpRequest(HttpRequest request) {
 		String affinityKeyword = getUrlParameters(request.getUri()).get(this.httpAffinityKey);
 		if(affinityKeyword == null) {
-			affinityKeyword = "null";
+			affinityKeyword = Long.toString(System.nanoTime());
 		}
 		return (SIPNode) nodesArray[hashAffinityKeyword(affinityKeyword)];
 	}
@@ -157,7 +157,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 
     public void init() {
     	this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
-    	this.sipHeaderAffinityKey = getProperties().getProperty("httpAffinityKey", "Call-ID");
+    	this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
 
     }
 }
