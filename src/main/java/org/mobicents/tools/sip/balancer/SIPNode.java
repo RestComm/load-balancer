@@ -179,7 +179,8 @@ public class SIPNode implements Serializable, Comparable {
 
 		return "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
 				+ "] port[" + this.port + "] transport["
-				+ Arrays.toString(this.transports) + "] jvmRoute[" + this.jvmRoute + "]";
+				+ Arrays.toString(this.transports) + "] jvmRoute[" + this.jvmRoute + "] HTTP[" 
+				+ this.httpPort + "] HTTPS[" + sslPort + "]";
 	}
 	
 	public String toStringWithoutJvmroute() {
