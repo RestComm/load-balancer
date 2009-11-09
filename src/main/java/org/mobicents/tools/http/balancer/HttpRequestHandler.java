@@ -80,10 +80,6 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Mobicents Load Balancer Error: All nodes are Dead!");
         		return;
         	}
-        	
-        	if(node.getHttpPort() == 0) {
-        		node.setHttpPort(node.getPort() + 3000);
-        	}
 
         	if(associatedChannel != null && associatedChannel.isConnected()) {
         		associatedChannel.write(request);
