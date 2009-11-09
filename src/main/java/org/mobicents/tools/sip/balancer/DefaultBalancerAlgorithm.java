@@ -56,11 +56,18 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 					//String sessionIdWithoutJvmRoute = httpSessionId.substring(0, indexOfDot);
 					String jvmRoute = httpSessionId.substring(indexOfDot + 1);
 					SIPNode node = BalancerContext.balancerContext.jvmRouteToSipNode.get(jvmRoute);
-					if(node != null) return node;
-				} else {
-					int nodeId = httpSessionId.hashCode()%BalancerContext.balancerContext.nodes.size();
-					return BalancerContext.balancerContext.nodes.get(nodeId);
+					
+					if(node != null) {
+						if(BalancerContext.balancerContext.nodes.contains(node)) {
+							return node;
+						}
+					}
 				}
+				
+				// As a failsafe if there is no jvmRoute, just hash the sessionId
+				int nodeId = httpSessionId.hashCode()%BalancerContext.balancerContext.nodes.size();
+				return BalancerContext.balancerContext.nodes.get(nodeId);
+				
 			}
 			
 			return BalancerContext.balancerContext.nodes.get(0);
