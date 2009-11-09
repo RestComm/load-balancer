@@ -15,6 +15,8 @@
  */
 package org.mobicents.tools.http.balancer;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.InetSocketAddress;
 import java.util.Enumeration;
 import java.util.Set;
@@ -71,7 +73,11 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	try {
         		node = BalancerContext.balancerContext.balancerAlgorithm.processHttpRequest(request);
         	} catch (Exception ex) {
-        		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Mobicents Load Balancer Error: Exception in the balancer algorithm: " + ex.getMessage());
+        		StringWriter sw = new StringWriter();
+        		ex.printStackTrace(new PrintWriter(sw));
+        		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Mobicents Load Balancer Error: Exception in the balancer algorithm:\n" + 
+        				sw.toString()
+        		);
         		return;
         	}
         	
