@@ -439,31 +439,44 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 			}
 			SipURI assignedUri = null;
+			boolean nextNodeInRequestUri = false;
 			if(assignedNode == null) {
 				
 				if(hints.subsequentRequest) {
 					RouteHeader header = (RouteHeader) request.getHeader(RouteHeader.NAME);
-					assignedUri = (SipURI) header.getAddress().getURI();
-					request.removeFirst(RouteHeader.NAME);
+					if(header != null) {
+						assignedUri = (SipURI) header.getAddress().getURI();
+						request.removeFirst(RouteHeader.NAME);
+					} else {
+						assignedUri =(SipURI) request.getRequestURI();
+						nextNodeInRequestUri = true;
+					}
 				}
 				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
 				if(nextNode != null) {
 					//Adding Route Header pointing to the node the sip balancer wants to forward to
 					SipURI routeSipUri;
 					try {
-						if(assignedUri == null) {
+
+						if(assignedUri == null) { // If a next node is NOT already assigned in the dialog from previous requests
 							routeSipUri = BalancerContext.balancerContext.addressFactory
 							.createSipURI(null, nextNode.getIp());
 						}
-						else {
+						else { // OTHERWISE, a node is already assigned and it's alive
 							routeSipUri = assignedUri;
 						}
 
 						routeSipUri.setPort(nextNode.getPort());
 						routeSipUri.setLrParam();
-						final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
-								BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
-						request.addFirst(route);
+						
+						// Either we should put it in route header of request URI (based on what the incoming request looks like)
+						if( nextNodeInRequestUri) {
+							request.setRequestURI(routeSipUri);
+						} else {
+							final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
+									BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
+							request.addFirst(route);
+						}
 					} catch (Exception e) {
 						throw new RuntimeException("Error adding route header", e);
 					}
