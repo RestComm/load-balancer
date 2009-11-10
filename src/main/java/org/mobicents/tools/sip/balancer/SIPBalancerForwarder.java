@@ -447,24 +447,26 @@ public class SIPBalancerForwarder implements SipListener {
 					request.removeFirst(RouteHeader.NAME);
 				}
 				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
-				//Adding Route Header pointing to the node the sip balancer wants to forward to
-				SipURI routeSipUri;
-				try {
-					if(assignedUri == null) {
-						routeSipUri = BalancerContext.balancerContext.addressFactory
-						.createSipURI(null, nextNode.getIp());
-					}
-					else {
-						routeSipUri = assignedUri;
-					}
+				if(nextNode != null) {
+					//Adding Route Header pointing to the node the sip balancer wants to forward to
+					SipURI routeSipUri;
+					try {
+						if(assignedUri == null) {
+							routeSipUri = BalancerContext.balancerContext.addressFactory
+							.createSipURI(null, nextNode.getIp());
+						}
+						else {
+							routeSipUri = assignedUri;
+						}
 
-					routeSipUri.setPort(nextNode.getPort());
-					routeSipUri.setLrParam();
-					final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
-							BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
-					request.addFirst(route);
-				} catch (Exception e) {
-					throw new RuntimeException("Error adding route header", e);
+						routeSipUri.setPort(nextNode.getPort());
+						routeSipUri.setLrParam();
+						final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
+								BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
+						request.addFirst(route);
+					} catch (Exception e) {
+						throw new RuntimeException("Error adding route header", e);
+					}
 				}
 			} else {
 				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
