@@ -63,21 +63,6 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		if(node == null) {
 			return null;
 		}
-
-		//Adding Route Header pointing to the node the sip balancer wants to forward to
-		SipURI routeSipUri;
-		try {
-			routeSipUri = balancerContext.addressFactory
-			.createSipURI(null, node.getIp());
-
-			routeSipUri.setPort(node.getPort());
-			routeSipUri.setLrParam();
-			final RouteHeader route = balancerContext.headerFactory.createRouteHeader(
-					balancerContext.addressFactory.createAddress(routeSipUri));
-			request.addFirst(route);
-		} catch (Exception e) {
-			throw new RuntimeException("Error adding route header", e);
-		}
 		
 // Don't try to be smart here, the retransmissions of BYE will come and will not know where to go.
 //		if(request.getMethod().equals("BYE")) {

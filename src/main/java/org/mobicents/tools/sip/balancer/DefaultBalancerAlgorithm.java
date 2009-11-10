@@ -75,6 +75,10 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			return null;
 		}
 	}
+	
+	public SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode) {
+		return assignedNode;
+	}
 
 	private HashMap<String,String> getUrlParameters(String url) {
 		HashMap<String,String> parameters = new HashMap<String, String>();

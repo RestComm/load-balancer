@@ -27,6 +27,7 @@ public interface BalancerAlgorithm {
 	 * @return
 	 */
 	SIPNode processExternalRequest(Request request);
+	SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode);
 	void processInternalRequest(Request request);
 	
 	/**

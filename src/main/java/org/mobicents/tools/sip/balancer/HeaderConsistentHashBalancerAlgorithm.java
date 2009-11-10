@@ -58,22 +58,6 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			}
 			try {
 				SIPNode node = (SIPNode) nodesArray[nodeIndex];
-				if(node != null) {
-					//Adding Route Header pointing to the node the sip balancer wants to forward to
-					SipURI routeSipUri;
-					try {
-						routeSipUri = balancerContext.addressFactory
-						.createSipURI(null, node.getIp());
-
-						routeSipUri.setPort(node.getPort());
-						routeSipUri.setLrParam();
-						final RouteHeader route = balancerContext.headerFactory.createRouteHeader(
-								balancerContext.addressFactory.createAddress(routeSipUri));
-						request.addFirst(route);
-					} catch (Exception e) {
-						throw new RuntimeException("Error adding route header", e);
-					}
-				}
 				return node;
 			} catch (Exception e) {
 				return null;

@@ -47,6 +47,7 @@ import javax.sip.TransactionTerminatedEvent;
 import javax.sip.TransactionUnavailableException;
 import javax.sip.address.Address;
 import javax.sip.address.SipURI;
+import javax.sip.address.URI;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RouteHeader;
@@ -404,16 +405,74 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 		
-		removeRouteHeadersMeantForLB(request);
+		RouteHeaderHints hints = removeRouteHeadersMeantForLB(request);
+		
+		if(hints.serverAssignedNode !=null) {
+			String callId = ((SIPHeader) request.getHeader("Call-ID")).getValue();
+			BalancerContext.balancerContext.balancerAlgorithm.assignToNode(callId, hints.serverAssignedNode);
+			if(logger.isLoggable(Level.FINEST)) {
+	    		logger.finest("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);
+	    	}
+		}
 		
 		SIPNode nextNode = null;
 		
 		if(isRequestFromServer) {
 			BalancerContext.balancerContext.balancerAlgorithm.processInternalRequest(request);
 		} else {
-			nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
+			SIPNode assignedNode = null;
+			RouteHeader nextNodeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+			if(nextNodeHeader != null) {
+				URI uri = nextNodeHeader.getAddress().getURI();
+				if(uri instanceof SipURI) {
+					SipURI sipUri = (SipURI) uri;
+					Iterator<SIPNode> nodes = BalancerContext.balancerContext.nodes.iterator();
+					
+					while(nodes.hasNext()) {
+						SIPNode next = nodes.next();
+						if(next.getIp().equals(sipUri.getHost()) &&
+								next.getPort() == sipUri.getPort()) {
+							assignedNode = next;
+							break;
+						}
+					}
+				}
+			}
+			SipURI assignedUri = null;
+			if(assignedNode == null) {
+				
+				if(hints.subsequentRequest) {
+					RouteHeader header = (RouteHeader) request.getHeader(RouteHeader.NAME);
+					assignedUri = (SipURI) header.getAddress().getURI();
+					request.removeFirst(RouteHeader.NAME);
+				}
+				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
+				//Adding Route Header pointing to the node the sip balancer wants to forward to
+				SipURI routeSipUri;
+				try {
+					if(assignedUri == null) {
+						routeSipUri = BalancerContext.balancerContext.addressFactory
+						.createSipURI(null, nextNode.getIp());
+					}
+					else {
+						routeSipUri = assignedUri;
+					}
+
+					routeSipUri.setPort(nextNode.getPort());
+					routeSipUri.setLrParam();
+					final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
+							BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
+					request.addFirst(route);
+				} catch (Exception e) {
+					throw new RuntimeException("Error adding route header", e);
+				}
+			} else {
+				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
+			}
 			if(nextNode == null) {
 				throw new RuntimeException("No nodes available");
+			} else {
+
 			}
 		}
 		
@@ -506,11 +565,12 @@ public class SIPBalancerForwarder implements SipListener {
 	 * 
 	 * @param request
 	 */
-	private SIPNode removeRouteHeadersMeantForLB(Request request) {
+	private RouteHeaderHints removeRouteHeadersMeantForLB(Request request) {
 		if(logger.isLoggable(Level.FINEST)) {
     		logger.finest("Checking if there is any route headers meant for the LB to remove...");
     	}
 		SIPNode node = null; 
+		boolean subsequent = false;
 		//Removing first routeHeader if it is for the sip balancer
 		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
@@ -536,18 +596,13 @@ public class SIPBalancerForwarder implements SipListener {
 		            	if(node == null) {
 		            		node = checkRouteHeaderForSipNode(routeUri);
 		            	}
+		            	subsequent = true;
 		            }
 		        }
 		    }	                
 		}
-		if(node !=null) {
-			String callId = ((SIPHeader) request.getHeader("Call-ID")).getValue();
-			BalancerContext.balancerContext.balancerAlgorithm.assignToNode(callId, node);
-			if(logger.isLoggable(Level.FINEST)) {
-	    		logger.finest("Following node information has been found in one of the route Headers " + node);
-	    	}
-		}
-		return node;
+
+		return new RouteHeaderHints(node, subsequent);
 	}
 	
 	/**
