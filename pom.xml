@@ -3,7 +3,7 @@
 	<parent>
 		<artifactId>mobicents</artifactId>
 		<groupId>org.mobicents</groupId>
-		<version>13-SNAPSHOT</version>		
+		<version>1.13</version>		
 	</parent>
 	<groupId>org.mobicents.tools</groupId>
 	<artifactId>sip-balancer</artifactId>
@@ -62,7 +62,6 @@
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
-			<version>${log4j.version}</version>
 		</dependency>
 
 		<dependency>
@@ -78,13 +77,11 @@
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-api</artifactId>
-			<version>${jain-sip-api.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-ri</artifactId>
-			<version>${jain-sip-ri.version}</version>
 		</dependency>
 	</dependencies>
 
@@ -96,16 +93,6 @@
 					<tagBase>
 						https://mobicents.googlecode.com/svn/tags/tools/sip-balancer
 					</tagBase>
-				</configuration>
-			</plugin>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<compilerArguments>
-						<g />
-					</compilerArguments>
-					<source>1.5</source>
-					<target>1.5</target>
 				</configuration>
 			</plugin>
 			<plugin>
