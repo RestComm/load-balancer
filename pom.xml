@@ -33,6 +33,7 @@
 			<groupId>org.jboss.netty</groupId>
 			<artifactId>netty</artifactId>
 			<version>3.1.5.GA</version>
+			<!--scope>provided</scope-->
 		</dependency>
 			<!-- clustering deps -->
 		<dependency>
