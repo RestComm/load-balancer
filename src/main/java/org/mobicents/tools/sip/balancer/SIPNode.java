@@ -40,7 +40,7 @@ import java.util.Arrays;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A>
  * 
  */
-public class SIPNode implements Serializable, Comparable {
+public class SIPNode implements Serializable, Comparable<SIPNode> {
 
 	/**
 	 * 
@@ -190,8 +190,8 @@ public class SIPNode implements Serializable, Comparable {
 				+ Arrays.toString(this.transports) + "]";
 	}
 
-	public int compareTo(Object arg0) {
-		return this.toStringWithoutJvmroute().compareTo(((SIPNode)arg0).toStringWithoutJvmroute());
+	public int compareTo(SIPNode sipNode) {
+		return this.toStringWithoutJvmroute().compareTo(sipNode.toStringWithoutJvmroute());
 	}
 
 }
