@@ -75,7 +75,9 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	} catch (Exception ex) {
         		StringWriter sw = new StringWriter();
         		ex.printStackTrace(new PrintWriter(sw));
-        		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Mobicents Load Balancer Error: Exception in the balancer algorithm:\n" + 
+        		logger.log(Level.WARNING, "Problem in balancer algorithm", ex);
+        		
+        		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Load Balancer Error: Exception in the balancer algorithm:\n" + 
         				sw.toString()
         		);
         		return;
@@ -83,7 +85,10 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	
         	
         	if(node == null) {
-        		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Mobicents Load Balancer Error: All nodes are Dead!");
+        		if(logger.isLoggable(Level.INFO)) {
+            		logger.log(Level.INFO, "Service unavailable. Node nodes are active.");
+        		}
+        		writeResponse(e, HttpResponseStatus.SERVICE_UNAVAILABLE, "Service is temporarily unavailable");
         		return;
         	}
 
