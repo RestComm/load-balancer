@@ -590,6 +590,14 @@ public class SIPBalancerForwarder implements SipListener {
 		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
 		    SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+		    
+	        // We determine if request is subsequent if both internal and external LB RR headers are present. 
+	        // If only one, this probably means that this dialog never passed through the SIP LB. SIPP however,
+	        // removes the first Route header and we must check if the route header is the internal port, which
+	        // the caller or the calle would know only if they have passed through the L before.
+		    if(routeUri.getPort() == BalancerContext.balancerContext.internalPort && 
+		    		routeUri.getHost().equals(BalancerContext.balancerContext.host)) subsequent = true;
+		    
 		    //FIXME check against a list of host we may have too
 		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
 		    	if(logger.isLoggable(Level.FINEST)) {
@@ -612,6 +620,23 @@ public class SIPBalancerForwarder implements SipListener {
 		            		node = checkRouteHeaderForSipNode(routeUri);
 		            	}
 		            	subsequent = true;
+		            	
+		            	// SIPP sometimes appends more headers and lets remove them here. There is no legitimate reason
+		            	// more than two SIP LB headers to be place next to each-other, so this cleanup is SAFE!
+		            	boolean moreHeaders = true;
+		            	while(moreHeaders) {
+		            		RouteHeader extraHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+		            		if(extraHeader != null) {
+		            			SipURI u = (SipURI)extraHeader.getAddress().getURI();
+		            			if(!isRouteHeaderExternal(u.getHost(), u.getPort())) {
+		            				request.removeFirst(RouteHeader.NAME);
+		            			} else {
+		            				moreHeaders = false;
+		            			}
+		            		} else {
+		            			moreHeaders = false;
+		            		}
+		            	}
 		            }
 		        }
 		    }	                
