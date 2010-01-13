@@ -26,7 +26,9 @@ import gov.nist.javax.sip.header.SIPHeader;
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -305,11 +307,51 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 
 	private void updateStats(Message message) {
-		if(message instanceof Request) {
-			BalancerContext.balancerContext.requestsProcessed.incrementAndGet();
-		} else {
-			BalancerContext.balancerContext.responsesProcessed.incrementAndGet();
-		}		
+		if(BalancerContext.balancerContext.gatherStatistics) {
+			if(message instanceof Request) {
+				BalancerContext.balancerContext.requestsProcessed.incrementAndGet();
+				final String method = ((Request) message).getMethod();
+				final AtomicLong requestsProcessed = BalancerContext.balancerContext.requestsProcessedByMethod.get(method);
+				if(requestsProcessed == null) {
+					BalancerContext.balancerContext.requestsProcessedByMethod.put(method, new AtomicLong(0));
+				} else {
+					requestsProcessed.incrementAndGet();
+				}
+			} else {
+				BalancerContext.balancerContext.responsesProcessed.incrementAndGet();
+				final int statusCode = ((Response)message).getStatusCode();				
+				int statusCodeDiv = statusCode / 100;
+				switch (statusCodeDiv) {
+					case 1:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("1XX").incrementAndGet();
+						break;
+					case 2:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("2XX").incrementAndGet();
+						break;
+					case 3:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("3XX").incrementAndGet();
+						break;
+					case 4:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("4XX").incrementAndGet();
+						break;
+					case 5:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("5XX").incrementAndGet();
+						break;
+					case 6:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("6XX").incrementAndGet();
+						break;
+					case 7:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("7XX").incrementAndGet();
+						break;
+					case 8:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("8XX").incrementAndGet();
+						break;
+					case 9:
+						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("9XX").incrementAndGet();
+						break;
+				}		
+			}		
+		}
 	}
 	
 	private SIPNode getNode(String host, int port, String otherTransport) {
@@ -814,6 +856,33 @@ public class SIPBalancerForwarder implements SipListener {
 		return BalancerContext.balancerContext.responsesProcessed.get();
 	}
 
+	/**
+	 * @return the requestsProcessed
+	 */
+	public long getRequestsProcessedByMethod(String method) {
+		AtomicLong requestsProcessed = BalancerContext.balancerContext.requestsProcessedByMethod.get(method);
+		if(requestsProcessed != null) {
+			return requestsProcessed.get();
+		}
+		return 0;
+	}
+	
+	public long getResponsesProcessedByStatusCode(String statusCode) {
+		AtomicLong responsesProcessed = BalancerContext.balancerContext.responsesProcessedByStatusCode.get(statusCode);
+		if(responsesProcessed != null) {
+			return responsesProcessed.get();
+		}
+		return 0;
+	}
+	
+	public Map<String, AtomicLong> getNumberOfRequestsProcessedByMethod() {
+		return BalancerContext.balancerContext.requestsProcessedByMethod;
+	}
+	
+	public Map<String, AtomicLong> getNumberOfResponsesProcessedByStatusCode() {
+		return BalancerContext.balancerContext.responsesProcessedByStatusCode;
+	}
+	
 	public BalancerContext getBalancerAlgorithmContext() {
 		return BalancerContext.balancerContext;
 	}
@@ -821,5 +890,19 @@ public class SIPBalancerForwarder implements SipListener {
 	public void setBalancerAlgorithmContext(
 			BalancerContext balancerAlgorithmContext) {
 		BalancerContext.balancerContext = balancerAlgorithmContext;
+	}
+	
+	/**
+	 * @param skipStatistics the skipStatistics to set
+	 */
+	public void setGatherStatistics(boolean skipStatistics) {
+		BalancerContext.balancerContext.gatherStatistics = skipStatistics;
+	}
+
+	/**
+	 * @return the skipStatistics
+	 */
+	public boolean isGatherStatistics() {
+		return BalancerContext.balancerContext.gatherStatistics;
 	}
 }

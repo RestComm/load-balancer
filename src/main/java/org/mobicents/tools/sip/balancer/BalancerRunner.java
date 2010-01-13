@@ -8,7 +8,9 @@ import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -206,6 +208,22 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		return fwd.getNumberOfResponsesProcessed();
 	}
 
+	public Map<String, AtomicLong> getNumberOfRequestsProcessedByMethod() {
+		return fwd.getNumberOfRequestsProcessedByMethod();
+	}
+
+	public Map<String, AtomicLong> getNumberOfResponsesProcessedByStatusCode() {
+		return fwd.getNumberOfResponsesProcessedByStatusCode();
+	}
+	
+	public long getRequestsProcessedByMethod(String method) {
+		return fwd.getRequestsProcessedByMethod(method);
+	}
+
+	public long getResponsesProcessedByStatusCode(String statusCode) {
+		return fwd.getResponsesProcessedByStatusCode(statusCode);
+	}
+	
 	public void setNodeExpiration(long value) {
 		reg.setNodeExpiration(value);
 	}

@@ -1,5 +1,6 @@
 package org.mobicents.tools.sip.balancer;
 
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -10,7 +11,6 @@ import javax.sip.SipStack;
 import javax.sip.address.AddressFactory;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.RecordRouteHeader;
-import javax.sip.header.ViaHeader;
 import javax.sip.message.MessageFactory;
 
 public class BalancerContext {
@@ -50,9 +50,17 @@ public class BalancerContext {
 	public RecordRouteHeader activeExternalHeader;
 	public RecordRouteHeader activeInternalHeader;
     
+	//stats
+	public boolean gatherStatistics = true;
 	public AtomicLong requestsProcessed = new AtomicLong(0);
-	
     public AtomicLong responsesProcessed = new AtomicLong(0);
+    private static final String[] METHODS_SUPPORTED = 
+		{"REGISTER", "INVITE", "ACK", "BYE", "CANCEL", "MESSAGE", "INFO", "SUBSCRIBE", "NOTIFY", "UPDATE", "PUBLISH", "REFER", "PRACK", "OPTIONS"};
+	private static final String[] RESPONSES_PER_CLASS_OF_SC = 
+		{"1XX", "2XX", "3XX", "4XX", "5XX", "6XX", "7XX", "8XX", "9XX"};
+    
+	final Map<String, AtomicLong> requestsProcessedByMethod = new ConcurrentHashMap<String, AtomicLong>();
+	final Map<String, AtomicLong> responsesProcessedByStatusCode = new ConcurrentHashMap<String, AtomicLong>();
     
     public boolean isTwoEntrypoints() {
     	return internalPort>0;
@@ -60,6 +68,14 @@ public class BalancerContext {
     
     public static BalancerContext balancerContext = new BalancerContext();
 
+    public BalancerContext() {
+    	for (String method : METHODS_SUPPORTED) {
+			requestsProcessedByMethod.put(method, new AtomicLong(0));
+		}
+    	for (String classOfSc : RESPONSES_PER_CLASS_OF_SC) {
+			responsesProcessedByStatusCode.put(classOfSc, new AtomicLong(0));
+		}
+	}
 	
     
     public BalancerAlgorithm balancerAlgorithm = null;
