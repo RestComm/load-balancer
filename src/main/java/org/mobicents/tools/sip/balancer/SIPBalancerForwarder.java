@@ -487,7 +487,7 @@ public class SIPBalancerForwarder implements SipListener {
 					}
 				} else {
 					SipURI sipUri =(SipURI) request.getRequestURI();
-					nextNodeInRequestUri = true;
+					//nextNodeInRequestUri = true;
 					assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
 				}
 			}
