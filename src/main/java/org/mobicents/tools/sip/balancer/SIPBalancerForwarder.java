@@ -468,32 +468,32 @@ public class SIPBalancerForwarder implements SipListener {
 				URI uri = nextNodeHeader.getAddress().getURI();
 				if(uri instanceof SipURI) {
 					SipURI sipUri = (SipURI) uri;
-					Iterator<SIPNode> nodes = BalancerContext.balancerContext.nodes.iterator();
-					
-					while(nodes.hasNext()) {
-						SIPNode next = nodes.next();
-						if(next.getIp().equals(sipUri.getHost()) &&
-								next.getPort() == sipUri.getPort()) {
-							assignedNode = next;
-							break;
-						}
-					}
+					assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
 				}
 			}
 			SipURI assignedUri = null;
 			boolean nextNodeInRequestUri = false;
+			
 			if(assignedNode == null) {
-				
 				if(hints.subsequentRequest) {
 					RouteHeader header = (RouteHeader) request.getHeader(RouteHeader.NAME);
 					if(header != null) {
 						assignedUri = (SipURI) header.getAddress().getURI();
 						request.removeFirst(RouteHeader.NAME);
 					} else {
-						assignedUri =(SipURI) request.getRequestURI();
+						SipURI sipUri =(SipURI) request.getRequestURI();
 						nextNodeInRequestUri = true;
+						assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
 					}
+				} else {
+					SipURI sipUri =(SipURI) request.getRequestURI();
+					nextNodeInRequestUri = true;
+					assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
 				}
+			}
+			
+			if(assignedNode == null) {
+				
 				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
 				if(nextNode != null) {
 					//Adding Route Header pointing to the node the sip balancer wants to forward to
