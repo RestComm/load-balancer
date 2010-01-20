@@ -3,11 +3,11 @@
 	<parent>
 		<artifactId>mobicents</artifactId>
 		<groupId>org.mobicents</groupId>
-		<version>1.17-SNAPSHOT</version>		
+		<version>1.16</version>		
 	</parent>
 	<groupId>org.mobicents.tools</groupId>
 	<artifactId>sip-balancer</artifactId>
-	<version>1.0.BETA11-SNAPSHOT</version>
+	<version>1.0.BETA11</version>
 	<packaging>jar</packaging>
 	<name>sip-balancer</name>
 	<url>http://mobicents.org/</url>
@@ -231,4 +231,10 @@
 			</snapshots>
 		</repository>
 	</repositories>
+
+  <scm>
+    <connection>scm:svn:https://mobicents.googlecode.com/svn/tags/tools/sip-balancer/sip-balancer-1.0.BETA11</connection>
+    <developerConnection>scm:svn:https://mobicents.googlecode.com/svn/tags/tools/sip-balancer/sip-balancer-1.0.BETA11</developerConnection>
+    <url>http://mobicents.googlecode.com/svn/tags/tools/sip-balancer/sip-balancer-1.0.BETA11</url>
+  </scm>
 </project>
