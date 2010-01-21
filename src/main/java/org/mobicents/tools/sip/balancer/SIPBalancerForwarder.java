@@ -787,7 +787,11 @@ public class SIPBalancerForwarder implements SipListener {
 		} else {
 			BalancerContext.balancerContext.balancerAlgorithm.processExternalResponse(response);
 			try {	
-				BalancerContext.balancerContext.internalSipProvider.sendResponse(response);
+				if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+					BalancerContext.balancerContext.internalSipProvider.sendResponse(response);
+				} else {
+					BalancerContext.balancerContext.externalSipProvider.sendResponse(response);
+				}
 			} catch (Exception ex) {
 				logger.log(Level.SEVERE, "Unexpected exception while forwarding the response \n" + response, ex);
 			}
