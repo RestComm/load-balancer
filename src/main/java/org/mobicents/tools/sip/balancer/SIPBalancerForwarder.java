@@ -472,7 +472,7 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 			}
 			SipURI assignedUri = null;
-			boolean nextNodeInRequestUri = false;
+			//boolean nextNodeInRequestUri = false;
 			
 			if(assignedNode == null) {
 				if(hints.subsequentRequest) {
@@ -482,7 +482,7 @@ public class SIPBalancerForwarder implements SipListener {
 						request.removeFirst(RouteHeader.NAME);
 					} else {
 						SipURI sipUri =(SipURI) request.getRequestURI();
-						nextNodeInRequestUri = true;
+						//nextNodeInRequestUri = true;
 						assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
 					}
 				} else {
@@ -512,13 +512,13 @@ public class SIPBalancerForwarder implements SipListener {
 						routeSipUri.setLrParam();
 						
 						// Either we should put it in route header of request URI (based on what the incoming request looks like)
-						if( nextNodeInRequestUri) {
-							request.setRequestURI(routeSipUri);
-						} else {
+						//if( nextNodeInRequestUri) {
+						//	request.setRequestURI(routeSipUri);
+						//} else {
 							final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
 									BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
 							request.addFirst(route);
-						}
+						//}
 					} catch (Exception e) {
 						throw new RuntimeException("Error adding route header", e);
 					}
