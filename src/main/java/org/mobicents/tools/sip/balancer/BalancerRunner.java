@@ -141,6 +141,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			try {
 				reg.setNodeExpirationTaskInterval(Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL, "5000")));
 				reg.setNodeExpiration(Integer.parseInt(properties.getProperty(NODE_TIMEOUT, "5100")));
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info(NODE_TIMEOUT + "=" + reg.getNodeExpiration());
+					logger.info(HEARTBEAT_INTERVAL + "=" + reg.getNodeExpirationTaskInterval());
+				}
 			} catch(NumberFormatException nfe) {
 				logger.log(Level.SEVERE, "Couldn't convert rmiRegistryPort to a valid integer", nfe);
 				return ; 
