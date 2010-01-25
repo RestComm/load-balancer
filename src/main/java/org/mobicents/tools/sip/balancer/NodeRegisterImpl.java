@@ -316,9 +316,13 @@ public class NodeRegisterImpl  implements NodeRegister {
 			// adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
 			if(nodePresent != null) {
 				nodePresent.updateTimerStamp();
+				if(logger.isLoggable(Level.FINE)) {
+					logger.fine("Ping " + nodePresent.getTimeStamp());
+				}
 			} else {
 				BalancerContext.balancerContext.nodes.add(pingNode);
 				BalancerContext.balancerContext.balancerAlgorithm.nodeAdded(pingNode);
+				pingNode.updateTimerStamp();
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] added");

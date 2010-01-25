@@ -30,6 +30,8 @@ import com.sun.jdmk.comm.HtmlAdaptorServer;
  */
 public class BalancerRunner implements BalancerRunnerMBean {
 
+	private static final String NODE_TIMEOUT = "nodeTimeout";
+	private static final String HEARTBEAT_INTERVAL = "heartbeatInterval";
 	private static final String HOST_PROP = "host";
 	private static final String RMI_REGISTRY_PORT_PROP = "rmiRegistryPort";
 	private static final String JMX_HTML_ADAPTER_PORT_PROP = "jmxHtmlAdapterPort";
@@ -134,7 +136,16 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			
 			RouterImpl.setRegister(reg);			
 
-			reg = new NodeRegisterImpl(addr);	
+			reg = new NodeRegisterImpl(addr);
+			
+			try {
+				reg.setNodeExpirationTaskInterval(Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL, "5000")));
+				reg.setNodeExpiration(Integer.parseInt(properties.getProperty(NODE_TIMEOUT, "5100")));
+			} catch(NumberFormatException nfe) {
+				logger.log(Level.SEVERE, "Couldn't convert rmiRegistryPort to a valid integer", nfe);
+				return ; 
+			}
+			
 			reg.startRegistry(rmiRegistryPort);
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("adding shutdown hook");
