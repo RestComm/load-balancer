@@ -469,6 +469,9 @@ public class SIPBalancerForwarder implements SipListener {
 				if(uri instanceof SipURI) {
 					SipURI sipUri = (SipURI) uri;
 					assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
+					if(logger.isLoggable(Level.FINEST)) {
+			    		logger.finest("Found SIP URI " + uri + " |Next node is " + assignedNode);
+			    	}
 				}
 			}
 			SipURI assignedUri = null;
@@ -485,17 +488,33 @@ public class SIPBalancerForwarder implements SipListener {
 						//nextNodeInRequestUri = true;
 						assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
 					}
+					if(logger.isLoggable(Level.FINEST)) {
+			    		logger.finest("Subsequent request -> Found Route Header " + header + " |Next node is " + assignedNode);
+			    	}
 				} else {
 					SipURI sipUri =(SipURI) request.getRequestURI();
 					//nextNodeInRequestUri = true;
 					assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), sipUri.getTransportParam());
+					if(logger.isLoggable(Level.FINEST)) {
+			    		logger.finest("NOT Subsequent request -> using sipUri " + sipUri + " |Next node is " + assignedNode);
+			    	}
 				}
 			}
 			
 			if(assignedNode == null) {
-				
+				if(logger.isLoggable(Level.FINEST)) {
+		    		logger.finest("assignedNode is null");
+		    	}
 				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
 				if(nextNode != null) {
+					if(logger.isLoggable(Level.FINEST)) {
+						String nodesString = "";
+						Object[] nodes = BalancerContext.balancerContext.nodes.toArray();
+						for(Object n : nodes) {
+							nodesString +=n + " , ";
+						}
+			    		logger.finest("Next node is not null. Assigned uri is " + assignedUri + "Available nodes: " + nodesString);
+			    	}
 					//Adding Route Header pointing to the node the sip balancer wants to forward to
 					SipURI routeSipUri;
 					try {
@@ -507,7 +526,7 @@ public class SIPBalancerForwarder implements SipListener {
 						else { // OTHERWISE, a node is already assigned and it's alive
 							routeSipUri = assignedUri;
 						}
-
+						routeSipUri.setHost(nextNode.getIp());
 						routeSipUri.setPort(nextNode.getPort());
 						routeSipUri.setLrParam();
 						
@@ -519,6 +538,7 @@ public class SIPBalancerForwarder implements SipListener {
 									BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
 							request.addFirst(route);
 						//}
+						
 					} catch (Exception e) {
 						throw new RuntimeException("Error adding route header", e);
 					}

@@ -51,13 +51,25 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			node = nextAvailableNode();
 			if(node == null) return null;
 			callIdMap.put(callId, node);
+			if(logger.isLoggable(Level.FINEST)) {
+	    		logger.finest("No node found in the affinity map. It is null. We select new node: " + node);
+	    	}
 		} else {
 			if(!balancerContext.nodes.contains(node)) { // If the assigned node is now dead
+				if(logger.isLoggable(Level.FINEST)) {
+		    		logger.finest("The assigned node has died. This is the dead node: " + node);
+		    	}
 				node = nextAvailableNode();
 				if(node == null) return null;
 				callIdMap.put(callId, node);
+				if(logger.isLoggable(Level.FINEST)) {
+		    		logger.finest("SO, we must select new node: " + node);
+		    	}
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
+				if(logger.isLoggable(Level.FINEST)) {
+		    		logger.finest("The assigned node in the affinity map is still alive: " + node);
+		    	}
 			}
 		}
 		if(node == null) {
