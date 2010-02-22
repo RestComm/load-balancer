@@ -1,0 +1,7 @@
+<!ENTITY AUTHOR_EMAIL_IVELIN "${author.email.ivelin}">
+<!ENTITY AUTHOR_EMAIL_JEAN "${author.email.jean}">
+<!ENTITY AUTHOR_EMAIL_VLAD "${author.email.vlad}">
+<!ENTITY BOOKID "${bookid}">
+<!ENTITY PLATFORM_NAME "${platform.name}">
+<!ENTITY VERSION "${version}">
+<!ENTITY YEAR "${year}">
