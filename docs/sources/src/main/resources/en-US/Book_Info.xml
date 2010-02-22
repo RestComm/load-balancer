@@ -29,7 +29,7 @@
 	</corpauthor>
 	<copyright>
 		<year>&YEAR;</year>
-		<holder>&HOLDER;</holder>
+		<holder>Red Hat, Inc.</holder>
 	</copyright>
 	<!--ORIGINAL:
 	<xi:include
