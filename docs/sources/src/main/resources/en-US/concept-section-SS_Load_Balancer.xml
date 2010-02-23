@@ -3,7 +3,7 @@
 <!ENTITY % BOOK_ENTITIES SYSTEM "Load_Balancer_Guide.ent">
 %BOOK_ENTITIES;
 ]>
-<!-- chapter id nickname: sslb --><section id="sslb-MSS_Load_Balancer">
+<!-- chapter id nickname: sslb --><chapter id="sslb-MSS_Load_Balancer">
   <title>Load Balancer</title>
 <!--Removed star network image because it's also in the introductory section, and jdocbook can't shrink it or align the caption-->  <figure>
     <title>Star Cluster Topology.</title>
@@ -30,14 +30,14 @@
     <title>HTTP Load Balancing Basics</title>
     <para>In addition to the SIP load balancing, there are several options for coordinated or cooperative load balancing with other protocols such as HTTP. Typically, a JBoss Application Server will use apache HTTP server with mod_jk, mod_proxy, mod_cluster or similar extension installed as an HTTP load balancer. This apache-based load balancer will parse incoming HTTP requests and it will look for the session ID of those requests in order to ensure all requests from the same session arrive at the same application server. By default, this is done by examining the <literal>jsessionid</literal> HTTP cookie or GET parameter and looking for the   <literal>jvmRoute</literal> assigned to the session. The typical <literal>jsessionid</literal> value is of the form <literal>&lt;sessionId&gt;.&lt;jvmRoute&gt;</literal> (e.g. <literal>mysessionid323424.node1</literal> where <literal>node1</literal> is the <literal>jvmRoute</literal> component). The very first request for each new HTTP session do not have any session ID assigned, thus apache routes the request to a random application server node. When the node responds it assigns a session ID and <literal>jvmRoute</literal> to the response of the request in a HTTP cookie and this response goes back to the client through apache, which keeps track of which node owns which <literal>jvmRoute</literal>. Once, the very first request is served this way, the subsequent requests from this session will carry the assigned cookie and the apache load balancer will always route the requests to the node, which advertised itself as the <literal>jvmRoute</literal> owner.</para>
     <para>Instead of using apache,  an  integrated HTTP load balancing is also available. The SIP load balancer has an HTTP port where you could direct all incoming HTTP requests. The integrated HTTP load balancer behaves exactly like apache by default, but this behaviour is extensible and can be overridden completely with the pluggable balancer algorithms. The integrated HTTP load balancer  is much easier to configure and generally requires no effort, because it reuses most SIP settings ans assumes reasonable default values.</para>
-    <para>Unlike the native apache, the integrated HTTP load balancer is written completely in Java, thus a performance penalty should be expected when using it. However, the integrated HTTP balancer has an advantage when related SIP and HTTP requests must stick to the same node.</para>
+    <para>Unlike the native apache, the integrated HTTP load balancer is written completely in Java and does not support AJP, thus a performance penalty should be expected when using it. However, the integrated HTTP balancer has an advantage when related SIP and HTTP requests must stick to the same node.</para>
   </section>
    <section>
    <title>Pluggable balancer algorithms</title>
    <para>The SIP/HTTP load balancer exposes an interface to allow users to customize the routing decision making for special purposes. By default there are three built-in algorithms. Only one algorithm is active at any time and it is specified with the <literal>algorithmClass</literal> property in the configuration file.</para><para>It is completely up to the algorithm how and whether to support distributed architecture or how to store the information needed for session affinity. The algorithms will be called for every SIP and HTTP request and other significant events to make more informed decisions.</para>
    <note>
-      <para>Users must be aware that, bydefault requests explicitly addressed to a live server node passing through the load balancer will be forwarded directly to the server node. This allows for pre-specified routing use-cases, where the target node is known by the SIP client through other means. If the target node is dead, then the  node selection algorithm is used to route the request to an available node.</para>
-    </note><para>The following is a list o the built-in algorithms:</para><para><variablelist>
+      <para>Users must be aware that, by default requests explicitly addressed to a live server node passing through the load balancer will be forwarded directly to the server node. This allows for pre-specified routing use-cases, where the target node is known by the SIP client through other means. If the target node is dead, then the  node selection algorithm is used to route the request to an available node.</para>
+    </note><para>The following is a list of the built-in algorithms:</para><para><variablelist>
         <varlistentry>
           <term>org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm </term>
           <listitem>
@@ -483,40 +483,4 @@ INFO: Stopping the sip forwarder</screen>
       <para>To uninstall the SIP load balancer,  delete the JAR file you installed.</para>
     </section>
   </section>
-  <section>
-    <title>IP Load Balancing</title>
-    <section>
-      <title>IP Load Balancers</title>
-      <para>An IP load-balancer is a network appliance that distributes traffic to an application server (or actual servers) using a  load-balancing algorithm.  IP load-balancing is often used when the other load-balancers&apos; capacity is exceeded and can not scale further without hardware upgrades.</para>
-      <para>Routing decisions are made  based on OSI Layer 2, 3 or 4 data. This type of load balancer only examines low-level TCP, UDP or ethernet packet structures including MAC addresses, IP addresses, ports, and protocol types (TCP or UDP or other). </para>
-      <para>An IP  load balancer never reads the payload of the TCP/IP packets and therefore never parses SIP or HTTP (or any protocol above OSI Layer 4).  Because an IP load balancing device is not SIP or HTTP aware in any way, it is much more performant than <literal>mod_jk</literal> or the &SHORT_PLATFORM_NAME; SIP load-balancer.
-
-</para>
-    </section>
-    <section>
-      <title>Technical overview</title>
-      <para>In its simplest form, the IP load-balancer usually &quot;owns&quot; the public-facing IP address (known as a VIP). <!--Issue #822 Editor Comment - VIP = Virtual IP?-->  The traffic is routed to actual servers in it&apos;s private network similar to NAT. It is also possible to not change the IP address and just work on the MAC address by assuming that all actual  servers are configured to accept packets for the VIP address. The features offered by the IP load balancer depend largely on the vendor. </para>
-      <para>Some examples of  Linux-based  software load balancers include <ulink url="http://www.redhat.com/cluster_suite/">Red Hat Cluster Suite (RHCS)</ulink> and <ulink url="http://www.linuxvirtualserver.org/">Linux Virtual Server (LVS)</ulink>. There are many hardware vendors as well.</para>
-      <para>One main drawback relating to  IP load balancers is that they can not make routing decisions based on SIP messages and (with some exceptions) they can not work cooperatively with HTTP or other load balancers.</para>
-    </section>
-    <section>
-      <title>Configuring &SHORT_PLATFORM_NAME; Cluster for pure IP Load Balancing</title>
-<!--Issue #822 Editor Comment - This paragraph block needs to be converted into a <procedure>.-->      <warning>
-        <para>Pure IP load balancing is not a recommented option. It is advised to use a distributed load balancer instead. Proper operation with pure IP load balancing depends on the ability of the IP load balancer to establish request affinity based on IP addresses and ports.</para>
-      </warning>
-    </section>
-    <section>
-      <title>Another title</title>
-      <para>First you need to remove the SIP load balancers from any configuration in &SHORT_PLATFORM_NAME;. In particular the <literal>balancers</literal> attribute in <filename>server.xml</filename>.   and edit the jboss.web  engine tag. You should remove the balancers attribute from the Service tag of jboss.web service. This simply removes the default load balancer from the system and the traffic bypasses the SIP load-balancer. Next you must configure &SHORT_PLATFORM_NAME; to put the IP load balancer IP address in the <literal>Via</literal>, <literal>Contact</literal> and other system headers where the IP address of the server machine is required. This will ensure that any responses or subsequent SIP requests follow the same path, but always hit the load balancer instead of particular cluster node that may fail.  To specify the IP load balancer address in &SHORT_PLATFORM_NAME; your should edit this file <filename>JBOSS_HOME/server/all/deploy/jboss-web.deployer/server.xml</filename> and specify <literal>staticServerAddress</literal> such as: </para>
-      <programlisting>&lt;Connector port=&quot;5080&quot; 
-     ipAddress = &quot;${jboss.bind.address}&quot;
-     ...
-staticServerAddress=&quot;122.122.122.122&quot; staticServerPort=&quot;44&quot; 
-useStaticAddress=&quot;true&quot;/&gt;
-</programlisting>
-      <note>
-        <para>Depending on your reliability requirements you can omit the configuration described in this section and let the servers use their own IP address in the SIP messages. The difference is if you would like subsequent requests to bypass the load balanceror not. If the load balancer is bypassed, then mid-call failover will not work, because the requests would be addressed directly to the server.</para>
-      </note>
-    </section>
-  </section>
-</section>
+</chapter>
