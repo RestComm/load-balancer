@@ -13,6 +13,7 @@
 			
 	<properties>
 		<platform.name>JBoss Communications</platform.name>
+		<short.platform.name>JBCP</short.platform.name>
 		<author.email.ivelin>ivelin.atanasoff.ivanov (at) gmail.com</author.email.ivelin>
 		<author.email.jean>jean.deruelle (at) gmail.com</author.email.jean>
 		<author.email.vlad>vladimir.ralev (at) gmail.com</author.email.vlad>

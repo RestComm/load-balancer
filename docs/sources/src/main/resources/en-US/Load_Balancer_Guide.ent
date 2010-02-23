@@ -3,5 +3,6 @@
 <!ENTITY AUTHOR_EMAIL_VLAD "${author.email.vlad}">
 <!ENTITY BOOKID "${bookid}">
 <!ENTITY PLATFORM_NAME "${platform.name}">
+<!ENTITY SHORT_PLATFORM_NAME "${short.platform.name}">
 <!ENTITY VERSION "${version}">
 <!ENTITY YEAR "${year}">

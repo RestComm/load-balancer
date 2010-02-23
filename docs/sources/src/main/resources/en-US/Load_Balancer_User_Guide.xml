@@ -4,8 +4,8 @@
 %BOOK_ENTITIES;
 ]>
 <book>
-  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="Book_Info.xml"/>
-  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="Preface.xml"/>
-  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="concept-section-SS_Load_Balancer.xml"/>
+ <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="Book_Info.xml"/>
+  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="Preface.xml"/> 
+ <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="concept-section-SS_Load_Balancer.xml"/>
   <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="Revision_History.xml"/>
 </book>
