@@ -3,17 +3,15 @@
 <!ENTITY % BOOK_ENTITIES SYSTEM "Load_Balancer_Guide.ent">
 %BOOK_ENTITIES;
 ]><!-- chapter id nickname: sssug -->
-<bookinfo id="sssug-SIP_Servlets_Server_User_Guide">
-	<title>SIP Servlets Server User Guide</title>
-	<subtitle>The Guide to the SIP Servlets v1.1-Certified Server</subtitle>
-  <productname>Mobicents Platform</productname>
-	<productnumber>1.2.1</productnumber>
+<bookinfo id="SIP_Load_Balancer_User_Guide">
+	<title>&PLATFORM_NAME; SIP Load Balancer User Guide</title>
+	<subtitle>The Guide to the &PLATFORM_NAME; SIP Load Balancer</subtitle>
+    <productname>&PLATFORM_NAME; Platform</productname>
+	<productnumber>&VERSION;</productnumber>
 	<edition>2.0</edition>
 	<pubsnumber>1</pubsnumber>
 	<abstract>
-		<para>&PLATFORM_NAME; is the first and only open source <acronym>VoIP</acronym> platform certified for <acronym>JAIN SLEE</acronym> 1.0 and <acronym>SIP</acronym> Servlets 1.1 compliance.  &PLATFORM_NAME; serves as a high-performance core for Service Delivery Platforms (<acronym>SDP</acronym>s) and <acronym>IP</acronym> Multimedia Subsystems (<acronym>IMS</acronym>s) by leveraging <acronym>J2EE</acronym> to enable the convergence of data and video in Next-Generation Intelligent Network (<acronym>NGIN</acronym>) applications.</para>
-		<para>The &PLATFORM_NAME; enables the composition of predefined Service Building Blocks (<acronym>SBB</acronym>s) such as Call-Control, Billing, User-Provisioning, Administration and Presence-Sensing.  Out-of-the-box monitoring and management of &PLATFORM_NAME; components is achieved through <acronym>JMX</acronym> Consoles. <acronym>JSLEE</acronym> allows popular protocol stacks such as <acronym>SIP</acronym> to be plugged in as Resource Adapters (<acronym>RA</acronym>s), and Service Building Blocks—which share many similarities with <acronym>EJB</acronym>s—allow the easy accommodation and integration of enterprise applications with end points such as the Web, Customer Relationship Management (<acronym>CRM</acronym>) systems and Service-Oriented Architectures (<acronym>SOA</acronym>s). The &PLATFORM_NAME; is the natural choice for telecommunication Operations Support Systems (OSSs) and Network Management Systems (NMSs).</para>
-		<para>In addition to the telecommunication industry, the &PLATFORM_NAME; is suitable for a variety of problem domains demanding an Event-Driven Architecture (<acronym>EDA</acronym>) for high-volume, low-latency signaling, such as financial trading, online gaming, (<acronym>RFID</acronym>) sensor network integration, and distributed control.</para>
+		<para>&PLATFORM_NAME; is the first and only open source <acronym>VoIP</acronym> platform certified for <acronym>JAIN SLEE</acronym> 1.1 and <acronym>SIP</acronym> Servlets 1.1 compliance. &PLATFORM_NAME; SIP Load Balancer is a SIP and HTTP Load Balancer to be used in a &PLATFORM_NAME; platform cluster, to increase SIP and HTTP performance, and achieve High Availability and Fault Tolerance on those protocols.</para>
 	</abstract>
 	<corpauthor>
 		<inlinemediaobject>

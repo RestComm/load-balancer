@@ -1,91 +1,41 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	
 	<modelVersion>4.0.0</modelVersion>
+	
 	<parent>
 		<artifactId>mobicents</artifactId>
 		<groupId>org.mobicents</groupId>
-		<version>1.17-SNAPSHOT</version>		
+		<version>1.17</version>		
 	</parent>
+	
+	<packaging>pom</packaging>
+	
 	<groupId>org.mobicents.tools</groupId>
 	<artifactId>sip-balancer</artifactId>
 	<version>1.0.BETA14-SNAPSHOT</version>
-	<packaging>jar</packaging>
-	<name>sip-balancer</name>
+
 	<url>http://mobicents.org/</url>
+	
 	<properties>
 		<!-- MOBICENTS TOOL VERSIONS -->
 		<mobicents.tools.mavenplugin.eclipse.version>
 			1.0.0.BETA2
 		</mobicents.tools.mavenplugin.eclipse.version>
-		<manifest.url>http://www.mobicents.org
-		</manifest.url>
-		<manifest.implementation.title>${pom.groupId}:${pom.artifactId}
-		</manifest.implementation.title>
-		<manifest.implementation.version>${pom.version}
-		</manifest.implementation.version>
-		<manifest.implementation.vendor>JBoss, a Red Hat division
-		</manifest.implementation.vendor>
-
 	</properties>
 		
-
-	<dependencies>
-			<dependency>
-			<groupId>org.jboss.netty</groupId>
-			<artifactId>netty</artifactId>
-			<version>3.1.5.GA</version>
-			<!--scope>provided</scope-->
-		</dependency>
-			<!-- clustering deps -->
-		<dependency>
-			<groupId>org.jboss.cache</groupId>
-			<artifactId>jbosscache-core</artifactId>
-			<version>3.2.1.GA</version>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.jboss.cache</groupId>
-			<artifactId>jbosscache-pojo</artifactId>
-			<version>3.0.0.GA</version>			
-		</dependency>	
-				<dependency>
-			<groupId>jgroups</groupId>
-			<artifactId>jgroups</artifactId>
-			<version>2.7.0.GA</version>			
-		</dependency>	
-		
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
-			<scope>test</scope>
-		</dependency>
-		<!-- logging dependency -->
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>com.sun.jdmk</groupId>
-			<artifactId>jmxtools</artifactId>
-			<version>1.2.1</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/lib/jmxtools-1.2.1.jar
-			</systemPath>
-			<optional>true</optional>			
-		</dependency>
-
-		<dependency>
-			<groupId>javax.sip</groupId>
-			<artifactId>jain-sip-api</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>javax.sip</groupId>
-			<artifactId>jain-sip-ri</artifactId>
-		</dependency>
-	</dependencies>
-
+	<modules>
+		<module>jar</module>		
+	</modules>
+	
+	<profiles>
+		<profile>
+			<id>maven-release</id>
+			<modules>
+				<module>docs</module>
+			</modules>
+		</profile>		
+	</profiles>
+	
 	<build>
 		<plugins>
 			<plugin>
@@ -94,42 +44,14 @@
 					<tagBase>
 						https://mobicents.googlecode.com/svn/tags/tools/sip-balancer
 					</tagBase>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>
-								org.mobicents.tools.sip.balancer.BalancerRunner
-							</mainClass>
-							<addClasspath>true</addClasspath>
-						</manifest>
-						<manifestEntries>
-							<Implementation-Title>
-								${manifest.implementation.title}
-                           </Implementation-Title>
-							<Implementation-Version>
-								${manifest.implementation.version}
-                               </Implementation-Version>
-							<Implementation-Vendor-Id>
-								${manifest.implementation.vendor}
-                               </Implementation-Vendor-Id>
-							<Implementation-URL>
-								${manifest.url}
-                               </Implementation-URL>
-						</manifestEntries>
-					</archive>
+					<preparationGoals>clean install</preparationGoals>
+					<autoVersionSubmodules>true</autoVersionSubmodules>
 				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-eclipse-plugin</artifactId>
 				<groupId>org.mobicents.tools</groupId>
-				<version>
-					${mobicents.tools.mavenplugin.eclipse.version}
-				</version>
+				<version>${mobicents.tools.mavenplugin.eclipse.version}</version>
 				<inherited>false</inherited>
 				<executions />
 				<configuration>
@@ -138,55 +60,10 @@
 						true
 					</resolveTransitiveDependencies>
 					<eclipseProjectName>
-						sip-load-balancer
+						sip-balancer
 					</eclipseProjectName>
 				</configuration>
-			</plugin>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>
-								org.mobicents.tools.sip.balancer.BalancerRunner
-							</mainClass>
-						</manifest>
-						<manifestEntries>
-							<Implementation-Title>
-								${manifest.implementation.title}
-                            </Implementation-Title>
-							<Implementation-Version>
-								${manifest.implementation.version}
-                                </Implementation-Version>
-							<Implementation-Vendor-Id>
-								${manifest.implementation.vendor}
-                                </Implementation-Vendor-Id>
-							<Implementation-URL>
-								${manifest.url}
-                                </Implementation-URL>
-						</manifestEntries>
-					</archive>
-					<descriptors>
-						<descriptor>src/main/assembly/src.xml
-						</descriptor>
-					</descriptors>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<!--
-							this is used for inheritance merges
-						-->
-						<phase>package</phase>
-						<!--
-							append to the packaging phase.
-						-->
-						<goals>
-							<goal>attached</goal><!-- goals == mojos -->
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+			</plugin>			
 		</plugins>
 		<extensions>
 			<extension>
@@ -195,9 +72,10 @@
 				<version>RELEASE</version>
 			</extension>
 		</extensions>
-
 	</build>
+	
 	<!-- repositories -->
+	
 	<repositories>
 		<repository>
 			<id>maven2-repository.dev.java.net</id>
