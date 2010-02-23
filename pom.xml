@@ -22,7 +22,6 @@
 			1.0.0.BETA2
 		</mobicents.tools.mavenplugin.eclipse.version>
 	</properties>
-		
 	<modules>
 		<module>jar</module>		
 	</modules>
