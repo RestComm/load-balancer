@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.mobicents.tools</groupId>
 		<artifactId>sip-balancer-docs</artifactId>
-		<version>1.0.BETA14-SNAPSHOT</version>
+		<version>1.0.BETA14</version>
 	</parent>
 	
 	<artifactId>sip-balancer-docs-sources-jbcp</artifactId>
