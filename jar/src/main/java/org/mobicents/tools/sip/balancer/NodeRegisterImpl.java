@@ -230,22 +230,12 @@ public class NodeRegisterImpl  implements NodeRegister {
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("node to check against " + node);
 			}
-			if(node.getIp().equals(host) && node.getPort() == port) {
-				String[] nodeTransports = node.getTransports();
-				if(nodeTransports.length > 0) {
-					for(String nodeTransport : nodeTransports) {
-						if(nodeTransport.equalsIgnoreCase(transport)) {
-							if(logger.isLoggable(Level.FINEST)) {
-								logger.finest("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
-							}
-							return node;
-						}
+			if(node.getIp().equals(host)) {
+				Integer nodePort = (Integer) node.getProperties().get(transport + "Port");
+				if(nodePort != null) {
+					if(nodePort == port) {
+						return node;
 					}
-				} else {
-					if(logger.isLoggable(Level.FINEST)) {
-						logger.finest("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : true");
-					}
-					return node;
 				}
 			}
 		}
@@ -290,10 +280,11 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 */
 	public void handlePingInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
-			if(pingNode.getJvmRoute() != null) {
+			if(pingNode.getProperties().get("jvmRoute") != null) {
 				// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
 				// We need info about inactive nodes to do the failover
-				BalancerContext.balancerContext.jvmRouteToSipNode.put(pingNode.getJvmRoute(), pingNode);				
+				BalancerContext.balancerContext.jvmRouteToSipNode.put(
+						(String)pingNode.getProperties().get("jvmRoute"), pingNode);				
 			}
 			if(BalancerContext.balancerContext.nodes.size() < 1) {
 				BalancerContext.balancerContext.nodes.add(pingNode);

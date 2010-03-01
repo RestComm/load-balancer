@@ -103,7 +103,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     			});
             	
         		// Start the connection attempt.
-        		ChannelFuture future = HttpChannelAssocialtions.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), node.getHttpPort()));
+        		ChannelFuture future = HttpChannelAssocialtions.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
 
         		future.addListener(new ChannelFutureListener() {
 

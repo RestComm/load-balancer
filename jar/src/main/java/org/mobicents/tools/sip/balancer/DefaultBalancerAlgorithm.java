@@ -74,7 +74,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		} else {
 			String unavailaleHost = getProperties().getProperty("unavailableHost");
 			if(unavailaleHost != null) {
-				return new SIPNode(unavailaleHost, unavailaleHost,0,null,null, 80,0,null);
+				SIPNode node = new SIPNode(unavailaleHost, unavailaleHost);
+				node.getProperties().put("httpPort", 80);
+				return node;
 			} else {
 				return null;
 			}

@@ -31,6 +31,7 @@ import javax.sip.SipException;
 import javax.sip.SipStack;
 import javax.sip.address.Hop;
 import javax.sip.address.Router;
+import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
 /**
@@ -59,6 +60,8 @@ public class RouterImpl implements Router {
 
 		SIPNode node = null;
 		Hop hop = null;
+		
+		String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 
 		String method = request.getMethod();
 
@@ -87,8 +90,11 @@ public class RouterImpl implements Router {
 					}
 				}
 		}
-
-		hop = new HopImpl(node.getIp(), node.getPort(), node.getTransports()[0]);
+		Integer port = (Integer) node.getProperties().get(transport + "Port");
+		if(port == null) {
+			throw new RuntimeException("No port available for transport " + transport + " for node " + node);
+		}
+		hop = new HopImpl(node.getIp(), port, transport);
 
 		System.out.println(this.getClass().getName()+".getNextHop() returning hop:"+hop );
 		return hop;
@@ -107,9 +113,13 @@ public class RouterImpl implements Router {
 		if (node == null) {
 			return null;
 		} else {
+			String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 			LinkedList retval = new LinkedList();
-			retval.add(new HopImpl(node.getIp(), node.getPort(), node
-					.getTransports()[0]));
+			Integer port = (Integer) node.getProperties().get(transport + "Port");
+			if(port == null) {
+				throw new RuntimeException("No port available for transport " + transport + " for node " + node);
+			}
+			retval.add(new HopImpl(node.getIp(), port, transport));
 			return retval.listIterator();
 		}
 	}

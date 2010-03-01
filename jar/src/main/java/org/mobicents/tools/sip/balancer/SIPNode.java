@@ -23,6 +23,9 @@ package org.mobicents.tools.sip.balancer;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * <p>
@@ -48,35 +51,16 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	private static final long serialVersionUID = -4959114432342926569L;
 	private String hostName = null;
 	private String ip = null;
-	private int port = -1;
-	private String[] transports = null;
 	private long timeStamp = System.currentTimeMillis();
-	private String jvmRoute;
-	private int httpPort;
-	private int sslPort;
-	private String properties;
+	private HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
 
-	public SIPNode(String hostName, String ip, int port, String[] transports, String jvmRoute) {
+
+	public SIPNode(String hostName, String ip) {
 		super();
 		this.hostName = hostName;
 		this.ip = ip;
-		this.port = port;
-		this.transports = transports;	
-		this.jvmRoute = jvmRoute;
 	}
 	
-	public SIPNode(String hostName, String ip, int port, String[] transports, String jvmRoute, int httpPort, int sslPort, String properties) {
-		super();
-		this.hostName = hostName;
-		this.ip = ip;
-		this.port = port;
-		this.transports = transports;	
-		this.jvmRoute = jvmRoute;
-		this.httpPort = httpPort;
-		this.sslPort = sslPort;
-		this.properties = properties;
-	}
-
 	public String getHostName() {
 		return hostName;
 	}
@@ -85,58 +69,18 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 		return ip;
 	}
 
-	public int getPort() {
-		return port;
-	}
-
-	public String[] getTransports() {
-		return transports;
-	}
-	
-	public String getTransportsAsString() {
-		return Arrays.toString(this.transports);
+	public Map<String, Serializable> getProperties() {
+		return properties;
 	}
 	
 	public long getTimeStamp() {
 		return this.timeStamp;
 	}
 
-	public String getJvmRoute() {
-		return jvmRoute;
-	}
-
-	public void setJvmRoute(String jvmRoute) {
-		this.jvmRoute = jvmRoute;
-	}
-
 	public void updateTimerStamp() {
 		this.timeStamp = System.currentTimeMillis();
 	}
 
-	public int getHttpPort() {
-		return httpPort;
-	}
-
-	public void setHttpPort(int httpPort) {
-		this.httpPort = httpPort;
-	}
-
-	public int getSslPort() {
-		return sslPort;
-	}
-
-	public void setSslPort(int sslPort) {
-		this.sslPort = sslPort;
-	}
-
-	public String getProperties() {
-		return properties;
-	}
-
-	public void setProperties(String properties) {
-		this.properties = properties;
-	}
-	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -144,8 +88,11 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 		result = prime * result
 				+ ((hostName == null) ? 0 : hostName.hashCode());
 		result = prime * result + ((ip == null) ? 0 : ip.hashCode());
-		result = prime * result + port;
-		result = prime * result + Arrays.hashCode(transports);
+		Iterator<String> keyIterator = properties.keySet().iterator();
+		while(keyIterator.hasNext()) {
+			String key = keyIterator.next();
+			result = prime * result + properties.get(key).hashCode();
+		}
 		return result;
 	}
 
@@ -168,26 +115,40 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 				return false;
 		} else if (!ip.equals(other.ip))
 			return false;
-		if (port != other.port)
-			return false;
-		if (!Arrays.equals(transports, other.transports))
-			return false;
+		Iterator<String> keyIterator = properties.keySet().iterator();
+		while(keyIterator.hasNext()) {
+			String key = keyIterator.next();
+			if(!properties.get(key).equals(other.properties.get(key))) {
+				return false;
+			}
+		}
 		return true;
 	}
 
 	public String toString() {
 
-		return "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
-				+ "] port[" + this.port + "] transport["
-				+ Arrays.toString(this.transports) + "] jvmRoute[" + this.jvmRoute + "] HTTP[" 
-				+ this.httpPort + "] HTTPS[" + sslPort + "]";
+		String result = "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
+				+ "] ";
+		Iterator<String> keyIterator = properties.keySet().iterator();
+		while(keyIterator.hasNext()) {
+			String key = keyIterator.next();
+			result += key + "[" + properties.get(key) + "] ";
+		}
+		return result;
 	}
 	
 	public String toStringWithoutJvmroute() {
 
-		return "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
-				+ "] port[" + this.port + "] transport["
-				+ Arrays.toString(this.transports) + "]";
+		String result = "SIPNode hostname[" + this.hostName + "] ip[" + this.ip
+		+ "] ";
+		Iterator<String> keyIterator = properties.keySet().iterator();
+		while(keyIterator.hasNext()) {
+			String key = keyIterator.next();
+			if(!key.equals("jvmRoute")) {
+				result += key + "[" + properties.get(key) + "] ";
+			}
+		}
+		return result;
 	}
 
 	public int compareTo(SIPNode sipNode) {
