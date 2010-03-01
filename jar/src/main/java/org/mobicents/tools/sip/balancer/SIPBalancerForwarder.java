@@ -81,6 +81,9 @@ public class SIPBalancerForwarder implements SipListener {
 	public static final String ROUTE_PARAM_NODE_HOST = "node_host";
 
 	public static final String ROUTE_PARAM_NODE_PORT = "node_port";
+	
+	public static final int UDP = 0;
+	public static final int TCP = 1;
 
 	protected static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
     
@@ -112,8 +115,6 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		BalancerContext.balancerContext.externalIpLoadBalancerAddress = BalancerContext.balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
 		BalancerContext.balancerContext.internalIpLoadBalancerAddress = BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerAddress");
-		BalancerContext.balancerContext.externalTransport = BalancerContext.balancerContext.properties.getProperty("externalTransport", "UDP");
-		BalancerContext.balancerContext.internalTransport = BalancerContext.balancerContext.properties.getProperty("internalTransport", "UDP");
 		if(BalancerContext.balancerContext.properties.getProperty("externalLoadBalancerPort") != null) {
 			BalancerContext.balancerContext.externalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("externalLoadBalancerPort"));
 		}
@@ -178,63 +179,132 @@ public class SIPBalancerForwarder implements SipListener {
     		//We need to use double record (better option than record route rewriting) routing otherwise it is impossible :
     		//a) to forward BYE from the callee side to the caller
     		//b) to support different transports		
-    		SipURI externalLocalUri = BalancerContext.balancerContext.addressFactory
-    		        .createSipURI(null, externalLp.getIPAddress());
-    		externalLocalUri.setPort(externalLp.getPort());
-    		externalLocalUri.setTransportParam(BalancerContext.balancerContext.externalTransport);
-    		//See RFC 3261 19.1.1 for lr parameter
-    		externalLocalUri.setLrParam();
-    		Address externalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(externalLocalUri);
-    		externalLocalAddress.setURI(externalLocalUri);
-    		if(logger.isLoggable(Level.FINEST)) {
-    			logger.finest("adding Record Router Header :"+externalLocalAddress);
-    		}                    
-    		BalancerContext.balancerContext.externalRecordRouteHeader = BalancerContext.balancerContext.headerFactory
-    		        .createRecordRouteHeader(externalLocalAddress);    
-    		
-    		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
-    			SipURI internalLocalUri = BalancerContext.balancerContext.addressFactory
-    			.createSipURI(null, internalLp.getIPAddress());
-    			internalLocalUri.setPort(internalLp.getPort());
-    			internalLocalUri.setTransportParam(BalancerContext.balancerContext.internalTransport);
-    			//See RFC 3261 19.1.1 for lr parameter
-    			internalLocalUri.setLrParam();
-    			Address internalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(internalLocalUri);
-    			internalLocalAddress.setURI(internalLocalUri);
-    			if(logger.isLoggable(Level.FINEST)) {
-    				logger.finest("adding Record Router Header :"+internalLocalAddress);
-    			}                    
-    			BalancerContext.balancerContext.internalRecordRouteHeader = BalancerContext.balancerContext.headerFactory
-    			.createRecordRouteHeader(internalLocalAddress);  
+            {
+            	SipURI externalLocalUri = BalancerContext.balancerContext.addressFactory
+            	.createSipURI(null, externalLp.getIPAddress());
+            	externalLocalUri.setPort(externalLp.getPort());
+            	externalLocalUri.setTransportParam("udp");
+            	//See RFC 3261 19.1.1 for lr parameter
+            	externalLocalUri.setLrParam();
+            	Address externalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(externalLocalUri);
+            	externalLocalAddress.setURI(externalLocalUri);
+
+            	if(logger.isLoggable(Level.FINEST)) {
+            		logger.finest("adding Record Router Header :"+externalLocalAddress);
+            	}                    
+            	BalancerContext.balancerContext.externalRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+            	.createRecordRouteHeader(externalLocalAddress);    
+            }
+            {
+            	SipURI externalLocalUri = BalancerContext.balancerContext.addressFactory
+            	.createSipURI(null, externalLp.getIPAddress());
+            	externalLocalUri.setPort(externalLp.getPort());
+            	externalLocalUri.setTransportParam("tcp");
+            	//See RFC 3261 19.1.1 for lr parameter
+            	externalLocalUri.setLrParam();
+            	Address externalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(externalLocalUri);
+            	externalLocalAddress.setURI(externalLocalUri);
+
+            	if(logger.isLoggable(Level.FINEST)) {
+            		logger.finest("adding Record Router Header :"+externalLocalAddress);
+            	}                    
+            	BalancerContext.balancerContext.externalRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+            	.createRecordRouteHeader(externalLocalAddress);    
+            }
+
+            if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+            	{
+            		SipURI internalLocalUri = BalancerContext.balancerContext.addressFactory
+            		.createSipURI(null, internalLp.getIPAddress());
+            		internalLocalUri.setPort(internalLp.getPort());
+            		internalLocalUri.setTransportParam("udp");
+            		//See RFC 3261 19.1.1 for lr parameter
+            		internalLocalUri.setLrParam();
+            		Address internalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(internalLocalUri);
+            		internalLocalAddress.setURI(internalLocalUri);
+            		if(logger.isLoggable(Level.FINEST)) {
+            			logger.finest("adding Record Router Header :"+internalLocalAddress);
+            		}                    
+            		BalancerContext.balancerContext.internalRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+            		.createRecordRouteHeader(internalLocalAddress);  
+            	}
+            	{
+            		SipURI internalLocalUri = BalancerContext.balancerContext.addressFactory
+            		.createSipURI(null, internalLp.getIPAddress());
+            		internalLocalUri.setPort(internalLp.getPort());
+            		internalLocalUri.setTransportParam("tcp");
+            		//See RFC 3261 19.1.1 for lr parameter
+            		internalLocalUri.setLrParam();
+            		Address internalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(internalLocalUri);
+            		internalLocalAddress.setURI(internalLocalUri);
+            		if(logger.isLoggable(Level.FINEST)) {
+            			logger.finest("adding Record Router Header :"+internalLocalAddress);
+            		}                    
+            		BalancerContext.balancerContext.internalRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+            		.createRecordRouteHeader(internalLocalAddress);  
+            	}
     		}
-    		
+
     		if(BalancerContext.balancerContext.externalIpLoadBalancerAddress != null) {
-    			SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
-    			.createSipURI(null, BalancerContext.balancerContext.externalIpLoadBalancerAddress);
-    			ipLbSipUri.setPort(BalancerContext.balancerContext.externalLoadBalancerPort);
-    			ipLbSipUri.setTransportParam(BalancerContext.balancerContext.externalTransport);
-    			ipLbSipUri.setLrParam();
-    			Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
-    			ipLbAdress.setURI(ipLbSipUri);
-    			BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader = BalancerContext.balancerContext.headerFactory
-    			.createRecordRouteHeader(ipLbAdress);
+    			//UDP RR
+    			{
+    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
+    				.createSipURI(null, BalancerContext.balancerContext.externalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(BalancerContext.balancerContext.externalLoadBalancerPort);
+    				ipLbSipUri.setTransportParam("udp");
+    				ipLbSipUri.setLrParam();
+    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				ipLbAdress.setURI(ipLbSipUri);
+    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+    				.createRecordRouteHeader(ipLbAdress);
+    			}
+    			//TCP RR
+    			{
+    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
+    				.createSipURI(null, BalancerContext.balancerContext.externalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(BalancerContext.balancerContext.externalLoadBalancerPort);
+    				ipLbSipUri.setTransportParam("tcp");
+    				ipLbSipUri.setLrParam();
+    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				ipLbAdress.setURI(ipLbSipUri);
+    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+    				.createRecordRouteHeader(ipLbAdress);
+    			}
     		}
     		
     		if(BalancerContext.balancerContext.internalIpLoadBalancerAddress != null) {
-    			SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
-    			.createSipURI(null, BalancerContext.balancerContext.internalIpLoadBalancerAddress);
-    			ipLbSipUri.setPort(BalancerContext.balancerContext.internalLoadBalancerPort);
-    			ipLbSipUri.setTransportParam(BalancerContext.balancerContext.internalTransport);
-    			ipLbSipUri.setLrParam();
-    			Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
-    			ipLbAdress.setURI(ipLbSipUri);
-    			BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader = BalancerContext.balancerContext.headerFactory
-    			.createRecordRouteHeader(ipLbAdress);
+    			{
+    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
+    				.createSipURI(null, BalancerContext.balancerContext.internalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(BalancerContext.balancerContext.internalLoadBalancerPort);
+    				ipLbSipUri.setTransportParam("udp");
+    				ipLbSipUri.setLrParam();
+    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				ipLbAdress.setURI(ipLbSipUri);
+    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+    				.createRecordRouteHeader(ipLbAdress);
+    			}
+    			{
+    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
+    				.createSipURI(null, BalancerContext.balancerContext.internalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(BalancerContext.balancerContext.internalLoadBalancerPort);
+    				ipLbSipUri.setTransportParam("tcp");
+    				ipLbSipUri.setLrParam();
+    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				ipLbAdress.setURI(ipLbSipUri);
+    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+    				.createRecordRouteHeader(ipLbAdress);
+    			}
     		}
-    		BalancerContext.balancerContext.activeExternalHeader = BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader != null ?
-    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader : BalancerContext.balancerContext.externalRecordRouteHeader;
-    		BalancerContext.balancerContext.activeInternalHeader = BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader != null ?
-    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader : BalancerContext.balancerContext.internalRecordRouteHeader;
+    		BalancerContext.balancerContext.activeExternalHeader[UDP] = BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[UDP] != null ?
+    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[UDP] : BalancerContext.balancerContext.externalRecordRouteHeader[UDP];
+    		BalancerContext.balancerContext.activeInternalHeader[UDP] = BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[UDP] != null ?
+    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[UDP] : BalancerContext.balancerContext.internalRecordRouteHeader[UDP];
+    		
+    		BalancerContext.balancerContext.activeExternalHeader[TCP] = BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[TCP] != null ?
+    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[TCP] : BalancerContext.balancerContext.externalRecordRouteHeader[TCP];
+    		BalancerContext.balancerContext.activeInternalHeader[TCP] = BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] != null ?
+    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] : BalancerContext.balancerContext.internalRecordRouteHeader[TCP];
     		
     		BalancerContext.balancerContext.sipStack.start();
         } catch (Exception ex) {
@@ -588,30 +658,33 @@ public class SIPBalancerForwarder implements SipListener {
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
 		}
+		String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
+		int transportIndex = transport.equalsIgnoreCase("udp")?0:1;
+		
 		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
 			if(sipProvider.equals(BalancerContext.balancerContext.externalSipProvider)) {
 				if(logger.isLoggable(Level.FINEST)) {
 					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeExternalHeader);
+				request.addHeader(BalancerContext.balancerContext.activeExternalHeader[transportIndex]);
 
 				if(logger.isLoggable(Level.FINEST)) {
 					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeInternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeInternalHeader);
+				request.addHeader(BalancerContext.balancerContext.activeInternalHeader[transportIndex]);
 			} else {
 				if(logger.isLoggable(Level.FINEST)) {
 					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeInternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeInternalHeader);
+				request.addHeader(BalancerContext.balancerContext.activeInternalHeader[transportIndex]);
 
 				if(logger.isLoggable(Level.FINEST)) {
 					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeExternalHeader);			
+				request.addHeader(BalancerContext.balancerContext.activeExternalHeader[transportIndex]);			
 			}	
 		} else {
-			request.addHeader(BalancerContext.balancerContext.activeExternalHeader);
+			request.addHeader(BalancerContext.balancerContext.activeExternalHeader[transportIndex]);
 		}
 	}
 

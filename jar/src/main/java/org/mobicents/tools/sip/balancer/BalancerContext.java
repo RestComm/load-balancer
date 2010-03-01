@@ -17,9 +17,6 @@ public class BalancerContext {
 	public CopyOnWriteArrayList<SIPNode> nodes;
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	
-	public String externalTransport = "UDP";
-	public String internalTransport = "UDP";
-	
 	public Object parameters;
 
 	public SipProvider externalSipProvider;
@@ -43,12 +40,12 @@ public class BalancerContext {
 
 	public Properties properties;  
 	
-	public RecordRouteHeader externalRecordRouteHeader;
-	public RecordRouteHeader externalIpBalancerRecordRouteHeader; 
-	public RecordRouteHeader internalRecordRouteHeader;
-	public RecordRouteHeader internalIpBalancerRecordRouteHeader; 
-	public RecordRouteHeader activeExternalHeader;
-	public RecordRouteHeader activeInternalHeader;
+	public RecordRouteHeader[] externalRecordRouteHeader = new RecordRouteHeader[2];
+	public RecordRouteHeader[] externalIpBalancerRecordRouteHeader = new RecordRouteHeader[2]; 
+	public RecordRouteHeader[] internalRecordRouteHeader = new RecordRouteHeader[2];
+	public RecordRouteHeader[] internalIpBalancerRecordRouteHeader = new RecordRouteHeader[2]; 
+	public RecordRouteHeader[] activeExternalHeader = new RecordRouteHeader[2];
+	public RecordRouteHeader[] activeInternalHeader = new RecordRouteHeader[2];
     
 	//stats
 	public boolean gatherStatistics = true;
