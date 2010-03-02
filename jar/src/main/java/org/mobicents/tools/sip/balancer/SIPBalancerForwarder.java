@@ -599,7 +599,13 @@ public class SIPBalancerForwarder implements SipListener {
 							routeSipUri = assignedUri;
 						}
 						routeSipUri.setHost(nextNode.getIp());
-						routeSipUri.setPort((Integer)nextNode.getProperties().get(transport + "Port"));
+						Integer port = (Integer)nextNode.getProperties().get(transport + "Port");
+						if(port == null) {
+							throw new RuntimeException("Port is null in the node properties for transport="
+									+ transport);
+						}
+						routeSipUri.setPort(port);
+						routeSipUri.setTransportParam(transport);
 						routeSipUri.setLrParam();
 						
 						// Either we should put it in route header of request URI (based on what the incoming request looks like)
