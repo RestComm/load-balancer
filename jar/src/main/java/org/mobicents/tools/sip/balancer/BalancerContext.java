@@ -23,6 +23,8 @@ public class BalancerContext {
 	public SipProvider internalSipProvider;
 
 	public String host;
+	public String externalHost;
+	public String internalHost;
 	public int externalPort;
 	public int internalPort;
 	

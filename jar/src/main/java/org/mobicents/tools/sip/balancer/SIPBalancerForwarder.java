@@ -109,6 +109,8 @@ public class SIPBalancerForwarder implements SipListener {
 		BalancerContext.balancerContext.sipStack = null;
 
 		BalancerContext.balancerContext.host = BalancerContext.balancerContext.properties.getProperty("host");   
+		BalancerContext.balancerContext.internalHost = BalancerContext.balancerContext.properties.getProperty("internalHost",BalancerContext.balancerContext.host); 
+		BalancerContext.balancerContext.externalHost = BalancerContext.balancerContext.properties.getProperty("externalHost",BalancerContext.balancerContext.host); 
 		BalancerContext.balancerContext.externalPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("externalPort"));
 		if(BalancerContext.balancerContext.properties.getProperty("internalPort") != null) {
 			BalancerContext.balancerContext.internalPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("internalPort"));
@@ -155,8 +157,8 @@ public class SIPBalancerForwarder implements SipListener {
         	BalancerContext.balancerContext.addressFactory = sipFactory.createAddressFactory();
         	BalancerContext.balancerContext.messageFactory = sipFactory.createMessageFactory();
 
-            ListeningPoint externalLp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.host, BalancerContext.balancerContext.externalPort, "udp");
-            ListeningPoint externalLpTcp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.host, BalancerContext.balancerContext.externalPort, "tcp");
+            ListeningPoint externalLp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.externalHost, BalancerContext.balancerContext.externalPort, "udp");
+            ListeningPoint externalLpTcp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.externalHost, BalancerContext.balancerContext.externalPort, "tcp");
             
             BalancerContext.balancerContext.externalSipProvider = BalancerContext.balancerContext.sipStack.createSipProvider(externalLp);
             BalancerContext.balancerContext.externalSipProvider.addListeningPoint(externalLpTcp);
@@ -165,8 +167,8 @@ public class SIPBalancerForwarder implements SipListener {
             
             ListeningPoint internalLp = null;
             if(BalancerContext.balancerContext.isTwoEntrypoints()) {
-            	internalLp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.host, BalancerContext.balancerContext.internalPort, "udp");
-            	ListeningPoint internalLpTcp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.host, BalancerContext.balancerContext.internalPort, "tcp");
+            	internalLp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.internalHost, BalancerContext.balancerContext.internalPort, "udp");
+            	ListeningPoint internalLpTcp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.internalHost, BalancerContext.balancerContext.internalPort, "tcp");
                 BalancerContext.balancerContext.internalSipProvider = BalancerContext.balancerContext.sipStack.createSipProvider(internalLp);
                 BalancerContext.balancerContext.internalSipProvider.addListeningPoint(internalLpTcp);
                 BalancerContext.balancerContext.internalSipProvider.addSipListener(this);
@@ -311,7 +313,7 @@ public class SIPBalancerForwarder implements SipListener {
         	throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }
         if(logger.isLoggable(Level.INFO)) {
-        	logger.info("Sip Balancer started on address " + BalancerContext.balancerContext.host + ", external port : " + BalancerContext.balancerContext.externalPort + "");
+        	logger.info("Sip Balancer started on external address " + BalancerContext.balancerContext.externalHost + ", external port : " + BalancerContext.balancerContext.externalPort + "");
         }              
 	}
 	
@@ -636,20 +638,22 @@ public class SIPBalancerForwarder implements SipListener {
 		final ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
 		String newBranch = via.getBranch() + callID.substring(0, Math.min(callID.length(), 5));
 		// Add the via header to the top of the header list.
-		final ViaHeader viaHeader = BalancerContext.balancerContext.headerFactory.createViaHeader(
-				BalancerContext.balancerContext.host, BalancerContext.balancerContext.externalPort, transport, newBranch);
-		request.addHeader(viaHeader); 
+		final ViaHeader viaHeaderExternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
+				BalancerContext.balancerContext.externalHost, BalancerContext.balancerContext.externalPort, transport, newBranch);
+		final ViaHeader viaHeaderInternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
+				BalancerContext.balancerContext.internalHost, BalancerContext.balancerContext.internalPort, transport, newBranch + "zsd");
 
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("ViaHeader added " + viaHeader);
-		}		
-
-		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
     		logger.finest("Sending the request:\n" + request + "\n on the other side");
     	}
 		if(!isRequestFromServer && BalancerContext.balancerContext.isTwoEntrypoints()) {
+			request.addHeader(viaHeaderExternal); 
+			request.addHeader(viaHeaderInternal); 
 			BalancerContext.balancerContext.internalSipProvider.sendRequest(request);
 		} else {
+			request.addHeader(viaHeaderInternal); 
+			request.addHeader(viaHeaderExternal); 
 			BalancerContext.balancerContext.externalSipProvider.sendRequest(request);
 		}
 	}
@@ -739,7 +743,7 @@ public class SIPBalancerForwarder implements SipListener {
 	        // removes the first Route header and we must check if the route header is the internal port, which
 	        // the caller or the calle would know only if they have passed through the L before.
 		    if(routeUri.getPort() == BalancerContext.balancerContext.internalPort && 
-		    		routeUri.getHost().equals(BalancerContext.balancerContext.host)) subsequent = true;
+		    		routeUri.getHost().equals(BalancerContext.balancerContext.internalHost)) subsequent = true;
 		    
 		    //FIXME check against a list of host we may have too
 		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
@@ -795,7 +799,8 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	private boolean isRouteHeaderExternal(String host, int port) {
 		 //FIXME check against a list of host we may have too and add transport
-		if(host.equalsIgnoreCase(BalancerContext.balancerContext.host) && (port == BalancerContext.balancerContext.externalPort || port == BalancerContext.balancerContext.internalPort)) {
+		if((host.equalsIgnoreCase(BalancerContext.balancerContext.externalHost) || host.equalsIgnoreCase(BalancerContext.balancerContext.internalHost))
+				&& (port == BalancerContext.balancerContext.externalPort || port == BalancerContext.balancerContext.internalPort)) {
 			return false;
 		}
 		if((host.equalsIgnoreCase(BalancerContext.balancerContext.externalIpLoadBalancerAddress) && port == BalancerContext.balancerContext.externalLoadBalancerPort)) {
@@ -861,15 +866,20 @@ public class SIPBalancerForwarder implements SipListener {
 
 		final Response response = originalResponse;
 		
-		// Topmost via header is me. As it is response to external request
-		final ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+		// Topmost via headers is me. As it is response to external request
+		ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
 		
 		if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
 			response.removeFirst(ViaHeader.NAME);
 		}
 		
-		SIPNode sourceNode = getSourceNode(response);
-		if(sourceNode != null) {
+		viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+		
+		if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
+			response.removeFirst(ViaHeader.NAME);
+		}
+		if(sipProvider.equals(BalancerContext.balancerContext.internalSipProvider)) {
+			/*
 			if("true".equals(BalancerContext.balancerContext.properties.getProperty("removeNodesOn500Response")) && response.getStatusCode() == 500) {
 				// If the server is broken remove it from the list and try another one with the next retransmission
 				if(!(sourceNode instanceof ExtraServerNode)) {
@@ -878,7 +888,7 @@ public class SIPBalancerForwarder implements SipListener {
 						BalancerContext.balancerContext.balancerAlgorithm.nodeRemoved(sourceNode);
 					}
 				}
-			}
+			}*/
 			BalancerContext.balancerContext.balancerAlgorithm.processInternalResponse(response);
 			try {	
 				BalancerContext.balancerContext.externalSipProvider.sendResponse(response);
