@@ -117,12 +117,22 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		BalancerContext.balancerContext.externalIpLoadBalancerAddress = BalancerContext.balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
 		BalancerContext.balancerContext.internalIpLoadBalancerAddress = BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerAddress");
+		
 		if(BalancerContext.balancerContext.properties.getProperty("externalLoadBalancerPort") != null) {
 			BalancerContext.balancerContext.externalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("externalLoadBalancerPort"));
 		}
 		if(BalancerContext.balancerContext.properties.getProperty("internalLoadBalancerPort") != null) {
 			BalancerContext.balancerContext.internalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("internalLoadBalancerPort"));
 		}
+		
+		// We ended up with two duplicate set of properties for interna and external IP LB ports, just keep then for back-compatibility
+		if(BalancerContext.balancerContext.properties.getProperty("externalIpLoadBalancerPort") != null) {
+			BalancerContext.balancerContext.externalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("externalIpLoadBalancerPort"));
+		}
+		if(BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerPort") != null) {
+			BalancerContext.balancerContext.internalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerPort"));
+		}
+		
 		String extraServerNodesString = BalancerContext.balancerContext.properties.getProperty("extraServerNodes");
 		if(extraServerNodesString != null) {
 			extraServerAddresses = extraServerNodesString.split(",");
@@ -432,6 +442,7 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 	
 	private SIPNode getNode(String host, int port, String otherTransport) {
+		otherTransport = otherTransport.toLowerCase();
 		for(SIPNode node : BalancerContext.balancerContext.nodes) {
 			if(node.getHostName().equals(host) || node.getIp().equals(host)) {
 				if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
@@ -640,8 +651,12 @@ public class SIPBalancerForwarder implements SipListener {
 		// Add the via header to the top of the header list.
 		final ViaHeader viaHeaderExternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
 				BalancerContext.balancerContext.externalHost, BalancerContext.balancerContext.externalPort, transport, newBranch);
-		final ViaHeader viaHeaderInternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
+		
+		ViaHeader viaHeaderInternal = null;
+		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+			viaHeaderInternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
 				BalancerContext.balancerContext.internalHost, BalancerContext.balancerContext.internalPort, transport, newBranch + "zsd");
+		}
 
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
@@ -649,10 +664,10 @@ public class SIPBalancerForwarder implements SipListener {
     	}
 		if(!isRequestFromServer && BalancerContext.balancerContext.isTwoEntrypoints()) {
 			request.addHeader(viaHeaderExternal); 
-			request.addHeader(viaHeaderInternal); 
+			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
 			BalancerContext.balancerContext.internalSipProvider.sendRequest(request);
 		} else {
-			request.addHeader(viaHeaderInternal); 
+			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
 			request.addHeader(viaHeaderExternal); 
 			BalancerContext.balancerContext.externalSipProvider.sendRequest(request);
 		}
@@ -878,7 +893,15 @@ public class SIPBalancerForwarder implements SipListener {
 		if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
 			response.removeFirst(ViaHeader.NAME);
 		}
-		if(sipProvider.equals(BalancerContext.balancerContext.internalSipProvider)) {
+		
+		boolean fromServer = false;
+		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+			fromServer = sipProvider.equals(BalancerContext.balancerContext.internalSipProvider);
+		} else {
+			fromServer = getSourceNode(response) != null;
+		}
+		
+		if(fromServer) {
 			/*
 			if("true".equals(BalancerContext.balancerContext.properties.getProperty("removeNodesOn500Response")) && response.getStatusCode() == 500) {
 				// If the server is broken remove it from the list and try another one with the next retransmission
