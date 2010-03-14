@@ -157,29 +157,38 @@ Or something similar to that.  Do you agree?-->        <varlistentry>
           <example id="sslb-Complete_Sample_lb.properties_File">
             <title>Complete Sample lb.properties File</title>
             <programlisting linenumbering="unnumbered"><![CDATA[
-# Sample Load Balancer Settings
+# Mobicents Load Balancer Settings
 # For an overview of the Mobicents Load Balancer visit http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm
+# The Load balancer will listen for both TCP and UDP connections
 
-# The binding address of the load balancer
+
+
+# The binding address of the load balancer. This also specifies the 
+# default value for both internalHost and externalHost if not specified separately.
 host=127.0.0.1
+
+# The binding address of the load balancer where clients should connect (if the host property is not specified)
+#externalHost=127.0.0.1
+
+# The SIP port from where servers will receive messages
+# delete if you want to use only one port for both inbound and outbound)
+internalPort=5065
+
+# The SIP port used where clients should connect
+externalPort=5060
+
+# The binding address of the load balancer where SIP application servers should connect (if the host property is not specified)
+#internalHost=127.0.0.1
 
 # The RMI port used for heartbeat signals
 rmiRegistryPort=2000
 
-# The SIP port used where client should connect
-externalPort=5060
- 
-# The SIP port from where servers will receive messages
-# delete if you want to use only one port for both inbound and outbound)
-# if you like to activate the integrated HTTP load balancer, this is the entry point
-internalPort=5065
- 
 # The HTTP port for HTTP forwarding
+# if you like to activate the integrated HTTP load balancer, this is the entry point
 httpPort=2080
-
-#Specify UDP or TCP (for now both must be the same)
-internalTransport=UDP
-externalTransport=UDP
+#If no nodes are active the LB can redirect the traffic to the unavailableHost specified in this property,
+#otherwise, it will return 503 Service Unavailable
+#unavailableHost=google.com
 
 # If you are using IP load balancer, put the IP address and port here
 #externalIpLoadBalancerAddress=127.0.0.1
@@ -188,6 +197,9 @@ externalTransport=UDP
 # Requests initited from the App Servers can route to this address (if you are using 2 IP load balancers for bidirectional SIP LB)
 #internalIpLoadBalancerAddress=127.0.0.1
 #internalIpLoadBalancerPort=111
+
+# The addresses in the SIP LB Via headers can be either the real addresses or those specified in the external and internal IP LB addresses
+useIpLoadBalancerAddressInViaHeaders=false
 
 # Designate extra IP addresses as serer nodes
 #extraServerNodes=222.221.21.12:21,45.6.6.7:9003,33.5.6.7,33.9.9.2
@@ -238,7 +250,7 @@ externalTransport=UDP
 #This is the JBoss Cache 3.1 configuration file (with jgroups), if not specified it will use default
 #persistentConsistentHashCacheConfiguration=/home/config.xml
 
-#Adjusting the heatbeat. The hearbeat must be specified together with the individual server JAIN SIP property org.mobicents.ha.javax.sip.HEARTBEAT_INTERVAL
+
 #If a node doesnt check in within that time (in ms), it is considered dead
 nodeTimeout=5100
 #The consistency of the above condition is checked every heartbeatInterval milliseconds
@@ -248,9 +260,13 @@ heartbeatInterval=5000
 #JSIP stack configuration.....
 javax.sip.STACK_NAME = SipBalancerForwarder
 javax.sip.AUTOMATIC_DIALOG_SUPPORT = off
-// You need 16 for logging traces. 32 for debug + traces.
-// Your code will limp at 32 but it is best for debugging.
-gov.nist.javax.sip.TRACE_LEVEL = 32
+# You need 16 for logging traces. 32 for debug + traces.
+# Your code will limp at 32 but it is best for debugging.
+gov.nist.javax.sip.TRACE_LEVEL = 0
+
+// Specify if message contents should be logged.
+gov.nist.javax.sip.LOG_MESSAGE_CONTENT=false
+
 gov.nist.javax.sip.DEBUG_LOG = logs/sipbalancerforwarderdebug.txt
 gov.nist.javax.sip.SERVER_LOG = logs/sipbalancerforwarder.xml
 gov.nist.javax.sip.THREAD_POOL_SIZE = 64

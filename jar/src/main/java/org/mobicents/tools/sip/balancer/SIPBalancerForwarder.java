@@ -318,6 +318,19 @@ public class SIPBalancerForwarder implements SipListener {
     		BalancerContext.balancerContext.activeInternalHeader[TCP] = BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] != null ?
     				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] : BalancerContext.balancerContext.internalRecordRouteHeader[TCP];
     		
+    		BalancerContext.balancerContext.useIpLoadBalancerAddressInViaHeaders = Boolean.getBoolean(
+    				BalancerContext.balancerContext.properties.getProperty("useIpLoadBalancerAddressInViaHeaders", "false"));
+    		if(BalancerContext.balancerContext.useIpLoadBalancerAddressInViaHeaders) {
+    					BalancerContext.balancerContext.externalViaHost = BalancerContext.balancerContext.externalIpLoadBalancerAddress;
+    					BalancerContext.balancerContext.internalViaHost = BalancerContext.balancerContext.internalIpLoadBalancerAddress;
+    					BalancerContext.balancerContext.externalViaPort = BalancerContext.balancerContext.externalLoadBalancerPort;
+    					BalancerContext.balancerContext.internalViaPort = BalancerContext.balancerContext.internalLoadBalancerPort;
+    		} else {
+    					BalancerContext.balancerContext.externalViaHost = BalancerContext.balancerContext.externalHost;
+    					BalancerContext.balancerContext.internalViaHost = BalancerContext.balancerContext.internalHost;
+    					BalancerContext.balancerContext.externalViaPort = BalancerContext.balancerContext.externalPort;
+    					BalancerContext.balancerContext.internalViaPort = BalancerContext.balancerContext.internalPort;
+    		}
     		BalancerContext.balancerContext.sipStack.start();
         } catch (Exception ex) {
         	throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
@@ -649,15 +662,16 @@ public class SIPBalancerForwarder implements SipListener {
 		final ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
 		String newBranch = via.getBranch() + callID.substring(0, Math.min(callID.length(), 5));
 		// Add the via header to the top of the header list.
-		final ViaHeader viaHeaderExternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
-				BalancerContext.balancerContext.externalHost, BalancerContext.balancerContext.externalPort, transport, newBranch);
-		
+		ViaHeader viaHeaderExternal = null;
 		ViaHeader viaHeaderInternal = null;
+		
+		viaHeaderExternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
+				BalancerContext.balancerContext.externalViaHost, BalancerContext.balancerContext.externalViaPort, transport, newBranch);
+		
 		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
 			viaHeaderInternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
-				BalancerContext.balancerContext.internalHost, BalancerContext.balancerContext.internalPort, transport, newBranch + "zsd");
+					BalancerContext.balancerContext.internalViaHost, BalancerContext.balancerContext.internalViaPort, transport, newBranch + "zsd");
 		}
-
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
     		logger.finest("Sending the request:\n" + request + "\n on the other side");

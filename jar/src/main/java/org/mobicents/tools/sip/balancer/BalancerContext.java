@@ -28,11 +28,18 @@ public class BalancerContext {
 	public int externalPort;
 	public int internalPort;
 	
+	public String externalViaHost;
+	public String internalViaHost;
+	public int externalViaPort;
+	public int internalViaPort;
+	
 	public String internalIpLoadBalancerAddress;
 	public int internalLoadBalancerPort;
 	
 	public String externalIpLoadBalancerAddress;
 	public int externalLoadBalancerPort;
+	
+	public boolean useIpLoadBalancerAddressInViaHeaders;
 	
 	public AddressFactory addressFactory;
 	public HeaderFactory headerFactory;

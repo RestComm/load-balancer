@@ -86,7 +86,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	
         	if(node == null) {
         		if(logger.isLoggable(Level.INFO)) {
-            		logger.log(Level.INFO, "Service unavailable. Node nodes are active.");
+            		logger.log(Level.INFO, "Service unavailable. No server is available.");
         		}
         		writeResponse(e, HttpResponseStatus.SERVICE_UNAVAILABLE, "Service is temporarily unavailable");
         		return;
