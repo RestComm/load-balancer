@@ -372,7 +372,7 @@ gov.nist.javax.sip.REENTRANT_LISTENER = true
         </step>
         <step>
           <title>Configure logging</title>
-          <para>The SIP load balancer uses <ulink url="http://java.sun.com/j2se/1.4.2/docs/guide/util/logging/overview.html">Java Logging as a logging mechanism</ulink>. As such you cna configure it through a property file and specify the property file to be used by using the following command <literal>-Djava.util.logging.config.file=./lb-logging.properties</literal>. Please refer to JDK logging for more informationon how to configure the Java logging.</para>
+          <para>The SIP load balancer uses <ulink url="http://java.sun.com/j2se/1.4.2/docs/guide/util/logging/overview.html">Java Logging as a logging mechanism</ulink>. As such you can configure it through a property file and specify the property file to be used by using the following command <literal>-Djava.util.logging.config.file=./lb-logging.properties</literal>. Please refer to JDK logging for more informationon how to configure the Java logging.</para>
         </step>
 <!-- Is needed on JB5 Version only --><!--step>
           <title>Configure the <filename>mss-sip-stack.properties</filename> configuration file</title>          
