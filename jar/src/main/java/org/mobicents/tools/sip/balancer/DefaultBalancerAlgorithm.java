@@ -65,7 +65,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				}
 				
 				// As a failsafe if there is no jvmRoute, just hash the sessionId
-				int nodeId = httpSessionId.hashCode()%BalancerContext.balancerContext.nodes.size();
+				int nodeId = Math.abs(httpSessionId.hashCode()%BalancerContext.balancerContext.nodes.size());
 				return BalancerContext.balancerContext.nodes.get(nodeId);
 				
 			}
