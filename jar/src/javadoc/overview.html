@@ -4,9 +4,32 @@
     <TITLE>API Overview</TITLE>
   </HEAD>
 <body>
-<p><a ref="http://www.mobicents.org/products_sip_servlets.html"/>Mobicents SIP Servlets</a> delivers a consistent, open platform on which to develop and deploy portable and distributable SIP and Converged JEE services.  It is the first open source certified implementation of the SIP Servlet v1.1 (JSR 289 Spec) on top of Tomcat & JBoss containers and strive to feature best performances, security, foster innovation and develop interoperability standards between Sip Servlets and JSLEE so that applications may exploit the strengths of both.</p>
-
-<p>This API provides JSR 289 Extensions not defined in the specification that can prove useful and will be proposed for inclusion in a next release of the specification as well as Extensions for applications or external systems to interact with the Mobicents SIP Servlets container</p>
-
+<p>
+Load balancing is a technique of distributing work load across set of machines(cluster in general). 
+It allows to avoid congestion, better utilize resources, maximize throughput, minimize response time, and avoid overload.
+<br/>
+Sharing load between multiple components(machines in cluster for instance) in favor to single component handling
+ whole load increases reliability through redundancy.
+The load balancing service is usually provided by a dedicated program or hardware device 
+(such as a multilayer switch or a DNS server). 
+It is used to mediate internal communication in computing cluster, especially HA cluster.
+</p>
+<p>
+Mobicents Containers (JAIN SLEE and Sip Servlets) are SIP enabled, as such they require dedicated SIP balancer which can be integrated with Mobicents Cluster.
+This project is response to such demand. 
+<br/>
+</p>
+<p>
+SIP Load Balancer is used to balance the load of SIP service requests and responses between nodes in a SIP cluster(JAIN SIP HA Stack generally).
+In terms of functionality, the SIP Load Balancer is a simple stateless proxy server that intelligently forwards SIP session requests and responses between User Agents (UAs) on a Wide Area Network (WAN). It ensures that messages exchanged in single session are handled by the same SIP host.
+Mobicents SIP Load Balancer is informed by JAIN SIP HA Extension about SIP host availability. Based on this node list balancer forwards messages.
+</p>
+<p>
+In addition to the SIP load balancing, there are several options for coordinated or cooperative load balancing with other protocols such as HTTP
+</p>
+<p>
+The SIP/HTTP load balancer exposes an interface to allow users to customize the routing decision making for special purposes. By default there are three built-in algorithms.
+But you can add you own by implementing interfaces defined in this javadoc.
+</p>
 </body>
 </html>
