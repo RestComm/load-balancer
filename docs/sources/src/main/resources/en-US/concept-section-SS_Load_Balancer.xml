@@ -209,6 +209,9 @@ useIpLoadBalancerAddressInViaHeaders=false
 # This property specifies how much time to keep an association before being evitcted.
 # It is needed to avoid memory leaks on dead calls. The time is in seconds.
 #callIdAffinityMaxTimeInCache=500
+#The following attribute specified the policy after failover. If set to true all calls from the failed node
+#will go to a new healthy node (all calls to the same node). If set to false the calls will go to random new nodes.
+#callIdAffinityGroupFailover=false
 
 # Uncomment to enable the consistent hash based on Call-ID algorithm.
 #algorithmClass=org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
