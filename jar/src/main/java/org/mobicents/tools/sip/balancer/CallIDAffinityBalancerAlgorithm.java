@@ -63,6 +63,15 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 				if(logger.isLoggable(Level.FINEST)) {
 		    		logger.finest("The assigned node has died. This is the dead node: " + node);
 		    	}
+				if(request.getMethod().equals(Request.ACK)) {
+					// Just drop the ACK. If we send it to a new node it will just 
+					// make an error and extra network traffic
+					if(logger.isLoggable(Level.FINEST)) {
+			    		logger.finest("ACK after failure. We will drop it. It won't be recognized " +
+			    				"in the app server and we avoid the unneeded network traffic" + node);
+			    	}
+					return NullServerNode.nullServerNode;
+				}
 				if(groupedFailover) {
 					// This will occur very rarely because we re-assign all calls from the dead node in
 					// a single operation

@@ -604,6 +604,11 @@ public class SIPBalancerForwarder implements SipListener {
 		    		logger.finest("assignedNode is null");
 		    	}
 				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
+				if(nextNode instanceof NullServerNode) {
+					if(logger.isLoggable(Level.FINE)) {
+						logger.fine("Algorithm returned a NullServerNode. We will not attempt to forward this request " + request);
+					}
+				}
 				if(nextNode != null) {
 					if(logger.isLoggable(Level.FINEST)) {
 						String nodesString = "";
