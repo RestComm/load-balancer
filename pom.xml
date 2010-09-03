@@ -12,7 +12,7 @@
 	
 	<groupId>org.mobicents.tools</groupId>
 	<artifactId>sip-balancer</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.0.2</version>
 
 	<url>http://mobicents.org/</url>
 	
@@ -45,6 +45,7 @@
 					</tagBase>
 					<preparationGoals>clean install</preparationGoals>
 					<autoVersionSubmodules>true</autoVersionSubmodules>
+					<arguments>-Dmaven.test.skip</arguments>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -157,4 +158,10 @@
 			</snapshots>
 		</repository>
 	</repositories>
+
+  <scm>
+    <connection>scm:svn:https://mobicents.googlecode.com/svn/tags/tools/sip-balancer/sip-balancer-1.0.2</connection>
+    <developerConnection>scm:svn:https://mobicents.googlecode.com/svn/tags/tools/sip-balancer/sip-balancer-1.0.2</developerConnection>
+    <url>http://mobicents.googlecode.com/svn/tags/tools/sip-balancer/sip-balancer-1.0.2</url>
+  </scm>
 </project>
