@@ -6,20 +6,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.sip.SipProvider;
 import javax.sip.address.SipURI;
 import javax.sip.header.FromHeader;
-import javax.sip.header.RouteHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Message;
 import javax.sip.message.Request;
 
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponseStatus;
-
-import sun.reflect.ReflectionFactory.GetReflectionFactoryAction;
 
 public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	
