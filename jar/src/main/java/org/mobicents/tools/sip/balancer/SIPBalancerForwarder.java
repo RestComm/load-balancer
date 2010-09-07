@@ -686,6 +686,27 @@ public class SIPBalancerForwarder implements SipListener {
 			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
 			BalancerContext.balancerContext.internalSipProvider.sendRequest(request);
 		} else {
+			// Check if the next hop is actually the load balancer again
+			if("true".equalsIgnoreCase(
+					BalancerContext.balancerContext.properties.getProperty("LB_LOOP_DETECTION", "true"))) {
+				if(isRequestFromServer && BalancerContext.balancerContext.isTwoEntrypoints()) {
+					RouteHeader rh = (RouteHeader) request.getHeader(RouteHeader.NAME);
+					if(rh.getAddress().getURI().isSipURI()) {
+						SipURI suri = (SipURI) rh.getAddress().getURI();
+						if(suri.getHost().equals(BalancerContext.balancerContext.externalHost) || 
+								suri.getHost().equals(BalancerContext.balancerContext.externalSipProvider.getListeningPoints()[0].getIPAddress())) {
+							if(suri.getPort() == BalancerContext.balancerContext.externalPort) {
+								logger.warning("Dropping. External interface loop detected with handling request " + request);
+								return;
+							}
+							if(suri.getPort() == BalancerContext.balancerContext.internalPort) {
+								logger.warning("Dropping. Internal interface loop detected with handling request " + request);
+								return;
+							}
+						}
+					}
+				}
+			}
 			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
 			request.addHeader(viaHeaderExternal); 
 			BalancerContext.balancerContext.externalSipProvider.sendRequest(request);
