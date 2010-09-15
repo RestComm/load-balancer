@@ -22,10 +22,10 @@
 package org.mobicents.tools.sip.balancer;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * <p>
@@ -115,13 +115,14 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 				return false;
 		} else if (!ip.equals(other.ip))
 			return false;
-		Iterator<String> keyIterator = properties.keySet().iterator();
-		while(keyIterator.hasNext()) {
-			String key = keyIterator.next();
-			if(!properties.get(key).equals(other.properties.get(key))) {
-				return false;
-			}
-		}
+		// Issue 1805 : Fixed the equals method
+		// contribution by Yukinobu Imai
+		Set<Map.Entry<String, Serializable>> set1 = properties.entrySet();
+		Set<Map.Entry<String, Serializable>> set2 = other.getProperties().entrySet();
+		if (!set1.containsAll(set2))
+		 return false;
+		if (!set2.containsAll(set1))
+		 return false;
 		return true;
 	}
 
