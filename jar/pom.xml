@@ -21,6 +21,8 @@
 		</manifest.implementation.version>
 		<manifest.implementation.vendor>JBoss, a Red Hat division
 		</manifest.implementation.vendor>
+		
+		<maven.test.skip>true</maven.test.skip>
 	</properties>		
 
 	<dependencies>
