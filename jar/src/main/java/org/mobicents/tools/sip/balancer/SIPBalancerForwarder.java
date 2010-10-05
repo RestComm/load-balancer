@@ -691,17 +691,19 @@ public class SIPBalancerForwarder implements SipListener {
 					BalancerContext.balancerContext.properties.getProperty("LB_LOOP_DETECTION", "true"))) {
 				if(isRequestFromServer && BalancerContext.balancerContext.isTwoEntrypoints()) {
 					RouteHeader rh = (RouteHeader) request.getHeader(RouteHeader.NAME);
-					if(rh.getAddress().getURI().isSipURI()) {
-						SipURI suri = (SipURI) rh.getAddress().getURI();
-						if(suri.getHost().equals(BalancerContext.balancerContext.externalHost) || 
-								suri.getHost().equals(BalancerContext.balancerContext.externalSipProvider.getListeningPoints()[0].getIPAddress())) {
-							if(suri.getPort() == BalancerContext.balancerContext.externalPort) {
-								logger.warning("Dropping. External interface loop detected with handling request " + request);
-								return;
-							}
-							if(suri.getPort() == BalancerContext.balancerContext.internalPort) {
-								logger.warning("Dropping. Internal interface loop detected with handling request " + request);
-								return;
+					if(rh != null) {
+						if(rh.getAddress().getURI().isSipURI()) {
+							SipURI suri = (SipURI) rh.getAddress().getURI();
+							if(suri.getHost().equals(BalancerContext.balancerContext.externalHost) || 
+									suri.getHost().equals(BalancerContext.balancerContext.externalSipProvider.getListeningPoints()[0].getIPAddress())) {
+								if(suri.getPort() == BalancerContext.balancerContext.externalPort) {
+									logger.warning("Dropping. External interface loop detected with handling request " + request);
+									return;
+								}
+								if(suri.getPort() == BalancerContext.balancerContext.internalPort) {
+									logger.warning("Dropping. Internal interface loop detected with handling request " + request);
+									return;
+								}
 							}
 						}
 					}
