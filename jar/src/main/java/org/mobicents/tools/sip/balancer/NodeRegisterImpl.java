@@ -259,7 +259,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 					BalancerContext.balancerContext.balancerAlgorithm.nodeRemoved(node);
 					if(logger.isLoggable(Level.INFO)) {
 						logger.info("NodeExpirationTimerTask Run NSync["
-							+ node + "] removed");
+							+ node + "] removed. Last timestamp: " + node.getTimeStamp() + 
+							", current: " + System.currentTimeMillis());
 					}
 				} else {
 					if(logger.isLoggable(Level.FINEST)) {
@@ -385,8 +386,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 * {@inheritDoc}
 	 */
 	public void setNodeExpiration(long value) throws IllegalArgumentException {
-		if (value < 150)
-			throw new IllegalArgumentException("Value cant be less than 150");
+		if (value < 15)
+			throw new IllegalArgumentException("Value cant be less than 15");
 		this.nodeExpiration = value;
 
 	}
@@ -394,8 +395,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 * {@inheritDoc}
 	 */
 	public void setNodeExpirationTaskInterval(long value) {
-		if (value < 150)
-			throw new IllegalArgumentException("Value cant be less than 150");
+		if (value < 15)
+			throw new IllegalArgumentException("Value cant be less than 15");
 		this.nodeInfoExpirationTaskInterval = value;
 	}
 
