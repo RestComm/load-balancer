@@ -140,7 +140,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			
 			try {
 				reg.setNodeExpirationTaskInterval(Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL, "150")));
-				reg.setNodeExpiration(Integer.parseInt(properties.getProperty(NODE_TIMEOUT, "5150")));
+				reg.setNodeExpiration(Integer.parseInt(properties.getProperty(NODE_TIMEOUT, "5200")));
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info(NODE_TIMEOUT + "=" + reg.getNodeExpiration());
 					logger.info(HEARTBEAT_INTERVAL + "=" + reg.getNodeExpirationTaskInterval());
