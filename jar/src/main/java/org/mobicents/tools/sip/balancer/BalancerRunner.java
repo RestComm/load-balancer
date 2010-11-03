@@ -68,28 +68,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		BalancerRunner balancerRunner = new BalancerRunner();
 		balancerRunner.start(configurationFileLocation); 
 	}
-
-	/**
-	 * @param configurationFileLocation
-	 */
-	public void start(String configurationFileLocation) {
-		File file = new File(configurationFileLocation);
-        FileInputStream fileInputStream = null;
-        try {
-        	fileInputStream = new FileInputStream(file);
-		} catch (FileNotFoundException e) {
-			throw new IllegalArgumentException("the configuration file location " + configurationFileLocation + " does not exists !");
-		}
-        
-        Properties properties = new Properties(System.getProperties());
-        try {
-			properties.load(fileInputStream);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
-		}
-
+	
+	public void start(Properties properties) {
 		String ipAddress = properties.getProperty(HOST_PROP);
-				
+		
 		InetAddress addr = null;
 		try {
 			addr = InetAddress.getByName(ipAddress);
@@ -180,6 +162,28 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			return;
 		}
 	}
+
+	/**
+	 * @param configurationFileLocation
+	 */
+	public void start(String configurationFileLocation) {
+		File file = new File(configurationFileLocation);
+        FileInputStream fileInputStream = null;
+        try {
+        	fileInputStream = new FileInputStream(file);
+		} catch (FileNotFoundException e) {
+			throw new IllegalArgumentException("the configuration file location " + configurationFileLocation + " does not exists !");
+		}
+        
+        Properties properties = new Properties(System.getProperties());
+        try {
+			properties.load(fileInputStream);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
+		}
+		start(properties);
+
+	}
 	
 	public void stop() {
 		logger.info("Stopping the sip forwarder");
@@ -197,7 +201,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}
 		try {
+			if(cs.isActive())
 			cs.stop();
+			cs = null;
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}	
