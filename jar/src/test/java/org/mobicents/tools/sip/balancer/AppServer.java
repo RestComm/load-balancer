@@ -6,34 +6,64 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.sip.SipProvider;
+
 public class AppServer {
-	ProtocolObjects po;
-	TestSipListener listener;
+	ProtocolObjects protocolObjects;
+	TestSipListener sipListener;
 	Timer timer;
 	int port;
 	String name;
-	SIPNode node;
+	SIPNode appServerNode;
 	public boolean sendHeartbeat = true;
+	String lbAddress;
+	int lbRMIport;
+	int lbSIPext;
+	int lbSIPint;
+	SipProvider sipProvider;
 
-	public AppServer(String appServer, int port) {
+	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint) {
 		this.port = port;
 		this.name = appServer;
-
+		this.lbAddress = lbAddress;
+		this.lbRMIport = lbRMI;
+		this.lbSIPext = lbSIPext;
+		this.lbSIPint = lbSIPint;
 	}
+	
+	public AppServer(String appServer, int port) {
+		this(appServer, port, "127.0.0.1");
+
+	} 
+	
+	public AppServer(String appServer, int port, String address) {
+		this(appServer, port, address, 2000, 5060, 5065);
+
+	} 
 
 	public void start() {
 		timer = new Timer();
-		po = new ProtocolObjects(name,
+		protocolObjects = new ProtocolObjects(name,
 				"gov.nist", "UDP", false, null);
-		listener = new TestSipListener(port, 0, po, false);
-		node = new SIPNode(name, "127.0.0.1");
-		node.getProperties().put("udpPort", 5051);
+		sipListener = new TestSipListener(port, lbSIPext, protocolObjects, false);
+
+		
+		try {
+			sipProvider = sipListener.createProvider();
+			sipProvider.addSipListener(sipListener);
+			protocolObjects.start();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		appServerNode = new SIPNode(name, "127.0.0.1");
+		appServerNode.getProperties().put("udpPort", port);
 		timer.schedule(new TimerTask() {
 			
 			@Override
 			public void run() {
 				ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-				nodes.add(node);
+				nodes.add(appServerNode);
 				sendKeepAliveToBalancers(nodes);
 			}
 		}, 1000, 1000);
@@ -47,7 +77,7 @@ public class AppServer {
 		if(sendHeartbeat) {
 			Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
 			try {
-				Registry registry = LocateRegistry.getRegistry("127.0.0.1", 2000);
+				Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
 				NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
 				reg.handlePing(info);
 			} catch (Exception e) {
@@ -55,6 +85,17 @@ public class AppServer {
 			}
 		}
 
-	}		
+	}	
+	
+	public void sendCleanShutdownToBalacners(ArrayList<SIPNode> info) {
+		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
+		try {
+			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
+			NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
+			reg.forceRemoval(info);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 }

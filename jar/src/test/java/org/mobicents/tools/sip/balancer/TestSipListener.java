@@ -956,7 +956,7 @@ public class TestSipListener implements SipListener {
 						response.addHeader(rseqHeader);
 						dialog.sendReliableProvisionalResponse(response);
 					}  else {						
-						st.sendResponse(response);
+						//st.sendResponse(response);
 					}					
 				}
 			}										
@@ -991,6 +991,7 @@ public class TestSipListener implements SipListener {
 				}
 				getFinalResponse().addHeader(contactHeader);
 				if(!sendReliably) {
+					Thread.sleep(2000);
 					st.sendResponse(getFinalResponse());
 				}
 			} else {
