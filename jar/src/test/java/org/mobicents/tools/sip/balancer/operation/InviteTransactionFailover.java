@@ -10,6 +10,7 @@ import javax.sip.header.UserAgentHeader;
 
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.ProtocolObjects;
 import org.mobicents.tools.sip.balancer.TestSipListener;
 
@@ -19,6 +20,8 @@ public class InviteTransactionFailover extends TestCase{
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
+	
+	
 
 	/* (non-Javadoc)
 	 * @see junit.framework.TestCase#setUp()
@@ -36,7 +39,7 @@ public class InviteTransactionFailover extends TestCase{
 				"logs/sipbalancerforwarderdebug.txt");
 		properties.setProperty("gov.nist.javax.sip.SERVER_LOG",
 				"logs/sipbalancerforwarder.xml");
-		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "64");
+		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		
@@ -74,30 +77,64 @@ public class InviteTransactionFailover extends TestCase{
 			assertEquals(numNodes-1, nodes.length);
 	}
 	
-	public void testInviteTx() throws Exception {
-		ProtocolObjects senderProtocolObjects = new ProtocolObjects("forward-udp-sender",
-				"gov.nist", "UDP", false, null);
-		TestSipListener sender = new TestSipListener(5080, 5060, senderProtocolObjects, true);
-		SipProvider senderProvider = sender.createProvider();
+//	private void _BAD_testInviteTx() throws Exception {
+//		ProtocolObjects senderProtocolObjects = new ProtocolObjects("forward-udp-sender",
+//				"gov.nist", "udp", false, null);
+//		TestSipListener sender = new TestSipListener(5080, 5060, senderProtocolObjects, true);
+//		SipProvider senderProvider = sender.createProvider();
+//
+//
+//		senderProvider.addSipListener(sender);
+//
+//		senderProtocolObjects.start();
+//
+//		String fromName = "forward-tcp-sender";
+//		String fromSipAddress = "sip-servlets.com";
+//		SipURI fromAddress = senderProtocolObjects.addressFactory.createSipURI(
+//				fromName, fromSipAddress);
+//		
+//		String toSipAddress = "sip-servlets.com";
+//		String toUser = "forward-receiver";
+//		SipURI toAddress = senderProtocolObjects.addressFactory.createSipURI(
+//				toUser, toSipAddress);
+//		
+//		sender.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
+//		Thread.sleep(20000);
+//	}
+	
+	public void testSimpleShutdown() throws Exception {
+		EventListener failureEventListener = new EventListener() {
+			
+			@Override
+			public void uasAfterResponse(int statusCode, AppServer source) {
+				source.sendCleanShutdownToBalancers();
+				
+			}
+			
+			@Override
+			public void uasAfterRequestReceived(String method, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
 
+			@Override
+			public void uacAfterRequestSent(String method, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
 
-		senderProvider.addSipListener(sender);
-
-		senderProtocolObjects.start();
-
-		String fromName = "forward-tcp-sender";
-		String fromSipAddress = "sip-servlets.com";
-		SipURI fromAddress = senderProtocolObjects.addressFactory.createSipURI(
-				fromName, fromSipAddress);
-		
-		String toSipAddress = "sip-servlets.com";
-		String toUser = "forward-receiver";
-		SipURI toAddress = senderProtocolObjects.addressFactory.createSipURI(
-				toUser, toSipAddress);
-		
-		sender.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false, new String[] {UserAgentHeader.NAME, "extension-header"}, new String[] {"TestSipListener UA", "extension-sip-listener"}, true);		
-
-		Thread.sleep(20000);
+			@Override
+			public void uacAfterResponse(int statusCode, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
+		};
+		for(AppServer as:servers) as.setEventListener(failureEventListener);
+		Shootist shootist = new Shootist();
+		shootist.callerSendsBye = true;
+		shootist.sendInitialInvite();
+		Thread.sleep(10000);
+		if(balancer.getNodes().size()!=1) fail("Expected one dead node");
 	}
 
 }
