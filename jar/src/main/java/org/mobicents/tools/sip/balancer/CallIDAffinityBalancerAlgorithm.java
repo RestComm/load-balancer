@@ -1,7 +1,9 @@
 package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.SIPHeader;
+import gov.nist.javax.sip.header.Via;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,8 +40,31 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		logger.fine("internal response");
 	}
 	
-	public void processExternalResponse(Response request) {
-		logger.fine("external response");
+	public void processExternalResponse(Response response) {
+		BalancerContext balancerContext = getBalancerContext();
+		Via via = (Via) response.getHeader(Via.NAME);
+		String host = via.getHost();
+		boolean found = false;
+		for(SIPNode node : BalancerContext.balancerContext.nodes) {
+			if(node.getIp().equals(host)) found = true;
+		}
+		if(!found) {
+			String callId = ((SIPHeader) response.getHeader(headerName))
+			.getValue();
+			SIPNode node = callIdMap.get(callId);
+			if(node == null || !balancerContext.nodes.contains(node)) {
+				node = selectNewNode(node, callId);
+				try {
+					via.setHost(node.getIp());
+					String transportProperty = via.getTransport().toLowerCase() + "Port";
+					Integer port = (Integer) node.getProperties().get(transportProperty);
+					if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
+					via.setPort(port);
+				} catch (Exception e) {
+					throw new RuntimeException("Error", e);
+				}
+			}
+		}
 	}
 	
 	public SIPNode processExternalRequest(Request request) {
@@ -60,43 +85,13 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	    	}
 		} else {
 			if(!balancerContext.nodes.contains(node)) { // If the assigned node is now dead
-				if(logger.isLoggable(Level.FINEST)) {
-		    		logger.finest("The assigned node has died. This is the dead node: " + node);
-		    	}
-				if(request.getMethod().equals(Request.ACK)) {
-					// Just drop the ACK. If we send it to a new node it will just 
-					// make an error and extra network traffic
-					if(logger.isLoggable(Level.FINEST)) {
-			    		logger.finest("ACK after failure. We will drop it. It won't be recognized " +
-			    				"in the app server and we avoid the unneeded network traffic" + node);
-			    	}
-					return NullServerNode.nullServerNode;
-				}
-				if(groupedFailover) {
-					// This will occur very rarely because we re-assign all calls from the dead node in
-					// a single operation
-					SIPNode oldNode = node;
-					node = leastBusyTargetNode(oldNode);
-					if(node == null) return null;
-					groupedFailover(oldNode, node);
-				} else {
-					node = nextAvailableNode();
-					if(node == null) return null;
-					callIdMap.put(callId, node);
-				}
-				
-				if(logger.isLoggable(Level.FINEST)) {
-		    		logger.finest("So, we must select new node: " + node);
-		    	}
+				node = selectNewNode(node, callId);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
 				if(logger.isLoggable(Level.FINEST)) {
 		    		logger.finest("The assigned node in the affinity map is still alive: " + node);
 		    	}
 			}
-		}
-		if(node == null) {
-			return null;
 		}
 		
 // Don't try to be smart here, the retransmissions of BYE will come and will not know where to go.
@@ -106,6 +101,29 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 //		}
 		return node;
 		
+	}
+	
+	protected SIPNode selectNewNode(SIPNode node, String callId) {
+		if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("The assigned node has died. This is the dead node: " + node);
+    	}
+		if(groupedFailover) {
+			// This will occur very rarely because we re-assign all calls from the dead node in
+			// a single operation
+			SIPNode oldNode = node;
+			node = leastBusyTargetNode(oldNode);
+			if(node == null) return null;
+			groupedFailover(oldNode, node);
+		} else {
+			node = nextAvailableNode();
+			if(node == null) return null;
+			callIdMap.put(callId, node);
+		}
+		
+		if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("So, we must select new node: " + node);
+    	}
+		return node;
 	}
 	
 	protected synchronized SIPNode nextAvailableNode() {
