@@ -85,6 +85,34 @@ import org.apache.log4j.Logger;
  */
 
 public class TestSipListener implements SipListener {
+	public EventListener eventListener = new EventListener() {
+		
+		@Override
+		public void uasAfterResponse(int statusCode, AppServer source) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void uasAfterRequestReceived(String method, AppServer source) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void uacAfterRequestSent(String method, AppServer source) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void uacAfterResponse(int statusCode, AppServer source) {
+			// TODO Auto-generated method stub
+			
+		}
+	};
+	
+	public AppServer appServer;
 	private static final String TO_TAG = "5432";
 
 	private static final String PLAIN_UTF8_CONTENT_SUBTYPE = "plain;charset=UTF-8";
@@ -327,6 +355,8 @@ public class TestSipListener implements SipListener {
 		}
 		
 		Request request = requestReceivedEvent.getRequest();
+		
+		eventListener.uasAfterRequestReceived(request.getMethod(), appServer);
 
 		if(firstRequest == null) firstRequest = request;
 		ServerTransaction serverTransactionId = requestReceivedEvent
@@ -956,7 +986,8 @@ public class TestSipListener implements SipListener {
 						response.addHeader(rseqHeader);
 						dialog.sendReliableProvisionalResponse(response);
 					}  else {						
-						//st.sendResponse(response);
+						st.sendResponse(response);
+						eventListener.uasAfterResponse(response.getStatusCode(), appServer);
 					}					
 				}
 			}										
@@ -964,6 +995,7 @@ public class TestSipListener implements SipListener {
 				Response response = protocolObjects.messageFactory.createResponse(
 						respondWithError, request);
 				st.sendResponse(response);
+				eventListener.uasAfterResponse(response.getStatusCode(), appServer);
 				return;
 			}
 			
@@ -993,6 +1025,7 @@ public class TestSipListener implements SipListener {
 				if(!sendReliably) {
 					Thread.sleep(2000);
 					st.sendResponse(getFinalResponse());
+					eventListener.uasAfterResponse(getFinalResponse().getStatusCode(), appServer);
 				}
 			} else {
 				logger.info("Waiting for CANCEL, stopping the INVITE processing ");
@@ -1021,18 +1054,15 @@ public class TestSipListener implements SipListener {
 			this.byeReceived  = true;
 			byeRequestReceived = request;
 			if (serverTransactionId == null) {
-				logger.info("shootist:  null TID.");
-				return;
+				serverTransactionId = sipProvider.getNewServerTransaction(request);
 			}
 			
-			Dialog dialog = serverTransactionId.getDialog();			
-			logger.info("Dialog State = " + dialog.getState());
+			Dialog dialog = serverTransactionId.getDialog();	
 			Response response = protocolObjects.messageFactory.createResponse(
 					200, request);
 			serverTransactionId.sendResponse(response);
 			this.transactionCount++;
 			logger.info("shootist:  Sending OK.");
-			logger.info("Dialog State = " + dialog.getState());
 		
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -1131,6 +1161,7 @@ public class TestSipListener implements SipListener {
 			return ;
 		}		
 		Response response = (Response) responseReceivedEvent.getResponse();
+		eventListener.uacAfterResponse(response.getStatusCode(), appServer);
 		if(response.getStatusCode() == 491) numberOf491s++;
 		RecordRouteHeader recordRouteHeader = (RecordRouteHeader)response.getHeader(RecordRouteHeader.NAME);
 		if(!recordRoutingProxyTesting && recordRouteHeader != null) {

@@ -40,14 +40,17 @@ public class AppServer {
 		this(appServer, port, address, 2000, 5060, 5065);
 
 	} 
+	
+	public void setEventListener(EventListener listener) {
+		sipListener.eventListener = listener;
+	}
 
 	public void start() {
 		timer = new Timer();
 		protocolObjects = new ProtocolObjects(name,
 				"gov.nist", "UDP", false, null);
 		sipListener = new TestSipListener(port, lbSIPext, protocolObjects, false);
-
-		
+		sipListener.appServer = this;
 		try {
 			sipProvider = sipListener.createProvider();
 			sipProvider.addSipListener(sipListener);
@@ -86,16 +89,27 @@ public class AppServer {
 		}
 
 	}	
+	public void sendCleanShutdownToBalancers() {
+		ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
+		nodes.add(appServerNode);
+		sendCleanShutdownToBalancers(nodes);
+	}
 	
-	public void sendCleanShutdownToBalacners(ArrayList<SIPNode> info) {
+	public void sendCleanShutdownToBalancers(ArrayList<SIPNode> info) {
 		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
 		try {
 			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
 			NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
 			reg.forceRemoval(info);
+			stop();
+			Thread.sleep(2000); // delay the OK for a while
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public TestSipListener getTestSipListener() {
+		return this.sipListener;
 	}
 
 }
