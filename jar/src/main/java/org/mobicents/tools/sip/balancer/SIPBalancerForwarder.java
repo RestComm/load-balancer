@@ -318,7 +318,7 @@ public class SIPBalancerForwarder implements SipListener {
     		BalancerContext.balancerContext.activeInternalHeader[TCP] = BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] != null ?
     				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] : BalancerContext.balancerContext.internalRecordRouteHeader[TCP];
     		
-    		BalancerContext.balancerContext.useIpLoadBalancerAddressInViaHeaders = Boolean.getBoolean(
+    		BalancerContext.balancerContext.useIpLoadBalancerAddressInViaHeaders = Boolean.valueOf(
     				BalancerContext.balancerContext.properties.getProperty("useIpLoadBalancerAddressInViaHeaders", "false"));
     		if(BalancerContext.balancerContext.useIpLoadBalancerAddressInViaHeaders) {
     					BalancerContext.balancerContext.externalViaHost = BalancerContext.balancerContext.externalIpLoadBalancerAddress;
