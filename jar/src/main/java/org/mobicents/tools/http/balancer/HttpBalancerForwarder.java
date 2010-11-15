@@ -19,15 +19,15 @@ public class HttpBalancerForwarder {
 	ExecutorService executor;
 	public void start() {
 		executor = Executors.newFixedThreadPool(32);
-		HttpChannelAssocialtions.serverBootstrap = new ServerBootstrap(
+		HttpChannelAssociations.serverBootstrap = new ServerBootstrap(
 	            new NioServerSocketChannelFactory(
 	                    executor,
 	                    executor));
-		HttpChannelAssocialtions.inboundBootstrap = new ClientBootstrap(
+		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(
 	            new NioClientSocketChannelFactory(
 	                    executor,
 	                    executor));
-		HttpChannelAssocialtions.channels = new ConcurrentHashMap<Channel, Channel>();
+		HttpChannelAssociations.channels = new ConcurrentHashMap<Channel, Channel>();
 	    
 	    
 		Integer httpPort = 2222;
@@ -36,15 +36,15 @@ public class HttpBalancerForwarder {
 			httpPort = Integer.parseInt(httpPortString);
 		}
 		logger.info("HTTP LB listening on port " + httpPort);
-		HttpChannelAssocialtions.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory());
-		HttpChannelAssocialtions.serverBootstrap.bind(new InetSocketAddress(httpPort));
-        HttpChannelAssocialtions.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory());
+		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory());
+		HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
+        HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory());
 	}
 	
 	public void stop() {
 		if(executor == null) return; // already stopped
-		HttpChannelAssocialtions.serverBootstrap.releaseExternalResources();
-		HttpChannelAssocialtions.inboundBootstrap.releaseExternalResources();
+		HttpChannelAssociations.serverBootstrap.releaseExternalResources();
+		HttpChannelAssociations.inboundBootstrap.releaseExternalResources();
 		executor.shutdown();
 		executor = null;
 		System.gc();

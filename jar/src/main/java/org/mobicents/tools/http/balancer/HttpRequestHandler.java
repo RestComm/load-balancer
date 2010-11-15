@@ -67,7 +67,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         		logger.fine("Request URI accessed: " + request.getUri() + " channel " + e.getChannel());
         	}
         	
-        	Channel associatedChannel = HttpChannelAssocialtions.channels.get(e.getChannel());
+        	Channel associatedChannel = HttpChannelAssociations.channels.get(e.getChannel());
         	
         	SIPNode node = null;
         	try {
@@ -103,14 +103,14 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     			});
             	
         		// Start the connection attempt.
-        		ChannelFuture future = HttpChannelAssocialtions.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
+        		ChannelFuture future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
 
         		future.addListener(new ChannelFutureListener() {
 
         			public void operationComplete(ChannelFuture arg0) throws Exception {
         				Channel channel = arg0.getChannel();
-        				HttpChannelAssocialtions.channels.put(e.getChannel(), channel);
-        				HttpChannelAssocialtions.channels.put(channel, e.getChannel());
+        				HttpChannelAssociations.channels.put(e.getChannel(), channel);
+        				HttpChannelAssociations.channels.put(channel, e.getChannel());
 
         				if (request.isChunked()) {
         					readingChunks = true;
@@ -130,15 +130,15 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	if (chunk.isLast()) {
                 readingChunks = false;
             }
-            HttpChannelAssocialtions.channels.get(e.getChannel()).write(chunk);
+            HttpChannelAssociations.channels.get(e.getChannel()).write(chunk);
         }
     }
     
     private void closeChannelPair(Channel channel) {
-		Channel associatedChannel = HttpChannelAssocialtions.channels.get(channel);
+		Channel associatedChannel = HttpChannelAssociations.channels.get(channel);
 		if(associatedChannel != null) {
 			try {
-				HttpChannelAssocialtions.channels.remove(associatedChannel);
+				HttpChannelAssociations.channels.remove(associatedChannel);
 				if(!associatedChannel.isConnected()) {
 					associatedChannel.disconnect();
 					associatedChannel.close();
@@ -148,12 +148,12 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 			}
 		}
-		HttpChannelAssocialtions.channels.remove(channel);
+		HttpChannelAssociations.channels.remove(channel);
 		//logger.info("Channel closed. Channels remaining: " + HttpChannelAssocialtions.channels.size());
 		if(logger.isLoggable(Level.FINE)) {
 			try {
-			logger.fine("Channel closed " + HttpChannelAssocialtions.channels.size() + " " + channel);
-			Enumeration<Channel> c = HttpChannelAssocialtions.channels.keys();
+			logger.fine("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
+			Enumeration<Channel> c = HttpChannelAssociations.channels.keys();
 			while(c.hasMoreElements()) {
 				logger.fine(c.nextElement().toString());
 			}

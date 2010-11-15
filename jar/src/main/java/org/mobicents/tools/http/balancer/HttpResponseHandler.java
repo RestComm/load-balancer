@@ -34,7 +34,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger logger = Logger.getLogger(HttpResponseHandler.class.getCanonicalName());
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-    	Channel channel = HttpChannelAssocialtions.channels.get(e.getChannel());
+    	Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
     	if(channel != null) {
     		channel.write(e.getMessage());
     	}
