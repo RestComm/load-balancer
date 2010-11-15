@@ -52,6 +52,7 @@ import javax.sip.address.SipURI;
 import javax.sip.address.URI;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.MaxForwardsHeader;
+import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Message;
@@ -336,11 +337,15 @@ public class SIPBalancerForwarder implements SipListener {
         	throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }
         if(logger.isLoggable(Level.INFO)) {
-        	logger.info("Sip Balancer started on external address " + BalancerContext.balancerContext.externalHost + ", external port : " + BalancerContext.balancerContext.externalPort + "");
+        	logger.info("Sip Balancer started on external address " + 
+        			BalancerContext.balancerContext.externalHost + ", external port : " + 
+        			BalancerContext.balancerContext.externalPort + ", internalPort : " + 
+        			BalancerContext.balancerContext.internalPort);
         }              
 	}
 	
 	public void stop() {
+		if(BalancerContext.balancerContext.sipStack == null) return;// already stopped
 		Iterator<SipProvider> sipProviderIterator = BalancerContext.balancerContext.sipStack.getSipProviders();
 		try{
 			while (sipProviderIterator.hasNext()) {
@@ -356,19 +361,21 @@ public class SIPBalancerForwarder implements SipListener {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Removing the sip provider");
 				}
-				sipProvider.removeSipListener(this);	
+				sipProvider.removeSipListener(this);
 				BalancerContext.balancerContext.sipStack.deleteSipProvider(sipProvider);	
 				sipProviderIterator = BalancerContext.balancerContext.sipStack.getSipProviders();
+			}
+			BalancerContext.balancerContext.sipStack.stop();
+			BalancerContext.balancerContext.sipStack = null;
+			System.gc();
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Sip forwarder SIP stack stopped");
 			}
 		} catch (Exception e) {
 			throw new IllegalStateException("Cant remove the listening points or sip providers", e);
 		}
 		
-		BalancerContext.balancerContext.sipStack.stop();
-		BalancerContext.balancerContext.sipStack = null;
-		if(logger.isLoggable(Level.INFO)) {
-			logger.info("Sip Balancer stopped");
-		}
+		
 	}
 	
 	public void processDialogTerminated(
@@ -539,13 +546,15 @@ public class SIPBalancerForwarder implements SipListener {
 			decreaseMaxForwardsHeader(sipProvider, request);
 		}
 		
+		RouteHeaderHints hints = removeRouteHeadersMeantForLB(request);
+		
 		if(dialogCreationMethods.contains(request.getMethod())) {
-			addLBRecordRoute(sipProvider, request);
+			addLBRecordRoute(sipProvider, request, hints);
 		}
 		
 		final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 		
-		RouteHeaderHints hints = removeRouteHeadersMeantForLB(request);
+		
 		
 		if(hints.serverAssignedNode !=null) {
 			String callId = ((SIPHeader) request.getHeader("Call-ID")).getValue();
@@ -560,16 +569,22 @@ public class SIPBalancerForwarder implements SipListener {
 		if(isRequestFromServer) {
 			BalancerContext.balancerContext.balancerAlgorithm.processInternalRequest(request);
 		} else {
-			SIPNode assignedNode = null;
-			RouteHeader nextNodeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
-			if(nextNodeHeader != null) {
-				URI uri = nextNodeHeader.getAddress().getURI();
-				if(uri instanceof SipURI) {
-					SipURI sipUri = (SipURI) uri;
-					assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), transport);
-					if(logger.isLoggable(Level.FINEST)) {
-			    		logger.finest("Found SIP URI " + uri + " |Next node is " + assignedNode);
-			    	}
+			
+			// Request is NOT from app server, first check if we have hints in Route headers
+			SIPNode assignedNode = hints.serverAssignedNode;
+			
+			// If there are no hints see if there is route header pointing existing node
+			if(assignedNode == null) {
+				RouteHeader nextNodeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+				if(nextNodeHeader != null) {
+					URI uri = nextNodeHeader.getAddress().getURI();
+					if(uri instanceof SipURI) {
+						SipURI sipUri = (SipURI) uri;
+						assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), transport);
+						if(logger.isLoggable(Level.FINEST)) {
+							logger.finest("Found SIP URI " + uri + " |Next node is " + assignedNode);
+						}
+					}
 				}
 			}
 			SipURI assignedUri = null;
@@ -718,16 +733,16 @@ public class SIPBalancerForwarder implements SipListener {
 	/**
 	 * @param sipProvider
 	 * @param request
+	 * @param hints 
 	 * @throws ParseException
 	 */
-	private void addLBRecordRoute(SipProvider sipProvider, Request request)
+	private void addLBRecordRoute(SipProvider sipProvider, Request request, RouteHeaderHints hints)
 	throws ParseException {				
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
 		}
 		String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 		int transportIndex = transport.equalsIgnoreCase("udp")?0:1;
-		
 		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
 			if(sipProvider.equals(BalancerContext.balancerContext.externalSipProvider)) {
 				if(logger.isLoggable(Level.FINEST)) {
@@ -748,10 +763,26 @@ public class SIPBalancerForwarder implements SipListener {
 				if(logger.isLoggable(Level.FINEST)) {
 					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeExternalHeader[transportIndex]);			
+				RecordRouteHeader recordRouteHeader = BalancerContext.balancerContext.activeExternalHeader[transportIndex];
+				if(hints.serverAssignedNode != null) {
+					recordRouteHeader = (RecordRouteHeader) recordRouteHeader.clone();
+					SipURI sipuri = (SipURI) recordRouteHeader.getAddress().getURI();
+					
+					sipuri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
+					sipuri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
+				}
+				request.addHeader(recordRouteHeader);			
 			}	
 		} else {
-			request.addHeader(BalancerContext.balancerContext.activeExternalHeader[transportIndex]);
+			RecordRouteHeader recordRouteHeader = BalancerContext.balancerContext.activeExternalHeader[transportIndex];
+			if(hints.serverAssignedNode != null) {
+				recordRouteHeader = (RecordRouteHeader) recordRouteHeader.clone();
+				SipURI sipuri = (SipURI) recordRouteHeader.getAddress().getURI();
+				
+				sipuri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
+				sipuri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
+			}
+			request.addHeader(recordRouteHeader);
 		}
 	}
 
@@ -767,7 +798,9 @@ public class SIPBalancerForwarder implements SipListener {
 		String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
 		if(hostNode != null && hostPort != null) {
 			int port = Integer.parseInt(hostPort);
-			node = register.getNode(hostNode, port, routeSipUri.getTransportParam());
+			String transport = routeSipUri.getTransportParam();
+			if(transport == null) transport = "udp";
+			node = register.getNode(hostNode, port, transport);
 		}
 		return node;
 	}

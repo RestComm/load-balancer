@@ -48,6 +48,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	HtmlAdaptorServer adapter = new HtmlAdaptorServer();
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
+	HttpBalancerForwarder httpBalancerForwarder;
 
 	/**
 	 * @param args
@@ -139,7 +140,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			
 			fwd = new SIPBalancerForwarder(properties, reg);
 			fwd.start();
-			new HttpBalancerForwarder().start();
+			httpBalancerForwarder = new HttpBalancerForwarder();
+			try {
+			httpBalancerForwarder.start();
+			} catch (org.jboss.netty.channel.ChannelException e) {
+				logger.warning("HTTP forwarder could not be restarted.");
+			}
 			
 			BalancerContext.balancerContext.balancerAlgorithm.init();
 			
@@ -188,14 +194,17 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public void stop() {
 		logger.info("Stopping the sip forwarder");
 		fwd.stop();
-		logger.info("Stopping the node registry");
-		reg.stopRegistry();
+		logger.info("Stopping the http forwarder");
+		httpBalancerForwarder.stop();
 		logger.info("Unregistering the node registry");
 		MBeanServer server = ManagementFactory.getPlatformMBeanServer();		
 		try {
 			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_JMX_NAME);
 			if (server.isRegistered(on)) {
 				server.unregisterMBean(on);
+			}
+			if(server.isRegistered(adapterName)) {
+				server.unregisterMBean(adapterName);
 			}
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
@@ -204,12 +213,18 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			if(cs.isActive())
 			cs.stop();
 			cs = null;
+			BalancerContext.balancerContext.balancerAlgorithm.stop();
+			adapter.stop();
+			logger.info("Stopping the node registry");
+			reg.stopRegistry();
+			reg = null;
+			adapter = null;
+			System.gc();
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}	
 		
-		BalancerContext.balancerContext.balancerAlgorithm.stop();
-		adapter.stop();
+		
 	}
 
 	//JMX 

@@ -9,8 +9,8 @@ import java.util.TimerTask;
 import javax.sip.SipProvider;
 
 public class AppServer {
-	ProtocolObjects protocolObjects;
-	TestSipListener sipListener;
+	public ProtocolObjects protocolObjects;
+	public TestSipListener sipListener;
 	Timer timer;
 	int port;
 	String name;
@@ -20,7 +20,7 @@ public class AppServer {
 	int lbRMIport;
 	int lbSIPext;
 	int lbSIPint;
-	SipProvider sipProvider;
+	public SipProvider sipProvider;
 
 	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint) {
 		this.port = port;
@@ -49,7 +49,7 @@ public class AppServer {
 		timer = new Timer();
 		protocolObjects = new ProtocolObjects(name,
 				"gov.nist", "UDP", false, null);
-		sipListener = new TestSipListener(port, lbSIPext, protocolObjects, false);
+		sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
 		sipListener.appServer = this;
 		try {
 			sipProvider = sipListener.createProvider();
@@ -74,6 +74,10 @@ public class AppServer {
 	
 	public void stop() {
 		timer.cancel();
+		if(protocolObjects != null)
+		protocolObjects.sipStack.stop();
+		protocolObjects=null;
+		//sendCleanShutdownToBalancers();
 	}
 
 	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) {

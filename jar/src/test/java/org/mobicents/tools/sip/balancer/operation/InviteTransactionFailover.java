@@ -6,6 +6,7 @@ import java.util.Properties;
 
 import javax.sip.SipProvider;
 import javax.sip.address.SipURI;
+import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.UserAgentHeader;
 
 import org.mobicents.tools.sip.balancer.AppServer;
@@ -20,7 +21,7 @@ public class InviteTransactionFailover extends TestCase{
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
-	
+	Shootist shootist;
 	
 
 	/* (non-Javadoc)
@@ -28,6 +29,8 @@ public class InviteTransactionFailover extends TestCase{
 	 */
 	protected void setUp() throws Exception {
 		super.setUp();
+		shootist = new Shootist();
+		
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
 		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
@@ -44,6 +47,8 @@ public class InviteTransactionFailover extends TestCase{
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		
 		properties.setProperty("host", "127.0.0.1");
+		properties.setProperty("externalHost", "127.0.0.1");
+		properties.setProperty("internalHost", "127.0.0.1");
 		properties.setProperty("internalPort", "5065");
 		properties.setProperty("externalPort", "5060");
 		balancer.start(properties);
@@ -64,6 +69,7 @@ public class InviteTransactionFailover extends TestCase{
 		for(int q=0;q<servers.length;q++) {
 			servers[q].stop();
 		}
+		shootist.stop();
 		balancer.stop();
 	}
 	
@@ -130,11 +136,36 @@ public class InviteTransactionFailover extends TestCase{
 			}
 		};
 		for(AppServer as:servers) as.setEventListener(failureEventListener);
-		Shootist shootist = new Shootist();
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
 		Thread.sleep(10000);
 		if(balancer.getNodes().size()!=1) fail("Expected one dead node");
+	}
+	
+	public void testASactingAsUAC() throws Exception {
+		String fromName = "sender";
+		String fromHost = "sip-servlets.com";
+		SipURI fromAddress = servers[0].protocolObjects.addressFactory.createSipURI(
+				fromName, fromHost);
+				
+		String toUser = "replaces";
+		String toHost = "sip-servlets.com";
+		SipURI toAddress = servers[0].protocolObjects.addressFactory.createSipURI(
+				toUser, toHost);
+		
+		SipURI ruri = servers[0].protocolObjects.addressFactory.createSipURI(
+				"usera", "127.0.0.1:5033");
+		ruri.setLrParam();
+		SipURI route = servers[0].protocolObjects.addressFactory.createSipURI(
+				"lbint", "127.0.0.1:5065");
+		route.setParameter("node_host", "127.0.0.1");
+		route.setParameter("node_port", "4060");
+		route.setLrParam();
+		shootist.start();
+		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
+		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
+		Thread.sleep(10000);
+		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
 	}
 
 }
