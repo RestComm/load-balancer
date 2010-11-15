@@ -141,8 +141,44 @@ public class InviteTransactionFailover extends TestCase{
 		Thread.sleep(10000);
 		if(balancer.getNodes().size()!=1) fail("Expected one dead node");
 	}
-	
+	AppServer ringingAppServer;
+	AppServer okAppServer;
 	public void testASactingAsUAC() throws Exception {
+		
+		EventListener failureEventListener = new EventListener() {
+			
+			@Override
+			public void uasAfterResponse(int statusCode, AppServer source) {
+				
+				
+			}
+			
+			@Override
+			public void uasAfterRequestReceived(String method, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void uacAfterRequestSent(String method, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void uacAfterResponse(int statusCode, AppServer source) {
+				if(statusCode == 180) {
+					ringingAppServer = source;
+					source.sendCleanShutdownToBalancers();		
+				} else {
+					okAppServer = source;
+					
+				}
+			}
+		};
+		for(AppServer as:servers) as.setEventListener(failureEventListener);
+		shootist.callerSendsBye = true;
+		
 		String fromName = "sender";
 		String fromHost = "sip-servlets.com";
 		SipURI fromAddress = servers[0].protocolObjects.addressFactory.createSipURI(
@@ -164,8 +200,11 @@ public class InviteTransactionFailover extends TestCase{
 		shootist.start();
 		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
-		Thread.sleep(10000);
+		Thread.sleep(16000);
 		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
+		assertNotSame(ringingAppServer, okAppServer);
+		assertNotNull(ringingAppServer);
+		assertNotNull(okAppServer);
 	}
 
 }

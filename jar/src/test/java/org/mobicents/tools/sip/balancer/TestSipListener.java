@@ -1164,10 +1164,7 @@ public class TestSipListener implements SipListener {
 		eventListener.uacAfterResponse(response.getStatusCode(), appServer);
 		if(response.getStatusCode() == 491) numberOf491s++;
 		RecordRouteHeader recordRouteHeader = (RecordRouteHeader)response.getHeader(RecordRouteHeader.NAME);
-		if(!recordRoutingProxyTesting && recordRouteHeader != null) {
-			abortProcessing = true;
-			throw new IllegalArgumentException("we received a record route header in a response !");			
-		}
+
 		ContactHeader contactHeader = (ContactHeader)response.getHeader(ContactHeader.NAME);
 		if(contactHeader != null && "0.0.0.0".equals(((SipURI)contactHeader.getAddress().getURI()).getHost())) {
 			abortProcessing = true;

@@ -44,9 +44,16 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		BalancerContext balancerContext = getBalancerContext();
 		Via via = (Via) response.getHeader(Via.NAME);
 		String host = via.getHost();
+		Integer port = via.getPort();
+		String transport = via.getTransport().toLowerCase();
 		boolean found = false;
 		for(SIPNode node : BalancerContext.balancerContext.nodes) {
-			if(node.getIp().equals(host)) found = true;
+			if(node.getIp().equals(host)) {
+				if(port.equals(node.getProperties().get(transport+"Port"))) {
+					found = true;
+				}
+			}
+				
 		}
 		if(!found) {
 			String callId = ((SIPHeader) response.getHeader(headerName))
@@ -56,8 +63,8 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 				node = selectNewNode(node, callId);
 				try {
 					via.setHost(node.getIp());
-					String transportProperty = via.getTransport().toLowerCase() + "Port";
-					Integer port = (Integer) node.getProperties().get(transportProperty);
+					String transportProperty = transport + "Port";
+					port = (Integer) node.getProperties().get(transportProperty);
 					if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 					via.setPort(port);
 				} catch (Exception e) {

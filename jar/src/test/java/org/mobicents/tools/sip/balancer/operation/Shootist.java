@@ -90,9 +90,21 @@ public class Shootist implements SipListener {
     public void processInvite(Request request, ServerTransaction stx) {
     	try {
     		inviteRequest = request;
-    		Response response = messageFactory.createResponse(200, request);
-    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("127.0.0.1:5033"));
+    		Response response = messageFactory.createResponse(180, request);
+    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:5033"));
     		response.addHeader(contactHeader);
+    		dialog = stx.getDialog();
+    		stx.sendResponse(response );
+    		try {
+				Thread.sleep(4000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		response = messageFactory.createResponse(200, request);
+    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:5033"));
+    		response.addHeader(contactHeader);
+    		dialog = stx.getDialog();
     		stx.sendResponse(response );
     	} catch (SipException e) {
     		// TODO Auto-generated catch block
@@ -105,7 +117,9 @@ public class Shootist implements SipListener {
     		e.printStackTrace();
     	}
     }
-
+    public void processAck(Request request, ServerTransaction stx) {
+    	new Timer().schedule(new ByeTask(dialog), 5000);
+    }
 
     public void processRequest(RequestEvent requestReceivedEvent) {
         Request request = requestReceivedEvent.getRequest();
@@ -127,11 +141,13 @@ public class Shootist implements SipListener {
                 + " received at " + sipStack.getStackName()
                 + " with server transaction id " + serverTransactionId);
 
-        if (request.getMethod().equals(Request.INVITE))
+        if (request.getMethod().equals(Request.INVITE)) {
             processInvite(request, serverTransactionId);
-        else if (request.getMethod().equals(Request.BYE))
+        } else if (request.getMethod().equals(Request.BYE)) {
             processBye(request, serverTransactionId);
-        else {
+        } else if (request.getMethod().equals(Request.ACK)) {
+            processAck(request, serverTransactionId);
+        } else {
             try {
                 serverTransactionId.sendResponse( messageFactory.createResponse(200,request) );
             } catch (Exception e) {

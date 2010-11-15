@@ -210,16 +210,19 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}
 		try {
-			if(cs.isActive())
-			cs.stop();
-			cs = null;
-			BalancerContext.balancerContext.balancerAlgorithm.stop();
-			adapter.stop();
-			logger.info("Stopping the node registry");
-			reg.stopRegistry();
-			reg = null;
-			adapter = null;
-			System.gc();
+			if(cs != null) {
+				if(cs.isActive()) {
+					cs.stop();
+				}
+				cs = null;
+				BalancerContext.balancerContext.balancerAlgorithm.stop();
+				adapter.stop();
+				logger.info("Stopping the node registry");
+				reg.stopRegistry();
+				reg = null;
+				adapter = null;
+				System.gc();
+			}
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
 		}	

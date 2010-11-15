@@ -48,7 +48,7 @@ public class AppServer {
 	public void start() {
 		timer = new Timer();
 		protocolObjects = new ProtocolObjects(name,
-				"gov.nist", "UDP", false, null);
+				"gov.nist", "UDP", true, null);
 		sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
 		sipListener.appServer = this;
 		try {
