@@ -36,27 +36,38 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		} else {
 			uri = (SipURI) request.getRequestURI();
 		}
-		
-		for(SIPNode node:getBalancerContext().nodes) {
-			if(!node.equals(assignedNode)) {
-				try {
+		try {
+			for(SIPNode node:getBalancerContext().nodes) {
+				if(!node.equals(assignedNode)) {
 					uri.setHost(node.getIp());
-				} catch (ParseException e) {
-					throw new RuntimeException("Error chainging assiged node", e);
-				}
-				Integer port = (Integer) node.getProperties().get("udpPort");
-				uri.setPort(port);
-				String callId = ((SIPHeader) request.getHeader(headerName))
+					Integer port = (Integer) node.getProperties().get("udpPort");
+					uri.setPort(port);
+					String callId = ((SIPHeader) request.getHeader(headerName))
 					.getValue();
-				callIdMap.put(callId, node);
-				return node;
+					callIdMap.put(callId, node);
+					
+					// For http://code.google.com/p/mobicents/issues/detail?id=2132
+					if(request.getRequestURI().isSipURI()) {
+						SipURI ruri = (SipURI) request.getRequestURI();
+						String rurihostid = ruri.getHost() + ruri.getPort();
+						String originalhostid = assignedNode.getIp() + assignedNode.getProperties().get("udpPort");
+						if(rurihostid.equals(originalhostid)) {
+							ruri.setPort(port);
+							ruri.setHost(node.getIp());
+						}
+					}
+					return node;
+				}
 			}
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return assignedNode;
 	}
 
 	private static Logger logger = Logger.getLogger(WorstCaseUdpTestAffinityAlgorithm.class.getCanonicalName());
-	
+
 	protected String headerName = "Call-ID";
 	protected ConcurrentHashMap<String, SIPNode> callIdMap = new ConcurrentHashMap<String, SIPNode>();
 	protected ConcurrentHashMap<String, Long> callIdTimestamps = new ConcurrentHashMap<String, Long>();

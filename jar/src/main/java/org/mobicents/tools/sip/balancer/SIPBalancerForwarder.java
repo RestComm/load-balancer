@@ -589,12 +589,13 @@ public class SIPBalancerForwarder implements SipListener {
 			}
 			SipURI assignedUri = null;
 			//boolean nextNodeInRequestUri = false;
-			
+			SipURI originalRouteHeaderUri = null;
 			if(assignedNode == null) {
 				if(hints.subsequentRequest) {
 					RouteHeader header = (RouteHeader) request.getHeader(RouteHeader.NAME);
 					if(header != null) {
 						assignedUri = (SipURI) header.getAddress().getURI();
+						originalRouteHeaderUri = (SipURI) assignedUri.clone();
 						request.removeFirst(RouteHeader.NAME);
 					} else {
 						SipURI sipUri =(SipURI) request.getRequestURI();
@@ -653,16 +654,25 @@ public class SIPBalancerForwarder implements SipListener {
 						routeSipUri.setPort(port);
 						routeSipUri.setTransportParam(transport);
 						routeSipUri.setLrParam();
-						
-						// Either we should put it in route header of request URI (based on what the incoming request looks like)
-						//if( nextNodeInRequestUri) {
-						//	request.setRequestURI(routeSipUri);
-						//} else {
-							final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
-									BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
-							request.addFirst(route);
-						//}
-						
+
+
+						final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
+								BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
+						request.addFirst(route);
+
+						// If the request is meant for the AS it must recognize itself in the ruri, so update it too
+						// For http://code.google.com/p/mobicents/issues/detail?id=2132
+						if(originalRouteHeaderUri != null && request.getRequestURI().isSipURI()) {
+							SipURI uri = (SipURI) request.getRequestURI();
+							// we will just compare by hostport id
+							String rurihostid = uri.getHost() + uri.getPort();
+							String originalhostid = originalRouteHeaderUri.getHost() + originalRouteHeaderUri.getPort();
+							if(rurihostid.equals(originalhostid)) {
+								uri.setPort(routeSipUri.getPort());
+								uri.setHost(routeSipUri.getHost());
+							}
+						}
+
 					} catch (Exception e) {
 						throw new RuntimeException("Error adding route header", e);
 					}
