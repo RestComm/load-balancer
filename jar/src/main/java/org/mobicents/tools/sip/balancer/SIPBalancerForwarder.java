@@ -464,7 +464,7 @@ public class SIPBalancerForwarder implements SipListener {
 	private SIPNode getNode(String host, int port, String otherTransport) {
 		otherTransport = otherTransport.toLowerCase();
 		for(SIPNode node : BalancerContext.balancerContext.nodes) {
-			if(node.getHostName().equals(host) || node.getIp().equals(host)) {
+			if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
 				if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
 					return node;
 				}
