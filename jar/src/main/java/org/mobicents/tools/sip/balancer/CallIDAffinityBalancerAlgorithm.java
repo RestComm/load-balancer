@@ -3,7 +3,6 @@ package org.mobicents.tools.sip.balancer;
 import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.header.Via;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,9 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.sip.SipProvider;
-import javax.sip.address.SipURI;
-import javax.sip.header.RouteHeader;
+import javax.sip.ListeningPoint;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -53,7 +50,9 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 					found = true;
 				}
 			}
-				
+		}
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("external response node found ? " + found);
 		}
 		if(!found) {
 			String callId = ((SIPHeader) response.getHeader(headerName))
@@ -61,14 +60,40 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			SIPNode node = callIdMap.get(callId);
 			if(node == null || !balancerContext.nodes.contains(node)) {
 				node = selectNewNode(node, callId);
+				String transportProperty = transport + "Port";
+				port = (Integer) node.getProperties().get(transportProperty);
+				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
+				if(logger.isLoggable(Level.FINEST)) {
+					logger.finest("changing via " + via + "setting new values " + node.getIp() + ":" + port);
+				}
 				try {
 					via.setHost(node.getIp());
-					String transportProperty = transport + "Port";
-					port = (Integer) node.getProperties().get(transportProperty);
-					if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 					via.setPort(port);
 				} catch (Exception e) {
-					throw new RuntimeException("Error", e);
+					throw new RuntimeException("Error setting new values " + node.getIp() + ":" + port + " on via " + via, e);
+				}
+				// need to reset the rport for reliable transports
+				if(!ListeningPoint.UDP.equalsIgnoreCase(transport)) {
+					via.setRPort();
+				}
+				
+			} else {
+				String transportProperty = transport + "Port";
+				port = (Integer) node.getProperties().get(transportProperty);
+				if(via.getHost().equalsIgnoreCase(node.getIp()) || via.getPort() != port) {
+					if(logger.isLoggable(Level.FINEST)) {
+						logger.finest("changing retransmission via " + via + "setting new values " + node.getIp() + ":" + port);
+					}
+					try {
+						via.setHost(node.getIp());
+						via.setPort(port);
+					} catch (Exception e) {
+						throw new RuntimeException("Error setting new values " + node.getIp() + ":" + port + " on via " + via, e);
+					}
+					// need to reset the rport for reliable transports
+					if(!ListeningPoint.UDP.equalsIgnoreCase(transport)) {
+						via.setRPort();
+					}
 				}
 			}
 		}
@@ -123,7 +148,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			groupedFailover(oldNode, node);
 		} else {
 			node = nextAvailableNode();
-			if(node == null) return null;
+			if(node == null) {
+				if(logger.isLoggable(Level.FINEST)) {
+		    		logger.finest("no nodes available return null");
+		    	}
+				return null;
+			}
 			callIdMap.put(callId, node);
 		}
 		

@@ -355,8 +355,12 @@ public class SIPBalancerForwarder implements SipListener {
 					if(logger.isLoggable(Level.INFO)) {
 						logger.info("Removing the following Listening Point " + listeningPoint);
 					}
-					sipProvider.removeListeningPoint(listeningPoint);
-					BalancerContext.balancerContext.sipStack.deleteListeningPoint(listeningPoint);
+					try {
+						sipProvider.removeListeningPoint(listeningPoint);
+						BalancerContext.balancerContext.sipStack.deleteListeningPoint(listeningPoint);
+					} catch (Exception e) {
+						logger.log(Level.SEVERE, "Cant remove the listening points or sip providers", e);
+					}
 				}
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Removing the sip provider");
@@ -999,6 +1003,9 @@ public class SIPBalancerForwarder implements SipListener {
 			}*/
 			BalancerContext.balancerContext.balancerAlgorithm.processInternalResponse(response);
 			try {	
+				if(logger.isLoggable(Level.FINEST)) {
+					logger.finest("from server sending response externally " + response);
+				}
 				BalancerContext.balancerContext.externalSipProvider.sendResponse(response);
 			} catch (Exception ex) {
 				logger.log(Level.SEVERE, "Unexpected exception while forwarding the response \n" + response, ex);
@@ -1007,8 +1014,14 @@ public class SIPBalancerForwarder implements SipListener {
 			BalancerContext.balancerContext.balancerAlgorithm.processExternalResponse(response);
 			try {	
 				if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+					if(logger.isLoggable(Level.FINEST)) {
+						logger.finest("from external sending response " + response);
+					}
 					BalancerContext.balancerContext.internalSipProvider.sendResponse(response);
 				} else {
+					if(logger.isLoggable(Level.FINEST)) {
+						logger.finest("from external sending response " + response);
+					}
 					BalancerContext.balancerContext.externalSipProvider.sendResponse(response);
 				}
 			} catch (Exception ex) {
