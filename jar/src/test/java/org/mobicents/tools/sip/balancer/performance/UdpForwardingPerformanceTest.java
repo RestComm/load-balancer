@@ -177,4 +177,10 @@ public class UdpForwardingPerformanceTest extends TestCase {
 			e.printStackTrace();
 		}
 	}
+	
+	protected void tearDown() throws Exception {
+		super.tearDown();
+		server.stop();
+		balancer.stop();
+	}
 }

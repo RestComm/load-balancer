@@ -97,9 +97,11 @@ public class BlackholeAppServer {
 			thread.interrupt();
 			thread.stop();
 		} catch (Exception e) {}
+		
 		timer.cancel();
+		socket.close();
 		if(protocolObjects != null)
-		protocolObjects.sipStack.stop();
+			protocolObjects.sipStack.stop();
 		protocolObjects=null;
 		//sendCleanShutdownToBalancers();
 	}

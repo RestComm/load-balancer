@@ -16,12 +16,12 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 	@Override
 	public boolean processRequest(SIPRequest request,
 			MessageChannel messageChannel) {
-		SipProvider p;
-		if(messageChannel.getPort() == BalancerContext.balancerContext.externalPort) {
-			p = BalancerContext.balancerContext.externalSipProvider;
-		} else {
-			p = BalancerContext.balancerContext.internalSipProvider;
+		SipProvider p = BalancerContext.balancerContext.externalSipProvider;
+		if(messageChannel.getPort() != BalancerContext.balancerContext.externalPort) {
+			if(BalancerContext.balancerContext.isTwoEntrypoints())
+				p = BalancerContext.balancerContext.internalSipProvider;
 		}
+		
 		RequestEvent event = new RequestEvent(p, null, null, request);
 		BalancerContext.balancerContext.forwarder.processRequest(event);
 		return false;
@@ -30,11 +30,10 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 	@Override
 	public boolean processResponse(Response response,
 			MessageChannel messageChannel) {
-		SipProvider p;
-		if(messageChannel.getPort() == BalancerContext.balancerContext.externalPort) {
-			p = BalancerContext.balancerContext.externalSipProvider;
-		} else {
-			p = BalancerContext.balancerContext.internalSipProvider;
+		SipProvider p = BalancerContext.balancerContext.externalSipProvider;
+		if(messageChannel.getPort() != BalancerContext.balancerContext.externalPort) {
+			if(BalancerContext.balancerContext.isTwoEntrypoints())
+				p = BalancerContext.balancerContext.internalSipProvider;
 		}
 		ResponseEvent event = new ResponseEvent(p, null, null, response);
 		BalancerContext.balancerContext.forwarder.processResponse(event);
