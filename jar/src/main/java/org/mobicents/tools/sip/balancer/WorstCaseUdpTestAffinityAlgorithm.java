@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import javax.sip.address.SipURI;
 import javax.sip.header.RouteHeader;
+import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -26,8 +27,20 @@ import javax.sip.message.Response;
  *
  */
 public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm {
+	protected ConcurrentHashMap<String, SIPNode> txToNode = new ConcurrentHashMap<String, SIPNode>();
+	protected ConcurrentHashMap<String, Long> txTimestamps = new ConcurrentHashMap<String, Long>();
+	public synchronized SIPNode getNode(String tx) {
+		return txToNode.get(tx);
+	}
+	public synchronized void setNode(String tx, SIPNode node) {
+		txToNode.put(tx, node);
+		txTimestamps.put(tx, System.currentTimeMillis());
+	}
 	public SIPNode processAssignedExternalRequest(Request request,
 			SIPNode assignedNode) {
+		String tx = ((ViaHeader)request.getHeader(Via.NAME)).getBranch();
+		SIPNode seenNode = getNode(tx);
+		if(seenNode != null) return seenNode;
 		if(request.getMethod().contains("ACK")) return assignedNode;
 		RouteHeader route = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		SipURI uri = null;
@@ -45,8 +58,10 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 					String callId = ((SIPHeader) request.getHeader(headerName))
 					.getValue();
 					callIdMap.put(callId, node);
+					setNode(tx, node);
 					
 					// For http://code.google.com/p/mobicents/issues/detail?id=2132
+					
 					if(request.getRequestURI().isSipURI()) {
 						SipURI ruri = (SipURI) request.getRequestURI();
 						String rurihostid = ruri.getHost() + ruri.getPort();
@@ -235,6 +250,25 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 						}
 						if(oldCalls.size()>0) {
 							logger.info("Reaping idle calls... Evicted " + oldCalls.size() + " calls.");
+						}
+
+						// tx
+						
+						oldCalls = new ArrayList<String>();
+						keys = txTimestamps.keySet().iterator();
+						while(keys.hasNext()) {
+							String key = keys.next();
+							long time = txTimestamps.get(key);
+							if(System.currentTimeMillis() - time > 1000*maxCallIdleTime) {
+								oldCalls.add(key);
+							}
+						}
+						for(String key : oldCalls) {
+							txToNode.remove(key);
+							txTimestamps.remove(key);
+						}
+						if(oldCalls.size()>0) {
+							logger.info("Reaping idle transactions... Evicted " + oldCalls.size() + " calls.");
 						}}
 				} catch (Exception e) {
 					logger.log(Level.WARNING, "Failed to clean up old calls. If you continue to se this message frequestly and the memory is growing, report this problem.", e);

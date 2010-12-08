@@ -100,6 +100,7 @@ public class SIPBalancerForwarder implements SipListener {
 	
 	public SIPBalancerForwarder(Properties properties, NodeRegister register) throws IllegalStateException{
 		super();
+		BalancerContext.balancerContext.forwarder = this;
 		BalancerContext.balancerContext.properties = properties;
 		this.register = register;		
 	}
@@ -154,6 +155,8 @@ public class SIPBalancerForwarder implements SipListener {
             // Create SipStack object
         	sipFactory = SipFactory.getInstance();
 	        sipFactory.setPathName("gov.nist");
+	        BalancerContext.balancerContext.properties.setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", SIPBalancerValveProcessor.class.getName());
+		      
 	        BalancerContext.balancerContext.sipStack = sipFactory.createSipStack(BalancerContext.balancerContext.properties);
            
         } catch (PeerUnavailableException pue) {

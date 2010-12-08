@@ -1,5 +1,11 @@
 package org.mobicents.tools.sip.balancer;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
@@ -8,7 +14,7 @@ import java.util.TimerTask;
 
 import javax.sip.SipProvider;
 
-public class AppServer {
+public class BlackholeAppServer {
 	public ProtocolObjects protocolObjects;
 	public TestSipListener sipListener;
 	Timer timer;
@@ -22,7 +28,7 @@ public class AppServer {
 	int lbSIPint;
 	public SipProvider sipProvider;
 
-	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint) {
+	public BlackholeAppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint) {
 		this.port = port;
 		this.name = appServer;
 		this.lbAddress = lbAddress;
@@ -31,12 +37,12 @@ public class AppServer {
 		this.lbSIPint = lbSIPint;
 	}
 	
-	public AppServer(String appServer, int port) {
+	public BlackholeAppServer(String appServer, int port) {
 		this(appServer, port, "127.0.0.1");
 
 	} 
 	
-	public AppServer(String appServer, int port, String address) {
+	public BlackholeAppServer(String appServer, int port, String address) {
 		this(appServer, port, address, 2000, 5060, 5065);
 
 	} 
@@ -44,18 +50,32 @@ public class AppServer {
 	public void setEventListener(EventListener listener) {
 		sipListener.eventListener = listener;
 	}
-
+	DatagramSocket socket;
+	public long numPacketsReceived;
+	DatagramPacket packet = new DatagramPacket(new byte[1000], 1000);
+	Thread thread;
 	public void start() {
 		timer = new Timer();
-		protocolObjects = new ProtocolObjects(name,
-				"gov.nist", "UDP", false, null);
-		sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
-		sipListener.appServer = this;
 		try {
-			sipProvider = sipListener.createProvider();
-			sipProvider.addSipListener(sipListener);
-			protocolObjects.start();
-		} catch (Exception e) {
+			socket = new DatagramSocket(port, InetAddress.getByName(lbAddress));
+			thread = new Thread() {
+				public void run() {
+					try {
+						while(true) {
+							socket.receive(packet);
+							numPacketsReceived++;
+						}
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			};
+			thread.start();
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -73,6 +93,10 @@ public class AppServer {
 	}
 	
 	public void stop() {
+		try {
+			thread.interrupt();
+			thread.stop();
+		} catch (Exception e) {}
 		timer.cancel();
 		if(protocolObjects != null)
 		protocolObjects.sipStack.stop();

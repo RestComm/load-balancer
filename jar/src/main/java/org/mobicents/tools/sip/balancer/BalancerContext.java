@@ -18,6 +18,8 @@ public class BalancerContext {
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	
 	public Object parameters;
+	
+	SIPBalancerForwarder forwarder;
 
 	public SipProvider externalSipProvider;
 	public SipProvider internalSipProvider;
