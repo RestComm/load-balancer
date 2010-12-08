@@ -1,21 +1,14 @@
-package org.mobicents.tools.sip.balancer.performance;
+package org.mobicents.tools.sip.balancer.test;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Properties;
 
-import junit.framework.TestCase;
-
-import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.sip.balancer.BlackholeAppServer;
-import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class UdpForwardingPerformanceTest extends TestCase {
+public class SipBalancerUdpTest {
 	static final String inviteRequest = "INVITE sip:joe@company.com SIP/2.0\r\n"+
 	"To: sip:joe@company.com\r\n"+
 	"From: sip:caller@university.edu ;tag=1234\r\n"+
@@ -46,15 +39,13 @@ public class UdpForwardingPerformanceTest extends TestCase {
 	BalancerRunner balancer;
 	int numNodes = 2;
 	BlackholeAppServer server;
-	Shootist shootist;
 	
 
 	/* (non-Javadoc)
 	 * @see junit.framework.TestCase#setUp()
 	 */
 	protected void setUp() throws Exception {
-		super.setUp();
-		shootist = new Shootist();
+		
 		
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
@@ -112,7 +103,7 @@ public class UdpForwardingPerformanceTest extends TestCase {
 	}
 	
 	public void testInvitePerformanceLong() {
-		testMessagePerformance(1*60*1000, 100000, inviteRequestBytes);
+		testMessagePerformance(10*60*1000, 100000, inviteRequestBytes);
 	}
 	
 	public void testInvitePerformance10sec() {
@@ -179,17 +170,20 @@ public class UdpForwardingPerformanceTest extends TestCase {
 	}
 	
 	protected void tearDown() throws Exception {
-		super.tearDown();
 		server.stop();
 		balancer.stop();
 	}
 	
 	public static void main(String[] args) {
 		try {
-		UdpForwardingPerformanceTest test = new UdpForwardingPerformanceTest();
-		test.setUp();
-		test.testInvitePerformanceLong();
-		test.tearDown();
+			SipBalancerUdpTest test = new SipBalancerUdpTest();
+			test.setUp();
+			Integer time = Integer.parseInt(args[0]);
+			Integer maxDiff = Integer.parseInt(args[0]);
+			test.testMessagePerformance(time*1000, maxDiff, inviteRequestBytes);
+			test.tearDown();
+			System.exit(0);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
