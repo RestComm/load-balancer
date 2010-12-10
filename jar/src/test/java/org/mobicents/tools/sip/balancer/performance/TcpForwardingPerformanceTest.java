@@ -117,11 +117,11 @@ public class TcpForwardingPerformanceTest extends TestCase {
 			Socket clientSocket = new Socket("localhost", 5060);
 			//DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 
-			long sentPackets = 0;
+			long sentUnits = 0;
 			long startTime = System.currentTimeMillis();
 			while(true) 
 			{
-				boolean diffNotTooBig = sentPackets - server.numUnitsReceived<maxLostPackets;
+				boolean diffNotTooBig = sentUnits - server.numUnitsReceived<maxLostPackets;
 				boolean thereIsStillTime = System.currentTimeMillis()-startTime<timespan;
 				if(!thereIsStillTime) {
 					break;
@@ -129,7 +129,7 @@ public class TcpForwardingPerformanceTest extends TestCase {
 				try {
 					if(diffNotTooBig) {
 						clientSocket.getOutputStream().write(inviteRequestBytes);modCallId();
-						sentPackets+=inviteRequestBytes.length;
+						sentUnits+=inviteRequestBytes.length;
 					} else {
 						Thread.sleep(1);
 					}
@@ -139,7 +139,7 @@ public class TcpForwardingPerformanceTest extends TestCase {
 				}
 
 			}
-			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets/inviteRequestBytes.length + "(making " + sentPackets/inviteRequestBytes.length/((double)(timespan)/1000.) + " initial requests per second)");
+			System.out.println("Packets sent in " + timespan + " ms are " + server.numUnitsReceived/inviteRequestBytes.length + "(making " + sentUnits/inviteRequestBytes.length/((double)(timespan)/1000.) + " initial requests per second)");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -154,10 +154,11 @@ public class TcpForwardingPerformanceTest extends TestCase {
 	
 	public static void main(String[] args) {
 		try {
-		TcpForwardingPerformanceTest test = new TcpForwardingPerformanceTest();
-		test.setUp();
-		test.testMessagePerformance(20*1000, 1000);
-		test.tearDown();
+			TcpForwardingPerformanceTest test = new TcpForwardingPerformanceTest();
+			test.setUp();
+			test.testMessagePerformance(20*1000, 1000);
+			test.tearDown();
+			System.exit(0);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

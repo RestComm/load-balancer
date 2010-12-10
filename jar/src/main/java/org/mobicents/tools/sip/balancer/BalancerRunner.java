@@ -230,7 +230,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 	
 	public void stop() {
-		timer.cancel();
+		if(timer != null) timer.cancel();
 		timer = null;
 		logger.info("Stopping the sip forwarder");
 		fwd.stop();

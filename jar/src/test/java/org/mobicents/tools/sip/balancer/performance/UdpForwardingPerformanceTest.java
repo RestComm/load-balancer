@@ -145,7 +145,7 @@ public class UdpForwardingPerformanceTest extends TestCase {
 					Thread.sleep(1);
 				}
 			}
-			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + sentPackets/((double)(timespan)/1000.) + " initial requests per second)");
+			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + server.numUnitsReceived/((double)(timespan)/1000.) + " initial requests per second)");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -171,7 +171,7 @@ public class UdpForwardingPerformanceTest extends TestCase {
 					Thread.sleep(1);
 				}
 			}
-			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + sentPackets/((double)(timespan)/1000.) + " initial requests per second)");
+			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + server.numUnitsReceived/((double)(timespan)/1000.) + " initial requests per second)");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
