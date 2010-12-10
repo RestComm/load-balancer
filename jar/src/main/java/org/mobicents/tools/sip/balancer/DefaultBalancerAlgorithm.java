@@ -30,6 +30,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	public void processInternalRequest(Request request) {
 		
 	}
+	public void configurationChanged() {
+		
+	}
 	
 	public SIPNode processHttpRequest(HttpRequest request) {
 		if(BalancerContext.balancerContext.nodes.size()>0) {

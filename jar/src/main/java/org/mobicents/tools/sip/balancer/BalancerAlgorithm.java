@@ -100,4 +100,6 @@ public interface BalancerAlgorithm {
 	 * Assign callid to node
 	 */
 	void assignToNode(String id, SIPNode node);
+	
+	void configurationChanged();
 }

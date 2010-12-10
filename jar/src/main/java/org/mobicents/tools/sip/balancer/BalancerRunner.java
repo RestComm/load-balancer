@@ -10,6 +10,8 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -168,12 +170,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			return;
 		}
 	}
+	Timer timer;
+	long lastupdate = 0;
 
 	/**
 	 * @param configurationFileLocation
 	 */
-	public void start(String configurationFileLocation) {
+	public void start(final String configurationFileLocation) {
 		File file = new File(configurationFileLocation);
+		lastupdate = file.lastModified();
         FileInputStream fileInputStream = null;
         try {
         	fileInputStream = new FileInputStream(file);
@@ -186,12 +191,47 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			properties.load(fileInputStream);
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
+		} finally {
+			try {
+				fileInputStream.close();
+			} catch (IOException e) {
+				logger.warning("Problem closing file " + e);
+			}
 		}
+		timer = new Timer();
+		timer.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				File conf = new File(configurationFileLocation);
+				if(lastupdate < conf.lastModified()) {
+					lastupdate = conf.lastModified();
+					logger.info("Configuration file changed, applying changes.");
+					FileInputStream fileInputStream = null;
+					try {
+						fileInputStream = new FileInputStream(conf);
+						BalancerContext.balancerContext.properties.load(fileInputStream);
+						BalancerContext.balancerContext.balancerAlgorithm.configurationChanged();
+					} catch (Exception e) {
+						logger.warning("Problem reloading configuration " + e);
+					} finally {
+						if(fileInputStream != null) {
+							try {
+								fileInputStream.close();
+							} catch (Exception e) {
+								logger.severe("Problem closing stream " + e);
+							}
+						}
+					}
+				}
+			}
+		}, 3000, 2000);
+
 		start(properties);
 
 	}
 	
 	public void stop() {
+		timer.cancel();
+		timer = null;
 		logger.info("Stopping the sip forwarder");
 		fwd.stop();
 		logger.info("Stopping the http forwarder");

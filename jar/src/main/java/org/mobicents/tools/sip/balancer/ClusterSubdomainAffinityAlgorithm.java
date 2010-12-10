@@ -261,6 +261,7 @@ public class ClusterSubdomainAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	}
 	
 	public void loadSubclusters(String subclustersString) {
+		ConcurrentHashMap<String, List<String>> map = new ConcurrentHashMap<String, List<String>>();
 		if(subclustersString != null) {
 			subclustersString = subclustersString.replaceAll(" ", "");
 			String[] groups = subclustersString.split("\\)\\(");
@@ -280,10 +281,11 @@ public class ClusterSubdomainAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				for(String host:hosts) {
 					List<String> tmp = new LinkedList<String>(hostGroupList);
 					tmp.remove(host);
-					nodeToNodeGroup.put(host, tmp);
+					map.put(host, tmp);
 				}
 			}
 		}
+		nodeToNodeGroup = map;
 	}
 	
 	public String dumpSubcluster() {
@@ -359,4 +361,13 @@ public class ClusterSubdomainAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		}
 	}
 	
+	public void configurationChanged() {
+		try {
+			loadSubclusters(getProperties().getProperty("subclusterMap"));
+			logger.info("Subclusters reloaded. The groups are as follows:" + dumpSubcluster());
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "Subcluster changes were unsuccesful", e);
+		}
+	}
+
 }
