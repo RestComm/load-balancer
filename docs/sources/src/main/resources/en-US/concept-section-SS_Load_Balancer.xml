@@ -478,6 +478,19 @@ INFO: Stopping the sip forwarder</screen>
             <para>This algorithm is distributable and is similar to the previous algorithm, but it attempts to keep session affinity even when the cluster nodes are removed or added, which would normally cause hash values to point to different nodes.</para>
           </listitem>
         </varlistentry>
+        <varlistentry id="sslb-binary-SIP_Load_Balancer-Configuration_Properties_File_3">
+          <term>org.mobicents.tools.sip.balancer.ClusterSubdomainAffinityAlgorithm </term>
+          <listitem>
+            <para>This algorithm is not distributable, but supports grouping server nodes to act
+             as a subcluster. Any call of a node that belongs to a cluster group will be preferentially
+              failed over to a node from the same group. To configure a group you can just add the
+               <literal>subclusterMap</literal> property in the load balancer properties and listing 
+               the IP addresses of the nodes. The groups are enclosed in parentheses and the IP 
+               addresses are separate by commas as follows:</para>
+               <screen>subclusterMap=( 192.168.1.1, 192.168.1.2 ) ( 10.10.10.10,  20.20.20.20,  30.30.30.30)</screen>
+               <para>The nodes specified in a group do not have to alive and nodes that are not specified are still allowed to join the cluster. Otherwise the algorthim behaves exactly as the default Call-ID affinity algorthim.</para>
+          </listitem>
+        </varlistentry>
       </variablelist></para>
   </section>
   <section>
