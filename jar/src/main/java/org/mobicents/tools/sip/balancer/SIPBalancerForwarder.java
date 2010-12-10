@@ -156,7 +156,10 @@ public class SIPBalancerForwarder implements SipListener {
         	sipFactory = SipFactory.getInstance();
 	        sipFactory.setPathName("gov.nist");
 	        BalancerContext.balancerContext.properties.setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", SIPBalancerValveProcessor.class.getName());
-		      
+	        if(BalancerContext.balancerContext.properties.getProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE") == null) {
+	        	BalancerContext.balancerContext.properties.setProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE", "100");
+	        }
+		    
 	        BalancerContext.balancerContext.sipStack = sipFactory.createSipStack(BalancerContext.balancerContext.properties);
            
         } catch (PeerUnavailableException pue) {
