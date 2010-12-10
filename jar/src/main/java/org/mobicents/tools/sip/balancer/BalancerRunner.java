@@ -325,6 +325,19 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		}
 		return nodeList;
 	}
+
+	public Properties getProperties() {
+		return BalancerContext.balancerContext.properties;
+	}
+
+	public String getProperty(String key) {
+		return BalancerContext.balancerContext.properties.getProperty(key);
+	}
+
+	public void setProperty(String key, String value) {
+		BalancerContext.balancerContext.properties.setProperty(key, value);
+		BalancerContext.balancerContext.balancerAlgorithm.configurationChanged();
+	}
 }
 
 class SipBalancerShutdownHook extends Thread {

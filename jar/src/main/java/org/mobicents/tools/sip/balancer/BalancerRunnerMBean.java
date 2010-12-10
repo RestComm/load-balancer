@@ -23,6 +23,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 
@@ -60,5 +61,9 @@ public interface BalancerRunnerMBean {
 	long getResponsesProcessedByStatusCode(String statusCode);
 	
 	List<SIPNode> getNodes();
-	String[] getNodeList();		
+	String[] getNodeList();
+	
+	String getProperty(String key);
+	void setProperty(String key, String value);
+	Properties getProperties();
 }
