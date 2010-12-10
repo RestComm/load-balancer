@@ -55,7 +55,7 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 	}
 
 	// Test actual failover by adding a lot of noise nodes and only 1 partner for the original
-	public void partnerFailoverTest() throws Exception, ParseException {
+	public void testPartnerFailover() throws Exception, ParseException {
 		try {
 			BalancerContext.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>();
 			ClusterSubdomainAffinityAlgorithm algorithm = new ClusterSubdomainAffinityAlgorithm();

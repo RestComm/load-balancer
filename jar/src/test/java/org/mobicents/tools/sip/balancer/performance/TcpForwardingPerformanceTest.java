@@ -156,7 +156,7 @@ public class TcpForwardingPerformanceTest extends TestCase {
 		try {
 		TcpForwardingPerformanceTest test = new TcpForwardingPerformanceTest();
 		test.setUp();
-		test.testMessagePerformance(200*1000, 1000);
+		test.testMessagePerformance(20*1000, 1000);
 		test.tearDown();
 		} catch (Exception e) {
 			e.printStackTrace();
