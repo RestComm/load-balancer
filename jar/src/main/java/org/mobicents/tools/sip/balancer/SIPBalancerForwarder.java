@@ -747,18 +747,16 @@ public class SIPBalancerForwarder implements SipListener {
 			logger.finest("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
     		logger.finest("Sending the request:\n" + request + "\n on the other side");
     	}
+		if(getLoopbackUri(request) != null) {
+			logger.warning("Drop. Cannot forward to loopback the following request: " + request);
+			return;
+		}
 		if(!isRequestFromServer && BalancerContext.balancerContext.isTwoEntrypoints()) {
 			request.addHeader(viaHeaderExternal); 
-			if(getLoopbackUri(request) != null) {
-				logger.warning("Drop. Cannot forward to loopback the following request: " + request);
-			}
 			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
 			BalancerContext.balancerContext.internalSipProvider.sendRequest(request);
 		} else {
 			// Check if the next hop is actually the load balancer again
-			if(getLoopbackUri(request) != null) {
-				logger.warning("Drop. Cannot forward to loopback the following request: " + request);
-			}
 			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
 			request.addHeader(viaHeaderExternal); 
 			BalancerContext.balancerContext.externalSipProvider.sendRequest(request);
