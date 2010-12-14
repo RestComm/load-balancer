@@ -227,5 +227,11 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 		}
 		dumpNodes();
 	}
+	
+	public void configurationChanged() {
+		logger.info("Configuration changed");
+		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
+		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
+	}
 
 }

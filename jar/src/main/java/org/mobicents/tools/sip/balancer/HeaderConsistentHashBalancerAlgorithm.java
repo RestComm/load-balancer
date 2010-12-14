@@ -5,7 +5,9 @@ import gov.nist.javax.sip.header.SIPHeader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.SortedSet;
+import java.util.Timer;
 import java.util.TreeSet;
+import java.util.logging.Logger;
 
 import javax.sip.address.SipURI;
 import javax.sip.header.FromHeader;
@@ -16,7 +18,7 @@ import javax.sip.message.Request;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 
 public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgorithm {
-	
+	private static Logger logger = Logger.getLogger(HeaderConsistentHashBalancerAlgorithm.class.getName());
 	protected String sipHeaderAffinityKey;
 	protected String httpAffinityKey;
 	
@@ -136,6 +138,10 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
     public void init() {
     	this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
     	this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
-
     }
+    
+	public void configurationChanged() {
+		logger.info("Configuration changed");
+		init();
+	}
 }

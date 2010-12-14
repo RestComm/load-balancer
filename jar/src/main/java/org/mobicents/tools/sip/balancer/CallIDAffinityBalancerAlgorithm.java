@@ -241,6 +241,11 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 		logger.info("Grouped failover is set to " + this.groupedFailover);
 	}
+	public void configurationChanged() {
+		this.cacheEvictionTimer.cancel();
+		this.cacheEvictionTimer = new Timer();
+		init();
+	}
 	
 	public void assignToNode(String id, SIPNode node) {
 		callIdMap.put(id, node);
