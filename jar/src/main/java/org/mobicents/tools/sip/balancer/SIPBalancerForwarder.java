@@ -135,6 +135,25 @@ public class SIPBalancerForwarder implements SipListener {
 			BalancerContext.balancerContext.internalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerPort"));
 		}
 		
+		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+			if(BalancerContext.balancerContext.externalLoadBalancerPort > 0) {
+				if(BalancerContext.balancerContext.internalLoadBalancerPort <=0) {
+					throw new RuntimeException("External IP load balancer specified, but not internal load balancer");
+				}
+			}
+		}
+		if(BalancerContext.balancerContext.externalIpLoadBalancerAddress != null) {
+			if(BalancerContext.balancerContext.externalLoadBalancerPort<=0) {
+				throw new RuntimeException("External load balancer address specified, but not externalLoadBalancerPort");
+			}
+		}
+		
+		if(BalancerContext.balancerContext.internalIpLoadBalancerAddress != null) {
+			if(BalancerContext.balancerContext.internalLoadBalancerPort<=0) {
+				throw new RuntimeException("Internal load balancer address specified, but not internalLoadBalancerPort");
+			}
+		}
+		
 		String extraServerNodesString = BalancerContext.balancerContext.properties.getProperty("extraServerNodes");
 		if(extraServerNodesString != null) {
 			extraServerAddresses = extraServerNodesString.split(",");
