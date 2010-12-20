@@ -13,7 +13,7 @@ import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class WorstCaseAffinityTest extends TestCase {
+public class EarlyDialogWorstCaseAffinityTest extends TestCase {
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
@@ -44,6 +44,7 @@ public class WorstCaseAffinityTest extends TestCase {
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("internalPort", "5065");
 		properties.setProperty("externalPort", "5060");
+		properties.setProperty("earlyDialogWorstCase", "true");
 		balancer.start(properties);
 		
 		
@@ -66,9 +67,9 @@ public class WorstCaseAffinityTest extends TestCase {
 		balancer.stop();
 	}
 	static AppServer invite;
-	static AppServer bye;
 	static AppServer ack;
-	public void testInviteByeLandOnDifferentNodes() throws Exception {
+	static AppServer bye;
+	public void testInviteAckLandOnDifferentNodes() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 
 			@Override
@@ -82,13 +83,12 @@ public class WorstCaseAffinityTest extends TestCase {
 				if(method.equals("ACK")) {
 					ack = source;
 					
-					if(ack != invite) TestCase.fail("INVITE and ACK should have landed on same node");
-			
+					if(ack == invite) TestCase.fail("INVITE and ACK should have landed on different nodes");
 				}
 				if(method.equals("BYE")) {
 					bye = source;
 					
-					if(bye == invite) TestCase.fail("INVITE and BYE should have landed on different nodes");
+					if(ack == bye) TestCase.fail("ACK and BYE should have landed on different nodes");
 				}
 
 				
@@ -112,12 +112,12 @@ public class WorstCaseAffinityTest extends TestCase {
 		shootist.sendInitialInvite();
 		Thread.sleep(11000);
 		if(invite == null) TestCase.fail("INVITE not seen");
-		if(bye == null) TestCase.fail("BYE not seen");
+		if(ack == null) TestCase.fail("BYE not seen");
 	}
 	
 	AppServer ringingAppServer;
 	AppServer okAppServer;
-	public void testOKRingingLandOnSameNode() throws Exception {
+	public void testOKRingingLandOnDifferentNodes() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {
 			
@@ -175,7 +175,7 @@ public class WorstCaseAffinityTest extends TestCase {
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
 		Thread.sleep(16000);
 		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
-		assertSame(ringingAppServer, okAppServer);
+		assertNotSame(ringingAppServer, okAppServer);
 		assertNotNull(ringingAppServer);
 		assertNotNull(okAppServer);
 	}

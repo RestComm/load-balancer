@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
@@ -29,6 +30,7 @@ import javax.sip.message.Response;
 public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm {
 	protected ConcurrentHashMap<String, SIPNode> txToNode = new ConcurrentHashMap<String, SIPNode>();
 	protected ConcurrentHashMap<String, Long> txTimestamps = new ConcurrentHashMap<String, Long>();
+	protected boolean earlyDialogWorstCase = false;
 	public synchronized SIPNode getNode(String tx) {
 		return txToNode.get(tx);
 	}
@@ -38,10 +40,14 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	}
 	public SIPNode processAssignedExternalRequest(Request request,
 			SIPNode assignedNode) {
-		String tx = ((ViaHeader)request.getHeader(Via.NAME)).getBranch();
+		ViaHeader via = (ViaHeader) request.getHeader(Via.NAME);
+		String transport = via.getTransport().toLowerCase();
+		String tx = via.getBranch();
 		SIPNode seenNode = getNode(tx);
 		if(seenNode != null) return seenNode;
-		if(request.getMethod().contains("ACK")) return assignedNode;
+		if(!earlyDialogWorstCase) {
+			if(request.getMethod().contains("ACK")) return assignedNode;
+		}
 		RouteHeader route = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		SipURI uri = null;
 		if(route != null) {
@@ -53,7 +59,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			for(SIPNode node:getBalancerContext().nodes) {
 				if(!node.equals(assignedNode)) {
 					uri.setHost(node.getIp());
-					Integer port = (Integer) node.getProperties().get("udpPort");
+					Integer port = (Integer) node.getProperties().get(transport + "Port");
 					uri.setPort(port);
 					String callId = ((SIPHeader) request.getHeader(headerName))
 					.getValue();
@@ -65,7 +71,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 					if(request.getRequestURI().isSipURI()) {
 						SipURI ruri = (SipURI) request.getRequestURI();
 						String rurihostid = ruri.getHost() + ruri.getPort();
-						String originalhostid = assignedNode.getIp() + assignedNode.getProperties().get("udpPort");
+						String originalhostid = assignedNode.getIp() + assignedNode.getProperties().get(transport + "Port");
 						if(rurihostid.equals(originalhostid)) {
 							ruri.setPort(port);
 							ruri.setHost(node.getIp());
@@ -103,6 +109,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	public void processExternalResponse(Response response) {
 		BalancerContext balancerContext = getBalancerContext();
 		Via via = (Via) response.getHeader(Via.NAME);
+		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
 		boolean found = false;
 		for(SIPNode node : BalancerContext.balancerContext.nodes) {
@@ -116,12 +123,39 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				node = selectNewNode(node, callId);
 				try {
 					via.setHost(node.getIp());
-					String transportProperty = via.getTransport().toLowerCase() + "Port";
+					String transportProperty = transport + "Port";
 					Integer port = (Integer) node.getProperties().get(transportProperty);
 					if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 					via.setPort(port);
 				} catch (Exception e) {
 					throw new RuntimeException("Error", e);
+				}
+				if(!ListeningPoint.UDP.equalsIgnoreCase(transport)) {
+					via.setRPort();
+				}
+			}
+		} else {
+			if(earlyDialogWorstCase) {
+				String callId = ((SIPHeader) response.getHeader(headerName))
+				.getValue();
+				SIPNode node = callIdMap.get(callId);
+				for(int q=0; q<3; q++) {
+					SIPNode other = selectNewNode(node, callId);
+					if(other!= null && !other.equals(node)) {
+						node = other; break;
+					}
+				}
+				try {
+					via.setHost(node.getIp());
+					String transportProperty = transport + "Port";
+					Integer port = (Integer) node.getProperties().get(transportProperty);
+					if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
+					via.setPort(port);
+				} catch (Exception e) {
+					throw new RuntimeException("Error", e);
+				}
+				if(!ListeningPoint.UDP.equalsIgnoreCase(transport)) {
+					via.setRPort();
 				}
 			}
 		}
@@ -227,7 +261,11 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			this.maxCallIdleTime = Integer.parseInt(maxTimeInCacheString);
 		}
 		logger.info("Call Idle Time is " + this.maxCallIdleTime + " seconds. Inactive calls will be evicted.");
-		
+		String earlyDialogWorstCaseString = getProperties().getProperty("earlyDialogWorstCase");
+		if(earlyDialogWorstCaseString != null) {
+			earlyDialogWorstCase = Boolean.parseBoolean(earlyDialogWorstCaseString);
+		}
+		logger.info("Early dialog worst case is " + this.earlyDialogWorstCase);
 		final WorstCaseUdpTestAffinityAlgorithm thisAlgorithm = this;
 		this.cacheEvictionTimer.schedule(new TimerTask() {
 
