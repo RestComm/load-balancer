@@ -1,19 +1,23 @@
 package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.SIPHeader;
+import gov.nist.javax.sip.header.Via;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.SortedSet;
 import java.util.Timer;
 import java.util.TreeSet;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.FromHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Message;
 import javax.sip.message.Request;
+import javax.sip.message.Response;
 
 import org.jboss.netty.handler.codec.http.HttpRequest;
 
@@ -143,5 +147,64 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	public void configurationChanged() {
 		logger.info("Configuration changed");
 		init();
+	}
+	
+	public void processExternalResponse(Response response) {
+		
+		Integer nodeIndex = hashHeader(response);
+		BalancerContext balancerContext = getBalancerContext();
+		Via via = (Via) response.getHeader(Via.NAME);
+		String host = via.getHost();
+		Integer port = via.getPort();
+		String transport = via.getTransport().toLowerCase();
+		boolean found = false;
+		for(SIPNode node : BalancerContext.balancerContext.nodes) {
+			if(node.getIp().equals(host)) {
+				if(port.equals(node.getProperties().get(transport+"Port"))) {
+					found = true;
+				}
+			}
+		}
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("external response node found ? " + found);
+		}
+		if(!found) {
+			if(nodesAreDirty) {
+				synchronized(this) {
+					nodes.clear();
+					nodes.add(balancerContext.nodes);
+					nodesArray = nodes.toArray(new Object[]{});
+					nodesAreDirty = false;
+				}
+			}
+			try {
+				SIPNode node = (SIPNode) nodesArray[nodeIndex];
+				if(node == null || !balancerContext.nodes.contains(node)) {
+					if(logger.isLoggable(Level.FINEST)) {
+						logger.finest("No node to handle " + via);
+					}
+					
+				} else {
+					String transportProperty = transport + "Port";
+					port = (Integer) node.getProperties().get(transportProperty);
+					if(via.getHost().equalsIgnoreCase(node.getIp()) || via.getPort() != port) {
+						if(logger.isLoggable(Level.FINEST)) {
+							logger.finest("changing retransmission via " + via + "setting new values " + node.getIp() + ":" + port);
+						}
+						try {
+							via.setHost(node.getIp());
+							via.setPort(port);
+						} catch (Exception e) {
+							throw new RuntimeException("Error setting new values " + node.getIp() + ":" + port + " on via " + via, e);
+						}
+						// need to reset the rport for reliable transports
+						if(!ListeningPoint.UDP.equalsIgnoreCase(transport)) {
+							via.setRPort();
+						}
+					}
+				}
+			} catch (Exception e) {
+			}
+		}
 	}
 }
