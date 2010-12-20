@@ -13,7 +13,6 @@ import javax.sip.message.Response;
 public class SIPBalancerValveProcessor implements SIPMessageValve {
 	
 	
-	@Override
 	public boolean processRequest(SIPRequest request,
 			MessageChannel messageChannel) {
 		SipProvider p = BalancerContext.balancerContext.externalSipProvider;
@@ -27,7 +26,6 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 		return false;
 	}
 
-	@Override
 	public boolean processResponse(Response response,
 			MessageChannel messageChannel) {
 		SipProvider p = BalancerContext.balancerContext.externalSipProvider;
@@ -40,13 +38,11 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 		return false;
 	}
 
-	@Override
 	public void destroy() {
 		// TODO Auto-generated method stub
 		
 	}
 
-	@Override
 	public void init(SipStack stack) {
 		// TODO Auto-generated method stub
 		
