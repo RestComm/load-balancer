@@ -117,6 +117,19 @@ public class HeaderConsistentHashAlgorithmTest extends TestCase {
 		assertNotNull(bye);
 	}
 	
+	public void testAllNodesDead() throws Exception {
+		for(AppServer as:servers) {
+			as.sendCleanShutdownToBalancers();
+			as.sendHeartbeat=false;
+		}
+		Thread.sleep(1000);
+		shootist.callerSendsBye = true;
+		shootist.sendInitialInvite();
+
+		Thread.sleep(5000);
+		assertEquals(500, shootist.responses.get(0).getStatusCode());
+	}
+	
 	AppServer ringingAppServer;
 	AppServer okAppServer;
 	public void testOKRingingLandOnDifferentNode() throws Exception {

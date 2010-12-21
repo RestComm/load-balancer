@@ -2,6 +2,7 @@ package org.mobicents.tools.sip.balancer.operation;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -68,6 +69,9 @@ public class Shootist implements SipListener {
     public boolean callerSendsBye;
     
     public Request inviteRequest;
+    
+    public LinkedList<Request> requests = new LinkedList<Request>();
+    public LinkedList<Response> responses = new LinkedList<Response>();
 
     class ByeTask  extends TimerTask {
         Dialog dialog;
@@ -123,6 +127,7 @@ public class Shootist implements SipListener {
 
     public void processRequest(RequestEvent requestReceivedEvent) {
         Request request = requestReceivedEvent.getRequest();
+        requests.add(request);
         ServerTransaction serverTransactionId = requestReceivedEvent
                 .getServerTransaction();
         if(serverTransactionId == null) {
@@ -185,6 +190,7 @@ public class Shootist implements SipListener {
     public void processResponse(ResponseEvent responseReceivedEvent) {
         System.out.println("Got a response");
         Response response = (Response) responseReceivedEvent.getResponse();
+        responses.add(response);
         ClientTransaction tid = responseReceivedEvent.getClientTransaction();
         CSeqHeader cseq = (CSeqHeader) response.getHeader(CSeqHeader.NAME);
 

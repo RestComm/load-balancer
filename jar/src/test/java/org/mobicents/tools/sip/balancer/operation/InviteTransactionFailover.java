@@ -82,7 +82,20 @@ public class InviteTransactionFailover extends TestCase{
 			nodes = balancer.getNodeList();
 			assertEquals(numNodes-1, nodes.length);
 	}
-	
+
+	public void testAllNodesDead() throws Exception {
+		for(AppServer as:servers) {
+			as.sendCleanShutdownToBalancers();
+			as.sendHeartbeat=false;
+		}
+		Thread.sleep(1000);
+		shootist.callerSendsBye = true;
+		shootist.sendInitialInvite();
+
+		Thread.sleep(5000);
+		assertEquals(500, shootist.responses.get(0).getStatusCode());
+	}
+
 //	private void _BAD_testInviteTx() throws Exception {
 //		ProtocolObjects senderProtocolObjects = new ProtocolObjects("forward-udp-sender",
 //				"gov.nist", "udp", false, null);

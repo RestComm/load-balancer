@@ -40,6 +40,10 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	}
 	public SIPNode processAssignedExternalRequest(Request request,
 			SIPNode assignedNode) {
+		String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
+		if(callIdMap.get(callId) != null) {
+			assignedNode = callIdMap.get(callId);
+		}
 		ViaHeader via = (ViaHeader) request.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
 		String tx = via.getBranch();
@@ -61,8 +65,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 					uri.setHost(node.getIp());
 					Integer port = (Integer) node.getProperties().get(transport + "Port");
 					uri.setPort(port);
-					String callId = ((SIPHeader) request.getHeader(headerName))
-					.getValue();
+					
+					
 					callIdMap.put(callId, node);
 					setNode(tx, node);
 					
@@ -135,7 +139,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				}
 			}
 		} else {
-			if(earlyDialogWorstCase) {
+			if(earlyDialogWorstCase && response.getStatusCode()>100) {
 				String callId = ((SIPHeader) response.getHeader(headerName))
 				.getValue();
 				SIPNode node = callIdMap.get(callId);

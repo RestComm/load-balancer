@@ -82,13 +82,11 @@ public class EarlyDialogWorstCaseAffinityTest extends TestCase {
 				if(method.equals("INVITE")) invite = source;
 				if(method.equals("ACK")) {
 					ack = source;
-					
-					if(ack == invite) TestCase.fail("INVITE and ACK should have landed on different nodes");
-				}
+				
+					}
 				if(method.equals("BYE")) {
 					bye = source;
-					
-					if(ack == bye) TestCase.fail("ACK and BYE should have landed on different nodes");
+
 				}
 
 				
@@ -113,6 +111,8 @@ public class EarlyDialogWorstCaseAffinityTest extends TestCase {
 		Thread.sleep(11000);
 		if(invite == null) TestCase.fail("INVITE not seen");
 		if(ack == null) TestCase.fail("BYE not seen");
+		assertNotSame(ack, bye);
+		assertNotSame(ack, invite);
 	}
 	
 	AppServer ringingAppServer;

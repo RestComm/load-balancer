@@ -98,7 +98,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			.getValue();
 		}
 
-		if(nodes.size() == 0) throw new RuntimeException("No Application Servers registered. All servers are dead.");
+		if(nodes.size() == 0) return -1;
 		
 		int nodeIndex = hashAffinityKeyword(headerValue);
 
