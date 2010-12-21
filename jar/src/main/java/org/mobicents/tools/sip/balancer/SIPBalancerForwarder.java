@@ -741,7 +741,19 @@ public class SIPBalancerForwarder implements SipListener {
 				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
 			}
 			if(nextNode == null) {
-				throw new RuntimeException("No nodes available");
+				if(logger.isLoggable(Level.FINE)) {
+					logger.fine("No nodes available");
+				}
+				if(!Request.ACK.equalsIgnoreCase(request.getMethod())) {
+		            try {
+		            	Response response = BalancerContext.balancerContext.messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR, request);			
+		                response.setReasonPhrase("No nodes available");
+		            	sipProvider.sendResponse(response);	
+		            } catch (Exception e) {
+		            	logger.log(Level.SEVERE, "Unexpected exception while trying to send the error response for this " + request, e);
+					}
+	            }
+				return;
 			} else {
 
 			}
