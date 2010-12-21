@@ -112,7 +112,7 @@ public class UdpForwardingPerformanceTest extends TestCase {
 	}
 	
 	public void testInvitePerformanceLong() {
-		testMessagePerformance(1*60*1000, 100000, inviteRequestBytes);
+		testMessagePerformance(1*30*1000, 100000, inviteRequestBytes);
 	}
 	
 	public void testInvitePerformance10sec() {

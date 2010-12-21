@@ -107,7 +107,7 @@ public class TcpForwardingPerformanceTest extends TestCase {
 	
 	
 	public void testInvitePerformance10sec() {
-		testMessagePerformance(200*1000, 10000);
+		testMessagePerformance(10*1000, 10000);
 	}
 	
 
