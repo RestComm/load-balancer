@@ -252,19 +252,21 @@ public class NodeRegisterImpl  implements NodeRegister {
 				logger.finest("NodeExpirationTimerTask Running");
 			}
 			for (SIPNode node : BalancerContext.balancerContext.nodes) {
-				
-				if (node.getTimeStamp() + nodeExpiration < System
+				long expirationTime = node.getTimeStamp() + nodeExpiration;
+				if (expirationTime < System
 						.currentTimeMillis()) {
 					BalancerContext.balancerContext.nodes.remove(node);
 					BalancerContext.balancerContext.balancerAlgorithm.nodeRemoved(node);
 					if(logger.isLoggable(Level.INFO)) {
 						logger.info("NodeExpirationTimerTask Run NSync["
 							+ node + "] removed. Last timestamp: " + node.getTimeStamp() + 
-							", current: " + System.currentTimeMillis());
+							", current: " + System.currentTimeMillis()
+							 + " diff=" + ((double)System.currentTimeMillis()-node.getTimeStamp() ) +
+							 "ms and tolerance=" + nodeExpiration + " ms");
 					}
 				} else {
 					if(logger.isLoggable(Level.FINEST)) {
-						logger.finest("node time stamp : " + (node.getTimeStamp() + nodeExpiration) + " , current time : "
+						logger.finest("node time stamp : " + expirationTime + " , current time : "
 							+ System.currentTimeMillis());
 					}
 				}
