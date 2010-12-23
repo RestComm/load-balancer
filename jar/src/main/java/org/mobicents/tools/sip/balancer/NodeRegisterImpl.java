@@ -283,6 +283,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 */
 	public void handlePingInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
+			pingNode.updateTimerStamp();
 			if(pingNode.getProperties().get("jvmRoute") != null) {
 				// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
 				// We need info about inactive nodes to do the failover
