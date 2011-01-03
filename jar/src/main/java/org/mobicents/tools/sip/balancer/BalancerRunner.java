@@ -42,15 +42,16 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
 	public static final String HTML_ADAPTOR_PORT = "8000";
 	public static final String REGISTRY_PORT = "2000";
-	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port="+ HTML_ADAPTOR_PORT;
+	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
 	private static Logger logger = Logger.getLogger(BalancerRunner.class
 			.getCanonicalName());
-	protected SIPBalancerForwarder fwd = null;
+	protected SIPBalancerForwarder sipForwarder = null;
 	protected NodeRegisterImpl reg = null;
 	HtmlAdaptorServer adapter = new HtmlAdaptorServer();
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
+	public BalancerContext balancerContext = new BalancerContext();
 
 	/**
 	 * @param args
@@ -103,8 +104,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		
 		try {
 			Class clazz = Class.forName(algorithmClassname);
-			BalancerContext.balancerContext.balancerAlgorithm = (BalancerAlgorithm) clazz.newInstance();
-			BalancerContext.balancerContext.balancerAlgorithm.setProperties(properties);
+			balancerContext.balancerAlgorithm = (DefaultBalancerAlgorithm) clazz.newInstance();
+			balancerContext.balancerAlgorithm.balancerContext = balancerContext;
+			balancerContext.balancerAlgorithm.setProperties(properties);
 			logger.info("Balancer algorithm " + algorithmClassname + " loaded succesfully");
 		} catch (Exception e) {
 			throw new RuntimeException("Error loading the algorithm class: " + algorithmClassname, e);
@@ -115,13 +117,14 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
 			
 			//register the jmx html adapter
-			adapterName = new ObjectName(HTML_ADAPTOR_JMX_NAME);
+			adapterName = new ObjectName(HTML_ADAPTOR_JMX_NAME + jmxHtmlPort);
 	        adapter.setPort(jmxHtmlPort);	        	        
 			server.registerMBean(adapter, adapterName);					
 			
 			RouterImpl.setRegister(reg);			
 
 			reg = new NodeRegisterImpl(addr);
+			reg.balancerRunner = this;
 			
 			try {
 				reg.setNodeExpirationTaskInterval(Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL, "150")));
@@ -140,16 +143,17 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				logger.finest("adding shutdown hook");
 			}
 			
-			fwd = new SIPBalancerForwarder(properties, reg);
-			fwd.start();
+			sipForwarder = new SIPBalancerForwarder(properties, this, reg);
+			sipForwarder.start();
 			httpBalancerForwarder = new HttpBalancerForwarder();
+			httpBalancerForwarder.balancerRunner = this;
 			try {
-			httpBalancerForwarder.start();
+				httpBalancerForwarder.start();
 			} catch (org.jboss.netty.channel.ChannelException e) {
 				logger.warning("HTTP forwarder could not be restarted.");
 			}
-			
-			BalancerContext.balancerContext.balancerAlgorithm.init();
+
+			balancerContext.balancerAlgorithm.init();
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
@@ -208,8 +212,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 					FileInputStream fileInputStream = null;
 					try {
 						fileInputStream = new FileInputStream(conf);
-						BalancerContext.balancerContext.properties.load(fileInputStream);
-						BalancerContext.balancerContext.balancerAlgorithm.configurationChanged();
+						balancerContext.properties.load(fileInputStream);
+						balancerContext.balancerAlgorithm.configurationChanged();
 					} catch (Exception e) {
 						logger.warning("Problem reloading configuration " + e);
 					} finally {
@@ -233,7 +237,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		if(timer != null) timer.cancel();
 		timer = null;
 		logger.info("Stopping the sip forwarder");
-		fwd.stop();
+		sipForwarder.stop();
 		logger.info("Stopping the http forwarder");
 		httpBalancerForwarder.stop();
 		logger.info("Unregistering the node registry");
@@ -255,7 +259,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 					cs.stop();
 				}
 				cs = null;
-				BalancerContext.balancerContext.balancerAlgorithm.stop();
+				balancerContext.balancerAlgorithm.stop();
 				adapter.stop();
 				logger.info("Stopping the node registry");
 				reg.stopRegistry();
@@ -280,27 +284,27 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 
 	public long getNumberOfRequestsProcessed() {
-		return fwd.getNumberOfRequestsProcessed();
+		return sipForwarder.getNumberOfRequestsProcessed();
 	}
 
 	public long getNumberOfResponsesProcessed() {
-		return fwd.getNumberOfResponsesProcessed();
+		return sipForwarder.getNumberOfResponsesProcessed();
 	}
 
 	public Map<String, AtomicLong> getNumberOfRequestsProcessedByMethod() {
-		return fwd.getNumberOfRequestsProcessedByMethod();
+		return sipForwarder.getNumberOfRequestsProcessedByMethod();
 	}
 
 	public Map<String, AtomicLong> getNumberOfResponsesProcessedByStatusCode() {
-		return fwd.getNumberOfResponsesProcessedByStatusCode();
+		return sipForwarder.getNumberOfResponsesProcessedByStatusCode();
 	}
 	
 	public long getRequestsProcessedByMethod(String method) {
-		return fwd.getRequestsProcessedByMethod(method);
+		return sipForwarder.getRequestsProcessedByMethod(method);
 	}
 
 	public long getResponsesProcessedByStatusCode(String statusCode) {
-		return fwd.getResponsesProcessedByStatusCode(statusCode);
+		return sipForwarder.getResponsesProcessedByStatusCode(statusCode);
 	}
 	
 	public void setNodeExpiration(long value) {
@@ -327,16 +331,16 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 
 	public Properties getProperties() {
-		return BalancerContext.balancerContext.properties;
+		return balancerContext.properties;
 	}
 
 	public String getProperty(String key) {
-		return BalancerContext.balancerContext.properties.getProperty(key);
+		return balancerContext.properties.getProperty(key);
 	}
 
 	public void setProperty(String key, String value) {
-		BalancerContext.balancerContext.properties.setProperty(key, value);
-		BalancerContext.balancerContext.balancerAlgorithm.configurationChanged();
+		balancerContext.properties.setProperty(key, value);
+		balancerContext.balancerAlgorithm.configurationChanged();
 	}
 }
 

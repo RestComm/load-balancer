@@ -21,6 +21,7 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.header.SIPHeader;
 
 import java.text.ParseException;
@@ -85,6 +86,7 @@ public class SIPBalancerForwarder implements SipListener {
 	
 	public static final int UDP = 0;
 	public static final int TCP = 1;
+	BalancerRunner balancerRunner;
 
 	protected static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
     
@@ -98,63 +100,64 @@ public class SIPBalancerForwarder implements SipListener {
     protected String[] extraServerAddresses;
     protected int[] extraServerPorts;
 	
-	public SIPBalancerForwarder(Properties properties, NodeRegister register) throws IllegalStateException{
+	public SIPBalancerForwarder(Properties properties, BalancerRunner balancerRunner, NodeRegister register) throws IllegalStateException{
 		super();
-		BalancerContext.balancerContext.forwarder = this;
-		BalancerContext.balancerContext.properties = properties;
+		this.balancerRunner = balancerRunner;
+		this.balancerRunner.balancerContext.forwarder = this;
+		this.balancerRunner.balancerContext.properties = properties;
 		this.register = register;		
 	}
 
 	public void start() {
 
 		SipFactory sipFactory = null;
-		BalancerContext.balancerContext.sipStack = null;
+		balancerRunner.balancerContext.sipStack = null;
 
-		BalancerContext.balancerContext.host = BalancerContext.balancerContext.properties.getProperty("host");   
-		BalancerContext.balancerContext.internalHost = BalancerContext.balancerContext.properties.getProperty("internalHost",BalancerContext.balancerContext.host); 
-		BalancerContext.balancerContext.externalHost = BalancerContext.balancerContext.properties.getProperty("externalHost",BalancerContext.balancerContext.host); 
-		BalancerContext.balancerContext.externalPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("externalPort"));
-		if(BalancerContext.balancerContext.properties.getProperty("internalPort") != null) {
-			BalancerContext.balancerContext.internalPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("internalPort"));
+		balancerRunner.balancerContext.host = balancerRunner.balancerContext.properties.getProperty("host");   
+		balancerRunner.balancerContext.internalHost = balancerRunner.balancerContext.properties.getProperty("internalHost",balancerRunner.balancerContext.host); 
+		balancerRunner.balancerContext.externalHost = balancerRunner.balancerContext.properties.getProperty("externalHost",balancerRunner.balancerContext.host); 
+		balancerRunner.balancerContext.externalPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalPort"));
+		if(balancerRunner.balancerContext.properties.getProperty("internalPort") != null) {
+			balancerRunner.balancerContext.internalPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalPort"));
 		}
-		BalancerContext.balancerContext.externalIpLoadBalancerAddress = BalancerContext.balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
-		BalancerContext.balancerContext.internalIpLoadBalancerAddress = BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerAddress");
+		balancerRunner.balancerContext.externalIpLoadBalancerAddress = balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
+		balancerRunner.balancerContext.internalIpLoadBalancerAddress = balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerAddress");
 		
-		if(BalancerContext.balancerContext.properties.getProperty("externalLoadBalancerPort") != null) {
-			BalancerContext.balancerContext.externalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("externalLoadBalancerPort"));
+		if(balancerRunner.balancerContext.properties.getProperty("externalLoadBalancerPort") != null) {
+			balancerRunner.balancerContext.externalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalLoadBalancerPort"));
 		}
-		if(BalancerContext.balancerContext.properties.getProperty("internalLoadBalancerPort") != null) {
-			BalancerContext.balancerContext.internalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("internalLoadBalancerPort"));
+		if(balancerRunner.balancerContext.properties.getProperty("internalLoadBalancerPort") != null) {
+			balancerRunner.balancerContext.internalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalLoadBalancerPort"));
 		}
 		
 		// We ended up with two duplicate set of properties for interna and external IP LB ports, just keep then for back-compatibility
-		if(BalancerContext.balancerContext.properties.getProperty("externalIpLoadBalancerPort") != null) {
-			BalancerContext.balancerContext.externalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("externalIpLoadBalancerPort"));
+		if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerPort") != null) {
+			balancerRunner.balancerContext.externalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerPort"));
 		}
-		if(BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerPort") != null) {
-			BalancerContext.balancerContext.internalLoadBalancerPort = Integer.parseInt(BalancerContext.balancerContext.properties.getProperty("internalIpLoadBalancerPort"));
+		if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerPort") != null) {
+			balancerRunner.balancerContext.internalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerPort"));
 		}
 		
-		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
-			if(BalancerContext.balancerContext.externalLoadBalancerPort > 0) {
-				if(BalancerContext.balancerContext.internalLoadBalancerPort <=0) {
+		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+			if(balancerRunner.balancerContext.externalLoadBalancerPort > 0) {
+				if(balancerRunner.balancerContext.internalLoadBalancerPort <=0) {
 					throw new RuntimeException("External IP load balancer specified, but not internal load balancer");
 				}
 			}
 		}
-		if(BalancerContext.balancerContext.externalIpLoadBalancerAddress != null) {
-			if(BalancerContext.balancerContext.externalLoadBalancerPort<=0) {
+		if(balancerRunner.balancerContext.externalIpLoadBalancerAddress != null) {
+			if(balancerRunner.balancerContext.externalLoadBalancerPort<=0) {
 				throw new RuntimeException("External load balancer address specified, but not externalLoadBalancerPort");
 			}
 		}
 		
-		if(BalancerContext.balancerContext.internalIpLoadBalancerAddress != null) {
-			if(BalancerContext.balancerContext.internalLoadBalancerPort<=0) {
+		if(balancerRunner.balancerContext.internalIpLoadBalancerAddress != null) {
+			if(balancerRunner.balancerContext.internalLoadBalancerPort<=0) {
 				throw new RuntimeException("Internal load balancer address specified, but not internalLoadBalancerPort");
 			}
 		}
 		
-		String extraServerNodesString = BalancerContext.balancerContext.properties.getProperty("extraServerNodes");
+		String extraServerNodesString = balancerRunner.balancerContext.properties.getProperty("extraServerNodes");
 		if(extraServerNodesString != null) {
 			extraServerAddresses = extraServerNodesString.split(",");
 			extraServerPorts = new int[extraServerAddresses.length];
@@ -174,12 +177,12 @@ public class SIPBalancerForwarder implements SipListener {
             // Create SipStack object
         	sipFactory = SipFactory.getInstance();
 	        sipFactory.setPathName("gov.nist");
-	        BalancerContext.balancerContext.properties.setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", SIPBalancerValveProcessor.class.getName());
-	        if(BalancerContext.balancerContext.properties.getProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE") == null) {
-	        	BalancerContext.balancerContext.properties.setProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE", "100");
+	        balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", SIPBalancerValveProcessor.class.getName());
+	        if(balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE") == null) {
+	        	balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE", "100");
 	        }
 		    
-	        BalancerContext.balancerContext.sipStack = sipFactory.createSipStack(BalancerContext.balancerContext.properties);
+	        balancerRunner.balancerContext.sipStack = sipFactory.createSipStack(balancerRunner.balancerContext.properties);
            
         } catch (PeerUnavailableException pue) {
             // could not find
@@ -189,25 +192,25 @@ public class SIPBalancerForwarder implements SipListener {
         }
 
         try {
-        	BalancerContext.balancerContext.headerFactory = sipFactory.createHeaderFactory();
-        	BalancerContext.balancerContext.addressFactory = sipFactory.createAddressFactory();
-        	BalancerContext.balancerContext.messageFactory = sipFactory.createMessageFactory();
+        	balancerRunner.balancerContext.headerFactory = sipFactory.createHeaderFactory();
+        	balancerRunner.balancerContext.addressFactory = sipFactory.createAddressFactory();
+        	balancerRunner.balancerContext.messageFactory = sipFactory.createMessageFactory();
 
-            ListeningPoint externalLp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.externalHost, BalancerContext.balancerContext.externalPort, "udp");
-            ListeningPoint externalLpTcp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.externalHost, BalancerContext.balancerContext.externalPort, "tcp");
+            ListeningPoint externalLp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalPort, "udp");
+            ListeningPoint externalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalPort, "tcp");
             
-            BalancerContext.balancerContext.externalSipProvider = BalancerContext.balancerContext.sipStack.createSipProvider(externalLp);
-            BalancerContext.balancerContext.externalSipProvider.addListeningPoint(externalLpTcp);
-            BalancerContext.balancerContext.externalSipProvider.addSipListener(this);
+            balancerRunner.balancerContext.externalSipProvider = balancerRunner.balancerContext.sipStack.createSipProvider(externalLp);
+            balancerRunner.balancerContext.externalSipProvider.addListeningPoint(externalLpTcp);
+            balancerRunner.balancerContext.externalSipProvider.addSipListener(this);
             
             
             ListeningPoint internalLp = null;
-            if(BalancerContext.balancerContext.isTwoEntrypoints()) {
-            	internalLp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.internalHost, BalancerContext.balancerContext.internalPort, "udp");
-            	ListeningPoint internalLpTcp = BalancerContext.balancerContext.sipStack.createListeningPoint(BalancerContext.balancerContext.internalHost, BalancerContext.balancerContext.internalPort, "tcp");
-                BalancerContext.balancerContext.internalSipProvider = BalancerContext.balancerContext.sipStack.createSipProvider(internalLp);
-                BalancerContext.balancerContext.internalSipProvider.addListeningPoint(internalLpTcp);
-                BalancerContext.balancerContext.internalSipProvider.addSipListener(this);
+            if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+            	internalLp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalPort, "udp");
+            	ListeningPoint internalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalPort, "tcp");
+                balancerRunner.balancerContext.internalSipProvider = balancerRunner.balancerContext.sipStack.createSipProvider(internalLp);
+                balancerRunner.balancerContext.internalSipProvider.addListeningPoint(internalLpTcp);
+                balancerRunner.balancerContext.internalSipProvider.addSipListener(this);
             }
 
 
@@ -218,160 +221,163 @@ public class SIPBalancerForwarder implements SipListener {
     		//a) to forward BYE from the callee side to the caller
     		//b) to support different transports		
             {
-            	SipURI externalLocalUri = BalancerContext.balancerContext.addressFactory
+            	SipURI externalLocalUri = balancerRunner.balancerContext.addressFactory
             	.createSipURI(null, externalLp.getIPAddress());
             	externalLocalUri.setPort(externalLp.getPort());
             	externalLocalUri.setTransportParam("udp");
             	//See RFC 3261 19.1.1 for lr parameter
             	externalLocalUri.setLrParam();
-            	Address externalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(externalLocalUri);
+            	Address externalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(externalLocalUri);
             	externalLocalAddress.setURI(externalLocalUri);
 
             	if(logger.isLoggable(Level.FINEST)) {
             		logger.finest("adding Record Router Header :"+externalLocalAddress);
             	}                    
-            	BalancerContext.balancerContext.externalRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+            	balancerRunner.balancerContext.externalRecordRouteHeader[UDP] = balancerRunner.balancerContext.headerFactory
             	.createRecordRouteHeader(externalLocalAddress);    
             }
             {
-            	SipURI externalLocalUri = BalancerContext.balancerContext.addressFactory
+            	SipURI externalLocalUri = balancerRunner.balancerContext.addressFactory
             	.createSipURI(null, externalLp.getIPAddress());
             	externalLocalUri.setPort(externalLp.getPort());
             	externalLocalUri.setTransportParam("tcp");
             	//See RFC 3261 19.1.1 for lr parameter
             	externalLocalUri.setLrParam();
-            	Address externalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(externalLocalUri);
+            	Address externalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(externalLocalUri);
             	externalLocalAddress.setURI(externalLocalUri);
 
             	if(logger.isLoggable(Level.FINEST)) {
             		logger.finest("adding Record Router Header :"+externalLocalAddress);
             	}                    
-            	BalancerContext.balancerContext.externalRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+            	balancerRunner.balancerContext.externalRecordRouteHeader[TCP] = balancerRunner.balancerContext.headerFactory
             	.createRecordRouteHeader(externalLocalAddress);    
             }
 
-            if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+            if(balancerRunner.balancerContext.isTwoEntrypoints()) {
             	{
-            		SipURI internalLocalUri = BalancerContext.balancerContext.addressFactory
+            		SipURI internalLocalUri = balancerRunner.balancerContext.addressFactory
             		.createSipURI(null, internalLp.getIPAddress());
             		internalLocalUri.setPort(internalLp.getPort());
             		internalLocalUri.setTransportParam("udp");
             		//See RFC 3261 19.1.1 for lr parameter
             		internalLocalUri.setLrParam();
-            		Address internalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(internalLocalUri);
+            		Address internalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(internalLocalUri);
             		internalLocalAddress.setURI(internalLocalUri);
             		if(logger.isLoggable(Level.FINEST)) {
             			logger.finest("adding Record Router Header :"+internalLocalAddress);
             		}                    
-            		BalancerContext.balancerContext.internalRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+            		balancerRunner.balancerContext.internalRecordRouteHeader[UDP] = balancerRunner.balancerContext.headerFactory
             		.createRecordRouteHeader(internalLocalAddress);  
             	}
             	{
-            		SipURI internalLocalUri = BalancerContext.balancerContext.addressFactory
+            		SipURI internalLocalUri = balancerRunner.balancerContext.addressFactory
             		.createSipURI(null, internalLp.getIPAddress());
             		internalLocalUri.setPort(internalLp.getPort());
             		internalLocalUri.setTransportParam("tcp");
             		//See RFC 3261 19.1.1 for lr parameter
             		internalLocalUri.setLrParam();
-            		Address internalLocalAddress = BalancerContext.balancerContext.addressFactory.createAddress(internalLocalUri);
+            		Address internalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(internalLocalUri);
             		internalLocalAddress.setURI(internalLocalUri);
             		if(logger.isLoggable(Level.FINEST)) {
             			logger.finest("adding Record Router Header :"+internalLocalAddress);
             		}                    
-            		BalancerContext.balancerContext.internalRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+            		balancerRunner.balancerContext.internalRecordRouteHeader[TCP] = balancerRunner.balancerContext.headerFactory
             		.createRecordRouteHeader(internalLocalAddress);  
             	}
     		}
 
-    		if(BalancerContext.balancerContext.externalIpLoadBalancerAddress != null) {
+    		if(balancerRunner.balancerContext.externalIpLoadBalancerAddress != null) {
     			//UDP RR
     			{
-    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
-    				.createSipURI(null, BalancerContext.balancerContext.externalIpLoadBalancerAddress);
-    				ipLbSipUri.setPort(BalancerContext.balancerContext.externalLoadBalancerPort);
+    				SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
+    				.createSipURI(null, balancerRunner.balancerContext.externalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerPort);
     				ipLbSipUri.setTransportParam("udp");
     				ipLbSipUri.setLrParam();
-    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
     				ipLbAdress.setURI(ipLbSipUri);
-    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+    				balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[UDP] = balancerRunner.balancerContext.headerFactory
     				.createRecordRouteHeader(ipLbAdress);
     			}
     			//TCP RR
     			{
-    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
-    				.createSipURI(null, BalancerContext.balancerContext.externalIpLoadBalancerAddress);
-    				ipLbSipUri.setPort(BalancerContext.balancerContext.externalLoadBalancerPort);
+    				SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
+    				.createSipURI(null, balancerRunner.balancerContext.externalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerPort);
     				ipLbSipUri.setTransportParam("tcp");
     				ipLbSipUri.setLrParam();
-    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
     				ipLbAdress.setURI(ipLbSipUri);
-    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+    				balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[TCP] = balancerRunner.balancerContext.headerFactory
     				.createRecordRouteHeader(ipLbAdress);
     			}
     		}
     		
-    		if(BalancerContext.balancerContext.internalIpLoadBalancerAddress != null) {
+    		if(balancerRunner.balancerContext.internalIpLoadBalancerAddress != null) {
     			{
-    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
-    				.createSipURI(null, BalancerContext.balancerContext.internalIpLoadBalancerAddress);
-    				ipLbSipUri.setPort(BalancerContext.balancerContext.internalLoadBalancerPort);
+    				SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
+    				.createSipURI(null, balancerRunner.balancerContext.internalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerPort);
     				ipLbSipUri.setTransportParam("udp");
     				ipLbSipUri.setLrParam();
-    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
     				ipLbAdress.setURI(ipLbSipUri);
-    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[UDP] = BalancerContext.balancerContext.headerFactory
+    				balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[UDP] = balancerRunner.balancerContext.headerFactory
     				.createRecordRouteHeader(ipLbAdress);
     			}
     			{
-    				SipURI ipLbSipUri = BalancerContext.balancerContext.addressFactory
-    				.createSipURI(null, BalancerContext.balancerContext.internalIpLoadBalancerAddress);
-    				ipLbSipUri.setPort(BalancerContext.balancerContext.internalLoadBalancerPort);
+    				SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
+    				.createSipURI(null, balancerRunner.balancerContext.internalIpLoadBalancerAddress);
+    				ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerPort);
     				ipLbSipUri.setTransportParam("tcp");
     				ipLbSipUri.setLrParam();
-    				Address ipLbAdress = BalancerContext.balancerContext.addressFactory.createAddress(ipLbSipUri);
+    				Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
     				ipLbAdress.setURI(ipLbSipUri);
-    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] = BalancerContext.balancerContext.headerFactory
+    				balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[TCP] = balancerRunner.balancerContext.headerFactory
     				.createRecordRouteHeader(ipLbAdress);
     			}
     		}
-    		BalancerContext.balancerContext.activeExternalHeader[UDP] = BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[UDP] != null ?
-    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[UDP] : BalancerContext.balancerContext.externalRecordRouteHeader[UDP];
-    		BalancerContext.balancerContext.activeInternalHeader[UDP] = BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[UDP] != null ?
-    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[UDP] : BalancerContext.balancerContext.internalRecordRouteHeader[UDP];
+    		balancerRunner.balancerContext.activeExternalHeader[UDP] = balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[UDP] != null ?
+    				balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[UDP] : balancerRunner.balancerContext.externalRecordRouteHeader[UDP];
+    		balancerRunner.balancerContext.activeInternalHeader[UDP] = balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[UDP] != null ?
+    				balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[UDP] : balancerRunner.balancerContext.internalRecordRouteHeader[UDP];
     		
-    		BalancerContext.balancerContext.activeExternalHeader[TCP] = BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[TCP] != null ?
-    				BalancerContext.balancerContext.externalIpBalancerRecordRouteHeader[TCP] : BalancerContext.balancerContext.externalRecordRouteHeader[TCP];
-    		BalancerContext.balancerContext.activeInternalHeader[TCP] = BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] != null ?
-    				BalancerContext.balancerContext.internalIpBalancerRecordRouteHeader[TCP] : BalancerContext.balancerContext.internalRecordRouteHeader[TCP];
+    		balancerRunner.balancerContext.activeExternalHeader[TCP] = balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[TCP] != null ?
+    				balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[TCP] : balancerRunner.balancerContext.externalRecordRouteHeader[TCP];
+    		balancerRunner.balancerContext.activeInternalHeader[TCP] = balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[TCP] != null ?
+    				balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[TCP] : balancerRunner.balancerContext.internalRecordRouteHeader[TCP];
     		
-    		BalancerContext.balancerContext.useIpLoadBalancerAddressInViaHeaders = Boolean.valueOf(
-    				BalancerContext.balancerContext.properties.getProperty("useIpLoadBalancerAddressInViaHeaders", "false"));
-    		if(BalancerContext.balancerContext.useIpLoadBalancerAddressInViaHeaders) {
-    					BalancerContext.balancerContext.externalViaHost = BalancerContext.balancerContext.externalIpLoadBalancerAddress;
-    					BalancerContext.balancerContext.internalViaHost = BalancerContext.balancerContext.internalIpLoadBalancerAddress;
-    					BalancerContext.balancerContext.externalViaPort = BalancerContext.balancerContext.externalLoadBalancerPort;
-    					BalancerContext.balancerContext.internalViaPort = BalancerContext.balancerContext.internalLoadBalancerPort;
+    		balancerRunner.balancerContext.useIpLoadBalancerAddressInViaHeaders = Boolean.valueOf(
+    				balancerRunner.balancerContext.properties.getProperty("useIpLoadBalancerAddressInViaHeaders", "false"));
+    		if(balancerRunner.balancerContext.useIpLoadBalancerAddressInViaHeaders) {
+    					balancerRunner.balancerContext.externalViaHost = balancerRunner.balancerContext.externalIpLoadBalancerAddress;
+    					balancerRunner.balancerContext.internalViaHost = balancerRunner.balancerContext.internalIpLoadBalancerAddress;
+    					balancerRunner.balancerContext.externalViaPort = balancerRunner.balancerContext.externalLoadBalancerPort;
+    					balancerRunner.balancerContext.internalViaPort = balancerRunner.balancerContext.internalLoadBalancerPort;
     		} else {
-    					BalancerContext.balancerContext.externalViaHost = BalancerContext.balancerContext.externalHost;
-    					BalancerContext.balancerContext.internalViaHost = BalancerContext.balancerContext.internalHost;
-    					BalancerContext.balancerContext.externalViaPort = BalancerContext.balancerContext.externalPort;
-    					BalancerContext.balancerContext.internalViaPort = BalancerContext.balancerContext.internalPort;
+    					balancerRunner.balancerContext.externalViaHost = balancerRunner.balancerContext.externalHost;
+    					balancerRunner.balancerContext.internalViaHost = balancerRunner.balancerContext.internalHost;
+    					balancerRunner.balancerContext.externalViaPort = balancerRunner.balancerContext.externalPort;
+    					balancerRunner.balancerContext.internalViaPort = balancerRunner.balancerContext.internalPort;
     		}
-    		BalancerContext.balancerContext.sipStack.start();
+    		balancerRunner.balancerContext.sipStack.start();
+    		SipStackImpl stackImpl = (SipStackImpl) balancerRunner.balancerContext.sipStack;
+    		SIPBalancerValveProcessor valve = (SIPBalancerValveProcessor) stackImpl.sipMessageValve;
+    		valve.balancerRunner = balancerRunner;
         } catch (Exception ex) {
         	throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }
         if(logger.isLoggable(Level.INFO)) {
         	logger.info("Sip Balancer started on external address " + 
-        			BalancerContext.balancerContext.externalHost + ", external port : " + 
-        			BalancerContext.balancerContext.externalPort + ", internalPort : " + 
-        			BalancerContext.balancerContext.internalPort);
+        			balancerRunner.balancerContext.externalHost + ", external port : " + 
+        			balancerRunner.balancerContext.externalPort + ", internalPort : " + 
+        			balancerRunner.balancerContext.internalPort);
         }              
 	}
 	
 	public void stop() {
-		if(BalancerContext.balancerContext.sipStack == null) return;// already stopped
-		Iterator<SipProvider> sipProviderIterator = BalancerContext.balancerContext.sipStack.getSipProviders();
+		if(balancerRunner.balancerContext.sipStack == null) return;// already stopped
+		Iterator<SipProvider> sipProviderIterator = balancerRunner.balancerContext.sipStack.getSipProviders();
 		try{
 			while (sipProviderIterator.hasNext()) {
 				SipProvider sipProvider = sipProviderIterator.next();
@@ -382,7 +388,7 @@ public class SIPBalancerForwarder implements SipListener {
 					}
 					try {
 						sipProvider.removeListeningPoint(listeningPoint);
-						BalancerContext.balancerContext.sipStack.deleteListeningPoint(listeningPoint);
+						balancerRunner.balancerContext.sipStack.deleteListeningPoint(listeningPoint);
 					} catch (Exception e) {
 						logger.log(Level.SEVERE, "Cant remove the listening points or sip providers", e);
 					}
@@ -391,11 +397,11 @@ public class SIPBalancerForwarder implements SipListener {
 					logger.info("Removing the sip provider");
 				}
 				sipProvider.removeSipListener(this);
-				BalancerContext.balancerContext.sipStack.deleteSipProvider(sipProvider);	
-				sipProviderIterator = BalancerContext.balancerContext.sipStack.getSipProviders();
+				balancerRunner.balancerContext.sipStack.deleteSipProvider(sipProvider);	
+				sipProviderIterator = balancerRunner.balancerContext.sipStack.getSipProviders();
 			}
-			BalancerContext.balancerContext.sipStack.stop();
-			BalancerContext.balancerContext.sipStack = null;
+			balancerRunner.balancerContext.sipStack.stop();
+			balancerRunner.balancerContext.sipStack = null;
 			System.gc();
 			if(logger.isLoggable(Level.INFO)) {
 				logger.info("Sip forwarder SIP stack stopped");
@@ -433,7 +439,7 @@ public class SIPBalancerForwarder implements SipListener {
             logger.log(Level.SEVERE, "Unexpected exception while forwarding the request " + request, throwable);
             if(!Request.ACK.equalsIgnoreCase(requestMethod)) {
 	            try {
-	            	Response response = BalancerContext.balancerContext.messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR, request);			
+	            	Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR, request);			
 	                sipProvider.sendResponse(response);	
 	            } catch (Exception e) {
 	            	logger.log(Level.SEVERE, "Unexpected exception while trying to send the error response for this " + request, e);
@@ -443,47 +449,47 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 
 	private void updateStats(Message message) {
-		if(BalancerContext.balancerContext.gatherStatistics) {
+		if(balancerRunner.balancerContext.gatherStatistics) {
 			if(message instanceof Request) {
-				BalancerContext.balancerContext.requestsProcessed.incrementAndGet();
+				balancerRunner.balancerContext.requestsProcessed.incrementAndGet();
 				final String method = ((Request) message).getMethod();
-				final AtomicLong requestsProcessed = BalancerContext.balancerContext.requestsProcessedByMethod.get(method);
+				final AtomicLong requestsProcessed = balancerRunner.balancerContext.requestsProcessedByMethod.get(method);
 				if(requestsProcessed == null) {
-					BalancerContext.balancerContext.requestsProcessedByMethod.put(method, new AtomicLong(0));
+					balancerRunner.balancerContext.requestsProcessedByMethod.put(method, new AtomicLong(0));
 				} else {
 					requestsProcessed.incrementAndGet();
 				}
 			} else {
-				BalancerContext.balancerContext.responsesProcessed.incrementAndGet();
+				balancerRunner.balancerContext.responsesProcessed.incrementAndGet();
 				final int statusCode = ((Response)message).getStatusCode();				
 				int statusCodeDiv = statusCode / 100;
 				switch (statusCodeDiv) {
 					case 1:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("1XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("1XX").incrementAndGet();
 						break;
 					case 2:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("2XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("2XX").incrementAndGet();
 						break;
 					case 3:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("3XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("3XX").incrementAndGet();
 						break;
 					case 4:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("4XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("4XX").incrementAndGet();
 						break;
 					case 5:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("5XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("5XX").incrementAndGet();
 						break;
 					case 6:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("6XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("6XX").incrementAndGet();
 						break;
 					case 7:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("7XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("7XX").incrementAndGet();
 						break;
 					case 8:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("8XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("8XX").incrementAndGet();
 						break;
 					case 9:
-						BalancerContext.balancerContext.responsesProcessedByStatusCode.get("9XX").incrementAndGet();
+						balancerRunner.balancerContext.responsesProcessedByStatusCode.get("9XX").incrementAndGet();
 						break;
 				}		
 			}		
@@ -492,7 +498,7 @@ public class SIPBalancerForwarder implements SipListener {
 	
 	private SIPNode getNode(String host, int port, String otherTransport) {
 		otherTransport = otherTransport.toLowerCase();
-		for(SIPNode node : BalancerContext.balancerContext.nodes) {
+		for(SIPNode node : balancerRunner.balancerContext.nodes) {
 			if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
 				if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
 					return node;
@@ -556,11 +562,11 @@ public class SIPBalancerForwarder implements SipListener {
 			}
 		}
 		if(uri != null) {
-			if( (uri.getHost().equals(BalancerContext.balancerContext.externalHost) && 
-					uri.getPort() == BalancerContext.balancerContext.externalPort)
+			if( (uri.getHost().equals(balancerRunner.balancerContext.externalHost) && 
+					uri.getPort() == balancerRunner.balancerContext.externalPort)
 					
-			|| (uri.getHost().equals(BalancerContext.balancerContext.internalHost) && 
-					uri.getPort() == BalancerContext.balancerContext.internalPort)) {
+			|| (uri.getHost().equals(balancerRunner.balancerContext.internalHost) && 
+					uri.getPort() == balancerRunner.balancerContext.internalPort)) {
 				return uri;
 			}
 		}
@@ -588,10 +594,10 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		
 		boolean isRequestFromServer = false;
-		if(!BalancerContext.balancerContext.isTwoEntrypoints()) {
+		if(!balancerRunner.balancerContext.isTwoEntrypoints()) {
 			isRequestFromServer = isViaHeaderFromServer(request);
 		} else {
-			isRequestFromServer = sipProvider.equals(BalancerContext.balancerContext.internalSipProvider);
+			isRequestFromServer = sipProvider.equals(balancerRunner.balancerContext.internalSipProvider);
 		}
 		
 		final boolean isCancel = Request.CANCEL.equals(request.getMethod());
@@ -612,7 +618,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		if(hints.serverAssignedNode !=null) {
 			String callId = ((SIPHeader) request.getHeader("Call-ID")).getValue();
-			BalancerContext.balancerContext.balancerAlgorithm.assignToNode(callId, hints.serverAssignedNode);
+			balancerRunner.balancerContext.balancerAlgorithm.assignToNode(callId, hints.serverAssignedNode);
 			if(logger.isLoggable(Level.FINEST)) {
 	    		logger.finest("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);
 			}
@@ -627,7 +633,7 @@ public class SIPBalancerForwarder implements SipListener {
 		SIPNode nextNode = null;
 		
 		if(isRequestFromServer) {
-			BalancerContext.balancerContext.balancerAlgorithm.processInternalRequest(request);
+			balancerRunner.balancerContext.balancerAlgorithm.processInternalRequest(request);
 		} else {
 			
 			// Request is NOT from app server, first check if we have hints in Route headers
@@ -679,7 +685,7 @@ public class SIPBalancerForwarder implements SipListener {
 				if(logger.isLoggable(Level.FINEST)) {
 		    		logger.finest("assignedNode is null");
 		    	}
-				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processExternalRequest(request);
+				nextNode = balancerRunner.balancerContext.balancerAlgorithm.processExternalRequest(request);
 				if(nextNode instanceof NullServerNode) {
 					if(logger.isLoggable(Level.FINE)) {
 						logger.fine("Algorithm returned a NullServerNode. We will not attempt to forward this request " + request);
@@ -688,7 +694,7 @@ public class SIPBalancerForwarder implements SipListener {
 				if(nextNode != null) {
 					if(logger.isLoggable(Level.FINEST)) {
 						String nodesString = "";
-						Object[] nodes = BalancerContext.balancerContext.nodes.toArray();
+						Object[] nodes = balancerRunner.balancerContext.nodes.toArray();
 						for(Object n : nodes) {
 							nodesString +=n + " , ";
 						}
@@ -699,7 +705,7 @@ public class SIPBalancerForwarder implements SipListener {
 					try {
 
 						if(assignedUri == null) { // If a next node is NOT already assigned in the dialog from previous requests
-							routeSipUri = BalancerContext.balancerContext.addressFactory
+							routeSipUri = balancerRunner.balancerContext.addressFactory
 							.createSipURI(null, nextNode.getIp());
 						}
 						else { // OTHERWISE, a node is already assigned and it's alive
@@ -716,8 +722,8 @@ public class SIPBalancerForwarder implements SipListener {
 						routeSipUri.setLrParam();
 
 
-						final RouteHeader route = BalancerContext.balancerContext.headerFactory.createRouteHeader(
-								BalancerContext.balancerContext.addressFactory.createAddress(routeSipUri));
+						final RouteHeader route = balancerRunner.balancerContext.headerFactory.createRouteHeader(
+								balancerRunner.balancerContext.addressFactory.createAddress(routeSipUri));
 						request.addFirst(route);
 
 						// If the request is meant for the AS it must recognize itself in the ruri, so update it too
@@ -738,7 +744,7 @@ public class SIPBalancerForwarder implements SipListener {
 					}
 				}
 			} else {
-				nextNode = BalancerContext.balancerContext.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
+				nextNode = balancerRunner.balancerContext.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
 			}
 			if(nextNode == null) {
 				if(logger.isLoggable(Level.FINE)) {
@@ -746,7 +752,7 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 				if(!Request.ACK.equalsIgnoreCase(request.getMethod())) {
 		            try {
-		            	Response response = BalancerContext.balancerContext.messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR, request);			
+		            	Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.SERVER_INTERNAL_ERROR, request);			
 		                response.setReasonPhrase("No nodes available");
 		            	sipProvider.sendResponse(response);	
 		            } catch (Exception e) {
@@ -767,12 +773,12 @@ public class SIPBalancerForwarder implements SipListener {
 		ViaHeader viaHeaderExternal = null;
 		ViaHeader viaHeaderInternal = null;
 		
-		viaHeaderExternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
-				BalancerContext.balancerContext.externalViaHost, BalancerContext.balancerContext.externalViaPort, transport, newBranch);
+		viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+				balancerRunner.balancerContext.externalViaHost, balancerRunner.balancerContext.externalViaPort, transport, newBranch);
 		
-		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
-			viaHeaderInternal = BalancerContext.balancerContext.headerFactory.createViaHeader(
-					BalancerContext.balancerContext.internalViaHost, BalancerContext.balancerContext.internalViaPort, transport, newBranch + "zsd");
+		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+			viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+					balancerRunner.balancerContext.internalViaHost, balancerRunner.balancerContext.internalViaPort, transport, newBranch + "zsd");
 		}
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
@@ -782,15 +788,15 @@ public class SIPBalancerForwarder implements SipListener {
 			logger.warning("Drop. Cannot forward to loopback the following request: " + request);
 			return;
 		}
-		if(!isRequestFromServer && BalancerContext.balancerContext.isTwoEntrypoints()) {
+		if(!isRequestFromServer && balancerRunner.balancerContext.isTwoEntrypoints()) {
 			request.addHeader(viaHeaderExternal); 
 			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
-			BalancerContext.balancerContext.internalSipProvider.sendRequest(request);
+			balancerRunner.balancerContext.internalSipProvider.sendRequest(request);
 		} else {
 			// Check if the next hop is actually the load balancer again
 			if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
 			request.addHeader(viaHeaderExternal); 
-			BalancerContext.balancerContext.externalSipProvider.sendRequest(request);
+			balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
 		}
 	}
 
@@ -803,31 +809,31 @@ public class SIPBalancerForwarder implements SipListener {
 	private void addLBRecordRoute(SipProvider sipProvider, Request request, RouteHeaderHints hints)
 	throws ParseException {				
 		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
+			logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeExternalHeader);
 		}
 		String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 		int transportIndex = transport.equalsIgnoreCase("udp")?0:1;
-		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
-			if(sipProvider.equals(BalancerContext.balancerContext.externalSipProvider)) {
+		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+			if(sipProvider.equals(balancerRunner.balancerContext.externalSipProvider)) {
 				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
+					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeExternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeExternalHeader[transportIndex]);
+				request.addHeader(balancerRunner.balancerContext.activeExternalHeader[transportIndex]);
 
 				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeInternalHeader);
+					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeInternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeInternalHeader[transportIndex]);
+				request.addHeader(balancerRunner.balancerContext.activeInternalHeader[transportIndex]);
 			} else {
 				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeInternalHeader);
+					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeInternalHeader);
 				}
-				request.addHeader(BalancerContext.balancerContext.activeInternalHeader[transportIndex]);
+				request.addHeader(balancerRunner.balancerContext.activeInternalHeader[transportIndex]);
 
 				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + BalancerContext.balancerContext.activeExternalHeader);
+					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeExternalHeader);
 				}
-				RecordRouteHeader recordRouteHeader = BalancerContext.balancerContext.activeExternalHeader[transportIndex];
+				RecordRouteHeader recordRouteHeader = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
 				if(hints.serverAssignedNode != null) {
 					recordRouteHeader = (RecordRouteHeader) recordRouteHeader.clone();
 					SipURI sipuri = (SipURI) recordRouteHeader.getAddress().getURI();
@@ -838,7 +844,7 @@ public class SIPBalancerForwarder implements SipListener {
 				request.addHeader(recordRouteHeader);			
 			}	
 		} else {
-			RecordRouteHeader recordRouteHeader = BalancerContext.balancerContext.activeExternalHeader[transportIndex];
+			RecordRouteHeader recordRouteHeader = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
 			if(hints.serverAssignedNode != null) {
 				recordRouteHeader = (RecordRouteHeader) recordRouteHeader.clone();
 				SipURI sipuri = (SipURI) recordRouteHeader.getAddress().getURI();
@@ -896,8 +902,8 @@ public class SIPBalancerForwarder implements SipListener {
 	        // If only one, this probably means that this dialog never passed through the SIP LB. SIPP however,
 	        // removes the first Route header and we must check if the route header is the internal port, which
 	        // the caller or the calle would know only if they have passed through the L before.
-		    if(routeUri.getPort() == BalancerContext.balancerContext.internalPort && 
-		    		routeUri.getHost().equals(BalancerContext.balancerContext.internalHost)) subsequent = true;
+		    if(routeUri.getPort() == balancerRunner.balancerContext.internalPort && 
+		    		routeUri.getHost().equals(balancerRunner.balancerContext.internalHost)) subsequent = true;
 		    
 		    //FIXME check against a list of host we may have too
 		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
@@ -953,14 +959,14 @@ public class SIPBalancerForwarder implements SipListener {
 	 */
 	private boolean isRouteHeaderExternal(String host, int port) {
 		 //FIXME check against a list of host we may have too and add transport
-		if((host.equalsIgnoreCase(BalancerContext.balancerContext.externalHost) || host.equalsIgnoreCase(BalancerContext.balancerContext.internalHost))
-				&& (port == BalancerContext.balancerContext.externalPort || port == BalancerContext.balancerContext.internalPort)) {
+		if((host.equalsIgnoreCase(balancerRunner.balancerContext.externalHost) || host.equalsIgnoreCase(balancerRunner.balancerContext.internalHost))
+				&& (port == balancerRunner.balancerContext.externalPort || port == balancerRunner.balancerContext.internalPort)) {
 			return false;
 		}
-		if((host.equalsIgnoreCase(BalancerContext.balancerContext.externalIpLoadBalancerAddress) && port == BalancerContext.balancerContext.externalLoadBalancerPort)) {
+		if((host.equalsIgnoreCase(balancerRunner.balancerContext.externalIpLoadBalancerAddress) && port == balancerRunner.balancerContext.externalLoadBalancerPort)) {
 			return false;
 		}
-		if((host.equalsIgnoreCase(BalancerContext.balancerContext.internalIpLoadBalancerAddress) && port == BalancerContext.balancerContext.internalLoadBalancerPort)) {
+		if((host.equalsIgnoreCase(balancerRunner.balancerContext.internalIpLoadBalancerAddress) && port == balancerRunner.balancerContext.internalLoadBalancerPort)) {
 			return false;
 		}
 		return true;
@@ -982,14 +988,14 @@ public class SIPBalancerForwarder implements SipListener {
         }
 		MaxForwardsHeader maxForwardsHeader = (MaxForwardsHeader) request.getHeader(MaxForwardsHeader.NAME);
 		if (maxForwardsHeader == null) {
-			maxForwardsHeader = BalancerContext.balancerContext.headerFactory.createMaxForwardsHeader(70);
+			maxForwardsHeader = balancerRunner.balancerContext.headerFactory.createMaxForwardsHeader(70);
 			request.addHeader(maxForwardsHeader);
 		} else {
 			if(maxForwardsHeader.getMaxForwards() - 1 > 0) {
 				maxForwardsHeader.setMaxForwards(maxForwardsHeader.getMaxForwards() - 1);
 			} else {
 				//Max forward header equals to 0, thus sending too many hops response
-				Response response = BalancerContext.balancerContext.messageFactory.createResponse
+				Response response = balancerRunner.balancerContext.messageFactory.createResponse
 		        	(Response.TOO_MANY_HOPS,request);			
 		        sipProvider.sendResponse(response);
 			}
@@ -1034,45 +1040,45 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		
 		boolean fromServer = false;
-		if(BalancerContext.balancerContext.isTwoEntrypoints()) {
-			fromServer = sipProvider.equals(BalancerContext.balancerContext.internalSipProvider);
+		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+			fromServer = sipProvider.equals(balancerRunner.balancerContext.internalSipProvider);
 		} else {
 			fromServer = getSourceNode(response) != null;
 		}
 		
 		if(fromServer) {
 			/*
-			if("true".equals(BalancerContext.balancerContext.properties.getProperty("removeNodesOn500Response")) && response.getStatusCode() == 500) {
+			if("true".equals(balancerRunner.balancerContext.properties.getProperty("removeNodesOn500Response")) && response.getStatusCode() == 500) {
 				// If the server is broken remove it from the list and try another one with the next retransmission
 				if(!(sourceNode instanceof ExtraServerNode)) {
-					if(BalancerContext.balancerContext.nodes.size()>1) {
-						BalancerContext.balancerContext.nodes.remove(sourceNode);
-						BalancerContext.balancerContext.balancerAlgorithm.nodeRemoved(sourceNode);
+					if(balancerRunner.balancerContext.nodes.size()>1) {
+						balancerRunner.balancerContext.nodes.remove(sourceNode);
+						balancerRunner.balancerContext.balancerAlgorithm.nodeRemoved(sourceNode);
 					}
 				}
 			}*/
-			BalancerContext.balancerContext.balancerAlgorithm.processInternalResponse(response);
+			balancerRunner.balancerContext.balancerAlgorithm.processInternalResponse(response);
 			try {	
 				if(logger.isLoggable(Level.FINEST)) {
 					logger.finest("from server sending response externally " + response);
 				}
-				BalancerContext.balancerContext.externalSipProvider.sendResponse(response);
+				balancerRunner.balancerContext.externalSipProvider.sendResponse(response);
 			} catch (Exception ex) {
 				logger.log(Level.SEVERE, "Unexpected exception while forwarding the response \n" + response, ex);
 			}
 		} else {
-			BalancerContext.balancerContext.balancerAlgorithm.processExternalResponse(response);
+			balancerRunner.balancerContext.balancerAlgorithm.processExternalResponse(response);
 			try {	
-				if(BalancerContext.balancerContext.isTwoEntrypoints()) {
+				if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 					if(logger.isLoggable(Level.FINEST)) {
 						logger.finest("from external sending response " + response);
 					}
-					BalancerContext.balancerContext.internalSipProvider.sendResponse(response);
+					balancerRunner.balancerContext.internalSipProvider.sendResponse(response);
 				} else {
 					if(logger.isLoggable(Level.FINEST)) {
 						logger.finest("from external sending response " + response);
 					}
-					BalancerContext.balancerContext.externalSipProvider.sendResponse(response);
+					balancerRunner.balancerContext.externalSipProvider.sendResponse(response);
 				}
 			} catch (Exception ex) {
 				logger.log(Level.SEVERE, "Unexpected exception while forwarding the response \n" + response, ex);
@@ -1132,21 +1138,21 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @return the requestsProcessed
 	 */
 	public long getNumberOfRequestsProcessed() {
-		return BalancerContext.balancerContext.requestsProcessed.get();
+		return balancerRunner.balancerContext.requestsProcessed.get();
 	}
 	
 	/**
 	 * @return the requestsProcessed
 	 */
 	public long getNumberOfResponsesProcessed() {
-		return BalancerContext.balancerContext.responsesProcessed.get();
+		return balancerRunner.balancerContext.responsesProcessed.get();
 	}
 
 	/**
 	 * @return the requestsProcessed
 	 */
 	public long getRequestsProcessedByMethod(String method) {
-		AtomicLong requestsProcessed = BalancerContext.balancerContext.requestsProcessedByMethod.get(method);
+		AtomicLong requestsProcessed = balancerRunner.balancerContext.requestsProcessedByMethod.get(method);
 		if(requestsProcessed != null) {
 			return requestsProcessed.get();
 		}
@@ -1154,7 +1160,7 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 	
 	public long getResponsesProcessedByStatusCode(String statusCode) {
-		AtomicLong responsesProcessed = BalancerContext.balancerContext.responsesProcessedByStatusCode.get(statusCode);
+		AtomicLong responsesProcessed = balancerRunner.balancerContext.responsesProcessedByStatusCode.get(statusCode);
 		if(responsesProcessed != null) {
 			return responsesProcessed.get();
 		}
@@ -1162,33 +1168,33 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 	
 	public Map<String, AtomicLong> getNumberOfRequestsProcessedByMethod() {
-		return BalancerContext.balancerContext.requestsProcessedByMethod;
+		return balancerRunner.balancerContext.requestsProcessedByMethod;
 	}
 	
 	public Map<String, AtomicLong> getNumberOfResponsesProcessedByStatusCode() {
-		return BalancerContext.balancerContext.responsesProcessedByStatusCode;
+		return balancerRunner.balancerContext.responsesProcessedByStatusCode;
 	}
 	
 	public BalancerContext getBalancerAlgorithmContext() {
-		return BalancerContext.balancerContext;
+		return balancerRunner.balancerContext;
 	}
 
 	public void setBalancerAlgorithmContext(
 			BalancerContext balancerAlgorithmContext) {
-		BalancerContext.balancerContext = balancerAlgorithmContext;
+		balancerRunner.balancerContext = balancerAlgorithmContext;
 	}
 	
 	/**
 	 * @param skipStatistics the skipStatistics to set
 	 */
 	public void setGatherStatistics(boolean skipStatistics) {
-		BalancerContext.balancerContext.gatherStatistics = skipStatistics;
+		balancerRunner.balancerContext.gatherStatistics = skipStatistics;
 	}
 
 	/**
 	 * @return the skipStatistics
 	 */
 	public boolean isGatherStatistics() {
-		return BalancerContext.balancerContext.gatherStatistics;
+		return balancerRunner.balancerContext.gatherStatistics;
 	}
 }

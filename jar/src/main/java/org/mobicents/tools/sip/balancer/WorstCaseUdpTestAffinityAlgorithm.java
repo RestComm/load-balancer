@@ -116,7 +116,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
 		boolean found = false;
-		for(SIPNode node : BalancerContext.balancerContext.nodes) {
+		for(SIPNode node : balancerContext.nodes) {
 			if(node.getIp().equals(host)) found = true;
 		}
 		if(!found) {

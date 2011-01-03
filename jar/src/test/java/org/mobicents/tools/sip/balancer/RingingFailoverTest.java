@@ -1,4 +1,4 @@
-package org.mobicents.tools.sip.balancer.algorithms;
+package org.mobicents.tools.sip.balancer;
 
 import java.text.ParseException;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,7 +31,8 @@ public class RingingFailoverTest extends TestCase {
 		Integer port = 1234;
 		SIPNode adNode = new SIPNode(node, node);
 		adNode.getProperties().put("udpPort", port);
-		BalancerContext.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
+		algorithm.balancerContext = new BalancerContext();
+		algorithm.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
 		algorithm.processExternalResponse(response);
 		
 		if(!response.toString().contains(node+":" + port)) {

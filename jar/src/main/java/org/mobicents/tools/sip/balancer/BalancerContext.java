@@ -73,8 +73,6 @@ public class BalancerContext {
     public boolean isTwoEntrypoints() {
     	return internalPort>0;
     }
-    
-    public static BalancerContext balancerContext = new BalancerContext();
 
     public BalancerContext() {
     	for (String method : METHODS_SUPPORTED) {
@@ -86,5 +84,5 @@ public class BalancerContext {
 	}
 	
     
-    public BalancerAlgorithm balancerAlgorithm = null;
+    public DefaultBalancerAlgorithm balancerAlgorithm = null;
 }

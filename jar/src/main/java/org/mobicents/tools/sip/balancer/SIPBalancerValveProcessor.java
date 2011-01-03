@@ -1,5 +1,6 @@
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.message.SIPRequest;
 import gov.nist.javax.sip.stack.MessageChannel;
 import gov.nist.javax.sip.stack.SIPMessageValve;
@@ -11,30 +12,30 @@ import javax.sip.SipStack;
 import javax.sip.message.Response;
 
 public class SIPBalancerValveProcessor implements SIPMessageValve {
-	
+	BalancerRunner balancerRunner;
 	
 	public boolean processRequest(SIPRequest request,
 			MessageChannel messageChannel) {
-		SipProvider p = BalancerContext.balancerContext.externalSipProvider;
-		if(messageChannel.getPort() != BalancerContext.balancerContext.externalPort) {
-			if(BalancerContext.balancerContext.isTwoEntrypoints())
-				p = BalancerContext.balancerContext.internalSipProvider;
+		SipProvider p = balancerRunner.balancerContext.externalSipProvider;
+		if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
+			if(balancerRunner.balancerContext.isTwoEntrypoints())
+				p = balancerRunner.balancerContext.internalSipProvider;
 		}
 		
 		RequestEvent event = new RequestEvent(p, null, null, request);
-		BalancerContext.balancerContext.forwarder.processRequest(event);
+		balancerRunner.balancerContext.forwarder.processRequest(event);
 		return false;
 	}
 
 	public boolean processResponse(Response response,
 			MessageChannel messageChannel) {
-		SipProvider p = BalancerContext.balancerContext.externalSipProvider;
-		if(messageChannel.getPort() != BalancerContext.balancerContext.externalPort) {
-			if(BalancerContext.balancerContext.isTwoEntrypoints())
-				p = BalancerContext.balancerContext.internalSipProvider;
+		SipProvider p = balancerRunner.balancerContext.externalSipProvider;
+		if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
+			if(balancerRunner.balancerContext.isTwoEntrypoints())
+				p = balancerRunner.balancerContext.internalSipProvider;
 		}
 		ResponseEvent event = new ResponseEvent(p, null, null, response);
-		BalancerContext.balancerContext.forwarder.processResponse(event);
+		balancerRunner.balancerContext.forwarder.processResponse(event);
 		return false;
 	}
 
@@ -44,7 +45,7 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 	}
 
 	public void init(SipStack stack) {
-		// TODO Auto-generated method stub
+		
 		
 	}
 }

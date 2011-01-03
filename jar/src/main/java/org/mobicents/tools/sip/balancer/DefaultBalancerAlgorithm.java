@@ -14,13 +14,14 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
+	protected BalancerContext balancerContext;
 
 	public void setProperties(Properties properties) {
 		this.properties = properties;
 	}
 
 	public BalancerContext getBalancerContext() {
-		return BalancerContext.balancerContext;
+		return balancerContext;
 	}
 
 	public Properties getProperties() {
@@ -35,7 +36,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	}
 	
 	public SIPNode processHttpRequest(HttpRequest request) {
-		if(BalancerContext.balancerContext.nodes.size()>0) {
+		if(balancerContext.nodes.size()>0) {
 
 			String httpSessionId = null;
 			httpSessionId = getUrlParameters(request.getUri()).get("jsessionid");
@@ -58,22 +59,22 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				if(indexOfDot>0 && indexOfDot<httpSessionId.length()) {
 					//String sessionIdWithoutJvmRoute = httpSessionId.substring(0, indexOfDot);
 					String jvmRoute = httpSessionId.substring(indexOfDot + 1);
-					SIPNode node = BalancerContext.balancerContext.jvmRouteToSipNode.get(jvmRoute);
+					SIPNode node = balancerContext.jvmRouteToSipNode.get(jvmRoute);
 					
 					if(node != null) {
-						if(BalancerContext.balancerContext.nodes.contains(node)) {
+						if(balancerContext.nodes.contains(node)) {
 							return node;
 						}
 					}
 				}
 				
 				// As a failsafe if there is no jvmRoute, just hash the sessionId
-				int nodeId = Math.abs(httpSessionId.hashCode()%BalancerContext.balancerContext.nodes.size());
-				return BalancerContext.balancerContext.nodes.get(nodeId);
+				int nodeId = Math.abs(httpSessionId.hashCode()%balancerContext.nodes.size());
+				return balancerContext.nodes.get(nodeId);
 				
 			}
 			
-			return BalancerContext.balancerContext.nodes.get(0);
+			return balancerContext.nodes.get(0);
 		} else {
 			String unavailaleHost = getProperties().getProperty("unavailableHost");
 			if(unavailaleHost != null) {

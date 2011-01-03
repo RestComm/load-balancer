@@ -21,6 +21,7 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 /**
  * @author The Netty Project (netty-dev@lists.jboss.org)
@@ -31,6 +32,10 @@ import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
  * @version $Rev: 1868 $, $Date: 2009-11-03 01:48:39 -0500 (Tue, 03 Nov 2009) $
  */
 public class HttpServerPipelineFactory implements ChannelPipelineFactory {
+	BalancerRunner balancerRunner;
+	public HttpServerPipelineFactory(BalancerRunner balancerRunner) {
+		this.balancerRunner = balancerRunner;
+	}
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = pipeline();
@@ -46,7 +51,7 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
         pipeline.addLast("encoder", new HttpResponseEncoder());
         // Remove the following line if you don't want automatic content compression.
         //pipeline.addLast("deflater", new HttpContentCompressor());
-        pipeline.addLast("handler", new HttpRequestHandler());
+        pipeline.addLast("handler", new HttpRequestHandler(balancerRunner));
         return pipeline;
     }
 }

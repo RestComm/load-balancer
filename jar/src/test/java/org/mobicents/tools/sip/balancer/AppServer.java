@@ -20,6 +20,7 @@ public class AppServer {
 	int lbRMIport;
 	int lbSIPext;
 	int lbSIPint;
+	protected String balancers;
 	public SipProvider sipProvider;
 
 	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint) {
@@ -35,6 +36,10 @@ public class AppServer {
 		this(appServer, port, "127.0.0.1");
 
 	} 
+	
+	public void setBalancers(String balancers) {
+		this.balancers = balancers;
+	}
 	
 	public AppServer(String appServer, int port, String address) {
 		this(appServer, port, address, 2000, 5060, 5065);
@@ -83,12 +88,36 @@ public class AppServer {
 	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) {
 		if(sendHeartbeat) {
 			Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
-			try {
-				Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
-				NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-				reg.handlePing(info);
-			} catch (Exception e) {
-				e.printStackTrace();
+			if(balancers != null) {
+				for(String balancer:balancers.replaceAll(" ","").split(",")) {
+					if(balancer.length()<2) continue;
+					String host;
+					String port;
+					int semi = balancer.indexOf(':');
+					if(semi>0) {
+						host = balancer.substring(0, semi);
+						port = balancer.substring(semi+1);
+					} else {
+						host = balancer;
+						port = "2000";
+					}
+					try {
+						Registry registry = LocateRegistry.getRegistry(host, Integer.parseInt(port));
+						NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
+						reg.handlePing(info);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+				
+			} else {
+				try {
+					Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
+					NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
+					reg.handlePing(info);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 

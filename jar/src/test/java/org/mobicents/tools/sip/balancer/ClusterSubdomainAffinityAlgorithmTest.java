@@ -57,21 +57,23 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 	// Test actual failover by adding a lot of noise nodes and only 1 partner for the original
 	public void testPartnerFailover() throws Exception, ParseException {
 		try {
-			BalancerContext.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>();
+			
 			ClusterSubdomainAffinityAlgorithm algorithm = new ClusterSubdomainAffinityAlgorithm();
+			algorithm.balancerContext = new BalancerContext();
+			algorithm.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>();
 			for(int q=0;q<100;q++) {
-				BalancerContext.balancerContext.nodes.add(new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q));
+				algorithm.balancerContext.nodes.add(new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q));
 			}
 			for(int q=0;q<100;q++) {
-				BalancerContext.balancerContext.nodes.add(new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q));
+				algorithm.balancerContext.nodes.add(new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q));
 			}
 			SIPNode originalNode = new SIPNode("original", "original");
 			SIPNode partnerNode = new SIPNode("partner", "partner");
 
 			// This is dead BalancerContext.balancerContext.nodes.add(originalNode);
-			BalancerContext.balancerContext.nodes.add(partnerNode);
+			algorithm.balancerContext.nodes.add(partnerNode);
 			for(int q=0;q<100;q++) {
-				BalancerContext.balancerContext.nodes.add(new SIPNode("nonParner"+q, "nonPartner"+q));
+				algorithm.balancerContext.nodes.add(new SIPNode("nonParner"+q, "nonPartner"+q));
 			}
 			algorithm.callIdMap.put("cid", originalNode);
 			Request request = SipFactory.getInstance().createMessageFactory().createRequest(inviteRequest);
@@ -79,7 +81,7 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 			SIPNode resultNode = algorithm.processExternalRequest(request);
 			assertEquals("partner", resultNode.getIp());
 		} finally {
-			BalancerContext.balancerContext.nodes = null;
+			//BalancerContext.balancerContext.nodes = null;
 		}
 	}
 }

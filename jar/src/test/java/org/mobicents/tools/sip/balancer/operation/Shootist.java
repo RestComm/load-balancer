@@ -70,6 +70,11 @@ public class Shootist implements SipListener {
     
     public Request inviteRequest;
     
+    boolean started = false;
+    
+    public String peerHostPort ="127.0.0.1:5060";
+    public String transport ="udp";
+    
     public LinkedList<Request> requests = new LinkedList<Request>();
     public LinkedList<Response> responses = new LinkedList<Response>();
 
@@ -270,10 +275,7 @@ public class Shootist implements SipListener {
             ex.printStackTrace();
         }
     }
-    boolean started = false;
-    
-    String peerHostPort ="127.0.0.1:5060";
-    String transport ="udp";
+
     synchronized public void start() {
     	started = true;
         SipFactory sipFactory = null;

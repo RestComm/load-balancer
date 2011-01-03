@@ -71,15 +71,15 @@ public class SipBalancerForwarderTest extends TestCase {
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("internalPort", "5065");
 		properties.setProperty("externalPort", "5060");
-		SIPBalancerForwarder fwd=new SIPBalancerForwarder(properties,reg);
+		BalancerRunner balancerRunner = new BalancerRunner();
 		try {
-			fwd.start();
+			balancerRunner.start(properties);
 			Thread.sleep(1000);
-			fwd.stop();
+			balancerRunner.stop();
 
-			fwd.start();
+			balancerRunner.start(properties);
 			Thread.sleep(1000);
-			fwd.stop();
+			balancerRunner.stop();
 		} catch (InterruptedException e) {
 			fail("Problem, e=" + e);
 			e.printStackTrace();

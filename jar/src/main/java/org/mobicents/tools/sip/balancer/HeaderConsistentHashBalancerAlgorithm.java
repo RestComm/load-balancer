@@ -158,7 +158,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		Integer port = via.getPort();
 		String transport = via.getTransport().toLowerCase();
 		boolean found = false;
-		for(SIPNode node : BalancerContext.balancerContext.nodes) {
+		for(SIPNode node : balancerContext.nodes) {
 			if(node.getIp().equals(host)) {
 				if(port.equals(node.getProperties().get(transport+"Port"))) {
 					found = true;

@@ -44,6 +44,7 @@ import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.mobicents.tools.sip.balancer.BalancerContext;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.SIPNode;
 
 /**
@@ -57,6 +58,12 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	
     private volatile HttpRequest request;
     private volatile boolean readingChunks;
+    
+    private BalancerRunner balancerRunner;
+    
+    public HttpRequestHandler(BalancerRunner balancerRunner) {
+    	this.balancerRunner = balancerRunner;
+    }
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
@@ -71,7 +78,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	
         	SIPNode node = null;
         	try {
-        		node = BalancerContext.balancerContext.balancerAlgorithm.processHttpRequest(request);
+        		node = balancerRunner.balancerContext.balancerAlgorithm.processHttpRequest(request);
         	} catch (Exception ex) {
         		StringWriter sw = new StringWriter();
         		ex.printStackTrace(new PrintWriter(sw));
