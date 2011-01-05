@@ -3,6 +3,8 @@ package org.mobicents.tools.sip.balancer.scalability;
 import java.util.Properties;
 
 import javax.sip.SipException;
+import javax.sip.address.SipURI;
+import javax.sip.header.RecordRouteHeader;
 
 import junit.framework.TestCase;
 
@@ -143,6 +145,71 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 		assertSame(inviteServer, ackServer);
 		assertNotNull(byeServer);
 		assertNotNull(ackServer);
+	}
+	AppServer ringingAppServer;
+	AppServer okAppServer;
+	public void testASactingAsUAC() throws Exception {
+		
+		EventListener failureEventListener = new EventListener() {
+			
+			@Override
+			public void uasAfterResponse(int statusCode, AppServer source) {
+				
+				
+			}
+			
+			@Override
+			public void uasAfterRequestReceived(String method, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void uacAfterRequestSent(String method, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void uacAfterResponse(int statusCode, AppServer source) {
+				if(statusCode == 180) {
+					ringingAppServer = source;
+					source.sendCleanShutdownToBalancers();		
+				} else {
+					okAppServer = source;
+					
+				}
+			}
+		};
+		for(AppServer as:servers) as.setEventListener(failureEventListener);
+		shootist.callerSendsBye = true;
+		
+		String fromName = "sender";
+		String fromHost = "sip-servlets.com";
+		SipURI fromAddress = servers[0].protocolObjects.addressFactory.createSipURI(
+				fromName, fromHost);
+				
+		String toUser = "replaces";
+		String toHost = "sip-servlets.com";
+		SipURI toAddress = servers[0].protocolObjects.addressFactory.createSipURI(
+				toUser, toHost);
+		
+		SipURI ruri = servers[0].protocolObjects.addressFactory.createSipURI(
+				"usera", "127.0.0.1:5033");
+		ruri.setLrParam();
+		SipURI route = servers[0].protocolObjects.addressFactory.createSipURI(
+				"lbaddress_noInternalPort", "127.0.0.1:5065");
+		route.setParameter("node_host", "127.0.0.1");
+		route.setParameter("node_port", "4060");
+		route.setLrParam();
+		shootist.start();
+		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
+		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
+		Thread.sleep(16000);
+		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
+		assertNotSame(ringingAppServer, okAppServer);
+		assertNotNull(ringingAppServer);
+		assertNotNull(okAppServer);
 	}
 	public void testSprayingMultipleIndialogMessages() throws Exception {
 		shootist.callerSendsBye=true;

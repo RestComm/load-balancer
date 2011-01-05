@@ -295,6 +295,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 			if(balancerRunner.balancerContext.nodes.size() < 1) {
 				balancerRunner.balancerContext.nodes.add(pingNode);
 				balancerRunner.balancerContext.balancerAlgorithm.nodeAdded(pingNode);
+				balancerRunner.balancerContext.allNodesEver.add(pingNode);
 				
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["

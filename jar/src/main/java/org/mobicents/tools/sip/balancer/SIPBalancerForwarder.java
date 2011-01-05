@@ -496,9 +496,21 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 	}
 	
-	private SIPNode getNode(String host, int port, String otherTransport) {
+	private SIPNode getAliveNode(String host, int port, String otherTransport) {
 		otherTransport = otherTransport.toLowerCase();
 		for(SIPNode node : balancerRunner.balancerContext.nodes) {
+			if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
+				if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
+					return node;
+				}
+			}
+		}
+		return null;
+	}
+	
+	private SIPNode getNodeDeadOrAlive(String host, int port, String otherTransport) {
+		otherTransport = otherTransport.toLowerCase();
+		for(SIPNode node : balancerRunner.balancerContext.allNodesEver) {
 			if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
 				if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
 					return node;
@@ -521,7 +533,7 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 			}
 		}
-		if(getNode(host, port, transport) != null) {
+		if(getAliveNode(host, port, transport) != null) {
 			return true;
 		}
 		return false;
@@ -541,8 +553,8 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 			}
 		}
-		SIPNode node = getNode(host, port, transport);
-		if(getNode(host, port, transport) != null) {
+		SIPNode node = getNodeDeadOrAlive(host, port, transport);
+		if(node != null) {
 			return node;
 		}
 		return null;
@@ -646,7 +658,7 @@ public class SIPBalancerForwarder implements SipListener {
 					URI uri = nextNodeHeader.getAddress().getURI();
 					if(uri instanceof SipURI) {
 						SipURI sipUri = (SipURI) uri;
-						assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), transport);
+						assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
 						if(logger.isLoggable(Level.FINEST)) {
 							logger.finest("Found SIP URI " + uri + " |Next node is " + assignedNode);
 						}
@@ -666,7 +678,7 @@ public class SIPBalancerForwarder implements SipListener {
 					} else {
 						SipURI sipUri =(SipURI) request.getRequestURI();
 						//nextNodeInRequestUri = true;
-						assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), transport);
+						assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
 					}
 					if(logger.isLoggable(Level.FINEST)) {
 			    		logger.finest("Subsequent request -> Found Route Header " + header + " |Next node is " + assignedNode);
@@ -674,7 +686,7 @@ public class SIPBalancerForwarder implements SipListener {
 				} else {
 					SipURI sipUri =(SipURI) request.getRequestURI();
 					//nextNodeInRequestUri = true;
-					assignedNode = getNode(sipUri.getHost(), sipUri.getPort(), transport);
+					assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
 					if(logger.isLoggable(Level.FINEST)) {
 			    		logger.finest("NOT Subsequent request -> using sipUri " + sipUri + " |Next node is " + assignedNode);
 			    	}
