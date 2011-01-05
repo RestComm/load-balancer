@@ -71,7 +71,7 @@ public class BalancerContext {
 	final Map<String, AtomicLong> responsesProcessedByStatusCode = new ConcurrentHashMap<String, AtomicLong>();
     
     public boolean isTwoEntrypoints() {
-    	return internalPort>0;
+    	return internalPort>0 && internalHost != null;
     }
 
     public BalancerContext() {

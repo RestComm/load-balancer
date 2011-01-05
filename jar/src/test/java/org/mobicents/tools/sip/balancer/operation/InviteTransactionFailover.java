@@ -123,10 +123,15 @@ public class InviteTransactionFailover extends TestCase{
 	
 	public void testSimpleShutdown() throws Exception {
 		EventListener failureEventListener = new EventListener() {
-			
+			boolean once = false;
 			@Override
-			public void uasAfterResponse(int statusCode, AppServer source) {
-				source.sendCleanShutdownToBalancers();
+			public synchronized void uasAfterResponse(int statusCode, AppServer source) {
+				if(!once) {
+					once = true;
+					System.out.println("HERE " + once);
+					source.sendCleanShutdownToBalancers();
+					
+				}
 				
 			}
 			

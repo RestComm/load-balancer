@@ -13,7 +13,7 @@ import org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.UDPPacketForwarder;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class SprayingTwoLoadBalancersTest extends TestCase {
+public class SprayingLoadBalancersWithNoInternalPortTest extends TestCase {
 	int numBalancers = 2;
 	BalancerRunner[] balancers = new BalancerRunner[numBalancers];
 	int numNodes = 10;
@@ -39,10 +39,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		
-		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("externalHost", "127.0.0.1");
-		properties.setProperty("internalHost", "127.0.0.1");
-		properties.setProperty("internalPort", "5"+id+"65");
 		properties.setProperty("externalPort", "5"+id+"60");
 		properties.setProperty("rmiRegistryPort", "2" + id +"00");
 		properties.setProperty("httpPort", "2" + id +"80");
@@ -50,8 +47,6 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		properties.setProperty("algorithmClass", HeaderConsistentHashBalancerAlgorithm.class.getName());
 		properties.setProperty("externalIpLoadBalancerAddress", "127.0.0.1");
 		properties.setProperty("externalIpLoadBalancerPort", "9988");
-		properties.setProperty("internalIpLoadBalancerAddress", "127.0.0.1");
-		properties.setProperty("internalIpLoadBalancerPort", "9922");
 		balancer.start(properties);
 		return balancer;
 	}
@@ -136,7 +131,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		//servers[0].sendHeartbeat = false;
 		Thread.sleep(12000);
 		shootist.sendBye();
-		Thread.sleep(2000);
+		Thread.sleep(2200);
 
 		assertEquals(3, externalIpLoadBalancer.sipMessageWithoutRetrans.size());
 		assertSame(inviteServer, byeServer);

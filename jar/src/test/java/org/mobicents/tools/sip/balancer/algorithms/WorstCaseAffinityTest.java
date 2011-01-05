@@ -110,7 +110,9 @@ public class WorstCaseAffinityTest extends TestCase {
 		
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
-		Thread.sleep(11000);
+		Thread.sleep(9000);
+		shootist.sendBye();
+		Thread.sleep(2000);
 		if(invite == null) TestCase.fail("INVITE not seen");
 		if(bye == null) TestCase.fail("BYE not seen");
 	}

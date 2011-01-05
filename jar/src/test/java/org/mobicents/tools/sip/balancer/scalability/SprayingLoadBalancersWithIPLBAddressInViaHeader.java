@@ -13,8 +13,8 @@ import org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.UDPPacketForwarder;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class SprayingTwoLoadBalancersTest extends TestCase {
-	int numBalancers = 2;
+public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
+	int numBalancers = 4;
 	BalancerRunner[] balancers = new BalancerRunner[numBalancers];
 	int numNodes = 10;
 	AppServer[] servers = new AppServer[numNodes];
@@ -39,7 +39,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		
-		properties.setProperty("host", "127.0.0.1");
+		properties.setProperty("useIpLoadBalancerAddressInViaHeaders", "true");
 		properties.setProperty("externalHost", "127.0.0.1");
 		properties.setProperty("internalHost", "127.0.0.1");
 		properties.setProperty("internalPort", "5"+id+"65");

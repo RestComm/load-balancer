@@ -75,6 +75,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	
 	public void start(Properties properties) {
 		String ipAddress = properties.getProperty(HOST_PROP);
+		if(ipAddress == null) {
+			ipAddress = properties.getProperty("internalHost");
+		}
+		if(ipAddress == null) {
+			ipAddress = properties.getProperty("externalHost");
+		}
 		
 		InetAddress addr = null;
 		try {

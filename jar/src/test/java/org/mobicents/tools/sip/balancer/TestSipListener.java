@@ -1040,6 +1040,7 @@ public class TestSipListener implements SipListener {
 			}
 		} catch (Exception ex) {
 			logger.error("unexpected exception", ex);
+			throw new RuntimeException(ex);
 		}
 	}
 	

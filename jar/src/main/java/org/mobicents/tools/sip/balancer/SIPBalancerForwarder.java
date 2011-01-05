@@ -1043,7 +1043,7 @@ public class SIPBalancerForwarder implements SipListener {
 		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 			fromServer = sipProvider.equals(balancerRunner.balancerContext.internalSipProvider);
 		} else {
-			fromServer = getSourceNode(response) != null;
+			fromServer = getSourceNode(response) == null;
 		}
 		
 		if(fromServer) {

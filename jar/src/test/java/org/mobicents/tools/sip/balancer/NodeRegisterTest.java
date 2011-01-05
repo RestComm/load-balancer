@@ -49,14 +49,6 @@ public class NodeRegisterTest extends TestCase {
 	protected void tearDown() throws Exception {
 		super.tearDown();
 	}
-
-	public void testNodeRegistryStartupShutdown2x() throws RemoteException, UnknownHostException {
-		NodeRegisterImpl reg = new NodeRegisterImpl(InetAddress.getByName("127.0.0.1"));
-		reg.startRegistry(2000);
-		reg.stopRegistry();
-		reg.startRegistry(2000);
-		reg.stopRegistry();
-	}
 	
 	public void testNodeTimeouts() throws RemoteException, Exception {
 		BalancerRunner balancerRunner = new BalancerRunner();
