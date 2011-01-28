@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- This document was created with Syntext Serna Free. -->
 <!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
-<!ENTITY % BOOK_ENTITIES SYSTEM "Load_Balancer_Guide.ent">
+<!ENTITY % BOOK_ENTITIES SYSTEM "SIP_Balancer_User_Guide.ent">
 %BOOK_ENTITIES;
 ]>
 <!-- chapter id nickname: sslb --><chapter id="sslb-MSS_Load_Balancer">
@@ -399,10 +399,10 @@ INFO: Node registry started</screen>
       </procedure>
       <procedure>
         <title>Testing Load Balancing with JAIN SLEE and SIP RA</title>
-        <step>Deploy SIP RA</step>
-        <step>Configure the JAIN SIP HA properties for load balancing according to the JAIN SLEE User Guide</step>
-        <step>Deploy a sample application</step>
-        <step>Run the sample scenario for the application using the SIP Load Balancer</step>
+        <step><para>Deploy SIP RA</para></step>
+        <step><para>Configure the JAIN SIP HA properties for load balancing according to the JAIN SLEE User Guide</para></step>
+        <step><para>Deploy a sample application</para></step>
+        <step><para>Run the sample scenario for the application using the SIP Load Balancer</para></step>
       </procedure>
     </section>
     <section id="sslb-binary-SIP_Load_Balancer-Stopping">

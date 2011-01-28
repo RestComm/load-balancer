@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8' ?>
 <!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
-<!ENTITY % BOOK_ENTITIES SYSTEM "../Load_Balancer_Guide.ent">
+<!ENTITY % BOOK_ENTITIES SYSTEM "../SIP_Balancer_User_Guide.ent">
 %BOOK_ENTITIES;
 ]>
 
@@ -120,7 +120,7 @@ books_tests  Desktop1  downloads      images  notes  scripts  svgs
 			Source-code listings are also set in <computeroutput>Mono-spaced Roman</computeroutput> but are presented and highlighted as follows:
 		</para>
 		
-<programlisting language="java">
+<programlisting language="Java">
 package org.jboss.book.jca.ex1;
 
 import javax.naming.InitialContext;
