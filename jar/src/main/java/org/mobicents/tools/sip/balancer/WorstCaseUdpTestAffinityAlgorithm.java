@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
+import javax.sip.header.CSeqHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
@@ -31,27 +32,26 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	protected ConcurrentHashMap<String, SIPNode> txToNode = new ConcurrentHashMap<String, SIPNode>();
 	protected ConcurrentHashMap<String, Long> txTimestamps = new ConcurrentHashMap<String, Long>();
 	protected boolean earlyDialogWorstCase = false;
-	public synchronized SIPNode getNode(String tx) {
+	public synchronized SIPNode getNodeA(String tx) {
 		return txToNode.get(tx);
 	}
-	public synchronized void setNode(String tx, SIPNode node) {
+	public synchronized void setNodeA(String tx, SIPNode node) {
 		txToNode.put(tx, node);
 		txTimestamps.put(tx, System.currentTimeMillis());
 	}
+	static int y =0;
 	public SIPNode processAssignedExternalRequest(Request request,
 			SIPNode assignedNode) {
+		//if((y++)%2==0) if(request.getHeader("CSeq").toString().contains("1")) return assignedNode;
 		String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
+		CSeqHeader cs = (CSeqHeader) request.getHeader(CSeqHeader.NAME);
+		long cseq = cs.getSeqNumber();
 		if(callIdMap.get(callId) != null) {
 			assignedNode = callIdMap.get(callId);
 		}
 		ViaHeader via = (ViaHeader) request.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
-		String tx = via.getBranch();
-		SIPNode seenNode = getNode(tx);
-		if(seenNode != null) return seenNode;
-		if(!earlyDialogWorstCase) {
-			if(request.getMethod().contains("ACK")) return assignedNode;
-		}
+		
 		RouteHeader route = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		SipURI uri = null;
 		if(route != null) {
@@ -60,30 +60,39 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			uri = (SipURI) request.getRequestURI();
 		}
 		try {
-			for(SIPNode node:getBalancerContext().nodes) {
-				if(!node.equals(assignedNode)) {
-					uri.setHost(node.getIp());
-					Integer port = (Integer) node.getProperties().get(transport + "Port");
-					uri.setPort(port);
-					
-					
-					callIdMap.put(callId, node);
-					setNode(tx, node);
-					
-					// For http://code.google.com/p/mobicents/issues/detail?id=2132
-					
-					if(request.getRequestURI().isSipURI()) {
-						SipURI ruri = (SipURI) request.getRequestURI();
-						String rurihostid = ruri.getHost() + ruri.getPort();
-						String originalhostid = assignedNode.getIp() + assignedNode.getProperties().get(transport + "Port");
-						if(rurihostid.equals(originalhostid)) {
-							ruri.setPort(port);
-							ruri.setHost(node.getIp());
-						}
+			SIPNode newNode = getNodeA(callId+cseq);
+			if(newNode == null) {
+				for(SIPNode node:getBalancerContext().nodes) {
+					if(!node.equals(assignedNode)) {
+						newNode = node;
 					}
-					return node;
 				}
 			}
+			SIPNode node = newNode;
+
+
+			uri.setHost(node.getIp());
+			Integer port = (Integer) node.getProperties().get(transport + "Port");
+			uri.setPort(port);
+
+
+			callIdMap.put(callId, node);
+			setNodeA(callId + cseq, node);
+
+			// For http://code.google.com/p/mobicents/issues/detail?id=2132
+
+			if(request.getRequestURI().isSipURI()) {
+				SipURI ruri = (SipURI) request.getRequestURI();
+				String rurihostid = ruri.getHost() + ruri.getPort();
+				String originalhostid = assignedNode.getIp() + assignedNode.getProperties().get(transport + "Port");
+				if(rurihostid.equals(originalhostid)) {
+					ruri.setPort(port);
+					ruri.setHost(node.getIp());
+				}
+			}
+			return node;
+
+
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -169,6 +178,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		String callId = ((SIPHeader) request.getHeader(headerName))
 		.getValue();
 		SIPNode node;
+		CSeqHeader cs = (CSeqHeader) request.getHeader(CSeqHeader.NAME);
+		long cseq = cs.getSeqNumber();
 		node = callIdMap.get(callId);
 		callIdTimestamps.put(callId, System.currentTimeMillis());
 
@@ -189,8 +200,16 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				if(logger.isLoggable(Level.FINEST)) {
 		    		logger.finest("The assigned node in the affinity map is still alive: " + node);
 		    	}
+				if(!request.getMethod().equals("ACK")) {
+					for(SIPNode n:balancerContext.nodes) {
+						if(!n.equals(node)) node = n;
+						break;
+					}
+				}
 			}
 		}
+		setNodeA(callId+cseq,node);
+		callIdMap.put(callId, node);
 		
 // Don't try to be smart here, the retransmissions of BYE will come and will not know where to go.
 //		if(request.getMethod().equals("BYE")) {
