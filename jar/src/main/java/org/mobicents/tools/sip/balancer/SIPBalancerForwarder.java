@@ -676,14 +676,16 @@ public class SIPBalancerForwarder implements SipListener {
 						originalRouteHeaderUri = (SipURI) assignedUri.clone();
 						request.removeFirst(RouteHeader.NAME);
 					} else {
-						SipURI sipUri =(SipURI) request.getRequestURI();
-						//nextNodeInRequestUri = true;
-						assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
+						if(request.getRequestURI() instanceof SipURI) {
+							SipURI sipUri =(SipURI) request.getRequestURI();
+							//nextNodeInRequestUri = true;
+							assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
+						}
 					}
 					if(logger.isLoggable(Level.FINEST)) {
 			    		logger.finest("Subsequent request -> Found Route Header " + header + " |Next node is " + assignedNode);
 			    	}
-				} else {
+				} else if(request.getRequestURI() instanceof SipURI) {
 					SipURI sipUri =(SipURI) request.getRequestURI();
 					//nextNodeInRequestUri = true;
 					assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
