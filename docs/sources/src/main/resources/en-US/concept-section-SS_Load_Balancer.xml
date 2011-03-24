@@ -70,6 +70,7 @@ Or something similar to that.  Do you agree?-->        <varlistentry>
     </section>
     <section id="sslb-binary-SIP_Load_Balancer-Configuring">
       <title>Configuring</title>
+      <para>Configuring the SIP load balancer and the two SIP Servlets-enabled Server nodes is described in <xref linkend="sslb-Configuring_the_SIP_Load_Balancer_and_Servlet_Server_Nodes"/>.</para>
       <procedure id="sslb-Configuring_the_SIP_Load_Balancer_and_Servlet_Server_Nodes">
         <title>Configuring the &PLATFORM_NAME; SIP Load Balancer and SIP Server Nodes</title>
         <step>
