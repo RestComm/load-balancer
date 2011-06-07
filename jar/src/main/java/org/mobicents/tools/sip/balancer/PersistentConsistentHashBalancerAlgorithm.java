@@ -122,11 +122,13 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 	}
 	
 	private void dumpNodes() {
-		logger.info("The following nodes are in cache right now:");
+		String nodes = "I am " + getBalancerContext().externalHost + ":" + getBalancerContext().externalPort + ". I see the following nodes are in cache right now (" + nodesArray.length + "):\n";
+		
 		for(Object object : nodesArray) {
 			SIPNode node = (SIPNode) object;
-			logger.info(node.toString() + " [ALIVE:" + isAlive(node) + "]");
+			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]\n";
 		}
+		logger.info(nodes);
 	}
 	
 	private boolean isAlive(SIPNode node) {
