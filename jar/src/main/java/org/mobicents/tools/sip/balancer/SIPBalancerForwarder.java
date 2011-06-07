@@ -963,6 +963,14 @@ public class SIPBalancerForwarder implements SipListener {
 		        }
 		    }	                
 		}
+		
+		if(node == null) {
+			if(request.getRequestURI().isSipURI()) {
+				node = checkRouteHeaderForSipNode((SipURI) request.getRequestURI());
+			}
+		}
+		
+		//logger.info(request.ge + " has this hint " + node);
 
 		return new RouteHeaderHints(node, subsequent);
 	}
