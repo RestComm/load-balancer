@@ -25,6 +25,7 @@ package org.mobicents.tools.sip.balancer;
 import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
 import gov.nist.javax.sip.header.SIPHeader;
+import gov.nist.javax.sip.message.SIPResponse;
 
 import java.text.ParseException;
 import java.util.HashSet;
@@ -545,13 +546,32 @@ public class SIPBalancerForwarder implements SipListener {
 		return false;
 	}
 	
-	private SIPNode getSourceNode(Response response) {
+	private SIPNode getTransactionSourceNode(Response response) {
 		ViaHeader viaHeader = ((ViaHeader)response.getHeader(ViaHeader.NAME));
 		String host = viaHeader.getHost();
 		String transport = viaHeader.getTransport();
 		if(transport == null) transport = "udp";
 		transport = transport.toLowerCase();
 		int port = viaHeader.getPort();
+		if(extraServerAddresses != null) {
+			for(int q=0; q<extraServerAddresses.length; q++) {
+				if(extraServerAddresses[q].equals(host) && extraServerPorts[q] == port) {
+					return ExtraServerNode.extraServerNode;
+				}
+			}
+		}
+		SIPNode node = getNodeDeadOrAlive(host, port, transport);
+		if(node != null) {
+			return node;
+		}
+		return null;
+	}
+	
+	private SIPNode getSenderNode(Response response) {
+		SIPResponse resp = (SIPResponse) response;
+		String host = resp.getRemoteAddress().getHostAddress();
+		String transport = "udp";
+		int port = resp.getRemotePort();
 		if(extraServerAddresses != null) {
 			for(int q=0; q<extraServerAddresses.length; q++) {
 				if(extraServerAddresses[q].equals(host) && extraServerPorts[q] == port) {
@@ -1052,7 +1072,12 @@ public class SIPBalancerForwarder implements SipListener {
 
 		updateStats(originalResponse);
 
-		final Response response = originalResponse;
+		final Response response = (Response) originalResponse; 
+		
+		SIPNode senderNode = getSenderNode(response);
+		if(senderNode != null) {
+			senderNode.updateTimerStamp();
+		}
 		
 		// Topmost via headers is me. As it is response to external request
 		ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
@@ -1071,7 +1096,7 @@ public class SIPBalancerForwarder implements SipListener {
 		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 			fromServer = sipProvider.equals(balancerRunner.balancerContext.internalSipProvider);
 		} else {
-			fromServer = getSourceNode(response) == null;
+			fromServer = senderNode == null;
 		}
 		
 		if(fromServer) {
