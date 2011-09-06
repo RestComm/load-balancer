@@ -54,7 +54,8 @@ public class RingingFailoverTest extends TestCase {
 		SIPNode adNode = new SIPNode(node, node);
 		adNode.getProperties().put("udpPort", port);
 		algorithm.balancerContext = new BalancerContext();
-		algorithm.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
+		InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
+		ctx.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
 		algorithm.processExternalResponse(response);
 		
 		if(!response.toString().contains(node+":" + port)) {

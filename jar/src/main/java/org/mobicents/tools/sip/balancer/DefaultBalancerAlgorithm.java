@@ -37,9 +37,18 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
 	protected BalancerContext balancerContext;
+	protected InvocationContext invocationContext;
 
 	public void setProperties(Properties properties) {
 		this.properties = properties;
+	}
+	
+	public void setInvocationContext(InvocationContext ctx) {
+		this.invocationContext = ctx;
+	}
+	
+	public InvocationContext getInvocationContext() {
+		return invocationContext;
 	}
 
 	public BalancerContext getBalancerContext() {
@@ -58,7 +67,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	}
 	
 	public SIPNode processHttpRequest(HttpRequest request) {
-		if(balancerContext.nodes.size()>0) {
+		if(invocationContext.nodes.size()>0) {
 
 			String httpSessionId = null;
 			httpSessionId = getUrlParameters(request.getUri()).get("jsessionid");
@@ -84,19 +93,19 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 					SIPNode node = balancerContext.jvmRouteToSipNode.get(jvmRoute);
 					
 					if(node != null) {
-						if(balancerContext.nodes.contains(node)) {
+						if(invocationContext.nodes.contains(node)) {
 							return node;
 						}
 					}
 				}
 				
 				// As a failsafe if there is no jvmRoute, just hash the sessionId
-				int nodeId = Math.abs(httpSessionId.hashCode()%balancerContext.nodes.size());
-				return balancerContext.nodes.get(nodeId);
+				int nodeId = Math.abs(httpSessionId.hashCode()%invocationContext.nodes.size());
+				return invocationContext.nodes.get(nodeId);
 				
 			}
 			
-			return balancerContext.nodes.get(0);
+			return invocationContext.nodes.get(0);
 		} else {
 			String unavailaleHost = getProperties().getProperty("unavailableHost");
 			if(unavailaleHost != null) {

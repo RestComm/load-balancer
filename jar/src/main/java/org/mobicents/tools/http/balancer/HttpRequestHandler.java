@@ -52,6 +52,7 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.mobicents.tools.sip.balancer.BalancerContext;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.SIPNode;
 
 /**
@@ -83,9 +84,11 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	
         	Channel associatedChannel = HttpChannelAssociations.channels.get(e.getChannel());
         	
+        	InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
+        	
         	SIPNode node = null;
         	try {
-        		node = balancerRunner.balancerContext.balancerAlgorithm.processHttpRequest(request);
+        		node = invocationContext.balancerAlgorithm.processHttpRequest(request);
         	} catch (Exception ex) {
         		StringWriter sw = new StringWriter();
         		ex.printStackTrace(new PrintWriter(sw));

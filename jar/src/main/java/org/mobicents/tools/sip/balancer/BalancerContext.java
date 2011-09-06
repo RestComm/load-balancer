@@ -37,7 +37,7 @@ import javax.sip.header.RecordRouteHeader;
 import javax.sip.message.MessageFactory;
 
 public class BalancerContext {
-	public CopyOnWriteArrayList<SIPNode> nodes;
+	
 	/* We will store here all nodes we ever saw because we will need the addresses to determine the
 	 *  direction of requests where a dead node is involved. Otherwise if a node has died its address
 	 *  will be recognized as client address which is wrong. This only affects config with single port SIP LB.
@@ -45,7 +45,9 @@ public class BalancerContext {
 	 */
 	
 	public HashSet<SIPNode> allNodesEver = new HashSet<SIPNode>();
+	public CopyOnWriteArrayList<SIPNode> aliveNodes = null;
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
+	public String algorithmClassName;
 	
 	public Object parameters;
 	
@@ -112,7 +114,4 @@ public class BalancerContext {
 			responsesProcessedByStatusCode.put(classOfSc, new AtomicLong(0));
 		}
 	}
-	
-    
-    public DefaultBalancerAlgorithm balancerAlgorithm = null;
 }

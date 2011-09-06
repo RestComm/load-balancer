@@ -60,13 +60,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	public void processExternalResponse(Response response) {
-		BalancerContext balancerContext = getBalancerContext();
 		Via via = (Via) response.getHeader(Via.NAME);
 		String host = via.getHost();
 		Integer port = via.getPort();
 		String transport = via.getTransport().toLowerCase();
 		boolean found = false;
-		for(SIPNode node : getBalancerContext().nodes) {
+		for(SIPNode node : invocationContext.nodes) {
 			if(node.getIp().equals(host)) {
 				if(port.equals(node.getProperties().get(transport+"Port"))) {
 					found = true;
@@ -80,7 +79,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			String callId = ((SIPHeader) response.getHeader(headerName))
 			.getValue();
 			SIPNode node = callIdMap.get(callId);
-			if(node == null || !balancerContext.nodes.contains(node)) {
+			if(node == null || !invocationContext.nodes.contains(node)) {
 				node = selectNewNode(node, callId);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
@@ -128,8 +127,6 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		node = callIdMap.get(callId);
 		callIdTimestamps.put(callId, System.currentTimeMillis());
 
-		BalancerContext balancerContext = getBalancerContext();
-
 		if(node == null) { //
 			node = nextAvailableNode();
 			if(node == null) return null;
@@ -138,7 +135,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	    		logger.finest("No node found in the affinity map. It is null. We select new node: " + node);
 	    	}
 		} else {
-			if(!balancerContext.nodes.contains(node)) { // If the assigned node is now dead
+			if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
 				node = selectNewNode(node, callId);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
@@ -186,15 +183,13 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	protected synchronized SIPNode nextAvailableNode() {
-		BalancerContext balancerContext = getBalancerContext();
-		if(balancerContext.nodes.size() == 0) return null;
+		if(invocationContext.nodes.size() == 0) return null;
 		int nextNode = nextNodeCounter.incrementAndGet();
-		nextNode %= balancerContext.nodes.size();
-		return balancerContext.nodes.get(nextNode);
+		nextNode %= invocationContext.nodes.size();
+		return invocationContext.nodes.get(nextNode);
 	}
 	
 	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {
-		BalancerContext balancerContext = getBalancerContext();
 		HashMap<SIPNode, Integer> nodeUtilization = new HashMap<SIPNode, Integer>();
 		for(SIPNode node : callIdMap.values()) {
 			Integer n = nodeUtilization.get(node);

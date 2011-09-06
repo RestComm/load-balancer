@@ -28,6 +28,7 @@ import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.SIPResponse;
 
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -86,6 +87,8 @@ public class SIPBalancerForwarder implements SipListener {
 	public static final String ROUTE_PARAM_NODE_HOST = "node_host";
 
 	public static final String ROUTE_PARAM_NODE_PORT = "node_port";
+	
+	public static final String ROUTE_PARAM_NODE_VERSION = "version";
 	
 	public static final int UDP = 0;
 	public static final int TCP = 1;
@@ -503,9 +506,17 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 	}
 	
-	private SIPNode getAliveNode(String host, int port, String otherTransport) {
+	private SIPNode getAliveNode(String host, int port, String otherTransport, InvocationContext ctx) {
+		return getNodeFromCollection(host, port, otherTransport, ctx.nodes);
+	}
+	
+	private SIPNode getAliveNodeAnyVersion(String host, int port, String otherTransport) {
+		return getNodeFromCollection(host, port, otherTransport, balancerRunner.balancerContext.aliveNodes);
+	}
+	
+	private SIPNode getNodeFromCollection(String host, int port, String otherTransport, Collection<SIPNode> ctx) {
 		otherTransport = otherTransport.toLowerCase();
-		for(SIPNode node : balancerRunner.balancerContext.nodes) {
+		for(SIPNode node : ctx) {
 			if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
 				if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
 					return node;
@@ -516,15 +527,7 @@ public class SIPBalancerForwarder implements SipListener {
 	}
 	
 	private SIPNode getNodeDeadOrAlive(String host, int port, String otherTransport) {
-		otherTransport = otherTransport.toLowerCase();
-		for(SIPNode node : balancerRunner.balancerContext.allNodesEver) {
-			if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
-				if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
-					return node;
-				}
-			}
-		}
-		return null;
+		return getNodeFromCollection(host, port, otherTransport, balancerRunner.balancerContext.allNodesEver);
 	}
 	
 	private boolean isViaHeaderFromServer(Request request) {
@@ -540,7 +543,7 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 			}
 		}
-		if(getAliveNode(host, port, transport) != null) {
+		if(getAliveNodeAnyVersion(host, port, transport) != null) {
 			return true;
 		}
 		return false;
@@ -646,9 +649,14 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		RouteHeaderHints hints = removeRouteHeadersMeantForLB(request);
 		
-		if(dialogCreationMethods.contains(request.getMethod())) {
-			addLBRecordRoute(sipProvider, request, hints);
+		String version = hints.version;
+		
+		if(version == null) {
+			version = register.getLatestVersion();
+			hints.version = version;
 		}
+		
+		InvocationContext ctx = balancerRunner.getInvocationContext(version);
 		
 		final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 		
@@ -656,7 +664,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		if(hints.serverAssignedNode !=null) {
 			String callId = ((SIPHeader) request.getHeader("Call-ID")).getValue();
-			balancerRunner.balancerContext.balancerAlgorithm.assignToNode(callId, hints.serverAssignedNode);
+			ctx.balancerAlgorithm.assignToNode(callId, hints.serverAssignedNode);
 			if(logger.isLoggable(Level.FINEST)) {
 	    		logger.finest("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);
 			}
@@ -671,7 +679,7 @@ public class SIPBalancerForwarder implements SipListener {
 		SIPNode nextNode = null;
 		
 		if(isRequestFromServer) {
-			balancerRunner.balancerContext.balancerAlgorithm.processInternalRequest(request);
+			ctx.balancerAlgorithm.processInternalRequest(request);
 		} else {
 			
 			// Request is NOT from app server, first check if we have hints in Route headers
@@ -684,7 +692,7 @@ public class SIPBalancerForwarder implements SipListener {
 					URI uri = nextNodeHeader.getAddress().getURI();
 					if(uri instanceof SipURI) {
 						SipURI sipUri = (SipURI) uri;
-						assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
+						assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport, ctx);
 						if(logger.isLoggable(Level.FINEST)) {
 							logger.finest("Found SIP URI " + uri + " |Next node is " + assignedNode);
 						}
@@ -705,7 +713,7 @@ public class SIPBalancerForwarder implements SipListener {
 						if(request.getRequestURI() instanceof SipURI) {
 							SipURI sipUri =(SipURI) request.getRequestURI();
 							//nextNodeInRequestUri = true;
-							assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
+							assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport, ctx);
 						}
 					}
 					if(logger.isLoggable(Level.FINEST)) {
@@ -714,7 +722,7 @@ public class SIPBalancerForwarder implements SipListener {
 				} else if(request.getRequestURI() instanceof SipURI) {
 					SipURI sipUri =(SipURI) request.getRequestURI();
 					//nextNodeInRequestUri = true;
-					assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport);
+					assignedNode = getAliveNode(sipUri.getHost(), sipUri.getPort(), transport, ctx);
 					if(logger.isLoggable(Level.FINEST)) {
 			    		logger.finest("NOT Subsequent request -> using sipUri " + sipUri + " |Next node is " + assignedNode);
 			    	}
@@ -725,7 +733,7 @@ public class SIPBalancerForwarder implements SipListener {
 				if(logger.isLoggable(Level.FINEST)) {
 		    		logger.finest("assignedNode is null");
 		    	}
-				nextNode = balancerRunner.balancerContext.balancerAlgorithm.processExternalRequest(request);
+				nextNode = ctx.balancerAlgorithm.processExternalRequest(request);
 				if(nextNode instanceof NullServerNode) {
 					if(logger.isLoggable(Level.FINE)) {
 						logger.fine("Algorithm returned a NullServerNode. We will not attempt to forward this request " + request);
@@ -734,7 +742,7 @@ public class SIPBalancerForwarder implements SipListener {
 				if(nextNode != null) {
 					if(logger.isLoggable(Level.FINEST)) {
 						String nodesString = "";
-						Object[] nodes = balancerRunner.balancerContext.nodes.toArray();
+						Object[] nodes = ctx.nodes.toArray();
 						for(Object n : nodes) {
 							nodesString +=n + " , ";
 						}
@@ -784,7 +792,7 @@ public class SIPBalancerForwarder implements SipListener {
 					}
 				}
 			} else {
-				nextNode = balancerRunner.balancerContext.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
+				nextNode = ctx.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
 			}
 			if(nextNode == null) {
 				if(logger.isLoggable(Level.FINE)) {
@@ -805,6 +813,11 @@ public class SIPBalancerForwarder implements SipListener {
 			}
 		}
 		
+		hints.serverAssignedNode = nextNode;
+		if(dialogCreationMethods.contains(request.getMethod())) {
+			addLBRecordRoute(sipProvider, request, hints, version);
+		}
+		
 		// Stateless proxies must not use internal state or ransom values when creating branch because they
 		// must repeat exactly the same branches for retransmissions
 		final ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
@@ -814,11 +827,11 @@ public class SIPBalancerForwarder implements SipListener {
 		ViaHeader viaHeaderInternal = null;
 		
 		viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-				balancerRunner.balancerContext.externalViaHost, balancerRunner.balancerContext.externalViaPort, transport, newBranch);
+				balancerRunner.balancerContext.externalViaHost, balancerRunner.balancerContext.externalViaPort, transport, newBranch+ "_" + version);
 		
 		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 			viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-					balancerRunner.balancerContext.internalViaHost, balancerRunner.balancerContext.internalViaPort, transport, newBranch + "zsd");
+					balancerRunner.balancerContext.internalViaHost, balancerRunner.balancerContext.internalViaPort, transport, newBranch + "zsd" + "_" + version);
 		}
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
@@ -839,6 +852,32 @@ public class SIPBalancerForwarder implements SipListener {
 			balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
 		}
 	}
+	
+	private RecordRouteHeader stampRecordRoute(RecordRouteHeader rrh, RouteHeaderHints hints, String transport) {
+		SipURI uri = (SipURI) rrh.getAddress().getURI();
+		try {
+
+			uri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
+			uri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
+			uri.setParameter(ROUTE_PARAM_NODE_VERSION, hints.version);
+		} catch (ParseException e) {
+			logger.log(Level.WARNING,"Problem adding rrh" ,e);
+		}
+		return rrh;
+	}
+	
+	private void addTwoRecordRoutes(Request request, RecordRouteHeader first, RecordRouteHeader second, RouteHeaderHints hints, String transport) {
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("adding Record Router Header :" + first);
+		}
+		
+		request.addHeader(stampRecordRoute((RecordRouteHeader) first.clone(), hints, transport));
+
+		if(logger.isLoggable(Level.FINEST)) {
+			logger.finest("adding Record Router Header :" + second);
+		}
+		request.addHeader(stampRecordRoute((RecordRouteHeader) second.clone(), hints, transport));
+	}
 
 	/**
 	 * @param sipProvider
@@ -846,42 +885,25 @@ public class SIPBalancerForwarder implements SipListener {
 	 * @param hints 
 	 * @throws ParseException
 	 */
-	private void addLBRecordRoute(SipProvider sipProvider, Request request, RouteHeaderHints hints)
+	private void addLBRecordRoute(SipProvider sipProvider, Request request, RouteHeaderHints hints, String version)
 	throws ParseException {				
 		if(logger.isLoggable(Level.FINEST)) {
 			logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeExternalHeader);
 		}
 		String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 		int transportIndex = transport.equalsIgnoreCase("udp")?0:1;
-		if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+		if(balancerRunner.balancerContext.isTwoEntrypoints()) { // comes from client
 			if(sipProvider.equals(balancerRunner.balancerContext.externalSipProvider)) {
-				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeExternalHeader);
-				}
-				request.addHeader(balancerRunner.balancerContext.activeExternalHeader[transportIndex]);
-
-				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeInternalHeader);
-				}
-				request.addHeader(balancerRunner.balancerContext.activeInternalHeader[transportIndex]);
-			} else {
-				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeInternalHeader);
-				}
-				request.addHeader(balancerRunner.balancerContext.activeInternalHeader[transportIndex]);
-
-				if(logger.isLoggable(Level.FINEST)) {
-					logger.finest("adding Record Router Header :" + balancerRunner.balancerContext.activeExternalHeader);
-				}
-				RecordRouteHeader recordRouteHeader = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
-				if(hints.serverAssignedNode != null) {
-					recordRouteHeader = (RecordRouteHeader) recordRouteHeader.clone();
-					SipURI sipuri = (SipURI) recordRouteHeader.getAddress().getURI();
-					
-					sipuri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
-					sipuri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
-				}
-				request.addHeader(recordRouteHeader);			
+				addTwoRecordRoutes(request, 
+						balancerRunner.balancerContext.activeExternalHeader[transportIndex],
+						balancerRunner.balancerContext.activeInternalHeader[transportIndex],
+						hints, transport);
+			
+			} else { // comes from app server
+				addTwoRecordRoutes(request,
+						balancerRunner.balancerContext.activeInternalHeader[transportIndex],
+						balancerRunner.balancerContext.activeExternalHeader[transportIndex],
+						hints, transport);
 			}	
 		} else {
 			RecordRouteHeader recordRouteHeader = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
@@ -891,6 +913,7 @@ public class SIPBalancerForwarder implements SipListener {
 				
 				sipuri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
 				sipuri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
+				sipuri.setParameter(ROUTE_PARAM_NODE_VERSION, version);
 			}
 			request.addHeader(recordRouteHeader);
 		}
@@ -906,11 +929,12 @@ public class SIPBalancerForwarder implements SipListener {
 		SIPNode node = null;
 		String hostNode = routeSipUri.getParameter(ROUTE_PARAM_NODE_HOST);
 		String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
+		String hostVersion = routeSipUri.getParameter(ROUTE_PARAM_NODE_VERSION);
 		if(hostNode != null && hostPort != null) {
 			int port = Integer.parseInt(hostPort);
 			String transport = routeSipUri.getTransportParam();
 			if(transport == null) transport = "udp";
-			node = register.getNode(hostNode, port, transport);
+			node = register.getNode(hostNode, port, transport, hostVersion);
 		}
 		return node;
 	}
@@ -933,10 +957,13 @@ public class SIPBalancerForwarder implements SipListener {
     	}
 		SIPNode node = null; 
 		boolean subsequent = false;
+		String callVersion = null;
+		
 		//Removing first routeHeader if it is for the sip balancer
 		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		if(routeHeader != null) {
 		    SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
+		    callVersion = routeUri.getParameter(ROUTE_PARAM_NODE_VERSION);
 		    
 	        // We determine if request is subsequent if both internal and external LB RR headers are present. 
 	        // If only one, this probably means that this dialog never passed through the SIP LB. SIPP however,
@@ -944,6 +971,8 @@ public class SIPBalancerForwarder implements SipListener {
 	        // the caller or the calle would know only if they have passed through the L before.
 		    if(routeUri.getPort() == balancerRunner.balancerContext.internalPort && 
 		    		routeUri.getHost().equals(balancerRunner.balancerContext.internalHost)) subsequent = true;
+		    if(routeUri.getPort() == balancerRunner.balancerContext.internalLoadBalancerPort && 
+		    		routeUri.getHost().equals(balancerRunner.balancerContext.internalIpLoadBalancerAddress)) subsequent = true;
 		    
 		    //FIXME check against a list of host we may have too
 		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
@@ -997,7 +1026,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		//logger.info(request.ge + " has this hint " + node);
 
-		return new RouteHeaderHints(node, subsequent);
+		return new RouteHeaderHints(node, subsequent, callVersion);
 	}
 	
 	/**
@@ -1082,6 +1111,12 @@ public class SIPBalancerForwarder implements SipListener {
 		// Topmost via headers is me. As it is response to external request
 		ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
 		
+		String branch = viaHeader.getBranch();
+		int versionDelimiter = branch.lastIndexOf('_');
+		String version = branch.substring(versionDelimiter + 1);
+		
+		InvocationContext ctx = balancerRunner.getInvocationContext(version);
+		
 		if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
 			response.removeFirst(ViaHeader.NAME);
 		}
@@ -1110,7 +1145,7 @@ public class SIPBalancerForwarder implements SipListener {
 					}
 				}
 			}*/
-			balancerRunner.balancerContext.balancerAlgorithm.processInternalResponse(response);
+			ctx.balancerAlgorithm.processInternalResponse(response);
 			try {	
 				if(logger.isLoggable(Level.FINEST)) {
 					logger.finest("from server sending response externally " + response);
@@ -1120,7 +1155,7 @@ public class SIPBalancerForwarder implements SipListener {
 				logger.log(Level.SEVERE, "Unexpected exception while forwarding the response \n" + response, ex);
 			}
 		} else {
-			balancerRunner.balancerContext.balancerAlgorithm.processExternalResponse(response);
+			ctx.balancerAlgorithm.processExternalResponse(response);
 			try {	
 				if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 					if(logger.isLoggable(Level.FINEST)) {

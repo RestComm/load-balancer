@@ -61,6 +61,9 @@ public class NodeRegisterImpl  implements NodeRegister {
 	private TimerTask nodeExpirationTask = null;
 	private InetAddress serverAddress = null;
 	
+	private String latestVersion = Integer.MIN_VALUE + "";
+	private int numberOfOldServers, numberOfNewServers;
+	
 	BalancerRunner balancerRunner;
 
 	
@@ -69,12 +72,6 @@ public class NodeRegisterImpl  implements NodeRegister {
 		this.serverAddress = serverAddress;		
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 */
-	public CopyOnWriteArrayList<SIPNode> getNodes() {
-		return balancerRunner.balancerContext.nodes;
-	}
 		
 	/**
 	 * {@inheritDoc}
@@ -84,7 +81,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 			logger.info("Node registry starting...");
 		}
 		try {
-			balancerRunner.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>();;
+			balancerRunner.balancerContext.aliveNodes = new CopyOnWriteArrayList<SIPNode>();;
 			balancerRunner.balancerContext.jvmRouteToSipNode = new ConcurrentHashMap<String, SIPNode>();
 			register(serverAddress, rmiRegistryPort);
 			
@@ -116,8 +113,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 		if(logger.isLoggable(Level.INFO)) {
 			logger.info("Node Expiration Task cancelled " + taskCancelled);
 		}
-		balancerRunner.balancerContext.nodes.clear();
-		balancerRunner.balancerContext.nodes = null;
+		balancerRunner.balancerContext.allNodesEver.clear();
+		balancerRunner.balancerContext.allNodesEver = null;
 		if(logger.isLoggable(Level.INFO)) {
 			logger.info("Node registry stopped.");
 		}
@@ -218,8 +215,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	/**
 	 * {@inheritDoc}
 	 */
-	public boolean isSIPNodePresent(String host, int port, String transport)  {		
-		if(getNode(host, port, transport) != null) {
+	public boolean isSIPNodePresent(String host, int port, String transport, String version)  {		
+		if(getNode(host, port, transport, version) != null) {
 			return true;
 		}
 		return false;
@@ -228,8 +225,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	/**
 	 * {@inheritDoc}
 	 */
-	public SIPNode getNode(String host, int port, String transport)  {		
-		for (SIPNode node : balancerRunner.balancerContext.nodes) {
+	public SIPNode getNode(String host, int port, String transport, String version)  {		
+		for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("node to check against " + node);
 			}
@@ -237,7 +234,14 @@ public class NodeRegisterImpl  implements NodeRegister {
 				Integer nodePort = (Integer) node.getProperties().get(transport + "Port");
 				if(nodePort != null) {
 					if(nodePort == port) {
-						return node;
+						if(version == null) {
+							return node;
+						} else {
+							String nodeVersion = (String) node.getProperties().get("version");
+							if(version.equals(nodeVersion)) {
+								return node;
+							}
+						}
 					}
 				}
 			}
@@ -254,12 +258,15 @@ public class NodeRegisterImpl  implements NodeRegister {
 			if(logger.isLoggable(Level.FINEST)) {
 				logger.finest("NodeExpirationTimerTask Running");
 			}
-			for (SIPNode node : balancerRunner.balancerContext.nodes) {
+			for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
 				long expirationTime = node.getTimeStamp() + nodeExpiration;
 				if (expirationTime < System
 						.currentTimeMillis()) {
-					balancerRunner.balancerContext.nodes.remove(node);
-					balancerRunner.balancerContext.balancerAlgorithm.nodeRemoved(node);
+					InvocationContext ctx = balancerRunner.getInvocationContext(
+							(String) node.getProperties().get("version"));
+					balancerRunner.balancerContext.aliveNodes.remove(node);
+					ctx.nodes.remove(node);
+					ctx.balancerAlgorithm.nodeRemoved(node);
 					if(logger.isLoggable(Level.INFO)) {
 						logger.info("NodeExpirationTimerTask Run NSync["
 							+ node + "] removed. Last timestamp: " + node.getTimeStamp() + 
@@ -286,6 +293,9 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 */
 	public void handlePingInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
+			String version = (String) pingNode.getProperties().get("version");
+			InvocationContext ctx = balancerRunner.getInvocationContext(
+					version);
 			pingNode.updateTimerStamp();
 			if(pingNode.getProperties().get("jvmRoute") != null) {
 				// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
@@ -293,19 +303,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 				balancerRunner.balancerContext.jvmRouteToSipNode.put(
 						(String)pingNode.getProperties().get("jvmRoute"), pingNode);				
 			}
-			if(balancerRunner.balancerContext.nodes.size() < 1) {
-				balancerRunner.balancerContext.nodes.add(pingNode);
-				balancerRunner.balancerContext.balancerAlgorithm.nodeAdded(pingNode);
-				balancerRunner.balancerContext.allNodesEver.add(pingNode);
-				
-				if(logger.isLoggable(Level.INFO)) {
-					logger.info("NodeExpirationTimerTask Run NSync["
-						+ pingNode + "] added");
-				}
-				return ;
-			}
 			SIPNode nodePresent = null;
-			Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.nodes.iterator();
+			Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
 			while (nodesIterator.hasNext() && nodePresent == null) {
 				SIPNode node = (SIPNode) nodesIterator.next();
 				if (node.equals(pingNode)) {
@@ -319,8 +318,12 @@ public class NodeRegisterImpl  implements NodeRegister {
 					logger.fine("Ping " + nodePresent.getTimeStamp());
 				}
 			} else {
-				balancerRunner.balancerContext.nodes.add(pingNode);
-				balancerRunner.balancerContext.balancerAlgorithm.nodeAdded(pingNode);
+				Integer current = Integer.parseInt(version);
+				Integer latest = Integer.parseInt(latestVersion);
+				latestVersion = Math.max(current, latest) + "";
+				balancerRunner.balancerContext.aliveNodes.add(pingNode);
+				ctx.nodes.add(pingNode);
+				ctx.balancerAlgorithm.nodeAdded(pingNode);
 				balancerRunner.balancerContext.allNodesEver.add(pingNode);
 				pingNode.updateTimerStamp();
 				if(logger.isLoggable(Level.INFO)) {
@@ -331,22 +334,19 @@ public class NodeRegisterImpl  implements NodeRegister {
 		}
 	}
 	
+	public String getLatestVersion() {
+		return latestVersion;
+	}
+	
 	/**
 	 * {@inheritDoc}
 	 */
 	public void forceRemovalInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
-			if(balancerRunner.balancerContext.nodes.size() < 1) {
-				balancerRunner.balancerContext.nodes.remove(pingNode);
-				balancerRunner.balancerContext.balancerAlgorithm.nodeRemoved(pingNode);
-				if(logger.isLoggable(Level.INFO)) {
-					logger.info("NodeExpirationTimerTask Run NSync["
-						+ pingNode + "] forcibly removed due to a clean shutdown of a node");
-				}
-				return ;
-			}
+			InvocationContext ctx = balancerRunner.getInvocationContext(
+					(String) pingNode.getProperties().get("version"));
 			boolean nodePresent = false;
-			Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.nodes.iterator();
+			Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
 			while (nodesIterator.hasNext() && !nodePresent) {
 				SIPNode node = (SIPNode) nodesIterator.next();
 				if (node.equals(pingNode)) {
@@ -355,12 +355,12 @@ public class NodeRegisterImpl  implements NodeRegister {
 			}
 			// removal done afterwards to avoid ConcurrentModificationException when removing the node while goign through the iterator
 			if(nodePresent) {
-				balancerRunner.balancerContext.nodes.remove(pingNode);
-				balancerRunner.balancerContext.balancerAlgorithm.nodeRemoved(pingNode);
+				balancerRunner.balancerContext.aliveNodes.remove(pingNode);
+				ctx.balancerAlgorithm.nodeRemoved(pingNode);
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] forcibly removed due to a clean shutdown of a node. Numbers of nodes present in the balancer : " 
-						+ balancerRunner.balancerContext.nodes.size());
+						+ balancerRunner.balancerContext.aliveNodes.size());
 				}
 			}					
 		}
@@ -409,7 +409,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	}
 
 	public SIPNode[] getAllNodes() {
-		return balancerRunner.balancerContext.nodes.toArray(new SIPNode[]{});
+		return balancerRunner.balancerContext.aliveNodes.toArray(new SIPNode[]{});
 	}
 
 	public SIPNode getNextNode() throws IndexOutOfBoundsException {
@@ -418,6 +418,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	}
 
 	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
-		balancerRunner.balancerContext.balancerAlgorithm.jvmRouteSwitchover(fromJvmRoute, toJvmRoute);
+		for(InvocationContext ctx : balancerRunner.contexts.values()) {
+			ctx.balancerAlgorithm.jvmRouteSwitchover(fromJvmRoute, toJvmRoute);
+		}
 	}
 }

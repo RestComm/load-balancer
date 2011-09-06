@@ -69,7 +69,7 @@ public class NoInternalAddressTest extends TestCase{
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5060);
+			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5060, "0");
 			servers[q].start();
 		}
 		Thread.sleep(5000);

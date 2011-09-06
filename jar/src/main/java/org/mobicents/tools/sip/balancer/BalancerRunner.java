@@ -29,11 +29,13 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,6 +67,20 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String HTML_ADAPTOR_PORT = "8000";
 	public static final String REGISTRY_PORT = "2000";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
+	
+	ConcurrentHashMap<String, InvocationContext> contexts = new ConcurrentHashMap<String, InvocationContext>();
+	public InvocationContext getInvocationContext(String version) {
+		InvocationContext ct = contexts.get(version);
+		if(ct==null) {
+			ct = new InvocationContext(version, balancerContext);
+			contexts.put(version, ct);
+		}
+		return ct;
+	}
+	public InvocationContext getLatestInvocationContext() {
+		return getInvocationContext(reg.getLatestVersion());
+	}
+	
 	private static Logger logger = Logger.getLogger(BalancerRunner.class
 			.getCanonicalName());
 	protected SIPBalancerForwarder sipForwarder = null;
@@ -74,6 +90,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
 	public BalancerContext balancerContext = new BalancerContext();
+	
+	public String algorithClassName = null;
 
 	/**
 	 * @param args
@@ -128,17 +146,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			return ; 
 		}
 		
-		String algorithmClassname = properties.getProperty(ALGORITHM_PROP, DEFAULT_ALGORITHM);
+		this.algorithClassName = properties.getProperty(ALGORITHM_PROP, DEFAULT_ALGORITHM);
+		balancerContext.algorithmClassName = this.algorithClassName;
 		
-		try {
-			Class clazz = Class.forName(algorithmClassname);
-			balancerContext.balancerAlgorithm = (DefaultBalancerAlgorithm) clazz.newInstance();
-			balancerContext.balancerAlgorithm.balancerContext = balancerContext;
-			balancerContext.balancerAlgorithm.setProperties(properties);
-			logger.info("Balancer algorithm " + algorithmClassname + " loaded succesfully");
-		} catch (Exception e) {
-			throw new RuntimeException("Error loading the algorithm class: " + algorithmClassname, e);
-		}
+		
 		
 		try {
 			
@@ -181,7 +192,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				logger.warning("HTTP forwarder could not be restarted.");
 			}
 
-			balancerContext.balancerAlgorithm.init();
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
@@ -239,9 +249,11 @@ public class BalancerRunner implements BalancerRunnerMBean {
 					logger.info("Configuration file changed, applying changes.");
 					FileInputStream fileInputStream = null;
 					try {
-						fileInputStream = new FileInputStream(conf);
-						balancerContext.properties.load(fileInputStream);
-						balancerContext.balancerAlgorithm.configurationChanged();
+						for(InvocationContext ctx : contexts.values()) {
+							fileInputStream = new FileInputStream(conf);
+							balancerContext.properties.load(fileInputStream);
+							ctx.balancerAlgorithm.configurationChanged();
+						}
 					} catch (Exception e) {
 						logger.warning("Problem reloading configuration " + e);
 					} finally {
@@ -287,7 +299,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 					cs.stop();
 				}
 				cs = null;
-				balancerContext.balancerAlgorithm.stop();
+				for(InvocationContext ctx : contexts.values()) {
+					ctx.balancerAlgorithm.stop();
+				}
 				adapter.stop();
 				logger.info("Stopping the node registry");
 				reg.stopRegistry();
@@ -344,7 +358,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 
 	public List<SIPNode> getNodes() {
-		return reg.getNodes();
+		return new LinkedList(balancerContext.aliveNodes);
 	}
 	
 	public String[] getNodeList() {
@@ -368,7 +382,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 
 	public void setProperty(String key, String value) {
 		balancerContext.properties.setProperty(key, value);
-		balancerContext.balancerAlgorithm.configurationChanged();
+		for(InvocationContext ctx : contexts.values()) {
+			ctx.balancerAlgorithm.configurationChanged();
+		}
 	}
 }
 

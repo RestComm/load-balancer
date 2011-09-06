@@ -44,18 +44,18 @@ public interface NodeRegister extends Remote {
 	public SIPNode getGluedNode(String callID);
 	
 	public SIPNode[] getAllNodes();
-	
-	public CopyOnWriteArrayList<SIPNode> getNodes();
 
 	public void unStickSessionFromNode(String callID);
 	
 	public void handlePingInRegister(ArrayList<SIPNode> ping);
 	public void forceRemovalInRegister(ArrayList<SIPNode> ping);
 
-	public boolean isSIPNodePresent(String host, int port, String transportParam);
+	public boolean isSIPNodePresent(String host, int port, String transportParam, String version);
 	
-	public SIPNode getNode(String host, int port, String transportParam);
+	public SIPNode getNode(String host, int port, String transportParam, String version);
 	
 	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute);
+	
+	public String getLatestVersion();
 	
 }

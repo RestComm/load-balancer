@@ -50,8 +50,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	
 	// We will maintain a sorted list of the nodes so all SIP LBs will see them in the same order
 	// no matter at what order the events arrived
-	private SortedSet nodes = Collections.synchronizedSortedSet(new TreeSet<SIPNode>());
-	
+	private SortedSet<SIPNode> nodes = (SortedSet<SIPNode>) Collections.synchronizedSortedSet(new TreeSet<SIPNode>());
 	// And we also keep a copy in the array because it is faster to query by index
 	private Object[] nodesArray;
 	
@@ -69,13 +68,9 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		if(nodeIndex<0) {
 			return null;
 		} else {
-			BalancerContext balancerContext = getBalancerContext();
 			if(nodesAreDirty) {
 				synchronized(this) {
-					nodes.clear();
-					nodes.add(balancerContext.nodes);
-					nodesArray = nodes.toArray(new Object[]{});
-					nodesAreDirty = false;
+					syncNodes();
 				}
 			}
 			try {
@@ -87,12 +82,14 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		}
 	}
 
+	@Override
 	public synchronized void nodeAdded(SIPNode node) {
 		nodes.add(node);
 		nodesArray = nodes.toArray(new Object[]{});
 		nodesAreDirty = false;
 	}
 
+	@Override
 	public synchronized void nodeRemoved(SIPNode node) {
 		nodes.remove(node);
 		nodesArray = nodes.toArray(new Object[]{});
@@ -107,7 +104,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		}
 	}
 	
-	private Integer hashHeader(Message message) {
+	protected Integer hashHeader(Message message) {
 		String headerValue = null;
 		if(sipHeaderAffinityKey.equals("from.user")) {
 			headerValue = ((SipURI)((FromHeader) message.getHeader(FromHeader.NAME))
@@ -120,15 +117,23 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			.getValue();
 		}
 
-		if(nodes.size() == 0) return -1;
+		if(nodesArray.length == 0) throw new RuntimeException("No Application Servers registered. All servers are dead.");
 		
 		int nodeIndex = hashAffinityKeyword(headerValue);
-
-		return nodeIndex;
 		
+		if(isAlive((SIPNode)nodesArray[nodeIndex])) {
+			return nodeIndex;
+		} else {
+			return -1;
+		}
 	}
 	
-	public SIPNode processHttpRequest(HttpRequest request) {
+	protected boolean isAlive(SIPNode node) {
+		if(invocationContext.nodes.contains(node)) return true;
+		return false;
+	}
+	
+	public SIPNode processHttpRequest(HttpRequest request, InvocationContext context) {
 		String affinityKeyword = getUrlParameters(request.getUri()).get(this.httpAffinityKey);
 		if(affinityKeyword == null) {
 			return super.processHttpRequest(request);
@@ -137,9 +142,22 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 	
 	protected int hashAffinityKeyword(String keyword) {
-		int nodeIndex = Math.abs(keyword.hashCode()) % nodes.size();
+		int nodeIndex = Math.abs(keyword.hashCode()) % nodesArray.length;
+
+		SIPNode computedNode = (SIPNode) nodesArray[nodeIndex];
+		
+		if(!isAlive(computedNode)) {
+			// If the computed node is dead, find a new one
+			for(int q = 0; q<nodesArray.length; q++) {
+				nodeIndex = (nodeIndex + 1) % nodesArray.length;
+				if(isAlive(((SIPNode)nodesArray[nodeIndex]))) {
+					break;
+				}
+			}
+		}
 		return nodeIndex;
 	}
+
 
     HashMap<String,String> getUrlParameters(String url) {
     	HashMap<String,String> parameters = new HashMap<String, String>();
@@ -168,10 +186,11 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
     
 	public void configurationChanged() {
 		logger.info("Configuration changed");
-		init();
+		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
+		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
 	}
 	
-	public void processExternalResponse(Response response) {
+	public void processExternalResponse(Response response, InvocationContext context) {
 		
 		Integer nodeIndex = hashHeader(response);
 		BalancerContext balancerContext = getBalancerContext();
@@ -180,7 +199,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		Integer port = via.getPort();
 		String transport = via.getTransport().toLowerCase();
 		boolean found = false;
-		for(SIPNode node : balancerContext.nodes) {
+		for(SIPNode node : context.nodes) {
 			if(node.getIp().equals(host)) {
 				if(port.equals(node.getProperties().get(transport+"Port"))) {
 					found = true;
@@ -193,15 +212,12 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		if(!found) {
 			if(nodesAreDirty) {
 				synchronized(this) {
-					nodes.clear();
-					nodes.add(balancerContext.nodes);
-					nodesArray = nodes.toArray(new Object[]{});
-					nodesAreDirty = false;
+					syncNodes();
 				}
 			}
 			try {
 				SIPNode node = (SIPNode) nodesArray[nodeIndex];
-				if(node == null || !balancerContext.nodes.contains(node)) {
+				if(node == null || !context.nodes.contains(node)) {
 					if(logger.isLoggable(Level.FINEST)) {
 						logger.finest("No node to handle " + via);
 					}
@@ -228,5 +244,11 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			} catch (Exception e) {
 			}
 		}
+	}
+	protected void syncNodes() {
+		nodes.clear();
+		nodes.addAll(invocationContext.nodes);
+		nodesArray = nodes.toArray(new Object[]{});
+		nodesAreDirty = false;
 	}
 }

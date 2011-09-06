@@ -44,14 +44,16 @@ public class AppServer {
 	int lbSIPint;
 	protected String balancers;
 	public SipProvider sipProvider;
+	public String version;
 
-	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint) {
+	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version) {
 		this.port = port;
 		this.name = appServer;
 		this.lbAddress = lbAddress;
 		this.lbRMIport = lbRMI;
 		this.lbSIPext = lbSIPext;
 		this.lbSIPint = lbSIPint;
+		this.version = version;
 	}
 	
 	public AppServer(String appServer, int port) {
@@ -64,7 +66,7 @@ public class AppServer {
 	}
 	
 	public AppServer(String appServer, int port, String address) {
-		this(appServer, port, address, 2000, 5060, 5065);
+		this(appServer, port, address, 2000, 5060, 5065, "0");
 
 	} 
 	
@@ -88,13 +90,19 @@ public class AppServer {
 		}
 		appServerNode = new SIPNode(name, "127.0.0.1");
 		appServerNode.getProperties().put("udpPort", port);
+		appServerNode.getProperties().put("version", version);
 		timer.schedule(new TimerTask() {
 			
 			@Override
 			public void run() {
-				ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-				nodes.add(appServerNode);
-				sendKeepAliveToBalancers(nodes);
+				try {
+					ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
+					nodes.add(appServerNode);
+					appServerNode.getProperties().put("version", version);
+					sendKeepAliveToBalancers(nodes);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}, 1000, 1000);
 	}
@@ -165,6 +173,10 @@ public class AppServer {
 	
 	public TestSipListener getTestSipListener() {
 		return this.sipListener;
+	}
+	
+	public SIPNode getSIPNode() {
+		return appServerNode;
 	}
 
 }

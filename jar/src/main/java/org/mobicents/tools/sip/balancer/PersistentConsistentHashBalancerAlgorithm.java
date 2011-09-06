@@ -61,7 +61,7 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
  *
  */
 @CacheListener
-public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAlgorithm {
+public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentHashBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(PersistentConsistentHashBalancerAlgorithm.class.getCanonicalName());
 	
 	protected String sipHeaderAffinityKey;
@@ -80,26 +80,6 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 	public PersistentConsistentHashBalancerAlgorithm(String headerName) {
 		this.sipHeaderAffinityKey = headerName;
 	}
-
-	public SIPNode processExternalRequest(Request request) {
-		Integer nodeIndex = hashHeader(request);
-		if(nodeIndex<0) {
-			return null;
-		} else {
-			BalancerContext balancerContext = getBalancerContext();
-			if(nodesAreDirty) {
-				synchronized(this) {
-					syncNodes();
-				}
-			}
-			try {
-				SIPNode node = (SIPNode) nodesArray[nodeIndex];
-				return node;
-			} catch (Exception e) {
-				return null;
-			}
-		}
-	}
 	
 	@NodeModified
 	public void modified(Event event) {
@@ -112,7 +92,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 	}
 	
 	private void addNode(SIPNode node) {
-		Fqn nodes = Fqn.fromString("/BALANCER/NODES");
+		Fqn nodes = Fqn.fromString("/BALANCER" + invocationContext.version + "/NODES");
 		cache.put(nodes, node, "");
 		dumpNodes();
 	}
@@ -131,79 +111,6 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 		logger.info(nodes);
 	}
 	
-	private boolean isAlive(SIPNode node) {
-		if(getBalancerContext().nodes.contains(node)) return true;
-		return false;
-	}
-	
-	private Integer hashHeader(Message message) {
-		String headerValue = null;
-		if(sipHeaderAffinityKey.equals("from.user")) {
-			headerValue = ((SipURI)((FromHeader) message.getHeader(FromHeader.NAME))
-					.getAddress().getURI()).getUser();
-		} else if(sipHeaderAffinityKey.equals("to.user")) {
-			headerValue = ((SipURI)((ToHeader) message.getHeader(ToHeader.NAME))
-			.getAddress().getURI()).getUser();
-		} else {
-			headerValue = ((SIPHeader) message.getHeader(sipHeaderAffinityKey))
-			.getValue();
-		}
-
-		if(nodesArray.length == 0) throw new RuntimeException("No Application Servers registered. All servers are dead.");
-		
-		int nodeIndex = hashAffinityKeyword(headerValue);
-		
-		if(isAlive((SIPNode)nodesArray[nodeIndex])) {
-			return nodeIndex;
-		} else {
-			return -1;
-		}
-	}
-	
-    HashMap<String,String> getUrlParameters(String url) {
-    	HashMap<String,String> parameters = new HashMap<String, String>();
-    	int start = url.lastIndexOf('?');
-    	if(start>0 && url.length() > start +1) {
-    		url = url.substring(start + 1);
-    	} else {
-    		return parameters;
-    	}
-    	String[] tokens = url.split("&");
-    	for(String token : tokens) {
-    		String[] params = token.split("=");
-    		if(params.length<2) {
-    			parameters.put(token, "");
-    		} else {
-    			parameters.put(params[0], params[1]);
-    		}
-    	}
-    	return parameters;
-    }
-    
-	public SIPNode processHttpRequest(HttpRequest request) {
-		String affinityKeyword = getUrlParameters(request.getUri()).get(this.httpAffinityKey);
-		if(affinityKeyword == null) {
-			return super.processHttpRequest(request);
-		}
-		return (SIPNode) nodesArray[hashAffinityKeyword(affinityKeyword)];
-	}
-	
-	protected int hashAffinityKeyword(String keyword) {
-		int nodeIndex = Math.abs(keyword.hashCode()) % nodesArray.length;
-
-		SIPNode computedNode = (SIPNode) nodesArray[nodeIndex];
-		
-		if(!isAlive(computedNode)) {
-			// If the computed node is dead, find a new one
-			for(int q = 0; q<nodesArray.length; q++) {
-				nodeIndex = (nodeIndex + 1) % nodesArray.length;
-				if(isAlive(((SIPNode)nodesArray[nodeIndex]))) {
-					break;
-				}
-			}
-		}
-		return nodeIndex;
-	}
 
 	
 	@ViewChanged
@@ -234,18 +141,19 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 		cache.create();
 		cache.start();
 		this.cache = cache;
-		
+		/*
 		for (SIPNode node : getBalancerContext().nodes) {
 			addNode(node);
 		}
-		syncNodes();
+		syncNodes(context);*/
 
 		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
 		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
 	}
 	
-	private void syncNodes() {
-		Set nodes = cache.getKeys("/BALANCER/NODES");
+	@Override
+	protected void syncNodes() {
+		Set nodes = cache.getKeys("/BALANCER" + invocationContext.version + "/NODES");
 		if(nodes != null) {
 			ArrayList nodeList = new ArrayList();
 			nodeList.addAll(nodes);
@@ -253,67 +161,6 @@ public class PersistentConsistentHashBalancerAlgorithm extends DefaultBalancerAl
 			this.nodesArray = nodeList.toArray();
 		}
 		dumpNodes();
-	}
-	
-	public void configurationChanged() {
-		logger.info("Configuration changed");
-		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
-		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
-	}
-	public void processExternalResponse(Response response) {
-		
-		Integer nodeIndex = hashHeader(response);
-		BalancerContext balancerContext = getBalancerContext();
-		Via via = (Via) response.getHeader(Via.NAME);
-		String host = via.getHost();
-		Integer port = via.getPort();
-		String transport = via.getTransport().toLowerCase();
-		boolean found = false;
-		for(SIPNode node : balancerContext.nodes) {
-			if(node.getIp().equals(host)) {
-				if(port.equals(node.getProperties().get(transport+"Port"))) {
-					found = true;
-				}
-			}
-		}
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("external response node found ? " + found);
-		}
-		if(!found) {
-			if(nodesAreDirty) {
-				synchronized(this) {
-					syncNodes();
-				}
-			}
-			try {
-				SIPNode node = (SIPNode) nodesArray[nodeIndex];
-				if(node == null || !balancerContext.nodes.contains(node)) {
-					if(logger.isLoggable(Level.FINEST)) {
-						logger.finest("No node to handle " + via);
-					}
-					
-				} else {
-					String transportProperty = transport + "Port";
-					port = (Integer) node.getProperties().get(transportProperty);
-					if(via.getHost().equalsIgnoreCase(node.getIp()) || via.getPort() != port) {
-						if(logger.isLoggable(Level.FINEST)) {
-							logger.finest("changing retransmission via " + via + "setting new values " + node.getIp() + ":" + port);
-						}
-						try {
-							via.setHost(node.getIp());
-							via.setPort(port);
-						} catch (Exception e) {
-							throw new RuntimeException("Error setting new values " + node.getIp() + ":" + port + " on via " + via, e);
-						}
-						// need to reset the rport for reliable transports
-						if(!ListeningPoint.UDP.equalsIgnoreCase(transport)) {
-							via.setRPort();
-						}
-					}
-				}
-			} catch (Exception e) {
-			}
-		}
 	}
 
 }

@@ -39,7 +39,7 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
     	}
 		SIPNode oldNode = node;
 		List<String> alternativeNodes = nodeToNodeGroup.get(oldNode.getIp());
-		for(SIPNode check : getBalancerContext().nodes)  {
+		for(SIPNode check : invocationContext.nodes)  {
 			for(String alt : alternativeNodes)
 			if(check.getIp().equals(alt)) {
 				groupedFailover(oldNode, check);

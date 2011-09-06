@@ -82,20 +82,21 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 			
 			ClusterSubdomainAffinityAlgorithm algorithm = new ClusterSubdomainAffinityAlgorithm();
 			algorithm.balancerContext = new BalancerContext();
-			algorithm.balancerContext.nodes = new CopyOnWriteArrayList<SIPNode>();
+			InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
+			ctx.nodes = new CopyOnWriteArrayList<SIPNode>();
 			for(int q=0;q<100;q++) {
-				algorithm.balancerContext.nodes.add(new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q));
+				ctx.nodes.add(new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q));
 			}
 			for(int q=0;q<100;q++) {
-				algorithm.balancerContext.nodes.add(new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q));
+				ctx.nodes.add(new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q));
 			}
 			SIPNode originalNode = new SIPNode("original", "original");
 			SIPNode partnerNode = new SIPNode("partner", "partner");
 
 			// This is dead BalancerContext.balancerContext.nodes.add(originalNode);
-			algorithm.balancerContext.nodes.add(partnerNode);
+			ctx.nodes.add(partnerNode);
 			for(int q=0;q<100;q++) {
-				algorithm.balancerContext.nodes.add(new SIPNode("nonParner"+q, "nonPartner"+q));
+				ctx.nodes.add(new SIPNode("nonParner"+q, "nonPartner"+q));
 			}
 			algorithm.callIdMap.put("cid", originalNode);
 			Request request = SipFactory.getInstance().createMessageFactory().createRequest(inviteRequest);

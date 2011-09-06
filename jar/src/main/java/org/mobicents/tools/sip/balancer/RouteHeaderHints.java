@@ -25,8 +25,10 @@ package org.mobicents.tools.sip.balancer;
 public class RouteHeaderHints {
 	public SIPNode serverAssignedNode;
 	public boolean subsequentRequest;
-	public RouteHeaderHints(SIPNode node, boolean subsequent) {
+	public String version;
+	public RouteHeaderHints(SIPNode node, boolean subsequent, String version) {
 		this.serverAssignedNode = node;
 		this.subsequentRequest = subsequent;
+		this.version = version;
 	}
 }
