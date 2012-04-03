@@ -168,7 +168,7 @@
 	<repositories>
 		<repository>
 			  <id>wso2-repository-group</id>
-			  <name>Mobicens Public Maven Repository Group</name>
+			  <name>Wso2 Public Maven Repository Group</name>
 			  <url>http://dist.wso2.org/maven2</url>
 			  <layout>default</layout>
 			  <releases>
