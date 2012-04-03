@@ -14,9 +14,9 @@
 #       BECOMES
 #   mkbk jss mob html-single-en-US
 
-#   make CONDITION="jbcp" html-single-en-US
+#   make CONDITION="telscale" html-single-en-US
 #       BECOMES
-#   mkbk jss jbcp html-single-en-US
+#   mkbk jss telscale html-single-en-US
 
 # JDocBook Reference (ignore this):
 #   mvn compile -Denv.DOCNAME="SIP_Servlets_Server_User_Guide" -Phtml_single
@@ -31,7 +31,7 @@ echo "-------------------------------------------------"
 pre="[MKBK] "
 
 ALL_BKS="jss ms sss sps pig plat"
-ALL_CONDS="mob jbcp"
+ALL_CONDS="mob telscale"
 
 PLAT="Platform_User_Guide"
 PIG="Platform_Installation_Guide"
@@ -56,7 +56,7 @@ test() {
 	do
 		BK=$bk
 		set_docname
-		cmd = "mkbk $bk jbcp xml-en-US &>/dev/null"
+		cmd = "mkbk $bk telscale xml-en-US &>/dev/null"
 
 		echo -n "$pre"; echo "DOCNAME is $DOCNAME"
 		echo -n "$pre"; echo "Calling:"; echo ""
@@ -123,7 +123,7 @@ chk_BK_arg() {
 }
 
 chk_COND_arg() {
-	if [ "$COND" != "mob" -a "$COND" != "jbcp" ]; then
+	if [ "$COND" != "mob" -a "$COND" != "telscale" ]; then
 		echo -n "$pre"; echo "***************************************"
 		echo -n "$pre"; echo "Error: the second argument must be one of these conditions: $ALL_CONDS"
 		echo -n "$pre"; echo "***************************************"

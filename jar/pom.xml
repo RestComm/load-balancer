@@ -9,17 +9,18 @@
 	
 	<artifactId>sip-balancer-jar</artifactId>
 	
-	<name>sip-balancer</name>
-	<url>http://mobicents.org/</url>
+	<name>Mobicents Converged Load Balancer Jar</name>
+	<description>Mobicents Converged Load Balancer Jar</description>
+	<url>http://code.google.com/p/commscale.load-balancer</url>
 
 	<properties>
-		<manifest.url>http://www.mobicents.org
+		<manifest.url>http://code.google.com/p/commscale.load-balancer
 		</manifest.url>
-		<manifest.implementation.title>${pom.groupId}:${pom.artifactId}
+		<manifest.implementation.title>${project.groupId}:${project.artifactId}
 		</manifest.implementation.title>
-		<manifest.implementation.version>${pom.version}
+		<manifest.implementation.version>${project.version}
 		</manifest.implementation.version>
-		<manifest.implementation.vendor>JBoss, a Red Hat division
+		<manifest.implementation.vendor>TeleStax, Inc.
 		</manifest.implementation.vendor>
 	</properties>		
 

@@ -5,7 +5,7 @@
 	<parent>
 		<artifactId>mobicents-parent</artifactId>
 		<groupId>org.mobicents</groupId>
-		<version>2.19</version>		
+		<version>2.22</version>		
 	</parent>
 	
 	<packaging>pom</packaging>
@@ -14,7 +14,9 @@
 	<artifactId>sip-balancer</artifactId>
 	<version>1.5-SNAPSHOT</version>
 
-	<url>http://mobicents.org/</url>
+	<name>Mobicents Converged Load Balancer Parent</name>
+	<description>Mobicents Converged Load Balancer Parent</description>
+	<url>http://code.google.com/p/commscale.load-balancer</url>
 	
 	<modules>
 		<module>jar</module>		
@@ -29,17 +31,20 @@
 		</profile>		
 	</profiles>
 	
+	<scm>
+		<connection>scm:git:https://code.google.com/p/commscale.load-balancer/</connection>
+		<developerConnection>scm:git:https://code.google.com/p/commscale.load-balancer/</developerConnection>
+		<url>https://code.google.com/p/commscale.load-balancer/</url>
+	</scm>
+	
 	<build>
 		<plugins>
 			<plugin>
 				<artifactId>maven-release-plugin</artifactId>
+				<groupId>org.apache.maven.plugins</groupId>
 				<configuration>
-					<tagBase>
-						https://mobicents.googlecode.com/svn/tags/tools/sip-balancer
-					</tagBase>
-					<preparationGoals>clean install</preparationGoals>
-					<autoVersionSubmodules>true</autoVersionSubmodules>
-					<arguments>-Dmaven.test.skip</arguments>
+					<autoVersionSubmodules>true</autoVersionSubmodules>							
+					<arguments>-Dmaven.test.skip</arguments>						
 				</configuration>
 			</plugin>
 			<plugin>
@@ -100,18 +105,32 @@
 			         </executions>
       		</plugin>		
 		</plugins>
-		<extensions>
+		<!--extensions>
 			<extension>
 				<groupId>org.apache.maven.wagon</groupId>
 				<artifactId>wagon-webdav</artifactId>
 				<version>RELEASE</version>
 			</extension>
-		</extensions>
+		</extensions-->
 	</build>
 	
 	<!-- repositories -->
 	
 	<repositories>
+		<repository>
+			  <id>mobicents-public-repository-group</id>
+			  <name>Mobicens Public Maven Repository Group</name>
+			  <url>https://oss.sonatype.org/content/groups/public</url>
+			  <layout>default</layout>
+			  <releases>
+			    <enabled>true</enabled>
+			    <updatePolicy>never</updatePolicy>
+			  </releases>
+			  <snapshots>
+			    <enabled>true</enabled>
+			    <updatePolicy>never</updatePolicy>
+			  </snapshots>
+		</repository>
 		<repository>
 		  <id>jboss-public-repository-group</id>
 		  <name>JBoss Public Maven Repository Group</name>

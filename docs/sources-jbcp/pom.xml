@@ -9,11 +9,11 @@
 		<version>1.5-SNAPSHOT</version>
 	</parent>
 	
-	<artifactId>sip-balancer-docs-sources-jbcp</artifactId>
+	<artifactId>sip-balancer-docs-sources-telscale</artifactId>
 			
 	<properties>
 		<platform.name>JBoss Communications</platform.name>
-		<short.platform.name>JBCP</short.platform.name>
+		<short.platform.name>telscale</short.platform.name>
 		<author.email.ivelin>ivelin.atanasoff.ivanov (at) gmail.com</author.email.ivelin>
 		<author.email.jean>jean.deruelle (at) gmail.com</author.email.jean>
 		<author.email.vlad>vladimir.ralev (at) gmail.com</author.email.vlad>

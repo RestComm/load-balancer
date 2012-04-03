@@ -2,6 +2,6 @@ when mvn clean install has been performed in the parent directory, to validate a
 
 cd ./src/main/resources
 chmod 777 mkbk Makefile
-./mkbk sss jbcp html-single-en-US
+./mkbk sss telscale html-single-en-US
 
 that's it
