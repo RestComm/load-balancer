@@ -197,7 +197,7 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 				if(statusCode == 180) {
 					ringingAppServer = source;
 					source.sendCleanShutdownToBalancers();		
-				} else {
+				} else if (statusCode == 200){
 					okAppServer = source;
 					
 				}

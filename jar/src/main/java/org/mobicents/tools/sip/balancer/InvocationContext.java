@@ -37,7 +37,8 @@ public class InvocationContext {
 			balancerAlgorithm.balancerContext = balancerContext;
 			balancerAlgorithm.setProperties(balancerContext.properties);
 			balancerAlgorithm.setInvocationContext(this);
-			logger.info("Balancer algorithm " + balancerContext.algorithmClassName + " loaded succesfully");
+			logger.info("Balancer algorithm " + balancerContext.algorithmClassName + " loaded succesfully" +
+					" for cluster version = " + version);
 			balancerAlgorithm.init();
 		} catch (Exception e) {
 			throw new RuntimeException("Error loading the algorithm class: " + balancerContext.algorithmClassName, e);

@@ -22,12 +22,17 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RMISocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -152,16 +157,47 @@ public class NodeRegisterImpl  implements NodeRegister {
 		}
 		
 	}
+	
+	public static class BindingAddressCorrectnessSocketFactory extends RMISocketFactory implements
+	Serializable
+	{
+		private InetAddress bindingAddress
+		= null;
+		public BindingAddressCorrectnessSocketFactory() {}
+		public BindingAddressCorrectnessSocketFactory(InetAddress ipInterface) {
+			this.bindingAddress = ipInterface;
+		}
+		public ServerSocket createServerSocket(int port) {
+			ServerSocket serverSocket = null;
+			try {
+				serverSocket = new ServerSocket(port, 50, bindingAddress);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+			return (serverSocket);
+		}
+		
+		public Socket createSocket(String dummy, int port) throws IOException {
+			return (
+				new Socket(bindingAddress, port));
+		}
+		
+		public boolean equals(Object other) {
+			return (other != null && 
+					other.getClass() == this.getClass());
+		}
+	}
 	// ***** SOME PRIVATE HELPERS
 
 	private void register(InetAddress serverAddress, int rmiRegistryPort) {
 
 		try {
-			registry = LocateRegistry.createRegistry(rmiRegistryPort);
+			registry = LocateRegistry.createRegistry(
+					rmiRegistryPort, null, 
+					new BindingAddressCorrectnessSocketFactory(serverAddress));
 			registry.bind("SIPBalancer", new RegisterRMIStub());
-		} catch (RemoteException e) {
-			throw new RuntimeException("Failed to bind due to:", e);
-		} catch (AlreadyBoundException e) {
+			logger.info("RMI heartbeat listener bound to internalHost, port " + rmiRegistryPort);
+		} catch (Exception e) {
 			throw new RuntimeException("Failed to bind due to:", e);
 		}
 	}
@@ -238,6 +274,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 							return node;
 						} else {
 							String nodeVersion = (String) node.getProperties().get("version");
+							if(nodeVersion == null) nodeVersion = "0";
 							if(version.equals(nodeVersion)) {
 								return node;
 							}
@@ -291,12 +328,14 @@ public class NodeRegisterImpl  implements NodeRegister {
 	/**
 	 * {@inheritDoc}
 	 */
-	public void handlePingInRegister(ArrayList<SIPNode> ping) {
+	public synchronized void handlePingInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
 			String version = (String) pingNode.getProperties().get("version");
+			if(version == null) version = "0";
 			InvocationContext ctx = balancerRunner.getInvocationContext(
 					version);
 			pingNode.updateTimerStamp();
+			//logger.info("Pingnode updated " + pingNode);
 			if(pingNode.getProperties().get("jvmRoute") != null) {
 				// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
 				// We need info about inactive nodes to do the failover
@@ -345,6 +384,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 		for (SIPNode pingNode : ping) {
 			InvocationContext ctx = balancerRunner.getInvocationContext(
 					(String) pingNode.getProperties().get("version"));
+			ctx.nodes.remove(pingNode);
 			boolean nodePresent = false;
 			Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
 			while (nodesIterator.hasNext() && !nodePresent) {

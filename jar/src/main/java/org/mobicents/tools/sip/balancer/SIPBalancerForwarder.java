@@ -59,6 +59,7 @@ import javax.sip.header.CallIdHeader;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
+import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Message;
 import javax.sip.message.Request;
@@ -680,6 +681,7 @@ public class SIPBalancerForwarder implements SipListener {
 		
 		if(isRequestFromServer) {
 			ctx.balancerAlgorithm.processInternalRequest(request);
+			nextNode = hints.serverAssignedNode;
 		} else {
 			
 			// Request is NOT from app server, first check if we have hints in Route headers
@@ -814,7 +816,7 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		
 		hints.serverAssignedNode = nextNode;
-		if(dialogCreationMethods.contains(request.getMethod())) {
+		if(!hints.subsequentRequest && dialogCreationMethods.contains(request.getMethod())) {
 			addLBRecordRoute(sipProvider, request, hints, version);
 		}
 		
@@ -955,9 +957,9 @@ public class SIPBalancerForwarder implements SipListener {
 		if(logger.isLoggable(Level.FINEST)) {
     		logger.finest("Checking if there is any route headers meant for the LB to remove...");
     	}
-		SIPNode node = null; 
-		boolean subsequent = false;
+		SIPNode node = null;
 		String callVersion = null;
+		int numberOfRemovedRouteHeaders = 0;
 		
 		//Removing first routeHeader if it is for the sip balancer
 		RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
@@ -965,37 +967,35 @@ public class SIPBalancerForwarder implements SipListener {
 		    SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
 		    callVersion = routeUri.getParameter(ROUTE_PARAM_NODE_VERSION);
 		    
-	        // We determine if request is subsequent if both internal and external LB RR headers are present. 
-	        // If only one, this probably means that this dialog never passed through the SIP LB. SIPP however,
-	        // removes the first Route header and we must check if the route header is the internal port, which
-	        // the caller or the calle would know only if they have passed through the L before.
-		    if(routeUri.getPort() == balancerRunner.balancerContext.internalPort && 
-		    		routeUri.getHost().equals(balancerRunner.balancerContext.internalHost)) subsequent = true;
-		    if(routeUri.getPort() == balancerRunner.balancerContext.internalLoadBalancerPort && 
-		    		routeUri.getHost().equals(balancerRunner.balancerContext.internalIpLoadBalancerAddress)) subsequent = true;
-		    
 		    //FIXME check against a list of host we may have too
 		    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
 		    	if(logger.isLoggable(Level.FINEST)) {
 		    		logger.finest("this route header is for the LB removing it " + routeUri);
 		    	}
+		    	
+		    	numberOfRemovedRouteHeaders ++;
+		    	
 		    	request.removeFirst(RouteHeader.NAME);
 		    	routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
 		    	//since we used double record routing we may have 2 routes corresponding to us here
 		        // for ACK and BYE from caller for example
 		        node = checkRouteHeaderForSipNode(routeUri);
+		        
 		        if(routeHeader != null) {
+		         	
 		            routeUri = (SipURI)routeHeader.getAddress().getURI();
 		            //FIXME check against a list of host we may have too
 		            if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
 		            	if(logger.isLoggable(Level.FINEST)) {
 		            		logger.finest("this route header is for the LB removing it " + routeUri);
 		            	}
+		            	
+		            	numberOfRemovedRouteHeaders ++;
+		            	
 		            	request.removeFirst(RouteHeader.NAME);
 		            	if(node == null) {
 		            		node = checkRouteHeaderForSipNode(routeUri);
 		            	}
-		            	subsequent = true;
 		            	
 		            	// SIPP sometimes appends more headers and lets remove them here. There is no legitimate reason
 		            	// more than two SIP LB headers to be place next to each-other, so this cleanup is SAFE!
@@ -1005,6 +1005,7 @@ public class SIPBalancerForwarder implements SipListener {
 		            		if(extraHeader != null) {
 		            			SipURI u = (SipURI)extraHeader.getAddress().getURI();
 		            			if(!isRouteHeaderExternal(u.getHost(), u.getPort())) {
+		            				numberOfRemovedRouteHeaders ++;
 		            				request.removeFirst(RouteHeader.NAME);
 		            			} else {
 		            				moreHeaders = false;
@@ -1025,6 +1026,22 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		
 		//logger.info(request.ge + " has this hint " + node);
+		ToHeader to = (ToHeader)(request.getHeader(ToHeader.NAME));
+		
+		/*
+		 * We determine if this is subsequent based on To tag instead of checking route header metadata.
+		 */
+		boolean subsequent = to.getTag() != null;
+		
+		if(logger.isLoggable(Level.FINEST)) {
+    		logger.finest("Number of removed Route headers is " + numberOfRemovedRouteHeaders);
+		}
+		if(numberOfRemovedRouteHeaders != 2 && subsequent) {
+			if(logger.isLoggable(Level.WARNING)) {
+				logger.warning("A subsequent request should have two Route headers. Number of removed Route headers is " + numberOfRemovedRouteHeaders
+						+ ". This indicates a client is removing important headers.");
+			}
+		}
 
 		return new RouteHeaderHints(node, subsequent, callVersion);
 	}
@@ -1155,8 +1172,8 @@ public class SIPBalancerForwarder implements SipListener {
 				logger.log(Level.SEVERE, "Unexpected exception while forwarding the response \n" + response, ex);
 			}
 		} else {
-			ctx.balancerAlgorithm.processExternalResponse(response);
 			try {	
+				ctx.balancerAlgorithm.processExternalResponse(response);
 				if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 					if(logger.isLoggable(Level.FINEST)) {
 						logger.finest("from external sending response " + response);
