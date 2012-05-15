@@ -23,6 +23,7 @@
 package org.mobicents.tools.sip.balancer;
 
 import java.text.ParseException;
+import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.sip.SipFactory;
@@ -82,7 +83,12 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 			
 			ClusterSubdomainAffinityAlgorithm algorithm = new ClusterSubdomainAffinityAlgorithm();
 			algorithm.balancerContext = new BalancerContext();
+			algorithm.balancerContext.properties = new Properties();
+			algorithm.balancerContext.properties.setProperty("subclusterMap", failoverGroup);
+			
+			algorithm.balancerContext.algorithmClassName = ClusterSubdomainAffinityAlgorithm.class.getName();
 			InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
+			
 			ctx.nodes = new CopyOnWriteArrayList<SIPNode>();
 			for(int q=0;q<100;q++) {
 				ctx.nodes.add(new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q));
@@ -101,6 +107,7 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 			algorithm.callIdMap.put("cid", originalNode);
 			Request request = SipFactory.getInstance().createMessageFactory().createRequest(inviteRequest);
 			algorithm.loadSubclusters(failoverGroup);
+			algorithm.invocationContext = ctx;
 			SIPNode resultNode = algorithm.processExternalRequest(request);
 			assertEquals("partner", resultNode.getIp());
 		} finally {

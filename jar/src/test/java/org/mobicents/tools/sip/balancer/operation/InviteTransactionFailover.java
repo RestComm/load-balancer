@@ -100,9 +100,9 @@ public class InviteTransactionFailover extends TestCase{
 			String[] nodes = balancer.getNodeList();
 			assertEquals(numNodes, nodes.length);
 			servers[0].sendHeartbeat = false;
-			Thread.sleep(10000);
-			nodes = balancer.getNodeList();
-			assertEquals(numNodes-1, nodes.length);
+			Thread.sleep(14000);
+			assertEquals(numNodes-1, balancer.getInvocationContext("0").nodes.size());
+			assertEquals(numNodes-1, balancer.getNodeList().length);
 	}
 
 	public void testAllNodesDead() throws Exception {

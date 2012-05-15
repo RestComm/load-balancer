@@ -1176,12 +1176,12 @@ public class SIPBalancerForwarder implements SipListener {
 				ctx.balancerAlgorithm.processExternalResponse(response);
 				if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 					if(logger.isLoggable(Level.FINEST)) {
-						logger.finest("from external sending response " + response);
+						logger.finest("two entry points: from external sending response " + response);
 					}
 					balancerRunner.balancerContext.internalSipProvider.sendResponse(response);
 				} else {
 					if(logger.isLoggable(Level.FINEST)) {
-						logger.finest("from external sending response " + response);
+						logger.finest("one entry point: from external sending response " + response);
 					}
 					balancerRunner.balancerContext.externalSipProvider.sendResponse(response);
 				}

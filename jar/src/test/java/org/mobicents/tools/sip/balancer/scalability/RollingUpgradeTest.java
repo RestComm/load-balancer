@@ -143,7 +143,7 @@ public class RollingUpgradeTest extends TestCase {
 									!srv.getSIPNode().getProperties().get("udpPort").toString().endsWith("0")) { // make sure it is not the first one to avoid some errors
 								keepOneOldVersionAlive = false;
 								oldVersionServer = srv;
-								System.out.println("We kept alive " + oldVersionServer);
+								System.out.println("We kept alive " + oldVersionServer + " oldVersionServer.ver="+ oldVersionServer.getSIPNode().getProperties().get("udpPort").toString());
 							} else {
 								// everyone else move to new version
 								srv.version="2";

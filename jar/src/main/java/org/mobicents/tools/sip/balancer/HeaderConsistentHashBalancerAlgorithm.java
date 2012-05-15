@@ -64,15 +64,15 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 
 	public SIPNode processExternalRequest(Request request) {
+		if(nodesAreDirty) { // for testing only where nodes are not removed, just start advertising new version while alive
+			synchronized(this) {
+				syncNodes();
+			}
+		}
 		Integer nodeIndex = hashHeader(request);
 		if(nodeIndex<0) {
 			return null;
 		} else {
-			if(nodesAreDirty) {
-				synchronized(this) {
-					syncNodes();
-				}
-			}
 			try {
 				SIPNode node = (SIPNode) nodesArray[nodeIndex];
 				return node;

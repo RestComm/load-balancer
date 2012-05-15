@@ -105,7 +105,7 @@ public class NodeRegisterTest extends TestCase {
 			String[] nodes = balancerRunner.getNodeList();
 			assertEquals(numNodes, nodes.length);
 			servers[0].sendHeartbeat = false;
-			Thread.sleep(10000);
+			Thread.sleep(14000);
 			nodes = balancerRunner.getNodeList();
 			assertEquals(numNodes-1, nodes.length);
 		}
