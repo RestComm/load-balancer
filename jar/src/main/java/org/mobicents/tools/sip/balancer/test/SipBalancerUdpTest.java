@@ -201,7 +201,11 @@ public class SipBalancerUdpTest {
 		try {
 			SipBalancerUdpTest test = new SipBalancerUdpTest();
 			test.setUp();
-			Integer time = Integer.parseInt(args[0]);
+			String timeString = "10";
+			if(args.length>0) {
+				timeString = args[0];
+			}
+			Integer time = Integer.parseInt(timeString);
 			Integer maxDiff = Integer.parseInt(args[0]);
 			test.testMessagePerformance(time*1000, maxDiff, inviteRequestBytes);
 			test.tearDown();

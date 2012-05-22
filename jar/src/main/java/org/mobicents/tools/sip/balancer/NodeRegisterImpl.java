@@ -41,7 +41,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * <p>
@@ -82,7 +82,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 * {@inheritDoc}
 	 */
 	public boolean startRegistry(int rmiRegistryPort) {
-		if(logger.isLoggable(Level.INFO)) {
+		if(logger.isInfoEnabled()) {
 			logger.info("Node registry starting...");
 		}
 		try {
@@ -94,12 +94,12 @@ public class NodeRegisterImpl  implements NodeRegister {
 			this.taskTimer.scheduleAtFixedRate(this.nodeExpirationTask,
 					this.nodeInfoExpirationTaskInterval,
 					this.nodeInfoExpirationTaskInterval);
-			if(logger.isLoggable(Level.INFO)) {
+			if(logger.isInfoEnabled()) {
 				logger.info("Node expiration task created");							
 				logger.info("Node registry started");
 			}
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Unexpected exception while starting the registry", e);
+			logger.error("Unexpected exception while starting the registry", e);
 			return false;
 		}
 
@@ -110,17 +110,17 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 * {@inheritDoc}
 	 */
 	public boolean stopRegistry() {
-		if(logger.isLoggable(Level.INFO)) {
+		if(logger.isInfoEnabled()) {
 			logger.info("Stopping node registry...");
 		}
 		boolean isDeregistered = deregister(serverAddress);
 		boolean taskCancelled = nodeExpirationTask.cancel();
-		if(logger.isLoggable(Level.INFO)) {
+		if(logger.isInfoEnabled()) {
 			logger.info("Node Expiration Task cancelled " + taskCancelled);
 		}
 		balancerRunner.balancerContext.allNodesEver.clear();
 		balancerRunner.balancerContext.allNodesEver = null;
-		if(logger.isLoggable(Level.INFO)) {
+		if(logger.isInfoEnabled()) {
 			logger.info("Node registry stopped.");
 		}
 		return isDeregistered;
@@ -220,8 +220,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 * {@inheritDoc}
 	 */
 	public void unStickSessionFromNode(String callID) {		
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("unsticked  CallId " + callID + " from node " + null);
+		if(logger.isDebugEnabled()) {
+			logger.debug("unsticked  CallId " + callID + " from node " + null);
 		}
 	}
 
@@ -232,8 +232,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 */
 	public SIPNode stickSessionToNode(String callID, SIPNode sipNode) {
 		
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("sticking  CallId " + callID + " to node " + null);
+		if(logger.isDebugEnabled()) {
+			logger.debug("sticking  CallId " + callID + " to node " + null);
 		}
 		return null;
 	}
@@ -242,8 +242,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 * {@inheritDoc}
 	 */
 	public SIPNode getGluedNode(String callID) {
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("glueued node " + null + " for CallId " + callID);
+		if(logger.isDebugEnabled()) {
+			logger.debug("glueued node " + null + " for CallId " + callID);
 		}
 		return null;
 	}
@@ -263,8 +263,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 */
 	public SIPNode getNode(String host, int port, String transport, String version)  {		
 		for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("node to check against " + node);
+			if(logger.isDebugEnabled()) {
+				logger.debug("node to check against " + node);
 			}
 			if(node.getIp().equals(host)) {
 				Integer nodePort = (Integer) node.getProperties().get(transport + "Port");
@@ -283,8 +283,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 				}
 			}
 		}
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : false");
+		if(logger.isDebugEnabled()) {
+			logger.debug("checking if the node is still alive for " + host + ":" + port + "/" + transport + " : false");
 		}
 		return null;
 	}
@@ -292,8 +292,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	class NodeExpirationTimerTask extends TimerTask {
 		
 		public void run() {
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("NodeExpirationTimerTask Running");
+			if(logger.isDebugEnabled()) {
+				logger.debug("NodeExpirationTimerTask Running");
 			}
 			for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
 				long expirationTime = node.getTimeStamp() + nodeExpiration;
@@ -304,7 +304,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 					balancerRunner.balancerContext.aliveNodes.remove(node);
 					ctx.nodes.remove(node);
 					ctx.balancerAlgorithm.nodeRemoved(node);
-					if(logger.isLoggable(Level.INFO)) {
+					if(logger.isInfoEnabled()) {
 						logger.info("NodeExpirationTimerTask Run NSync["
 							+ node + "] removed. Last timestamp: " + node.getTimeStamp() + 
 							", current: " + System.currentTimeMillis()
@@ -312,14 +312,14 @@ public class NodeRegisterImpl  implements NodeRegister {
 							 "ms and tolerance=" + nodeExpiration + " ms");
 					}
 				} else {
-					if(logger.isLoggable(Level.FINEST)) {
-						logger.finest("node time stamp : " + expirationTime + " , current time : "
+					if(logger.isDebugEnabled()) {
+						logger.debug("node time stamp : " + expirationTime + " , current time : "
 							+ System.currentTimeMillis());
 					}
 				}
 			}
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("NodeExpirationTimerTask Done");
+			if(logger.isDebugEnabled()) {
+				logger.debug("NodeExpirationTimerTask Done");
 			}
 		}
 
@@ -353,8 +353,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 			// adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
 			if(nodePresent != null) {
 				nodePresent.updateTimerStamp();
-				if(logger.isLoggable(Level.FINE)) {
-					logger.fine("Ping " + nodePresent.getTimeStamp());
+				if(logger.isDebugEnabled()) {
+					logger.debug("Ping " + nodePresent.getTimeStamp());
 				}
 			} else {
 				Integer current = Integer.parseInt(version);
@@ -365,7 +365,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 				ctx.balancerAlgorithm.nodeAdded(pingNode);
 				balancerRunner.balancerContext.allNodesEver.add(pingNode);
 				pingNode.updateTimerStamp();
-				if(logger.isLoggable(Level.INFO)) {
+				if(logger.isInfoEnabled()) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] added");
 				}
@@ -397,7 +397,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 			if(nodePresent) {
 				balancerRunner.balancerContext.aliveNodes.remove(pingNode);
 				ctx.balancerAlgorithm.nodeRemoved(pingNode);
-				if(logger.isLoggable(Level.INFO)) {
+				if(logger.isInfoEnabled()) {
 					logger.info("NodeExpirationTimerTask Run NSync["
 						+ pingNode + "] forcibly removed due to a clean shutdown of a node. Numbers of nodes present in the balancer : " 
 						+ balancerRunner.balancerContext.aliveNodes.size());

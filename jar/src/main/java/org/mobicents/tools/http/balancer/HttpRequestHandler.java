@@ -28,7 +28,7 @@ import java.net.InetSocketAddress;
 import java.util.Enumeration;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -78,8 +78,8 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         if (!readingChunks) {
         	request = (HttpRequest) e.getMessage();
         	
-        	if(logger.isLoggable(Level.FINE)) {
-        		logger.fine("Request URI accessed: " + request.getUri() + " channel " + e.getChannel());
+        	if(logger.isDebugEnabled()) {
+        		logger.debug("Request URI accessed: " + request.getUri() + " channel " + e.getChannel());
         	}
         	
         	Channel associatedChannel = HttpChannelAssociations.channels.get(e.getChannel());
@@ -92,7 +92,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	} catch (Exception ex) {
         		StringWriter sw = new StringWriter();
         		ex.printStackTrace(new PrintWriter(sw));
-        		logger.log(Level.WARNING, "Problem in balancer algorithm", ex);
+        		logger.warn("Problem in balancer algorithm", ex);
         		
         		writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Load Balancer Error: Exception in the balancer algorithm:\n" + 
         				sw.toString()
@@ -102,8 +102,8 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         	
         	
         	if(node == null) {
-        		if(logger.isLoggable(Level.INFO)) {
-            		logger.log(Level.INFO, "Service unavailable. No server is available.");
+        		if(logger.isInfoEnabled()) {
+            		logger.info("Service unavailable. No server is available.");
         		}
         		writeResponse(e, HttpResponseStatus.SERVICE_UNAVAILABLE, "Service is temporarily unavailable");
         		return;
@@ -167,15 +167,15 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		}
 		HttpChannelAssociations.channels.remove(channel);
 		//logger.info("Channel closed. Channels remaining: " + HttpChannelAssocialtions.channels.size());
-		if(logger.isLoggable(Level.FINE)) {
+		if(logger.isDebugEnabled()) {
 			try {
-			logger.fine("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
+			logger.debug("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
 			Enumeration<Channel> c = HttpChannelAssociations.channels.keys();
 			while(c.hasMoreElements()) {
-				logger.fine(c.nextElement().toString());
+				logger.debug(c.nextElement().toString());
 			}
 			} catch (Exception e) {
-				logger.log(Level.FINE, "error", e);
+				logger.debug("error", e);
 			}
 		}
     }
@@ -227,7 +227,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
             throws Exception {
-        logger.log(Level.SEVERE, "Error", e.getCause());
+        logger.error("Error", e.getCause());
         e.getChannel().close();
     }
 }

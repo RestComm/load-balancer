@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
@@ -83,7 +83,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	
 	@NodeModified
 	public void modified(Event event) {
-		logger.fine(event.toString());
+		logger.debug(event.toString());
 	}
 
 	public synchronized void nodeAdded(SIPNode node) {
@@ -127,7 +127,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 			try {
 				configurationInputStream = new FileInputStream(configFile);
 			} catch (FileNotFoundException e1) {
-				logger.log(Level.SEVERE, "File not found", e1);
+				logger.error("File not found", e1);
 				throw new RuntimeException(e1);
 			}
 		} else {

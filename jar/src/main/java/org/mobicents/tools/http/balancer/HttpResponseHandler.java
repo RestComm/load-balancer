@@ -23,7 +23,7 @@
 package org.mobicents.tools.http.balancer;
 
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -50,7 +50,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 			throws Exception {
-		logger.log(Level.SEVERE, "Error", e.getCause());
+		logger.error("Error", e.getCause());
 	}
 
 }

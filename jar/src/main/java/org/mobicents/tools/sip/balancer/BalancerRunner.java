@@ -37,8 +37,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.PropertyConfigurator;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -69,6 +73,19 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
 	
 	ConcurrentHashMap<String, InvocationContext> contexts = new ConcurrentHashMap<String, InvocationContext>();
+	static {
+		String logLevel = System.getProperty("logLevel", "INFO");
+		String logConfigFile = System.getProperty("logConfigFile");
+
+		if(logConfigFile == null) {
+			Logger.getRootLogger().addAppender(new ConsoleAppender(
+					new PatternLayout("%r (%t) %p [%c{1}%x] %m%n")));
+			Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
+		} else {
+			PropertyConfigurator.configure(logConfigFile);
+		}
+	}
+
 	public InvocationContext getInvocationContext(String version) {
 		if(version == null) version = "0";
 		InvocationContext ct = contexts.get(version);
@@ -99,12 +116,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	 */
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			logger.severe("Please specify mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			logger.error("Please specify mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
 			return;
 		}
 		
 		if(!args[0].startsWith("-mobicents-balancer-config=")) {
-			logger.severe("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
 			return;
 		}
 		
@@ -127,7 +144,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		try {
 			addr = InetAddress.getByName(ipAddress);
 		} catch (UnknownHostException e) {
-			logger.log(Level.SEVERE, "Couldn't get the InetAddress from the host " + ipAddress, e);
+			logger.error("Couldn't get the InetAddress from the host " + ipAddress, e);
 			return;
 		}
 		int jmxHtmlPort = -1;
@@ -135,7 +152,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		try {
 			jmxHtmlPort = Integer.parseInt(portAsString);
 		} catch(NumberFormatException nfe) {
-			logger.log(Level.SEVERE, "Couldn't convert jmxHtmlAdapterPort to a valid integer", nfe);
+			logger.error("Couldn't convert jmxHtmlAdapterPort to a valid integer", nfe);
 			return ; 
 		}
 		int rmiRegistryPort = -1;
@@ -143,7 +160,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		try {
 			rmiRegistryPort = Integer.parseInt(portAsString);
 		} catch(NumberFormatException nfe) {
-			logger.log(Level.SEVERE, "Couldn't convert rmiRegistryPort to a valid integer", nfe);
+			logger.error("Couldn't convert rmiRegistryPort to a valid integer", nfe);
 			return ; 
 		}
 		
@@ -169,18 +186,18 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			try {
 				reg.setNodeExpirationTaskInterval(Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL, "150")));
 				reg.setNodeExpiration(Integer.parseInt(properties.getProperty(NODE_TIMEOUT, "10200")));
-				if(logger.isLoggable(Level.INFO)) {
+				if(logger.isInfoEnabled()) {
 					logger.info(NODE_TIMEOUT + "=" + reg.getNodeExpiration());
 					logger.info(HEARTBEAT_INTERVAL + "=" + reg.getNodeExpirationTaskInterval());
 				}
 			} catch(NumberFormatException nfe) {
-				logger.log(Level.SEVERE, "Couldn't convert rmiRegistryPort to a valid integer", nfe);
+				logger.error("Couldn't convert rmiRegistryPort to a valid integer", nfe);
 				return ; 
 			}
 			
 			reg.startRegistry(rmiRegistryPort);
-			if(logger.isLoggable(Level.FINEST)) {
-				logger.finest("adding shutdown hook");
+			if(logger.isDebugEnabled()) {
+				logger.debug("adding shutdown hook");
 			}
 			
 			sipForwarder = new SIPBalancerForwarder(properties, this, reg);
@@ -190,7 +207,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			try {
 				httpBalancerForwarder.start();
 			} catch (org.jboss.netty.channel.ChannelException e) {
-				logger.warning("HTTP forwarder could not be restarted.");
+				logger.warn("HTTP forwarder could not be restarted.");
 			}
 
 			
@@ -209,7 +226,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	         
 			Runtime.getRuntime().addShutdownHook(new SipBalancerShutdownHook(this));
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "An unexpected error occurred while starting the load balancer", e);
+			logger.error("An unexpected error occurred while starting the load balancer", e);
 			return;
 		}
 	}
@@ -238,7 +255,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			try {
 				fileInputStream.close();
 			} catch (IOException e) {
-				logger.warning("Problem closing file " + e);
+				logger.warn("Problem closing file " + e);
 			}
 		}
 		timer = new Timer();
@@ -256,13 +273,13 @@ public class BalancerRunner implements BalancerRunnerMBean {
 							ctx.balancerAlgorithm.configurationChanged();
 						}
 					} catch (Exception e) {
-						logger.warning("Problem reloading configuration " + e);
+						logger.warn("Problem reloading configuration " + e);
 					} finally {
 						if(fileInputStream != null) {
 							try {
 								fileInputStream.close();
 							} catch (Exception e) {
-								logger.severe("Problem closing stream " + e);
+								logger.error("Problem closing stream " + e);
 							}
 						}
 					}
@@ -292,7 +309,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				server.unregisterMBean(adapterName);
 			}
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
+			logger.error("An unexpected error occurred while stopping the load balancer", e);
 		}
 		try {
 			if(cs != null) {
@@ -311,7 +328,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				System.gc();
 			}
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "An unexpected error occurred while stopping the load balancer", e);
+			logger.error("An unexpected error occurred while stopping the load balancer", e);
 		}	
 		
 		

@@ -34,7 +34,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
@@ -134,11 +134,11 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	protected Timer cacheEvictionTimer = new Timer();
 	
 	public void processInternalRequest(Request request) {
-		logger.fine("internal request");
+		logger.debug("internal request");
 	}
 	
 	public void processInternalResponse(Response request) {
-		logger.fine("internal response");
+		logger.debug("internal response");
 	}
 	
 	public void processExternalResponse(Response response) {
@@ -211,16 +211,16 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			node = nextAvailableNode();
 			if(node == null) return null;
 			callIdMap.put(callId, node);
-			if(logger.isLoggable(Level.FINEST)) {
-	    		logger.finest("No node found in the affinity map. It is null. We select new node: " + node);
+			if(logger.isDebugEnabled()) {
+	    		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
 	    	}
 		} else {
 			if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
 				node = selectNewNode(node, callId);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
-				if(logger.isLoggable(Level.FINEST)) {
-		    		logger.finest("The assigned node in the affinity map is still alive: " + node);
+				if(logger.isDebugEnabled()) {
+		    		logger.debug("The assigned node in the affinity map is still alive: " + node);
 		    	}
 				if(!request.getMethod().equals("ACK")) {
 					for(SIPNode n:invocationContext.nodes) {
@@ -243,8 +243,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	}
 	
 	protected SIPNode selectNewNode(SIPNode node, String callId) {
-		if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("The assigned node has died. This is the dead node: " + node);
+		if(logger.isDebugEnabled()) {
+    		logger.debug("The assigned node has died. This is the dead node: " + node);
     	}
 		if(groupedFailover) {
 			// This will occur very rarely because we re-assign all calls from the dead node in
@@ -259,8 +259,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			callIdMap.put(callId, node);
 		}
 		
-		if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("So, we must select new node: " + node);
+		if(logger.isDebugEnabled()) {
+    		logger.debug("So, we must select new node: " + node);
     	}
 		return node;
 	}
@@ -354,7 +354,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 							logger.info("Reaping idle transactions... Evicted " + oldCalls.size() + " calls.");
 						}}
 				} catch (Exception e) {
-					logger.log(Level.WARNING, "Failed to clean up old calls. If you continue to se this message frequestly and the memory is growing, report this problem.", e);
+					logger.warn("Failed to clean up old calls. If you continue to se this message frequestly and the memory is growing, report this problem.", e);
 				}
 
 			}
@@ -386,19 +386,19 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 						updatedRoutes++;
 					}
 				}
-				if(logger.isLoggable(Level.INFO)) {
+				if(logger.isInfoEnabled()) {
 					logger.info("Switchover occured where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute + " with " + 
 							updatedRoutes + " updated routes.");
 				}
 			} else {
-				if(logger.isLoggable(Level.INFO)) {
+				if(logger.isInfoEnabled()) {
 					logger.info("Switchover failed where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute);
 				}
 			}
 		} catch (Throwable t) {
-			if(logger.isLoggable(Level.INFO)) {
+			if(logger.isInfoEnabled()) {
 				logger.info("Switchover failed where fromJvmRoute=" + fromJvmRoute + " and toJvmRoute=" + toJvmRoute);
-				logger.log(Level.INFO, "This is not a fatal failure, logging the reason for the failure ", t);
+				logger.info("This is not a fatal failure, logging the reason for the failure ", t);
 			}
 		}
 	}
@@ -414,19 +414,19 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 						updatedRoutes++;
 					}
 				}
-				if(logger.isLoggable(Level.INFO)) {
+				if(logger.isInfoEnabled()) {
 					logger.info("Switchover occured where oldNode=" + oldNode + " and newNode=" + newNode + " with " + 
 							updatedRoutes + " updated routes.");
 				}
 			} else {
-				if(logger.isLoggable(Level.INFO)) {
+				if(logger.isInfoEnabled()) {
 					logger.info("Switchover failed where fromJvmRoute=" + oldNode + " and toJvmRoute=" + newNode);
 				}
 			}
 		} catch (Throwable t) {
-			if(logger.isLoggable(Level.INFO)) {
+			if(logger.isInfoEnabled()) {
 				logger.info("Switchover failed where fromJvmRoute=" + oldNode + " and toJvmRoute=" + newNode);
-				logger.log(Level.INFO, "This is not a fatal failure, logging the reason for the failure ", t);
+				logger.info("This is not a fatal failure, logging the reason for the failure ", t);
 			}
 		}
 	}

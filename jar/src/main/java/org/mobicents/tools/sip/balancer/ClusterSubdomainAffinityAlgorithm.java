@@ -26,7 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(ClusterSubdomainAffinityAlgorithm.class.getCanonicalName());
@@ -34,8 +34,8 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 	protected ConcurrentHashMap<String, List<String>> nodeToNodeGroup = new ConcurrentHashMap<String, List<String>>();
 	
 	protected SIPNode selectNewNode(SIPNode node, String callId) {
-		if(logger.isLoggable(Level.FINEST)) {
-    		logger.finest("The assigned node has died. This is the dead node: " + node);
+		if(logger.isDebugEnabled()) {
+    		logger.debug("The assigned node has died. This is the dead node: " + node);
     	}
 		SIPNode oldNode = node;
 		List<String> alternativeNodes = nodeToNodeGroup.get(oldNode.getIp());
@@ -47,7 +47,7 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 				return check;
 			}
 		}
-		logger.fine("No alternatives found for " + oldNode + " from " + alternativeNodes);
+		logger.debug("No alternatives found for " + oldNode + " from " + alternativeNodes);
 		
 		return super.selectNewNode(oldNode, callId);
 	}
@@ -103,7 +103,7 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 			loadSubclusters(getProperties().getProperty("subclusterMap"));
 			logger.info("Subclusters reloaded. The groups are as follows:" + dumpSubcluster());
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Subcluster changes were unsuccesful", e);
+			logger.error("Subcluster changes were unsuccesful", e);
 		}
 	}
 

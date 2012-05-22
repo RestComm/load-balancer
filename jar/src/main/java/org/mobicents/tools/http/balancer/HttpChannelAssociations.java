@@ -24,7 +24,7 @@ package org.mobicents.tools.http.balancer;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;

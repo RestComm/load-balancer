@@ -37,7 +37,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
@@ -169,7 +169,7 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 			try {
 				configurationInputStream = new FileInputStream(configFile);
 			} catch (FileNotFoundException e1) {
-				logger.log(Level.SEVERE, "File not found", e1);
+				logger.error("File not found", e1);
 				throw new RuntimeException(e1);
 			}
 		} else {

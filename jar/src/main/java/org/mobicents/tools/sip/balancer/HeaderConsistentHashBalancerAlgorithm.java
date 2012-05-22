@@ -31,7 +31,7 @@ import java.util.SortedSet;
 import java.util.Timer;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
@@ -206,8 +206,8 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 				}
 			}
 		}
-		if(logger.isLoggable(Level.FINEST)) {
-			logger.finest("external response node found ? " + found);
+		if(logger.isDebugEnabled()) {
+			logger.debug("external response node found ? " + found);
 		}
 		if(!found) {
 			if(nodesAreDirty) {
@@ -218,16 +218,16 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			try {
 				SIPNode node = (SIPNode) nodesArray[nodeIndex];
 				if(node == null || !context.nodes.contains(node)) {
-					if(logger.isLoggable(Level.FINEST)) {
-						logger.finest("No node to handle " + via);
+					if(logger.isDebugEnabled()) {
+						logger.debug("No node to handle " + via);
 					}
 					
 				} else {
 					String transportProperty = transport + "Port";
 					port = (Integer) node.getProperties().get(transportProperty);
 					if(via.getHost().equalsIgnoreCase(node.getIp()) || via.getPort() != port) {
-						if(logger.isLoggable(Level.FINEST)) {
-							logger.finest("changing retransmission via " + via + "setting new values " + node.getIp() + ":" + port);
+						if(logger.isDebugEnabled()) {
+							logger.debug("changing retransmission via " + via + "setting new values " + node.getIp() + ":" + port);
 						}
 						try {
 							via.setHost(node.getIp());

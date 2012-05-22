@@ -24,7 +24,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 public class InvocationContext {
 	Logger logger = Logger.getLogger(InvocationContext.class.getCanonicalName());
