@@ -22,28 +22,14 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.header.SIPHeader;
-import gov.nist.javax.sip.header.Via;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Set;
-import java.util.logging.Level;
+
 import org.apache.log4j.Logger;
-
-import javax.sip.ListeningPoint;
-import javax.sip.address.SipURI;
-import javax.sip.header.FromHeader;
-import javax.sip.header.RouteHeader;
-import javax.sip.header.ToHeader;
-import javax.sip.message.Message;
-import javax.sip.message.Request;
-import javax.sip.message.Response;
-
 import org.jboss.cache.Cache;
 import org.jboss.cache.CacheFactory;
 import org.jboss.cache.DefaultCacheFactory;
@@ -53,7 +39,6 @@ import org.jboss.cache.notifications.annotation.NodeModified;
 import org.jboss.cache.notifications.annotation.ViewChanged;
 import org.jboss.cache.notifications.event.Event;
 import org.jboss.cache.notifications.event.ViewChangedEvent;
-import org.jboss.netty.handler.codec.http.HttpRequest;
 
 /**
  * Persistent Consistent Hash algorithm - see http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm Example algorithms section
@@ -64,15 +49,8 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentHashBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(PersistentConsistentHashBalancerAlgorithm.class.getCanonicalName());
 	
-	protected String sipHeaderAffinityKey;
-	protected String httpAffinityKey;
 	
 	protected Cache cache;
-	
-	// And we also keep a copy in the array because it is faster to query by index
-	private Object[] nodesArray = new Object[]{};
-	
-	private boolean nodesAreDirty = true;
 	
 	public PersistentConsistentHashBalancerAlgorithm() {
 	}

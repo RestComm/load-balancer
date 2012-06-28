@@ -25,7 +25,6 @@ package org.mobicents.tools.sip.balancer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import org.apache.log4j.Logger;
 
 public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlgorithm {
@@ -47,7 +46,7 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 				return check;
 			}
 		}
-		logger.debug("No alternatives found for " + oldNode + " from " + alternativeNodes);
+		logger.info("No alternatives found for " + oldNode + " from " + alternativeNodes);
 		
 		return super.selectNewNode(oldNode, callId);
 	}

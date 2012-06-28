@@ -116,6 +116,7 @@ public class InviteTransactionFailover extends TestCase{
 
 		Thread.sleep(5000);
 		assertEquals(500, shootist.responses.get(0).getStatusCode());
+		assertNotNull(shootist.responses.get(0).getHeader("Via"));
 	}
 
 //	private void _BAD_testInviteTx() throws Exception {

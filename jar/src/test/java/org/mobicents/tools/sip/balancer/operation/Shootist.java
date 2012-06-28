@@ -355,7 +355,10 @@ public class Shootist implements SipListener {
         
     }
 
-    public void sendInitialInvite() {
+    public void sendInitialInvite(){
+    	sendInitial("INVITE");
+    }
+    public void sendInitial(String method) {
     	try{
     		if(!started) start();
     		String fromName = "BigGuy";
@@ -407,7 +410,7 @@ public class Shootist implements SipListener {
 
             // Create a new Cseq header
             CSeqHeader cSeqHeader = headerFactory.createCSeqHeader(1L,
-                    Request.INVITE);
+                    method);
 
             // Create a new MaxForwardsHeader
             MaxForwardsHeader maxForwards = headerFactory
@@ -415,7 +418,7 @@ public class Shootist implements SipListener {
 
             // Create the request.
             Request request = messageFactory.createRequest(requestURI,
-                    Request.INVITE, callIdHeader, cSeqHeader, fromHeader,
+                    method, callIdHeader, cSeqHeader, fromHeader,
                     toHeader, viaHeaders, maxForwards);
             // Create contact headers
             String host = "127.0.0.1";

@@ -534,4 +534,32 @@ INFO: Stopping the sip forwarder</screen>
       </mediaobject>
     </figure>
   </section>
+  <section>
+    <title>Using the Load Balancer with Third-Party SIP Servers</title>
+    <para>The load balancer only forwards requests to servers that send heartbeat signals. A third party server can send metadata using a SIP OPTIONS or SIP INFO message towards the internal port of the SIP load balancer. For security reasons heartbeat messages arriving at the external entry-point will be ignored and using a single internal and external entry-point is not allowed. The third party SIP server must advertise it's metadata in the SIP message contents.</para>
+    <para>For example, this request will advertise a SIP server listening on 127.0.0.1:5070, both TCP and UDP .</para><programlisting linenumbering="unnumbered"><![CDATA[
+OPTIONS sip:X@127.0.0.1:5065;lr SIP/2.0
+Call-ID: 2298704dc4d6706e53cb61123ea7833e@127.0.0.1
+CSeq: 1 OPTIONS
+From: <sip:third-party-app-server-heartbeating-service@sip-servlets.com>;tag=4481411
+To: <sip:sip-load-balancer@sip-servlets.com>
+Via: SIP/2.0/UDP 127.0.0.1:5070;branch=z9hG4bK-373335-ec2c7452cfd0130bd409ba4f8ea5f54e
+Max-Forwards: 70
+Contact: <sip:sender@127.0.0.1:4060;transport=udp;lr>
+Route: <sip:lbaddress_InternalPort@127.0.0.1:5065;node_host=127.0.0.1;node_port=5070;lr>
+Content-Type: text/plain;charset=UTF-8
+Mobicents-Heartbeat: 1
+Content-Length: 54
+
+tcpPort=5070
+udpPort=5070
+hostname=sipHeartbeat
+ip=127.0.0.1
+    ]]></programlisting>
+    <para>The important headers to be filled in this request are <literal>Mobicents-Heartbeat</literal>, the Route header with <literal>;node_host=127.0.0.1;node_port=5070</literal> and the message contents. The message contents are interpreted as properties of the <literal>SIPNode</literal> object representing the node in the load balancer and can be further interpreted by load balancing algorithms for load balancing purposes. The value of the <literal>Mobicents-Heartbeat</literal> header is arbitrary and reserved for future use, the presence of the header is sufficient to instruct the load balancer how to process the request.</para>
+    <para>All requests initiated by the SIP Server must have the following hint in their Route header <literal>;node_host=127.0.0.1;node_port=5070</literal>. This hint instructs the SIP load balancer that the dialog initated by the application server must stay on the node advertised in the hint. This function is cruicial when the direction of the requests withing the dialog is reversed.</para>
+    <para>Since this SIP request represents a heartbeat signal, it must be sent regularly at least once every 5 seconds (by default). Sending this request is responsibility of the third party server. The load balancer will respond to every heartbeat request with 200 OK immediately. The third party server must expect the OK response. If no response if received within a threshhold time then the third party SIP server must assume the SIP load balancer is not available and use another (backup) load balancer.</para>
+    <para>The regular SIP load balancer setting are still in effect for third party servers and you can expect the same behavior as the Mobicents-specific RMI heartbeat configuration.</para>
+    <para>If you are desgning a pluggable algorithm using the SIP metadata, you can access the properties passed in the SIP message contents using <literal>SIPNode.getProperties()</literal></para>
+  </section>
 </chapter>

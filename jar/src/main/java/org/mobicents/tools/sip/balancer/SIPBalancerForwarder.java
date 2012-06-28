@@ -28,14 +28,13 @@ import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.SIPResponse;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import org.apache.log4j.Logger;
 
 import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
@@ -64,6 +63,10 @@ import javax.sip.header.ViaHeader;
 import javax.sip.message.Message;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
+
+import org.apache.log4j.Logger;
+
+import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 
 /**
  * A transaction stateful UDP Forwarder that listens at a port and forwards to multiple
@@ -443,10 +446,33 @@ public class SIPBalancerForwarder implements SipListener {
          
 		final Request request = requestEvent.getRequest();
 		final String requestMethod = request.getMethod();
+		
+		if((requestMethod.equals(Request.OPTIONS) ||
+				requestMethod.equals(Request.INFO)) &&
+				request.getHeader("Mobicents-Heartbeat") != null &&
+				sipProvider == balancerRunner.balancerContext.internalSipProvider) {
+			byte[] bytes = (byte[]) request.getContent();
+			Properties prop = new Properties();
+			try {
+				prop.load(new ByteInputStream(bytes, bytes.length));
+				SIPNode node = new SIPNode(prop.getProperty("hostname"), prop.getProperty("ip"));
+				for(String id : prop.stringPropertyNames()) {
+					node.getProperties().put(id, prop.getProperty(id));
+				}
+				ArrayList<SIPNode> list = new ArrayList<SIPNode>();
+				list.add(node);
+				this.register.handlePingInRegister(list);
+				Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.OK, request);			
+                sipProvider.sendResponse(response);	
+				return;
+			} catch (Exception e) {
+				logger.error("Failure parsing heartbeat properties from this request " + request, e);
+			}
+		}
 		try {	
 			updateStats(request);
-            forwardRequest(sipProvider,request);          						
-        } catch (Throwable throwable) {
+			forwardRequest(sipProvider,request);          						
+		} catch (Throwable throwable) {
             logger.error("Unexpected exception while forwarding the request " + request, throwable);
             if(!Request.ACK.equalsIgnoreCase(requestMethod)) {
 	            try {

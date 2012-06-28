@@ -58,16 +58,11 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(PureConsistentHashBalancerAlgorithm.class.getCanonicalName());
 	
-	protected String sipHeaderAffinityKey;
-	protected String httpAffinityKey;
-	
 	MessageDigest md5;
 	
 	HashMap<Integer, SIPNode> hashToNode = new HashMap<Integer, SIPNode>();
 	HashMap<SIPNode, Integer> nodeToHash = new HashMap<SIPNode, Integer>();
 	
-	// And we also keep a copy in the array because it is faster to query by index
-	private Object[] nodesArray = new Object[]{};
 	
 	private TreeSet<SIPNode> tmpNodes = new TreeSet<SIPNode>();
 	

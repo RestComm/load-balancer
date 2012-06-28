@@ -38,8 +38,6 @@
  */
 package org.mobicents.tools.sip.balancer;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.rmi.RemoteException;
 import java.util.Properties;
 

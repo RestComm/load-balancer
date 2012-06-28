@@ -32,9 +32,7 @@ import junit.framework.TestCase;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
-import org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.PureConsistentHashBalancerAlgorithm;
-import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 public class PureConsistentHashNodeDeathTest extends TestCase {
@@ -90,6 +88,7 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		balancer.stop();
 	}
 	static AppServer invite;
+	static AppServer register;
 	static AppServer bye;
 	static AppServer ack;
 	public void testInviteByeLandOnDifferentNodes() throws Exception {
@@ -144,6 +143,42 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		assertNotNull(bye);
 	}
 	
+	public void testRegister() throws Exception {
+		EventListener failureEventListener = new EventListener() {
+
+			@Override
+			public void uasAfterResponse(int statusCode, AppServer source) {
+				
+			}
+			
+			@Override
+			public void uasAfterRequestReceived(String method, AppServer source) {
+				if(method.equals("REGISTER")) register = source;
+
+				
+			}
+
+			@Override
+			public void uacAfterRequestSent(String method, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void uacAfterResponse(int statusCode, AppServer source) {
+				// TODO Auto-generated method stub
+				
+			}
+		};
+		for(AppServer as:servers) as.setEventListener(failureEventListener);
+
+
+				shootist.sendInitial("REGISTER");
+				Thread.sleep(5000);
+				
+				assertNotNull(register);
+	}
+
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
 			as.sendCleanShutdownToBalancers();
@@ -156,29 +191,29 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		Thread.sleep(5000);
 		assertEquals(500, shootist.responses.get(0).getStatusCode());
 	}
-	
+
 	AppServer ringingAppServer;
 	AppServer okAppServer;
 	public void testOKRingingLandOnDifferentNode() throws Exception {
-		
+
 		EventListener failureEventListener = new EventListener() {
-			
+
 			@Override
 			public void uasAfterResponse(int statusCode, AppServer source) {
-				
-				
+
+
 			}
-			
+
 			@Override
 			public void uasAfterRequestReceived(String method, AppServer source) {
 				// TODO Auto-generated method stub
-				
+
 			}
 
 			@Override
 			public void uacAfterRequestSent(String method, AppServer source) {
 				// TODO Auto-generated method stub
-				
+
 			}
 
 			@Override

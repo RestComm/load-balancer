@@ -52,15 +52,19 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	// no matter at what order the events arrived
 	private SortedSet<SIPNode> nodes = (SortedSet<SIPNode>) Collections.synchronizedSortedSet(new TreeSet<SIPNode>());
 	// And we also keep a copy in the array because it is faster to query by index
-	private Object[] nodesArray;
+	protected Object[] nodesArray;
 	
-	private boolean nodesAreDirty = true;
+	protected boolean nodesAreDirty = true;
 	
 	public HeaderConsistentHashBalancerAlgorithm() {
 	}
 	
 	public HeaderConsistentHashBalancerAlgorithm(String headerName) {
-		this.sipHeaderAffinityKey = headerName;
+		if(headerName == null) {
+			this.sipHeaderAffinityKey = "Call-ID";
+		} else {
+			this.sipHeaderAffinityKey = headerName;
+		}
 	}
 
 	public SIPNode processExternalRequest(Request request) {
@@ -182,6 +186,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
     public void init() {
     	this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
     	this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
+    	logger.info("SIP affinity key = " + sipHeaderAffinityKey + " HTTP key = " + httpAffinityKey);
     }
     
 	public void configurationChanged() {
