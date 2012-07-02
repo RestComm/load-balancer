@@ -27,6 +27,7 @@ import gov.nist.javax.sip.header.HeaderFactoryImpl;
 import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.SIPResponse;
 
+import java.io.ByteArrayInputStream;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,8 +66,6 @@ import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
-
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 
 /**
  * A transaction stateful UDP Forwarder that listens at a port and forwards to multiple
@@ -454,7 +453,7 @@ public class SIPBalancerForwarder implements SipListener {
 			byte[] bytes = (byte[]) request.getContent();
 			Properties prop = new Properties();
 			try {
-				prop.load(new ByteInputStream(bytes, bytes.length));
+				prop.load(new ByteArrayInputStream(bytes, 0, bytes.length));
 				SIPNode node = new SIPNode(prop.getProperty("hostname"), prop.getProperty("ip"));
 				for(String id : prop.stringPropertyNames()) {
 					node.getProperties().put(id, prop.getProperty(id));
