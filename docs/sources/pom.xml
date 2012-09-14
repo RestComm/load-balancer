@@ -12,9 +12,9 @@
 	<artifactId>sip-balancer-docs-sources</artifactId>
 			
 	<properties>
-		<year>2010</year>
+		<year>2012</year>
 		<bookid>SIP_Balancer_User_Guide</bookid>				
-		<holder>Red Hat Inc</holder>
+		<holder>TeleStax, Inc.</holder>
 	</properties>	
 	
 	<build>
