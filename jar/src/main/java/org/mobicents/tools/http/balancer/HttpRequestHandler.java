@@ -159,6 +159,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				if(!associatedChannel.isConnected()) {
 					associatedChannel.disconnect();
 					associatedChannel.close();
+					associatedChannel.getCloseFuture().awaitUninterruptibly();
 				}
 				associatedChannel = null;
 			} catch (Exception e) {
