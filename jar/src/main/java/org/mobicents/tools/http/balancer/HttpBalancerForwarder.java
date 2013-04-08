@@ -46,22 +46,16 @@ public class HttpBalancerForwarder {
 	NioServerSocketChannelFactory nioServerSocketChannelFactory = null;
 	NioClientSocketChannelFactory nioClientSocketChannelFactory = null;
 	Channel serverChannel;
-	
+
 	public void start() {
-		executor = Executors.newFixedThreadPool(32);
-		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(
-                executor,
-                executor);		
-		nioClientSocketChannelFactory = new NioClientSocketChannelFactory(
-                executor,
-                executor);
-		HttpChannelAssociations.serverBootstrap = new ServerBootstrap(
-	            nioServerSocketChannelFactory);
-		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(
-				nioClientSocketChannelFactory);
+		executor = Executors.newCachedThreadPool();
+		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor,	executor);		
+		nioClientSocketChannelFactory = new NioClientSocketChannelFactory(executor, executor);
+		HttpChannelAssociations.serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
+		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
 		HttpChannelAssociations.channels = new ConcurrentHashMap<Channel, Channel>();
-	    
-	    
+
+
 		Integer httpPort = 2222;
 		if(balancerRunner.balancerContext.properties != null) {
 			String httpPortString = balancerRunner.balancerContext.properties.getProperty("httpPort", "2080");
@@ -70,9 +64,9 @@ public class HttpBalancerForwarder {
 		logger.info("HTTP LB listening on port " + httpPort);
 		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner));
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
-        HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory());
+		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory());
 	}
-	
+
 	public void stop() {
 		if(executor == null) return; // already stopped
 		for (Entry<Channel, Channel> entry : HttpChannelAssociations.channels.entrySet()) {
@@ -86,19 +80,19 @@ public class HttpBalancerForwarder {
 		serverChannel.unbind();
 		serverChannel.close();
 		serverChannel.getCloseFuture().awaitUninterruptibly();
-		
+
 		// http://code.google.com/p/commscale/issues/detail?id=6
 		// Hang the VM on shutdown if HTTP Requests has been handled
 		// so commented out
-//		nioServerSocketChannelFactory.releaseExternalResources();
-//		nioClientSocketChannelFactory.releaseExternalResources();
-		
-//		HttpChannelAssociations.serverBootstrap.releaseExternalResources();
-//		HttpChannelAssociations.inboundBootstrap.releaseExternalResources();		
-		
+		//		nioServerSocketChannelFactory.releaseExternalResources();
+		//		nioClientSocketChannelFactory.releaseExternalResources();
+
+		//		HttpChannelAssociations.serverBootstrap.releaseExternalResources();
+		//		HttpChannelAssociations.inboundBootstrap.releaseExternalResources();		
+
 		executor.shutdownNow();
 		executor = null;
 
-//		System.gc();
+		//		System.gc();
 	}
 }

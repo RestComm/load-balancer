@@ -22,12 +22,9 @@
 
 package org.mobicents.tools.http.balancer;
 
-import java.util.logging.Level;
 import org.apache.log4j.Logger;
-
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipelineCoverage;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
@@ -36,7 +33,8 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
  * @author Vladimir Ralev (vladimir.ralev@jboss.org)
  *
  */
-@ChannelPipelineCoverage("one")
+//https://issues.jboss.org/browse/NETTY-283 - ChannelPipelineCoverage deprecated
+//@ChannelPipelineCoverage("one")
 public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger logger = Logger.getLogger(HttpResponseHandler.class.getCanonicalName());
     @Override
