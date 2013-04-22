@@ -55,8 +55,9 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		logger.debug("internal request");
 	}
 	
-	public void processInternalResponse(Response request) {
+	public void processInternalResponse(Response response) {
 		logger.debug("internal response");
+		processExternalResponse(response);
 	}
 	
 	public void processExternalResponse(Response response) {

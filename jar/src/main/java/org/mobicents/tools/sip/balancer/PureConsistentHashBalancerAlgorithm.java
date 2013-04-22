@@ -94,6 +94,11 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 		}
 	}
 
+	@Override
+	public synchronized void nodeAdded(SIPNode node){
+		this.nodeAdded(node, invocationContext);
+	}
+	
 	public synchronized void nodeAdded(SIPNode node, InvocationContext context) {
 		addNode(node);
 		syncNodes();

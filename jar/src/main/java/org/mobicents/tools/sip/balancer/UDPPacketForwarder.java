@@ -108,6 +108,7 @@ public class UDPPacketForwarder {
 		running = false;
 		try {
 			worker.interrupt();
+			fromSocket.disconnect();
 			fromSocket.close();
 		} catch (Exception e) {
 			//e.printStackTrace();

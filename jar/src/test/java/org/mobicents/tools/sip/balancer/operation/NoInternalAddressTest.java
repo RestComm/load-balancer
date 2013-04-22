@@ -92,7 +92,7 @@ public class NoInternalAddressTest extends TestCase{
 			String[] nodes = balancer.getNodeList();
 			assertEquals(numNodes, nodes.length);
 			servers[0].sendHeartbeat = false;
-			Thread.sleep(10000);
+			Thread.sleep(10500);
 			nodes = balancer.getNodeList();
 			assertEquals(numNodes-1, nodes.length);
 	}
@@ -235,7 +235,7 @@ public class NoInternalAddressTest extends TestCase{
 		route.setParameter("node_port", "4060");
 		route.setLrParam();
 		shootist.start();
-		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
+//		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
 		Thread.sleep(16000);
 		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));

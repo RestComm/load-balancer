@@ -172,7 +172,8 @@ public class RollingUpgradeTest extends TestCase {
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
 		//servers[0].sendHeartbeat = false;
-		Thread.sleep(15000);
+		//Sleep in order for the old version nodes to be removed and then send BYE
+		Thread.sleep(18000);
 		shootist.sendBye();
 		Thread.sleep(2000);
 
@@ -215,7 +216,6 @@ public class RollingUpgradeTest extends TestCase {
 								srv.version="2";
 							}
 						}
-						
 					}
 				} else {
 					byeServer = source;
@@ -238,7 +238,7 @@ public class RollingUpgradeTest extends TestCase {
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
 		//servers[0].sendHeartbeat = false;
-		Thread.sleep(15000);
+		Thread.sleep(20000);
 		shootist.sendBye();
 		Thread.sleep(2000);
 

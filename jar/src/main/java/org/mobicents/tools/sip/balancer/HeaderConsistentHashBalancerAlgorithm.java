@@ -121,7 +121,9 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			.getValue();
 		}
 
-		if(nodesArray.length == 0) throw new RuntimeException("No Application Servers registered. All servers are dead.");
+		if(nodesArray.length == 0) {
+			throw new RuntimeException("No Application Servers registered. All servers are dead.");
+		}
 		
 		int nodeIndex = hashAffinityKeyword(headerValue);
 		
@@ -193,6 +195,11 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		logger.info("Configuration changed");
 		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
 		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
+	}
+	
+	@Override
+	public void processExternalResponse(Response response){
+		this.processExternalResponse(response, this.invocationContext);
 	}
 	
 	public void processExternalResponse(Response response, InvocationContext context) {

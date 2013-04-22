@@ -82,7 +82,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			uri = (SipURI) request.getRequestURI();
 		}
 		try {
-			SIPNode newNode = getNodeA(callId+cseq);
+			//Gvag: new transaction should go to a new node
+			SIPNode newNode = nextAvailableNode();//getNodeA(callId+cseq);
 			if(newNode == null) {
 				for(SIPNode node:invocationContext.nodes) {
 					if(!node.equals(assignedNode)) {
