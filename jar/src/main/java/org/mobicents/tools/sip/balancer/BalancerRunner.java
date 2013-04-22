@@ -38,18 +38,17 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.PropertyConfigurator;
-
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
 
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 
 import com.sun.jdmk.comm.HtmlAdaptorServer;
@@ -82,7 +81,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 					new PatternLayout("%r (%t) %p [%c{1}%x] %m%n")));
 			Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
 		} else {
-			PropertyConfigurator.configure(logConfigFile);
+		    DOMConfigurator.configure(logConfigFile);
 		}
 	}
 
@@ -116,12 +115,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	 */
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			logger.error("Please specify mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			logger.error("Please specify mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
 			return;
 		}
 		
 		if(!args[0].startsWith("-mobicents-balancer-config=")) {
-			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
 			return;
 		}
 		
