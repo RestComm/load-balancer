@@ -29,6 +29,8 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
+import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 
 /**
  * @author The Netty Project (netty-dev@lists.jboss.org)
@@ -43,10 +45,11 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         ChannelPipeline pipeline = pipeline();
         pipeline.addLast("decoder", new HttpResponseDecoder());
         // Remove the following line if you don't want automatic content decompression.
-        //pipeline.addLast("inflater", new HttpContentDecompressor());        
+        //pipeline.addLast("inflater", new HttpContentDecompressor()); 
         pipeline.addLast("encoder", new HttpRequestEncoder());
-        // http://code.google.com/p/commscale/issues/detail?id=5 support for HttpChunks
-        pipeline.addLast("aggregator", new HttpChunkAggregator(1048576));
+//        // http://code.google.com/p/commscale/issues/detail?id=5 support for HttpChunks
+//        pipeline.addLast("aggregator", new HttpChunkAggregator(1048576));
+
         pipeline.addLast("handler", new HttpResponseHandler());
         return pipeline;
     }

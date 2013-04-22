@@ -36,6 +36,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
@@ -45,10 +46,13 @@ import org.jboss.netty.handler.codec.http.CookieEncoder;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpHeaders.Names;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.SIPNode;
@@ -65,6 +69,10 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 	private volatile HttpRequest request;
 	private volatile boolean readingChunks;
+	private volatile boolean wsrequest;
+	private String wsVersion;
+	private WebsocketModifyClientPipelineFactory websocketServerPipelineFactory;
+	private volatile SIPNode node;
 
 	private BalancerRunner balancerRunner;
 
@@ -72,9 +80,34 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		this.balancerRunner = balancerRunner;
 	}
 
-
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+		Object msg = e.getMessage();
+		if (msg instanceof HttpRequest) {
+			handleHttpRequest(ctx, e);
+		} else if (msg instanceof WebSocketFrame) {
+			handleWebSocketFrame(ctx, e);
+		}
+	}
+
+	private void handleWebSocketFrame(ChannelHandlerContext ctx, final MessageEvent e) {
+		Object msg = e.getMessage();
+		final String request = ((TextWebSocketFrame) msg).getText();
+		logger.info(String.format("Channel %s received WebSocket request %s", ctx.getChannel().getId(), request));
+
+		//Modify the Client Pipeline - Phase 2
+		Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+		ChannelPipeline p = channel.getPipeline();
+		websocketServerPipelineFactory.upgradeClientPipelineFactoryPhase2(p, wsVersion);
+
+		if(channel != null) {
+			channel.write(new TextWebSocketFrame(request));
+		} 
+
+
+	}
+
+	private void handleHttpRequest(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
 		if (!readingChunks) {
 			request = (HttpRequest) e.getMessage();
 
@@ -86,8 +119,9 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 			InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
 
-			SIPNode node = null;
+			//			SIPNode node = null;
 			try {
+				//TODO: If WebSocket request, choose a NODE that is able to handle WebSocket requests (has a websocket connector)
 				node = invocationContext.balancerAlgorithm.processHttpRequest(request);
 			} catch (Exception ex) {
 				StringWriter sw = new StringWriter();
@@ -120,7 +154,22 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				});
 
 				// Start the connection attempt.
-				ChannelFuture future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
+				ChannelFuture future = null;
+				Set<String> headers = request.getHeaderNames();
+				if(headers.contains("Sec-WebSocket-Protocol")) {
+					if(request.getHeader("Sec-WebSocket-Protocol").equalsIgnoreCase("sip")){
+						logger.info("New SIP over WebSocket request. WebSocket uri: "+request.getUri());
+						logger.info("Dispatching WebSocket request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("wsPort"));
+						wsrequest = true;
+						wsVersion = request.getHeader(Names.SEC_WEBSOCKET_VERSION);
+						websocketServerPipelineFactory = new WebsocketModifyClientPipelineFactory();
+						future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("wsPort")));
+						
+					}
+				} else {
+					logger.info("Dispatching HTTP request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("httpPort"));
+					future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
+				}
 
 				future.addListener(new ChannelFutureListener() {
 
@@ -132,10 +181,19 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 						if (request.isChunked()) {
 							readingChunks = true;
 						}
+						logger.info("About to write request: "+request);
 						channel.write(request);
+
+						if(wsrequest){
+							logger.info("This is a websocket request, changing the pipeline");
+							//Modify the Client Pipeline - Phase 1
+							ChannelPipeline p = channel.getPipeline();
+							websocketServerPipelineFactory.upgradeClientPipelineFactoryPhase1(p, wsVersion);
+						}
 
 						channel.getCloseFuture().addListener(new ChannelFutureListener() {
 							public void operationComplete(ChannelFuture arg0) throws Exception {
+								logger.info("about to close channel pair for channel: "+arg0.getChannel().toString());
 								closeChannelPair(arg0.getChannel());
 							}
 						});
@@ -224,6 +282,12 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 			future.addListener(ChannelFutureListener.CLOSE);
 		}
 	}
+
+	//	@Override
+	//	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
+	//		//		logger.info("new handleUpstream reveiced on channel: ["+ctx.getChannel().toString() +"] event message: ["+event.toString()+"]");
+	//		super.handleUpstream(ctx, event);
+	//	}
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
