@@ -64,8 +64,10 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	private void handleWebSocketFrame(ChannelHandlerContext ctx, MessageEvent e) {
 		Object msg = e.getMessage();
 		final String response = ((TextWebSocketFrame) msg).getText();
-		logger.info(String.format("Channel %s received WebSocket response %s", ctx.getChannel().getId(), response));
-
+		if(logger.isDebugEnabled()) {
+			logger.debug(String.format("Channel %s received WebSocket response %s", ctx.getChannel().getId(), response));
+		}
+				
 		Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
 //		channel.getPipeline().remove(HttpResponseDecoder.class);
 		
@@ -77,7 +79,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	private void handleHttpResponse(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
 		if(!readingChunks || !(e.getMessage() instanceof DefaultHttpChunk)){
 			response = (HttpResponse) e.getMessage();
-			logger.info("New response received: "+response);
+
 			if(response.isChunked()){
 				readingChunks = true;
 			}
@@ -89,7 +91,9 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			Set<String> headers = response.getHeaderNames();
 			if(headers.contains("Sec-WebSocket-Protocol")) {
 				if(response.getHeader("Sec-WebSocket-Protocol").equalsIgnoreCase("sip")){
-					
+					if(logger.isDebugEnabled()) {
+						logger.debug("WebSocket response");
+					}
 					wsVersion = response.getHeader(Names.SEC_WEBSOCKET_VERSION);
 
 					//Modify the Server pipeline
@@ -110,7 +114,6 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			}
 		} else {
 			HttpChunk chunk = (HttpChunk) e.getMessage();
-			logger.info("New chunk received: "+chunk);
 			if (chunk.isLast()) {
 				readingChunks = false;
 			}
