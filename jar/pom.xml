@@ -81,6 +81,13 @@
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-ri</artifactId>
 		</dependency>
+		<!-- licensing dependencies -->
+		<dependency>
+			<groupId>com.telscale.licensing</groupId>
+			<artifactId>lce-core</artifactId>
+			<version>1.0.1.Final</version>
+			<classifier>jar-with-dependencies</classifier>
+		</dependency>
 	</dependencies>
 
 	<build>

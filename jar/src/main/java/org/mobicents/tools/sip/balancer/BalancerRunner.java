@@ -52,6 +52,8 @@ import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 
 import com.sun.jdmk.comm.HtmlAdaptorServer;
+import com.telscale.licensing.LicenseEnforcer;
+import com.telscale.licensing.LicenseEnforcerImpl;
 
 /**
  * @author jean.deruelle@gmail.com
@@ -123,6 +125,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
 			return;
 		}
+		
+		LicenseEnforcer enforcer = new LicenseEnforcerImpl();
+        enforcer.validateLicense(true);
 		
 		// Configuration file Location
 		String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());
