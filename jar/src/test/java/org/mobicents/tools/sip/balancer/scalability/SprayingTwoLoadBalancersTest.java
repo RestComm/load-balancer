@@ -158,7 +158,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		//servers[0].sendHeartbeat = false;
 		Thread.sleep(12000);
 		shootist.sendBye();
-		Thread.sleep(2000);
+		Thread.sleep(4000);
 
 		assertEquals(3, externalIpLoadBalancer.sipMessageWithoutRetrans.size());
 		assertSame(inviteServer, byeServer);
@@ -169,7 +169,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 	public void testSprayingMultipleIndialogMessages() throws Exception {
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
-		Thread.sleep(8000);
+		Thread.sleep(10000);
 		for(int q=0;q<10;q++){
 		shootist.sendMessage();Thread.sleep(600);
 		}

@@ -99,7 +99,7 @@ public class NodeRegisterTest extends TestCase {
 				servers[q].start();
 			}
 			
-			Thread.sleep(5000);
+			Thread.sleep(8000);
 			String[] nodes = balancerRunner.getNodeList();
 			assertEquals(numNodes, nodes.length);
 			servers[0].sendHeartbeat = false;
