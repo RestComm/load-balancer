@@ -130,7 +130,7 @@ public class EarlyDialogWorstCaseAffinityTest extends TestCase {
 		
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
-		Thread.sleep(11000);
+		Thread.sleep(15000);
 		if(invite == null) TestCase.fail("INVITE not seen");
 		if(ack == null) TestCase.fail("BYE not seen");
 		assertNotSame(ack, bye);

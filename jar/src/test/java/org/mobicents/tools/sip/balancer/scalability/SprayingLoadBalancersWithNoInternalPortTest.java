@@ -151,7 +151,7 @@ public class SprayingLoadBalancersWithNoInternalPortTest extends TestCase {
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
 		//servers[0].sendHeartbeat = false;
-		Thread.sleep(12000);
+		Thread.sleep(16000);
 		shootist.sendBye();
 		Thread.sleep(2200);
 
@@ -162,13 +162,17 @@ public class SprayingLoadBalancersWithNoInternalPortTest extends TestCase {
 		assertNotNull(ackServer);
 	}
 	public void testSprayingMultipleIndialogMessages() throws Exception {
+		Thread.sleep(1000);
+		for(BalancerRunner balancer: balancers){
+			balancer.setNodeExpiration(15000);
+		}
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
-		Thread.sleep(8000);
+		Thread.sleep(10000);
 		for(int q=0;q<10;q++){
 		shootist.sendMessage();Thread.sleep(600);
 		}
-		Thread.sleep(600);
+		Thread.sleep(2000);
 		assertTrue(shootist.responses.size()>10);
 	}
 

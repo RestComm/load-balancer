@@ -184,11 +184,12 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 			as.sendCleanShutdownToBalancers();
 			as.sendHeartbeat=false;
 		}
-		Thread.sleep(1000);
+		Thread.sleep(3000);
+		assertTrue(balancer.getNodes().isEmpty());
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
 
-		Thread.sleep(7000);
+		Thread.sleep(5000);
 		assertEquals(500, shootist.responses.get(0).getStatusCode());
 	}
 
@@ -251,7 +252,7 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		shootist.start();
 		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
-		Thread.sleep(16000);
+		Thread.sleep(20000);
 		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
 		assertNotSame(ringingAppServer, okAppServer);
 		assertNotNull(ringingAppServer);
