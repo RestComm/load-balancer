@@ -188,7 +188,7 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
 
-		Thread.sleep(5000);
+		Thread.sleep(7000);
 		assertEquals(500, shootist.responses.get(0).getStatusCode());
 	}
 

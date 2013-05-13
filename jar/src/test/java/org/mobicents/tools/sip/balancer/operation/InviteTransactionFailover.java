@@ -179,7 +179,7 @@ public class InviteTransactionFailover extends TestCase{
 		for(AppServer as:servers) as.setEventListener(failureEventListener);
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
-		Thread.sleep(10000);
+		Thread.sleep(12000);
 		if(balancer.getNodes().size()!=1) fail("Expected one dead node");
 	}
 	AppServer ringingAppServer;

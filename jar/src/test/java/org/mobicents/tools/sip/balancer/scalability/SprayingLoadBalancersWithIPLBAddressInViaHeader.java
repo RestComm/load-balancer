@@ -30,6 +30,9 @@ import javax.sip.header.RecordRouteHeader;
 
 import junit.framework.TestCase;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
@@ -79,7 +82,7 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 		balancer.start(properties);
 		return balancer;
 	}
-	
+	@Before
 	protected void setUp() throws Exception {
 		super.setUp();
 		shootist = new Shootist();
@@ -107,6 +110,7 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 	/* (non-Javadoc)
 	 * @see junit.framework.TestCase#tearDown()
 	 */
+	@After
 	protected void tearDown() throws Exception {
 		super.tearDown();
 		externalIpLoadBalancer.stop();
@@ -121,7 +125,7 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 	}
 	
 	AppServer inviteServer,ackServer,byeServer;
-
+	@Test
 	public void testSprayingRoundRobinSIPLBsUASCallConsistentHash() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 			
@@ -160,13 +164,14 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 		//servers[0].sendHeartbeat = false;
 		Thread.sleep(12000);
 		shootist.sendBye();
-		Thread.sleep(2000);
-
+		Thread.sleep(1200);
+		
 		assertEquals(3, externalIpLoadBalancer.sipMessageWithoutRetrans.size());
 		assertSame(inviteServer, byeServer);
 		assertSame(inviteServer, ackServer);
 		assertNotNull(byeServer);
-		assertNotNull(ackServer);
+		assertNotNull(ackServer);	
+		
 	}
 	AppServer ringingAppServer;
 	AppServer okAppServer;
