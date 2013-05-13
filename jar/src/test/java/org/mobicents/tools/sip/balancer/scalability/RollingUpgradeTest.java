@@ -173,7 +173,7 @@ public class RollingUpgradeTest extends TestCase {
 		shootist.sendInitialInvite();
 		//servers[0].sendHeartbeat = false;
 		//Sleep in order for the old version nodes to be removed and then send BYE
-		Thread.sleep(18000);
+		Thread.sleep(20000);
 		shootist.sendBye();
 		Thread.sleep(2000);
 
@@ -234,6 +234,9 @@ public class RollingUpgradeTest extends TestCase {
 			}
 		};
 		for(AppServer as:servers) as.setEventListener(failureEventListener);
+		for(BalancerRunner balancer: balancers){
+			balancer.setNodeExpiration(15000);
+		}
 		shootist.peerHostPort="127.0.0.1:9988";
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
@@ -252,13 +255,17 @@ public class RollingUpgradeTest extends TestCase {
 		assertNotNull(ackServer);
 	}
 	public void testSprayingMultipleIndialogMessages() throws Exception {
+		Thread.sleep(1000);
+		for(BalancerRunner balancer: balancers){
+			balancer.setNodeExpiration(15000);
+		}
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
-		Thread.sleep(8000);
+		Thread.sleep(10000);
 		for(int q=0;q<10;q++){
 		shootist.sendMessage();Thread.sleep(600);
 		}
-		Thread.sleep(600);
+		Thread.sleep(2000);
 		assertTrue(shootist.responses.size()>10);
 	}
 

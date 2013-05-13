@@ -44,7 +44,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 
 	UDPPacketForwarder externalIpLoadBalancer;
 	UDPPacketForwarder internalIpLoadBalancer;
-	
+
 	private BalancerRunner prepBalancer(String id) {
 		BalancerRunner balancer = new BalancerRunner();
 		Properties properties = new Properties();
@@ -60,7 +60,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
-		
+
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("externalHost", "127.0.0.1");
 		properties.setProperty("internalHost", "127.0.0.1");
@@ -77,7 +77,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		balancer.start(properties);
 		return balancer;
 	}
-	
+
 	protected void setUp() throws Exception {
 		super.setUp();
 		shootist = new Shootist();
@@ -95,7 +95,7 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 			servers[q].start();
 			servers[q].setBalancers(balancerString);
 		}
-		
+
 		externalIpLoadBalancer = new UDPPacketForwarder(9988, externalIpLBString, "127.0.0.1");
 		externalIpLoadBalancer.start();
 		internalIpLoadBalancer = new UDPPacketForwarder(9922, internalIpLBString, "127.0.0.1");
@@ -117,18 +117,18 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 			balancers[q].stop();
 		}
 	}
-	
+
 	AppServer inviteServer,ackServer,byeServer;
 
 	public void testSprayingRoundRobinSIPLBsUASCallConsistentHash() throws Exception {
 		EventListener failureEventListener = new EventListener() {
-			
+
 			@Override
 			public void uasAfterResponse(int statusCode, AppServer source) {
-				
-				
+
+
 			}
-			
+
 			@Override
 			public void uasAfterRequestReceived(String method, AppServer source) {
 				if(method.equals("INVITE")) {
@@ -143,12 +143,12 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 			@Override
 			public void uacAfterRequestSent(String method, AppServer source) {
 				// TODO Auto-generated method stub
-				
+
 			}
 
 			@Override
 			public void uacAfterResponse(int statusCode, AppServer source) {
-		
+
 			}
 		};
 		for(AppServer as:servers) as.setEventListener(failureEventListener);
@@ -166,14 +166,18 @@ public class SprayingTwoLoadBalancersTest extends TestCase {
 		assertNotNull(byeServer);
 		assertNotNull(ackServer);
 	}
-	public void testSprayingMultipleIndialogMessages() throws Exception {
+	public void testSprayingMultipleIndialogMessages() throws Exception {		
+		Thread.sleep(1000);
+		for(BalancerRunner balancer: balancers){
+			balancer.setNodeExpiration(15000);
+		}
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
 		Thread.sleep(10000);
 		for(int q=0;q<10;q++){
-		shootist.sendMessage();Thread.sleep(600);
+			shootist.sendMessage();Thread.sleep(600);
 		}
-		Thread.sleep(600);
+		Thread.sleep(2000);
 		assertTrue(shootist.responses.size()>10);
 	}
 

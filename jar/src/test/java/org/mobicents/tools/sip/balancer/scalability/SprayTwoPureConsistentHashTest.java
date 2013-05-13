@@ -153,11 +153,15 @@ public class SprayTwoPureConsistentHashTest extends TestCase {
 			}
 		};
 		for(AppServer as:servers) as.setEventListener(failureEventListener);
+		for(BalancerRunner balancer: balancers){
+			balancer.setNodeExpiration(15000);
+		}
+		Thread.sleep(1000);
 		shootist.peerHostPort="127.0.0.1:9988";
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
 		//servers[0].sendHeartbeat = false;
-		Thread.sleep(12000);
+		Thread.sleep(15000);
 		shootist.sendBye();
 		Thread.sleep(2000);
 
@@ -168,13 +172,17 @@ public class SprayTwoPureConsistentHashTest extends TestCase {
 		assertNotNull(ackServer);
 	}
 	public void testSprayingMultipleIndialogMessages() throws Exception {
+		Thread.sleep(1000);
+		for(BalancerRunner balancer: balancers){
+			balancer.setNodeExpiration(15000);
+		}
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
-		Thread.sleep(8000);
+		Thread.sleep(10000);
 		for(int q=0;q<10;q++){
 		shootist.sendMessage();Thread.sleep(600);
 		}
-		Thread.sleep(600);
+		Thread.sleep(2000);
 		assertTrue(shootist.responses.size()>10);
 	}
 

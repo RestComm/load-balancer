@@ -213,7 +213,7 @@ public class HeaderConsistentHashAlgorithmTest extends TestCase {
 		shootist.start();
 		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
-		Thread.sleep(16000);
+		Thread.sleep(20000);
 		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
 		assertNotSame(ringingAppServer, okAppServer);
 		assertNotNull(ringingAppServer);
