@@ -5,14 +5,14 @@
 	<parent>
 		<artifactId>mobicents-parent</artifactId>
 		<groupId>org.mobicents</groupId>
-		<version>2.25-SNAPSHOT</version>		
+		<version>7.0.0-TelScale-SNAPSHOT</version>		
 	</parent>
 	
 	<packaging>pom</packaging>
 	
 	<groupId>org.mobicents.tools</groupId>
 	<artifactId>sip-balancer</artifactId>
-	<version>1.7.0-SNAPSHOT</version>
+	<version>7.0.0-TelScale-SNAPSHOT</version>
 
 	<name>Mobicents Converged Load Balancer Parent</name>
 	<description>Mobicents Converged Load Balancer Parent</description>
