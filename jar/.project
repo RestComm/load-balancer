@@ -1,6 +1,6 @@
 <projectDescription>
   <name>sip-balancer-jar</name>
-  <comment>Mobicents :: Parent pom for 2.x releases. NO_M2ECLIPSE_SUPPORT: Project files created with the maven-eclipse-plugin are not supported in M2Eclipse.</comment>
+  <comment>Mobicents Converged Load Balancer Jar. NO_M2ECLIPSE_SUPPORT: Project files created with the maven-eclipse-plugin are not supported in M2Eclipse.</comment>
   <projects/>
   <buildSpec>
     <buildCommand>
