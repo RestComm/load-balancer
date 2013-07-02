@@ -22,25 +22,19 @@
 
 package org.mobicents.tools.sip.balancer.performance;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Properties;
 
 import junit.framework.TestCase;
 
-import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.BlackholeAppServer;
-import org.mobicents.tools.sip.balancer.operation.Shootist;
+
 
 //BlackholeAppServer is causing excesive CPU usage. Disable this test for now.
-public class TcpForwardingPerformanceTest extends TestCase 
+public class TcpForwardingPerformanceTest //extends TestCase 
 {
 	static final String inviteRequest = "INVITE sip:joe@company.com;transport=tcp SIP/2.0\r\n"+
 	"To: sip:joe@company.com\r\n"+
@@ -72,7 +66,7 @@ public class TcpForwardingPerformanceTest extends TestCase
 	 * @see junit.framework.TestCase#setUp()
 	 */
 	protected void setUp() throws Exception {
-		super.setUp();
+//		super.setUp();
 		
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
@@ -172,7 +166,7 @@ public class TcpForwardingPerformanceTest extends TestCase
 	}
 	
 	protected void tearDown() throws Exception {
-		super.tearDown();
+//		super.tearDown();
 		server.stop();
 		balancer.stop();
 	}

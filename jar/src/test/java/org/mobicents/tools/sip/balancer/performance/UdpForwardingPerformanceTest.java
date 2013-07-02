@@ -37,7 +37,9 @@ import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.BlackholeAppServer;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class UdpForwardingPerformanceTest extends TestCase {
+//BlackholeAppServer is causing excesive CPU usage. Disable this test for now.
+public class UdpForwardingPerformanceTest //extends TestCase 
+{
 	static final String inviteRequest = "INVITE sip:joe@company.com SIP/2.0\r\n"+
 	"To: sip:joe@company.com\r\n"+
 	"From: sip:caller@university.edu ;tag=1234\r\n"+
@@ -75,7 +77,7 @@ public class UdpForwardingPerformanceTest extends TestCase {
 	 * @see junit.framework.TestCase#setUp()
 	 */
 	protected void setUp() throws Exception {
-		super.setUp();
+//		super.setUp();
 		shootist = new Shootist();
 		
 		balancer = new BalancerRunner();
@@ -201,7 +203,7 @@ public class UdpForwardingPerformanceTest extends TestCase {
 	}
 	
 	protected void tearDown() throws Exception {
-		super.tearDown();
+//		super.tearDown();
 		server.stop();
 		balancer.stop();
 	}
