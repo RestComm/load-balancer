@@ -39,7 +39,9 @@ import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.BlackholeAppServer;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class TcpForwardingPerformanceTest extends TestCase {
+//BlackholeAppServer is causing excesive CPU usage. Disable this test for now.
+public class TcpForwardingPerformanceTest extends TestCase 
+{
 	static final String inviteRequest = "INVITE sip:joe@company.com;transport=tcp SIP/2.0\r\n"+
 	"To: sip:joe@company.com\r\n"+
 	"From: sip:caller@university.edu ;tag=1234\r\n"+
@@ -131,7 +133,6 @@ public class TcpForwardingPerformanceTest extends TestCase {
 	public void testInvitePerformance10sec() {
 		testMessagePerformance(10*1000, 10000);
 	}
-	
 
 	
 	private void testMessagePerformance(int timespan, int maxLostPackets) {
@@ -162,6 +163,8 @@ public class TcpForwardingPerformanceTest extends TestCase {
 
 			}
 			System.out.println("Packets sent in " + timespan + " ms are " + server.numUnitsReceived/inviteRequestBytes.length + "(making " + sentUnits/inviteRequestBytes.length/((double)(timespan)/1000.) + " initial requests per second)");
+			clientSocket.shutdownOutput();
+			clientSocket.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
