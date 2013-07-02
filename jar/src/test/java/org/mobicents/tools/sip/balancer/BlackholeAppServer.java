@@ -75,6 +75,7 @@ public class BlackholeAppServer {
 		sipListener.eventListener = listener;
 	}
 	ServerSocket tcpSocket;
+	Socket sock;
 	DatagramSocket socket;
 	public long numUnitsReceived;
 	DatagramPacket packet = new DatagramPacket(new byte[1000], 1000);
@@ -93,7 +94,7 @@ public class BlackholeAppServer {
 						while(true) {
 							
 							try {
-								final Socket sock = tcpSocket.accept();
+								sock = tcpSocket.accept();
 								new Thread() {
 									public void run() {
 										while(true) {
@@ -163,6 +164,8 @@ public class BlackholeAppServer {
 			tcpThread.stop();
 		} catch (Exception e) {}
 		try {
+			sock.shutdownInput();
+			sock.close();
 			tcpSocket.close();
 		} catch (IOException e) {
 		}

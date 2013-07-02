@@ -110,8 +110,11 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 			algorithm.invocationContext = ctx;
 			SIPNode resultNode = algorithm.processExternalRequest(request);
 			assertEquals("partner", resultNode.getIp());
+			originalNode = null;
+			partnerNode = null;
+			resultNode = null;
 		} finally {
-			//BalancerContext.balancerContext.nodes = null;
+//			BalancerContext.balancerContext.nodes = null;
 		}
 	}
 }

@@ -22,11 +22,9 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -42,9 +40,9 @@ public class UDPPacketForwarder {
 
 	public LinkedList<String> sipMessages;
 	public HashSet<String> sipMessageWithoutRetrans;
-	
+
 	static long next = 0;
-	
+
 	public UDPPacketForwarder(int fromPort, String destinations, String bind) {
 		this.fromPort = fromPort;
 		this.bindAddress = bind;
@@ -53,11 +51,11 @@ public class UDPPacketForwarder {
 		sipMessages = new LinkedList<String>();
 		sipMessageWithoutRetrans = new HashSet<String>();
 	}
-	
+
 	public void setDestinations(String destinations) {
 		this.destinations = destinations;
 	}
-	
+
 	public void start() {
 		try {
 			fromSocket = new DatagramSocket(fromPort, InetAddress.getByName(bindAddress));
@@ -95,7 +93,7 @@ public class UDPPacketForwarder {
 							e.printStackTrace();
 						}
 					}
-					
+
 				}
 			};
 			worker.start();
@@ -103,7 +101,7 @@ public class UDPPacketForwarder {
 			throw new RuntimeException("Error", e);
 		}
 	}
-	
+
 	public void stop() {
 		running = false;
 		try {
@@ -113,6 +111,6 @@ public class UDPPacketForwarder {
 		} catch (Exception e) {
 			//e.printStackTrace();
 		}
-		
+
 	}
 }
