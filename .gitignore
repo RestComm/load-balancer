@@ -4,6 +4,7 @@
 ~
 target
 classes
+bin
 *.zip
 # ignore eclipse files
 .project
