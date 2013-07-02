@@ -37,6 +37,8 @@ pom.xml.versionsBackup
 # ignore 'randomly' strewn around logs
 server.log
 *.log
+*.txt
+logs
 # ignore java crashes
 hs_err_pid*.log
 # H2 databases produced by tests
