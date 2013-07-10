@@ -383,7 +383,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		String[] nodeList = new String[nodes.size()];
 		int i = 0;
 		for (SIPNode node : nodes) {			
-			nodeList[0] = node.toString();
+			nodeList[i] = node.toString();
 			i++;
 		}
 		return nodeList;
