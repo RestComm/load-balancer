@@ -16,6 +16,12 @@
   </figure>
   <para>The SIP Load Balancer is used to balance the load of SIP service requests and responses between nodes in a SIP Server cluster, such as &PLATFORM_NAME; JAIN SLEE or SIP Servlets. Both &SHORT_PLATFORM_NAME; servers can be used in conjunction with the SIP Load Balancer to increase the performance and availability of SIP services and applications.</para>
   <para>In terms of functionality, the SIP Load Balancer is a simple stateless proxy server that intelligently forwards SIP session requests and responses between User Agents (UAs) on a Wide Area Network (WAN), and SIP Server nodes, which are almost always located on a Local Area Network (LAN). All SIP requests and responses pass through the SIP Load Balancer.</para>
+  <para>Starting with the 7.0.0.GA release, SIP Load Balancer can handle WebSocket requests supporting up to version 13 of the wire protocol - 
+  RFC 6455 (version 17 of the draft hybi specification - <ulink url="http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-17">http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-17</ulink>).
+  SIP Load Balancer will accept HTTP requests and if the request contains header Sec-WebSocket-Protocol it will upgrade the connection and dispatch the reuqest to 
+  a node capable to handle WebSocket requests (a node that has a WebSocket connector).</para>
+  <para>One major advantage of having WebSocket support for SIP Load Balancer is to allow tunneling over HTTP port for SIP traffic and thus bypass 
+  proxy and firewall servers that might be blocking SIP traffic.</para>
   <section id="sslb-binary-SIP_Load_Balancer-Installing_Configuring_and_Running">
     <title>SIP Load Balancer: Installing, Configuring and Running</title>
     <para>&nbsp;</para>
