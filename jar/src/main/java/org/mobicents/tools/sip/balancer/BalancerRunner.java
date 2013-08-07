@@ -73,6 +73,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String REGISTRY_PORT = "2000";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
 	
+	private static LicenseEnforcer enforcer;
+	
 	ConcurrentHashMap<String, InvocationContext> contexts = new ConcurrentHashMap<String, InvocationContext>();
 	static {
 		String logLevel = System.getProperty("logLevel", "INFO");
@@ -126,8 +128,17 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			return;
 		}
 		
-		LicenseEnforcer enforcer = new LicenseEnforcerImpl();
-        enforcer.validateLicense(true);
+//		LicenseEnforcer enforcer = new LicenseEnforcerImpl();
+//      enforcer.validateLicense(true);
+		Thread checkLicense = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				enforcer = new LicenseEnforcerImpl();
+			    enforcer.validateLicense(true);
+			}
+		});
+
+		checkLicense.start();
 		
 		// Configuration file Location
 		String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());

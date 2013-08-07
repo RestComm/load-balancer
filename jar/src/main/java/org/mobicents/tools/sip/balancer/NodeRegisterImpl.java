@@ -297,8 +297,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 			}
 			for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
 				long expirationTime = node.getTimeStamp() + nodeExpiration;
-				if (expirationTime < System
-						.currentTimeMillis()) {
+				String nodeHostname = node.getHostName();
+				if (expirationTime < System.currentTimeMillis() && !nodeHostname.contains("ExtraServerNode")) {
 					InvocationContext ctx = balancerRunner.getInvocationContext(
 							(String) node.getProperties().get("version"));
 					balancerRunner.balancerContext.aliveNodes.remove(node);

@@ -22,6 +22,9 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import java.io.Serializable;
+import java.util.HashMap;
+
 /**
  * Instances of this class represent Application Server nodes that do not participate in the hearbeats
  * and are assumed to always be alive. For example these could be fallback servers or the IP of a fault tolerant
@@ -39,11 +42,18 @@ public class ExtraServerNode extends SIPNode {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
+	
 	public ExtraServerNode() {
 		super(null,null);
 	}
 	
+	public ExtraServerNode(String hostName, String ip){
+		super(hostName, ip);
+	}
+	
 	public static ExtraServerNode extraServerNode = new ExtraServerNode();
 
+	public void setProperties(HashMap<String, Serializable> properties){
+		super.getProperties().putAll(properties);
+	}
 }

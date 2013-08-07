@@ -28,9 +28,11 @@ import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.SIPResponse;
 
 import java.io.ByteArrayInputStream;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -167,7 +169,9 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		
 		String extraServerNodesString = balancerRunner.balancerContext.properties.getProperty("extraServerNodes");
+		String performanceTestingMode = balancerRunner.balancerContext.properties.getProperty("performanceTestingMode");
 		if(extraServerNodesString != null) {
+			ArrayList<SIPNode> extraServerNodes = new ArrayList<SIPNode>();
 			extraServerAddresses = extraServerNodesString.split(",");
 			extraServerPorts = new int[extraServerAddresses.length];
 			for(int q=0; q<extraServerAddresses.length; q++) {
@@ -175,10 +179,20 @@ public class SIPBalancerForwarder implements SipListener {
 				if(indexOfPort > 0) {
 					extraServerPorts[q] = Integer.parseInt(extraServerAddresses[q].substring(indexOfPort + 1, extraServerAddresses[q].length()));
 					extraServerAddresses[q] = extraServerAddresses[q].substring(0, indexOfPort);
-					logger.info("Extra Server: " + extraServerAddresses[q] + ":" + extraServerPorts[q]);
 				} else {
 					extraServerPorts[q] = 5060;
 				}
+				ExtraServerNode extraServerNode = new ExtraServerNode("ExtraServerNode"+q+"-"+extraServerAddresses[q]+":"+extraServerPorts[q], extraServerAddresses[q]);
+				HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
+				properties.put("udpPort", extraServerPorts[q]);
+				properties.put("version","0");
+				extraServerNode.setProperties(properties);
+				extraServerNodes.add(extraServerNode);
+				logger.info("Extra Server: " + extraServerAddresses[q] + ":" + extraServerPorts[q]);
+			}
+			if(performanceTestingMode.equalsIgnoreCase("true")){
+				register.handlePingInRegister(extraServerNodes);
+				logger.info("Extra Servers registered as active nodes!");
 			}
 		}
 		
