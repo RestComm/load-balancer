@@ -224,7 +224,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			} catch (org.jboss.netty.channel.ChannelException e) {
 				logger.warn("HTTP forwarder could not be restarted.");
 			}
-
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);

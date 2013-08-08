@@ -23,7 +23,7 @@
 		</manifest.implementation.version>
 		<manifest.implementation.vendor>TeleStax, Inc.
 		</manifest.implementation.vendor>
-		<telscale.license.version>1.0.4-SNAPSHOT</telscale.license.version>
+		<telscale.license.version>1.0.4.Final</telscale.license.version>
 	</properties>
 
 	<dependencies>
@@ -87,7 +87,7 @@
 			<groupId>com.telscale.licensing</groupId>
 			<artifactId>lce-core</artifactId>
 			<version>${telscale.license.version}</version>
-			<!-- <classifier>obfuscated</classifier> -->
+			<classifier>obfuscated</classifier>
 		</dependency>
 	</dependencies>
 

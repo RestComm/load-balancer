@@ -185,6 +185,7 @@ public class SIPBalancerForwarder implements SipListener {
 				ExtraServerNode extraServerNode = new ExtraServerNode("ExtraServerNode"+q+"-"+extraServerAddresses[q]+":"+extraServerPorts[q], extraServerAddresses[q]);
 				HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
 				properties.put("udpPort", extraServerPorts[q]);
+				properties.put("tcpPort", extraServerPorts[q]);
 				properties.put("version","0");
 				extraServerNode.setProperties(properties);
 				extraServerNodes.add(extraServerNode);
