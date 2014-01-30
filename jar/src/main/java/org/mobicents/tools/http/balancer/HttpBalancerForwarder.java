@@ -56,8 +56,8 @@ public class HttpBalancerForwarder {
 		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
 		HttpChannelAssociations.channels = new ConcurrentHashMap<Channel, Channel>();
 
-
-		Integer httpPort = 2222;
+		// https://telestax.atlassian.net/browse/LB-7 making the default port the same
+		Integer httpPort = 2080;
 		if(balancerRunner.balancerContext.properties != null) {
 			String httpPortString = balancerRunner.balancerContext.properties.getProperty("httpPort", "2080");
 			httpPort = Integer.parseInt(httpPortString);
