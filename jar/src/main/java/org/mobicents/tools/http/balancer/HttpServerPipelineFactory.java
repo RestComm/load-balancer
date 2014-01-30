@@ -47,10 +47,6 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
 		this.maxContentLength = maxContentLength;
 	}
 
-    public HttpClientPipelineFactory(int maxContentLength) {
-	this.maxContentLength = maxContentLength;
-    }
-
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = pipeline();
@@ -69,5 +65,9 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
         //pipeline.addLast("deflater", new HttpContentCompressor());
         pipeline.addLast("handler", new HttpRequestHandler(balancerRunner));
         return pipeline;
+    }
+
+    public void setMaxContentLength(int maxContentLength) {
+	this.maxContentLength = maxContentLength;
     }
 }
