@@ -292,8 +292,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 	class NodeExpirationTimerTask extends TimerTask {
 		
 		public void run() {
-			if(logger.isDebugEnabled()) {
-				logger.debug("NodeExpirationTimerTask Running");
+			if(logger.isTraceEnabled()) {
+				logger.trace("NodeExpirationTimerTask Running");
 			}
 			for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
 				long expirationTime = node.getTimeStamp() + nodeExpiration;
@@ -312,14 +312,14 @@ public class NodeRegisterImpl  implements NodeRegister {
 							 "ms and tolerance=" + nodeExpiration + " ms");
 					}
 				} else {
-					if(logger.isDebugEnabled()) {
-						logger.debug("node time stamp : " + expirationTime + " , current time : "
+					if(logger.isTraceEnabled()) {
+						logger.trace("node time stamp : " + expirationTime + " , current time : "
 							+ System.currentTimeMillis());
 					}
 				}
 			}
-			if(logger.isDebugEnabled()) {
-				logger.debug("NodeExpirationTimerTask Done");
+			if(logger.isTraceEnabled()) {
+				logger.trace("NodeExpirationTimerTask Done");
 			}
 		}
 
