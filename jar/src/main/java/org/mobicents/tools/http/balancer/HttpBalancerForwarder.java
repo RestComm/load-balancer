@@ -1,23 +1,20 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2011, Red Hat, Inc. and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * TeleStax, Open Source Cloud Communications
+ * Copyright 2011-2013, Telestax Inc and individual contributors
+ * by the @authors tag.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
+ * This program is free software: you can redistribute it and/or modify
+ * under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation; either version 3 of
  * the License, or (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 package org.mobicents.tools.http.balancer;
@@ -39,6 +36,10 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.mobicents.tools.sip.balancer.BalancerContext;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 
+/**
+ * @author Vladimir Ralev (vladimir.ralev@jboss.org)
+ * @author Jean Deruelle (jean.deruelle@telestax.com)
+ */
 public class HttpBalancerForwarder {
 	private static final Logger logger = Logger.getLogger(HttpBalancerForwarder.class.getCanonicalName());
 	ExecutorService executor;
@@ -61,10 +62,17 @@ public class HttpBalancerForwarder {
 			String httpPortString = balancerRunner.balancerContext.properties.getProperty("httpPort", "2080");
 			httpPort = Integer.parseInt(httpPortString);
 		}
+		// Defaulting to 1 MB
+		int maxContentLength = 1048576;
+		if(balancerRunner.balancerContext.properties != null) {
+			String maxContentLengthString = balancerRunner.balancerContext.properties.getProperty("maxContentLength", "1048576");
+			maxContentLength = Integer.parseInt(maxContentLengthString);
+		}
 		logger.info("HTTP LB listening on port " + httpPort);
+		logger.debug("HTTP maxContentLength Chunking set to " + maxContentLength);
 		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner));
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
-		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory());
+		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(maxContentLength));
 	}
 
 	public void stop() {
