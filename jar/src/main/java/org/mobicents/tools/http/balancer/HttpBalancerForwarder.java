@@ -70,7 +70,7 @@ public class HttpBalancerForwarder {
 		}
 		logger.info("HTTP LB listening on port " + httpPort);
 		logger.debug("HTTP maxContentLength Chunking set to " + maxContentLength);
-		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner));
+		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength));
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
 		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(maxContentLength));
 	}
