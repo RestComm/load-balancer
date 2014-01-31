@@ -332,7 +332,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	public synchronized void handlePingInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
 			if(pingNode.getIp() == null) {
-			   	// https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address
+			   	// https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address 
 			   	logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");			   
 			} else {
 				String version = (String) pingNode.getProperties().get("version");
