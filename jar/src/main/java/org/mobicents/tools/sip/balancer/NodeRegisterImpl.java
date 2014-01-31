@@ -266,7 +266,8 @@ public class NodeRegisterImpl  implements NodeRegister {
 			if(logger.isDebugEnabled()) {
 				logger.debug("node to check against " + node);
 			}
-			if(node.getIp().equals(host)) {
+		   	// https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address
+			if(node != null && node.getIp() != null && node.getIp().equals(host)) {
 				Integer nodePort = (Integer) node.getProperties().get(transport + "Port");
 				if(nodePort != null) {
 					if(nodePort == port) {
@@ -330,44 +331,49 @@ public class NodeRegisterImpl  implements NodeRegister {
 	 */
 	public synchronized void handlePingInRegister(ArrayList<SIPNode> ping) {
 		for (SIPNode pingNode : ping) {
-			String version = (String) pingNode.getProperties().get("version");
-			if(version == null) version = "0";
-			InvocationContext ctx = balancerRunner.getInvocationContext(
-					version);
-			pingNode.updateTimerStamp();
-			//logger.info("Pingnode updated " + pingNode);
-			if(pingNode.getProperties().get("jvmRoute") != null) {
-				// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
-				// We need info about inactive nodes to do the failover
-				balancerRunner.balancerContext.jvmRouteToSipNode.put(
-						(String)pingNode.getProperties().get("jvmRoute"), pingNode);				
-			}
-			SIPNode nodePresent = null;
-			Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
-			while (nodesIterator.hasNext() && nodePresent == null) {
-				SIPNode node = (SIPNode) nodesIterator.next();
-				if (node.equals(pingNode)) {
-					nodePresent = node;
-				}
-			}
-			// adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
-			if(nodePresent != null) {
-				nodePresent.updateTimerStamp();
-				if(logger.isDebugEnabled()) {
-					logger.debug("Ping " + nodePresent.getTimeStamp());
-				}
+			if(pingNode.getIp() == null) {
+			   	// https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address
+			   	logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");			   
 			} else {
-				Integer current = Integer.parseInt(version);
-				Integer latest = Integer.parseInt(latestVersion);
-				latestVersion = Math.max(current, latest) + "";
-				balancerRunner.balancerContext.aliveNodes.add(pingNode);
-				ctx.nodes.add(pingNode);
-				ctx.balancerAlgorithm.nodeAdded(pingNode);
-				balancerRunner.balancerContext.allNodesEver.add(pingNode);
+				String version = (String) pingNode.getProperties().get("version");
+				if(version == null) version = "0";
+				InvocationContext ctx = balancerRunner.getInvocationContext(
+						version);
 				pingNode.updateTimerStamp();
-				if(logger.isInfoEnabled()) {
-					logger.info("NodeExpirationTimerTask Run NSync["
-						+ pingNode + "] added");
+				//logger.info("Pingnode updated " + pingNode);
+				if(pingNode.getProperties().get("jvmRoute") != null) {
+					// Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
+					// We need info about inactive nodes to do the failover
+					balancerRunner.balancerContext.jvmRouteToSipNode.put(
+							(String)pingNode.getProperties().get("jvmRoute"), pingNode);				
+				}
+				SIPNode nodePresent = null;
+				Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
+				while (nodesIterator.hasNext() && nodePresent == null) {
+					SIPNode node = (SIPNode) nodesIterator.next();
+					if (node.equals(pingNode)) {
+						nodePresent = node;
+					}
+				}
+				// adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
+				if(nodePresent != null) {
+					nodePresent.updateTimerStamp();
+					if(logger.isTraceEnabled()) {
+						logger.trace("Ping " + nodePresent.getTimeStamp());
+					}
+				} else {
+					Integer current = Integer.parseInt(version);
+					Integer latest = Integer.parseInt(latestVersion);
+					latestVersion = Math.max(current, latest) + "";
+					balancerRunner.balancerContext.aliveNodes.add(pingNode);
+					ctx.nodes.add(pingNode);
+					ctx.balancerAlgorithm.nodeAdded(pingNode);
+					balancerRunner.balancerContext.allNodesEver.add(pingNode);
+					pingNode.updateTimerStamp();
+					if(logger.isInfoEnabled()) {
+						logger.info("NodeExpirationTimerTask Run NSync["
+							+ pingNode + "] added");
+					}
 				}
 			}					
 		}
