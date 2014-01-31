@@ -266,7 +266,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 			if(logger.isDebugEnabled()) {
 				logger.debug("node to check against " + node);
 			}
-		   	// https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address
+		   	// https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address 
 			if(node != null && node.getIp() != null && node.getIp().equals(host)) {
 				Integer nodePort = (Integer) node.getProperties().get(transport + "Port");
 				if(nodePort != null) {
