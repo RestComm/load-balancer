@@ -534,6 +534,17 @@ INFO: Stopping the sip forwarder</screen>
     </para>
     <para>The Load Balancer also adds itself to the path of subsequent requests by adding Record-Route headers. It can subsequently handle mid-call failover by forwarding requests to a different node in the cluster if the node that originally handled the request fails or becomes unavailable. The SIP load balancer immediately fails over if it receives an unhealthy status, or irregular heartbeats from a node.
     </para>
+    <para>Additionally, SIP Load Balancer will add two custom header containing the initial remote address and port of the sip client for every REGISTER request or requests with content. 
+	</para>
+	<itemizedlist>
+		<listitem>
+              <para>X-Sip-Balancer-InitialRemoteAddr</para>
+		</listitem>   
+		<listitem>
+              <para>X-Sip-Balancer-InitialRemotePort</para>
+		</listitem>  
+    </itemizedlist>
+	<para>Application can use these two headers to have the correct location of the sip client that sent the REGISTER request.</para>
     <para>In advanced configurations, it is possible to run more than one SIP Load Balancer. Simply edit the balancers connection string in your SIP Server - the list is separated with semi-colon. <!--Issue #822 Editor Comment - is there more information regarding how to enable this?--></para>
     <para><xref linkend="figure-mss-Basic_IP_and_Port_Cluster_Configuration"/> describes a basic IP and Port Cluster Configuration. In the diagram, the SIP Load balancer is the server with the IP address of <literal>192.168.1.1</literal>.</para>
     <figure id="figure-mss-Basic_IP_and_Port_Cluster_Configuration">

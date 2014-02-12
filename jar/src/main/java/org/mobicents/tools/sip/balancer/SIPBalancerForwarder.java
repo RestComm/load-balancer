@@ -26,6 +26,7 @@ import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
 import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.SIPResponse;
+import gov.nist.javax.sip.stack.SIPTransaction;
 
 import java.io.ByteArrayInputStream;
 import java.io.Serializable;
@@ -58,6 +59,7 @@ import javax.sip.address.Address;
 import javax.sip.address.SipURI;
 import javax.sip.address.URI;
 import javax.sip.header.CallIdHeader;
+import javax.sip.header.Header;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
@@ -482,6 +484,26 @@ public class SIPBalancerForwarder implements SipListener {
 			} catch (Exception e) {
 				logger.error("Failure parsing heartbeat properties from this request " + request, e);
 			}
+		}
+		//Issue 10: https://telestax.atlassian.net/browse/LB-10
+		if (request.getContent() != null || (requestMethod.equals(Request.REGISTER) && sipProvider != balancerRunner.balancerContext.internalSipProvider)) {
+		    ViaHeader viaHeader = (ViaHeader) request.getHeader(ViaHeader.NAME);
+		    String initialRemoteAddr = viaHeader.getHost();
+		    String initialRemotePort = String.valueOf(viaHeader.getPort());
+		    Header remoteAddrHeader = null;
+		    Header remotePortHeader = null;
+		    try {
+                remoteAddrHeader = SipFactory.getInstance().createHeaderFactory().createHeader("X-Sip-Balancer-InitialRemoteAddr", initialRemoteAddr);
+                remotePortHeader = SipFactory.getInstance().createHeaderFactory().createHeader("X-Sip-Balancer-InitialRemotePort", initialRemotePort);
+            } catch (PeerUnavailableException e) {
+                logger.error("Unexpected exception while creating custom headers for REGISTER message ", e);
+            } catch (ParseException e) {
+                logger.error("Unexpected exception while creating custom headers for REGISTER message ", e);
+            }
+		    if (remoteAddrHeader != null)
+		        request.addHeader(remoteAddrHeader);
+		    if (remotePortHeader != null)
+		        request.addHeader(remotePortHeader);
 		}
 		try {	
 			updateStats(request);
@@ -1200,7 +1222,7 @@ public class SIPBalancerForwarder implements SipListener {
 					}
 				}
 			}*/
-			ctx.balancerAlgorithm.processInternalResponse(response);
+		    ctx.balancerAlgorithm.processInternalResponse(response);
 			try {	
 				if(logger.isDebugEnabled()) {
 					logger.debug("from server sending response externally " + response);
@@ -1210,7 +1232,7 @@ public class SIPBalancerForwarder implements SipListener {
 				logger.error("Unexpected exception while forwarding the response \n" + response, ex);
 			}
 		} else {
-			try {	
+		    try {
 				ctx.balancerAlgorithm.processExternalResponse(response);
 				if(balancerRunner.balancerContext.isTwoEntrypoints()) {
 					if(logger.isDebugEnabled()) {
