@@ -134,7 +134,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			@Override
 			public void run() {
 				enforcer = new LicenseEnforcerImpl();
-			    enforcer.validateLicense(true);
+			    enforcer.validateLicense("TelScale Load Balancer",true);
 			}
 		});
 
