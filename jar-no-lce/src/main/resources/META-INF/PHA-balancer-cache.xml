@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<jbosscache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="urn:jboss:jbosscache-core:config:3.0">
+
+	<!--
+		isolation levels supported: READ_COMMITTED and REPEATABLE_READ
+		nodeLockingSchemes: mvcc, pessimistic (deprecated), optimistic
+		(deprecated)
+	-->
+	<locking isolationLevel="REPEATABLE_READ"
+		lockParentForChildInsertRemove="false" lockAcquisitionTimeout="20000"
+		nodeLockingScheme="mvcc" writeSkewCheck="false" concurrencyLevel="500" />
+
+	<!--
+		Used to register a transaction manager and participate in ongoing
+		transactions.
+	-->
+	<transaction
+		transactionManagerLookupClass="org.jboss.cache.transaction.JBossTransactionManagerLookup"
+		syncRollbackPhase="false" syncCommitPhase="false" />
+
+	<!--
+		Used to register JMX statistics in any available MBean server
+	-->
+	<jmxStatistics enabled="false" />
+
+	<!--
+		If region based marshalling is used, defines whether new regions are
+		inactive on startup.
+	-->
+	<startup regionsInactiveOnStartup="false" />
+
+	<!--
+		Used to register JVM shutdown hooks. hookBehavior: DEFAULT, REGISTER,
+		DONT_REGISTER
+	-->
+	<shutdown hookBehavior="DEFAULT" />
+
+	<!--
+		Used to define async listener notification thread pool size
+	-->
+	<listeners asyncPoolSize="1" asyncQueueSize="100000" />
+
+	<!--
+		Used to enable invocation batching and allow the use of
+		Cache.startBatch()/endBatch() methods.
+	-->
+	<invocationBatching enabled="false" />
+
+	<!--
+		serialization related configuration, used for replication and cache
+		loading
+	-->
+	<serialization objectInputStreamPoolSize="12"
+		objectOutputStreamPoolSize="14" version="3.0.0"
+		marshallerClass="org.jboss.cache.marshall.CacheMarshaller300"
+		useLazyDeserialization="false" useRegionBasedMarshalling="false" />
+
+	<!--
+		This element specifies that the cache is clustered. modes supported:
+		replication (r) or invalidation (i).
+	-->
+	<clustering mode="replication" clusterName="MCBALANCER">
+
+		<!--
+         Defines whether to retrieve state on startup
+      -->
+		<stateRetrieval timeout="20000" fetchInMemoryState="true" />
+
+		<!--
+         Network calls are synchronous.
+     
+		<sync replTimeout="20000" /> -->
+		<!--
+         Uncomment this for async replication.
+      -->
+		<!---->
+			<async useReplQueue="true" replQueueInterval="10000"
+			replQueueMaxElements="500" serializationExecutorPoolSize="20"
+			serializationExecutorQueueSize="5000000"/>
+		
+
+		<!-- Uncomment to use Buddy Replication -->
+		<!--
+			<buddy enabled="true" poolName="myBuddyPoolReplicationGroup"
+			communicationTimeout="2000"> <dataGravitation auto="true"
+			removeOnFind="true" searchBackupTrees="true"/> <locator
+			class="org.jboss.cache.buddyreplication.NextMemberBuddyLocator">
+			<properties> numBuddies = 1 ignoreColocatedBuddies = true
+			</properties> </locator> </buddy>
+		-->
+
+		<!--
+			Configures the JGroups channel. Looks up a JGroups config file on the
+			classpath or filesystem. udp.xml ships with jgroups.jar and will be
+			picked up by the class loader.
+		-->
+		<jgroupsConfig>
+
+<UDP
+                       mcast_addr="${jgroups.udp.mcast_addr:228.10.10.10}"
+                       mcast_port="${jgroups.udp.mcast_port:18811}"
+                       discard_incompatible_packets="true"
+                       max_bundle_size="60000"
+                       max_bundle_timeout="30"
+                       ip_ttl="${jgroups.udp.ip_ttl:2}"
+                       enable_bundling="true"
+                       thread_pool.enabled="true"
+                       thread_pool.min_threads="1"
+                       thread_pool.max_threads="25"
+                       thread_pool.keep_alive_time="5000"
+                       thread_pool.queue_enabled="false"
+                       thread_pool.queue_max_size="100"
+                       thread_pool.rejection_policy="Run"
+                       oob_thread_pool.enabled="true"
+                       oob_thread_pool.min_threads="1"
+                       oob_thread_pool.max_threads="8"
+                       oob_thread_pool.keep_alive_time="5000"
+                       oob_thread_pool.queue_enabled="false"
+                       oob_thread_pool.queue_max_size="100"
+                       oob_thread_pool.rejection_policy="Run"/>
+                  <PING timeout="2000"
+                          num_initial_members="3"/>
+                  <MERGE2 max_interval="30000"
+                          min_interval="10000"/>
+                  <FD_SOCK/>
+                  <FD timeout="10000" max_tries="5" />
+                  <VERIFY_SUSPECT timeout="1500"  />
+                  <BARRIER />
+                  <pbcast.NAKACK
+                                 use_mcast_xmit="false" gc_lag="0"
+                                 retransmit_timeout="300,600,1200,2400,4800"
+                                 discard_delivered_msgs="true"/>
+                  <UNICAST timeout="300,600,1200,2400,3600"/>
+                  <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
+                                 max_bytes="400000"/>
+                  <VIEW_SYNC avg_send_interval="60000"   />
+                  <pbcast.GMS print_local_addr="true" join_timeout="3000"
+                              view_bundling="true"/>
+                  <FC max_credits="20000000"
+                                  min_threshold="0.10"/>
+                  <FRAG2 frag_size="60000"  />
+                  <pbcast.STATE_TRANSFER  />
+                
+
+
+		</jgroupsConfig>
+	</clustering>
+
+	<!--
+		Define custom interceptors. All custom interceptors need to extend
+		org.jboss.cache.interceptors.base.CommandInterceptor
+	-->
+
+	<!--
+		<customInterceptors> <interceptor position="first"
+		class="org.jboss.cache.config.parsing.custominterceptors.AaaCustomInterceptor">
+		<property name="attrOne" value="value1" /> <property name="attrTwo"
+		value="value2" /> </interceptor> <interceptor position="last"
+		class="org.jboss.cache.config.parsing.custominterceptors.BbbCustomInterceptor"/>
+		<interceptor index="3"
+		class="org.jboss.cache.config.parsing.custominterceptors.AaaCustomInterceptor"/>
+		<interceptor before="org.jboss.cache.interceptors.CallInterceptor"
+		class="org.jboss.cache.config.parsing.custominterceptors.BbbCustomInterceptor"/>
+		<interceptor after="org.jboss.cache.interceptors.CallInterceptor"
+		class="org.jboss.cache.config.parsing.custominterceptors.AaaCustomInterceptor"/>
+		</customInterceptors>
+	-->
+</jbosscache>
