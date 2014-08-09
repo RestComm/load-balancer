@@ -55,9 +55,9 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class VoipInnovationMessageTests {
+public class TelestaxProxyMessageTests {
 
-    private static Logger logger = Logger.getLogger(VoipInnovationMessageTests.class);
+    private static Logger logger = Logger.getLogger(TelestaxProxyMessageTests.class);
     BalancerRunner balancer;
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(8090);
@@ -73,7 +73,7 @@ public class VoipInnovationMessageTests {
         // You need 16 for logging traces. 32 for debug + traces.
         // Your code will limp at 32 but it is best for debugging.
         properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "16");
-        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "1");
+        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
         properties.setProperty("host", "127.0.0.1");
         properties.setProperty("internalPort", "5065");
         properties.setProperty("externalPort", "5060");

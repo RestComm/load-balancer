@@ -24,14 +24,12 @@ import gov.nist.javax.sip.header.SIPHeader;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.URLDecoder;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLException;
-import javax.sip.Transaction;
 import javax.sip.address.SipURI;
 import javax.sip.message.Request;
 
@@ -102,8 +100,9 @@ public class TelestaxProxyAlgorithmMock extends CallIDAffinityBalancerAlgorithm 
             logger.info("Telestax-Proxy: Got new Request: "+request.getRequestURI().toString()+" will check which node to dispatch");
             SIPNode node = null;
             String did = ((SipURI)request.getRequestURI()).getUser();
-            did = did.replaceAll("\\+1", "");
+            did = did.replaceFirst("\\+1", "");
             did = did.replaceFirst("001", "");
+            did = did.replaceFirst("1", "");
             if (VoipInnovationStorage.getStorage().didExists(did)) {
                 RestcommInstance restcommInstance = VoipInnovationStorage.getStorage().getRestcommInstanceByDid(did);
                 for (SIPNode tempNode: invocationContext.nodes) {
@@ -114,29 +113,30 @@ public class TelestaxProxyAlgorithmMock extends CallIDAffinityBalancerAlgorithm 
 
                         String restcommAddress = restcommInstance.getAddressForTransport(transport);
 
-                        logger.info("Going to check if node ip :"+ipAddressToCheck+" equals to :"+restcommAddress.toString());
-                        if (tempNode.getIp().equalsIgnoreCase(restcommAddress.toString())){
+                        logger.info("Going to check if node ip :"+ipAddressToCheck+" equals to :"+restcommAddress);
+                        if (ipAddressToCheck.equalsIgnoreCase(restcommAddress)){
                             node = tempNode;
                         }
                     } catch (Exception e) {
-                        logger.info("Exception, did was: "+did);
-                        e.printStackTrace();
+                        logger.info("Exception, did was: "+did, e);
                     }
                 }
             } else {
                 logger.info("Did :"+did+" couldn't matched to a restcomm instance. Going to super for node selection");
             }
             if (node != null) {
-                logger.info("Node found for incoming request:\n"+request.toString()+"\nWill route to node: "+node.getIp());
+                logger.info("Node found for incoming request: "+request.getRequestURI()+" Will route to node: "+node);
                 super.callIdMap.put(callId, node);
                 return node;
             } else {
                 logger.info("Telestax-Proxy: Node is null, going to super for node selection");
-                return super.processExternalRequest(request);
+//                return super.processExternalRequest(request);
+                return null;
             }
         } else {
             logger.info("Telestax-Proxy: Calld-id is already known, going to super for node selection");
-            return super.processExternalRequest(request);
+//            return super.processExternalRequest(request);
+            return null;
         }
     }
 

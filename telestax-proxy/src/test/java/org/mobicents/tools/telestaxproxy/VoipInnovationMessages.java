@@ -58,6 +58,11 @@ public class VoipInnovationMessages {
     public static String getAssignDidResponse(String requestId) {
         return assignDidResponse.replaceFirst("YOURREQUESTIDHERE", requestId);
     }
+    public static String getAssignDidResponse(String requestId, String did) {
+        String result = assignDidResponse.replaceFirst("YOURREQUESTIDHERE", requestId);
+        result = result.replaceAll("4156902867", did);
+        return result;
+    }
     public static String getReleaseDidResponse(String requestId) {
         return releaseDidResponse.replaceFirst("YOURREQUESTIDHERE", requestId);
     }
