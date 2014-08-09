@@ -28,7 +28,10 @@ import javax.sip.SipProvider;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
 
 /**
  * The BalancerAlgortihm interface exposes the methods implemented by decision making algorithms
@@ -58,6 +61,15 @@ public interface BalancerAlgorithm {
 	 * @return
 	 */
 	SIPNode processHttpRequest(HttpRequest request);
+
+	void proxyMessage(ChannelHandlerContext ctx, MessageEvent e);
+	
+//	   /**
+//     * Handle HttpResponses here. Use the Netty API for Http response analysis.
+//     * @param response
+//     * @return
+//     */
+//    SIPNode processHttpResponse(HttpResponse response);
 	
 	/**
 	 * Allow algorithms to process responses

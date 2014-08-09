@@ -65,239 +65,245 @@ import org.mobicents.tools.sip.balancer.SIPNode;
 //@ChannelPipelineCoverage("one")
 public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
-	private static final Logger logger = Logger.getLogger(HttpRequestHandler.class.getCanonicalName());
+    private static final Logger logger = Logger.getLogger(HttpRequestHandler.class.getCanonicalName());
 
-	private volatile HttpRequest request;
-	private volatile boolean readingChunks;
-	private volatile boolean wsrequest;
-	private String wsVersion;
-	private WebsocketModifyClientPipelineFactory websocketServerPipelineFactory;
-	private volatile SIPNode node;
+    private volatile HttpRequest request;
+    private volatile boolean readingChunks;
+    private volatile boolean wsrequest;
+    private String wsVersion;
+    private WebsocketModifyClientPipelineFactory websocketServerPipelineFactory;
+    private volatile SIPNode node;
 
-	private BalancerRunner balancerRunner;
+    private BalancerRunner balancerRunner;
 
-	public HttpRequestHandler(BalancerRunner balancerRunner) {
-		this.balancerRunner = balancerRunner;
-	}
+    public HttpRequestHandler(BalancerRunner balancerRunner) {
+        this.balancerRunner = balancerRunner;
+    }
 
-	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-		Object msg = e.getMessage();
-		if (msg instanceof HttpRequest) {
-			handleHttpRequest(ctx, e);
-		} else if (msg instanceof WebSocketFrame) {
-			handleWebSocketFrame(ctx, e);
-		}
-	}
+    @Override
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+        Object msg = e.getMessage();
+        if (msg instanceof HttpRequest) {
+            request = (HttpRequest)e.getMessage();
+            String telestaxHeader = request.headers().get("TelestaxProxy"); 
+            if (telestaxHeader != null && telestaxHeader.equalsIgnoreCase("true")) {
+                balancerRunner.getLatestInvocationContext().balancerAlgorithm.proxyMessage(ctx, e);
+            } else {
+                handleHttpRequest(ctx, e);
+            }
+        } else if (msg instanceof WebSocketFrame) {
+            handleWebSocketFrame(ctx, e);
+        }
+    }
 
-	private void handleWebSocketFrame(ChannelHandlerContext ctx, final MessageEvent e) {
-		Object msg = e.getMessage();
-		final String request = ((TextWebSocketFrame) msg).getText();
-		if(logger.isDebugEnabled()) {
-			logger.debug(String.format("Channel %s received WebSocket request %s", ctx.getChannel().getId(), request));
-		}
-		//Modify the Client Pipeline - Phase 2
-		Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
-		ChannelPipeline p = channel.getPipeline();
-		websocketServerPipelineFactory.upgradeClientPipelineFactoryPhase2(p, wsVersion);
+    private void handleWebSocketFrame(ChannelHandlerContext ctx, final MessageEvent e) {
+        Object msg = e.getMessage();
+        final String request = ((TextWebSocketFrame) msg).getText();
+        if(logger.isDebugEnabled()) {
+            logger.debug(String.format("Channel %s received WebSocket request %s", ctx.getChannel().getId(), request));
+        }
+        //Modify the Client Pipeline - Phase 2
+        Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+        ChannelPipeline p = channel.getPipeline();
+        websocketServerPipelineFactory.upgradeClientPipelineFactoryPhase2(p, wsVersion);
 
-		if(channel != null) {
-			channel.write(new TextWebSocketFrame(request));
-		} 
-
-
-	}
-
-	private void handleHttpRequest(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
-		if (!readingChunks) {
-			request = (HttpRequest) e.getMessage();
-
-			if(logger.isDebugEnabled()) {
-				logger.debug("Request URI accessed: " + request.getUri() + " channel " + e.getChannel());
-			}
-
-			Channel associatedChannel = HttpChannelAssociations.channels.get(e.getChannel());
-
-			InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
-
-			//			SIPNode node = null;
-			try {
-				//TODO: If WebSocket request, choose a NODE that is able to handle WebSocket requests (has a websocket connector)
-				node = invocationContext.balancerAlgorithm.processHttpRequest(request);
-			} catch (Exception ex) {
-				StringWriter sw = new StringWriter();
-				ex.printStackTrace(new PrintWriter(sw));
-				logger.warn("Problem in balancer algorithm", ex);
-
-				writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Load Balancer Error: Exception in the balancer algorithm:\n" + 
-						sw.toString()
-						);
-				return;
-			}
+        if(channel != null) {
+            channel.write(new TextWebSocketFrame(request));
+        } 
 
 
-			if(node == null) {
-				if(logger.isInfoEnabled()) {
-					logger.info("Service unavailable. No server is available.");
-				}
-				writeResponse(e, HttpResponseStatus.SERVICE_UNAVAILABLE, "Service is temporarily unavailable");
-				return;
-			}
+    }
 
-			if(associatedChannel != null && associatedChannel.isConnected()) {
-				associatedChannel.write(request);
-			} else {
+    private void handleHttpRequest(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
+        if (!readingChunks) {
+            request = (HttpRequest) e.getMessage();
 
-				e.getChannel().getCloseFuture().addListener(new ChannelFutureListener() {
-					public void operationComplete(ChannelFuture arg0) throws Exception {
-						closeChannelPair(arg0.getChannel());
-					}
-				});
+            if(logger.isDebugEnabled()) {
+                logger.debug("Request URI accessed: " + request.getUri() + " channel " + e.getChannel());
+            }
 
-				// Start the connection attempt.
-				ChannelFuture future = null;
-				Set<String> headers = request.getHeaderNames();
-				if(headers.contains("Sec-WebSocket-Protocol")) {
-					if(request.getHeader("Sec-WebSocket-Protocol").equalsIgnoreCase("sip")){
-						if(logger.isDebugEnabled()) {
-							logger.debug("New SIP over WebSocket request. WebSocket uri: "+request.getUri());
-							logger.debug("Dispatching WebSocket request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("wsPort"));
-						}
-						wsrequest = true;
-						wsVersion = request.getHeader(Names.SEC_WEBSOCKET_VERSION);
-						websocketServerPipelineFactory = new WebsocketModifyClientPipelineFactory();
-						future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("wsPort")));
-						
-					}
-				} else {
-					if(logger.isDebugEnabled()) {
-						logger.debug("Dispatching HTTP request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("httpPort"));
-					}
-					future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
-				}
+            Channel associatedChannel = HttpChannelAssociations.channels.get(e.getChannel());
 
-				future.addListener(new ChannelFutureListener() {
+            InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
 
-					public void operationComplete(ChannelFuture arg0) throws Exception {
-						Channel channel = arg0.getChannel();
-						HttpChannelAssociations.channels.put(e.getChannel(), channel);
-						HttpChannelAssociations.channels.put(channel, e.getChannel());
+            //			SIPNode node = null;
+            try {
+                //TODO: If WebSocket request, choose a NODE that is able to handle WebSocket requests (has a websocket connector)
+                node = invocationContext.balancerAlgorithm.processHttpRequest(request);
+            } catch (Exception ex) {
+                StringWriter sw = new StringWriter();
+                ex.printStackTrace(new PrintWriter(sw));
+                logger.warn("Problem in balancer algorithm", ex);
 
-						if (request.isChunked()) {
-							readingChunks = true;
-						}
-						channel.write(request);
+                writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Load Balancer Error: Exception in the balancer algorithm:\n" + 
+                        sw.toString()
+                        );
+                return;
+            }
 
-						if(wsrequest){
-							if(logger.isDebugEnabled()) {
-								logger.debug("This is a websocket request, changing the pipeline");
-							}
-							//Modify the Client Pipeline - Phase 1
-							ChannelPipeline p = channel.getPipeline();
-							websocketServerPipelineFactory.upgradeClientPipelineFactoryPhase1(p, wsVersion);
-						}
 
-						channel.getCloseFuture().addListener(new ChannelFutureListener() {
-							public void operationComplete(ChannelFuture arg0) throws Exception {
-								closeChannelPair(arg0.getChannel());
-							}
-						});
-					}
-				});
-			}
-		} else {
-			HttpChunk chunk = (HttpChunk) e.getMessage();
-			if (chunk.isLast()) {
-				readingChunks = false;
-			}
-			HttpChannelAssociations.channels.get(e.getChannel()).write(chunk);
-		}
-	}
+            if(node == null) {
+                if(logger.isInfoEnabled()) {
+                    logger.info("Service unavailable. No server is available.");
+                }
+                writeResponse(e, HttpResponseStatus.SERVICE_UNAVAILABLE, "Service is temporarily unavailable");
+                return;
+            }
 
-	private void closeChannelPair(Channel channel) {
-		Channel associatedChannel = HttpChannelAssociations.channels.get(channel);
-		if(associatedChannel != null) {
-			try {
-				HttpChannelAssociations.channels.remove(associatedChannel);
-				if(!associatedChannel.isConnected()) {
-					associatedChannel.disconnect();
-					associatedChannel.close();
-					associatedChannel.getCloseFuture().awaitUninterruptibly();
-				}
-				associatedChannel = null;
-			} catch (Exception e) {
+            if(associatedChannel != null && associatedChannel.isConnected()) {
+                associatedChannel.write(request);
+            } else {
 
-			}
-		}
-		HttpChannelAssociations.channels.remove(channel);
-		//logger.info("Channel closed. Channels remaining: " + HttpChannelAssocialtions.channels.size());
-		if(logger.isDebugEnabled()) {
-			try {
-				logger.debug("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
-				Enumeration<Channel> c = HttpChannelAssociations.channels.keys();
-				while(c.hasMoreElements()) {
-					logger.debug(c.nextElement().toString());
-				}
-			} catch (Exception e) {
-				logger.debug("error", e);
-			}
-		}
-	}
+                e.getChannel().getCloseFuture().addListener(new ChannelFutureListener() {
+                    public void operationComplete(ChannelFuture arg0) throws Exception {
+                        closeChannelPair(arg0.getChannel());
+                    }
+                });
 
-	private void writeResponse(MessageEvent e, HttpResponseStatus status, String responseString) {
-		// Convert the response content to a ChannelBuffer.
-		ChannelBuffer buf = ChannelBuffers.copiedBuffer(responseString, Charset.forName("UTF-8"));
+                // Start the connection attempt.
+                ChannelFuture future = null;
+                Set<String> headers = request.getHeaderNames();
+                if(headers.contains("Sec-WebSocket-Protocol")) {
+                    if(request.getHeader("Sec-WebSocket-Protocol").equalsIgnoreCase("sip")){
+                        if(logger.isDebugEnabled()) {
+                            logger.debug("New SIP over WebSocket request. WebSocket uri: "+request.getUri());
+                            logger.debug("Dispatching WebSocket request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("wsPort"));
+                        }
+                        wsrequest = true;
+                        wsVersion = request.getHeader(Names.SEC_WEBSOCKET_VERSION);
+                        websocketServerPipelineFactory = new WebsocketModifyClientPipelineFactory();
+                        future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("wsPort")));
 
-		// Decide whether to close the connection or not.
-		boolean close =
-				HttpHeaders.Values.CLOSE.equalsIgnoreCase(request.getHeader(HttpHeaders.Names.CONNECTION)) ||
-				request.getProtocolVersion().equals(HttpVersion.HTTP_1_0) &&
-				!HttpHeaders.Values.KEEP_ALIVE.equalsIgnoreCase(request.getHeader(HttpHeaders.Names.CONNECTION));
+                    }
+                } else {
+                    if(logger.isDebugEnabled()) {
+                        logger.debug("Dispatching HTTP request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("httpPort"));
+                    }
+                    future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
+                }
 
-		// Build the response object.
-		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
-		response.setContent(buf);
-		response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+                future.addListener(new ChannelFutureListener() {
 
-		if (!close) {
-			// There's no need to add 'Content-Length' header
-			// if this is the last response.
-			response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
-		}
+                    public void operationComplete(ChannelFuture arg0) throws Exception {
+                        Channel channel = arg0.getChannel();
+                        HttpChannelAssociations.channels.put(e.getChannel(), channel);
+                        HttpChannelAssociations.channels.put(channel, e.getChannel());
 
-		String cookieString = request.getHeader(HttpHeaders.Names.COOKIE);
-		if (cookieString != null) {
-			CookieDecoder cookieDecoder = new CookieDecoder();
-			Set<Cookie> cookies = cookieDecoder.decode(cookieString);
-			if(!cookies.isEmpty()) {
-				// Reset the cookies if necessary.
-				CookieEncoder cookieEncoder = new CookieEncoder(true);
-				for (Cookie cookie : cookies) {
-					cookieEncoder.addCookie(cookie);
-				}
-				response.addHeader(HttpHeaders.Names.SET_COOKIE, cookieEncoder.encode());
-			}
-		}
+                        if (request.isChunked()) {
+                            readingChunks = true;
+                        }
+                        channel.write(request);
 
-		// Write the response.
-		ChannelFuture future = e.getChannel().write(response);
+                        if(wsrequest){
+                            if(logger.isDebugEnabled()) {
+                                logger.debug("This is a websocket request, changing the pipeline");
+                            }
+                            //Modify the Client Pipeline - Phase 1
+                            ChannelPipeline p = channel.getPipeline();
+                            websocketServerPipelineFactory.upgradeClientPipelineFactoryPhase1(p, wsVersion);
+                        }
 
-		// Close the connection after the write operation is done if necessary.
-		if (close) {
-			future.addListener(ChannelFutureListener.CLOSE);
-		}
-	}
+                        channel.getCloseFuture().addListener(new ChannelFutureListener() {
+                            public void operationComplete(ChannelFuture arg0) throws Exception {
+                                closeChannelPair(arg0.getChannel());
+                            }
+                        });
+                    }
+                });
+            }
+        } else {
+            HttpChunk chunk = (HttpChunk) e.getMessage();
+            if (chunk.isLast()) {
+                readingChunks = false;
+            }
+            HttpChannelAssociations.channels.get(e.getChannel()).write(chunk);
+        }
+    }
 
-	//	@Override
-	//	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
-	//		//		logger.info("new handleUpstream reveiced on channel: ["+ctx.getChannel().toString() +"] event message: ["+event.toString()+"]");
-	//		super.handleUpstream(ctx, event);
-	//	}
+    private void closeChannelPair(Channel channel) {
+        Channel associatedChannel = HttpChannelAssociations.channels.get(channel);
+        if(associatedChannel != null) {
+            try {
+                HttpChannelAssociations.channels.remove(associatedChannel);
+                if(!associatedChannel.isConnected()) {
+                    associatedChannel.disconnect();
+                    associatedChannel.close();
+                    associatedChannel.getCloseFuture().awaitUninterruptibly();
+                }
+                associatedChannel = null;
+            } catch (Exception e) {
 
-	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
-			throws Exception {
-		logger.error("Error", e.getCause());
-		e.getChannel().close();
-	}
+            }
+        }
+        HttpChannelAssociations.channels.remove(channel);
+        //logger.info("Channel closed. Channels remaining: " + HttpChannelAssocialtions.channels.size());
+        if(logger.isDebugEnabled()) {
+            try {
+                logger.debug("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
+                Enumeration<Channel> c = HttpChannelAssociations.channels.keys();
+                while(c.hasMoreElements()) {
+                    logger.debug(c.nextElement().toString());
+                }
+            } catch (Exception e) {
+                logger.debug("error", e);
+            }
+        }
+    }
+
+    private void writeResponse(MessageEvent e, HttpResponseStatus status, String responseString) {
+        // Convert the response content to a ChannelBuffer.
+        ChannelBuffer buf = ChannelBuffers.copiedBuffer(responseString, Charset.forName("UTF-8"));
+
+        // Decide whether to close the connection or not.
+        boolean close =
+                HttpHeaders.Values.CLOSE.equalsIgnoreCase(request.getHeader(HttpHeaders.Names.CONNECTION)) ||
+                request.getProtocolVersion().equals(HttpVersion.HTTP_1_0) &&
+                !HttpHeaders.Values.KEEP_ALIVE.equalsIgnoreCase(request.getHeader(HttpHeaders.Names.CONNECTION));
+
+        // Build the response object.
+        HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
+        response.setContent(buf);
+        response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+
+        if (!close) {
+            // There's no need to add 'Content-Length' header
+            // if this is the last response.
+            response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
+        }
+
+        String cookieString = request.getHeader(HttpHeaders.Names.COOKIE);
+        if (cookieString != null) {
+            CookieDecoder cookieDecoder = new CookieDecoder();
+            Set<Cookie> cookies = cookieDecoder.decode(cookieString);
+            if(!cookies.isEmpty()) {
+                // Reset the cookies if necessary.
+                CookieEncoder cookieEncoder = new CookieEncoder(true);
+                for (Cookie cookie : cookies) {
+                    cookieEncoder.addCookie(cookie);
+                }
+                response.addHeader(HttpHeaders.Names.SET_COOKIE, cookieEncoder.encode());
+            }
+        }
+
+        // Write the response.
+        ChannelFuture future = e.getChannel().write(response);
+
+        // Close the connection after the write operation is done if necessary.
+        if (close) {
+            future.addListener(ChannelFutureListener.CLOSE);
+        }
+    }
+
+    //	@Override
+    //	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
+    //		//		logger.info("new handleUpstream reveiced on channel: ["+ctx.getChannel().toString() +"] event message: ["+event.toString()+"]");
+    //		super.handleUpstream(ctx, event);
+    //	}
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
+            throws Exception {
+        logger.error("Error", e.getCause());
+        e.getChannel().close();
+    }
 }

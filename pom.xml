@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	
 	<modelVersion>4.0.0</modelVersion>
@@ -20,8 +21,9 @@
 	
 	<modules>
 		<module>jar</module>
-		<module>jar-no-lce</module>		
-	</modules>
+		<module>jar-no-lce</module>
+    <module>telestax-proxy</module>
+  </modules>
 	
 	<profiles>
 		<profile>
@@ -54,7 +56,7 @@
 				<groupId>org.mobicents.tools</groupId>
 				<version>1.0.0.FINAL</version>
 				<inherited>false</inherited>
-				<executions />
+				<executions/>
 				<configuration>
 					<!--generateProjectsForModules>true</generateProjectsForModules-->
 					<resolveTransitiveDependencies>
@@ -91,11 +93,11 @@
           				 <javadocDirectory>${basedir}/src/javadoc</javadocDirectory>
           				 <docfilessubdirs>true</docfilessubdirs>
           				 <overview>${basedir}/src/javadoc/overview.html</overview>
-          				  <detectLinks />
-          				  <detectOfflineLinks />
-          				  <includeDependencySources />
-          				  <includeTransitiveDependencySources />
-          				  <linksource />
+          				  <detectLinks/>
+          				  <detectOfflineLinks/>
+          				  <includeDependencySources/>
+          				  <includeTransitiveDependencySources/>
+          				  <linksource/>
 			        </configuration>
 			        <executions>
 			          <execution>

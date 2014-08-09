@@ -28,6 +28,7 @@ import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
 import org.jboss.netty.handler.stream.ChunkedWriteHandler;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 /**
  * @author The Netty Project (netty-dev@lists.jboss.org)
@@ -39,9 +40,11 @@ import org.jboss.netty.handler.stream.ChunkedWriteHandler;
  */
 public class HttpClientPipelineFactory implements ChannelPipelineFactory {
     int maxContentLength = 1048576;
-
-    public HttpClientPipelineFactory(int maxContentLength) {
-	this.maxContentLength = maxContentLength;
+    BalancerRunner balancerRunner;
+    
+    public HttpClientPipelineFactory(BalancerRunner balancerRunner, int maxContentLength) {
+        this.balancerRunner = balancerRunner;
+        this.maxContentLength = maxContentLength;
     }
 
     public ChannelPipeline getPipeline() throws Exception {

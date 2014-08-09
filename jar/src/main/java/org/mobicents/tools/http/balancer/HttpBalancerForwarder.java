@@ -72,7 +72,7 @@ public class HttpBalancerForwarder {
 		logger.debug("HTTP maxContentLength Chunking set to " + maxContentLength);
 		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength));
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
-		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(maxContentLength));
+		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength));
 	}
 
 	public void stop() {
