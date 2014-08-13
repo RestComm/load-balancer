@@ -34,9 +34,12 @@ import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
 import org.jboss.netty.handler.codec.http.HttpMessage;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
+import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationAssignDidResponse;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationReleaseDidResponse;
+import org.mobicents.tools.telestaxproxy.sip.balancer.entities.DidEntity;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
 import com.thoughtworks.xstream.XStream;
@@ -54,6 +57,8 @@ public class VoipInnovationDispatcher {
     private String endpoint;
     private String uri;
     private XStream xstream;
+    private RestcommInstanceDaoManager restcommInstanceManager;
+    private PhoneNumberDaoManager phoneNumberManager;
 
     /**
      * @param login
@@ -61,11 +66,13 @@ public class VoipInnovationDispatcher {
      * @param endpoint
      * @param uri
      */
-    public VoipInnovationDispatcher(String login, String password, String endpoint, String uri) {
+    public VoipInnovationDispatcher(String login, String password, String endpoint, String uri, RestcommInstanceDaoManager restcommInstanceManager, PhoneNumberDaoManager phoneNumberManager) {
         this.login = login;
         this.password = password;
         this.endpoint = endpoint;
         this.uri = uri;
+        this.phoneNumberManager = phoneNumberManager;
+        this.restcommInstanceManager = restcommInstanceManager;
         //        XStream xstream = new XStream();
         //        xstream.ignoreUnknownElements();
     }
@@ -126,8 +133,6 @@ public class VoipInnovationDispatcher {
     public void processHttpResponse(HttpResponse response, ProxyRequest proxyRequest) {
         String body = getContent(response);
 
-//        ProxyRequest proxyRequest = VoipInnovationStorage.getStorage().getProxyRequest(requestId);
-
         if (proxyRequest != null && proxyRequest.getRequest() != null) {
             if (proxyRequest.getRequest().headers().get("RequestType").equals(RequestType.AssignDid.name())) {
                 xstream = new XStream();
@@ -140,7 +145,11 @@ public class VoipInnovationDispatcher {
                 if(did != null && statusCode == 100){
                     logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+proxyRequest.getViRequest().getEndpointGroup());
                     RestcommInstance restcomm = new RestcommInstance(proxyRequest.getViRequest().getEndpointGroup(), proxyRequest.getRequest().headers().getAll("OutboundIntf"));
-                    VoipInnovationStorage.getStorage().assignDid(did, restcomm);
+                    restcommInstanceManager.addRestcommInstance(restcomm);
+                    DidEntity didEntity = new DidEntity();
+                    didEntity.setDid(did);
+                    didEntity.setRestcommInstance(restcomm.getId());
+                    phoneNumberManager.addDid(didEntity);
                 }
             } else if (proxyRequest.getRequest().headers().get("RequestType").equals(RequestType.ReleaseDid.name())) {
                 xstream = new XStream();
@@ -152,8 +161,7 @@ public class VoipInnovationDispatcher {
                 Integer statusCode = viReleaseResponse.getStatusCode();
                 if(did != null && statusCode == 100){
                     logger.info("Release DID request to VI was succesfully executed. Will now remove the DID: "+did+" ,from the map for Restcomm instance: "+proxyRequest.getViRequest().getEndpointGroup());
-                    boolean released = VoipInnovationStorage.getStorage().releaseDid(did);
-                    System.out.println("DID removed from local storage : "+released);
+                    phoneNumberManager.removeDid(did);
                 }
             }
         } else {

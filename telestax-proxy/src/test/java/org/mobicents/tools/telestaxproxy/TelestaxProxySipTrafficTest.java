@@ -31,6 +31,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -157,6 +158,20 @@ public class TelestaxProxySipTrafficTest {
         if (restcommSipStack1 != null) {
             restcommSipStack1.dispose();
         }
+        
+        if (restcommPhone2 != null) {
+            restcommPhone2.dispose();
+        }
+        if (restcommSipStack2 != null) {
+            restcommSipStack2.dispose();
+        }
+        
+        if (restcommPhone3 != null) {
+            restcommPhone3.dispose();
+        }
+        if (restcommSipStack3 != null) {
+            restcommSipStack3.dispose();
+        }
 
         if (aliceSipStack != null) {
             aliceSipStack.dispose();
@@ -165,8 +180,47 @@ public class TelestaxProxySipTrafficTest {
             alicePhone.dispose();
         }
         balancer.stop();
+        balancer = null;
+        restcomm = null;
+//        Thread.sleep(3000);
     }
 
+    private void releaseDid(String did) throws ClientProtocolException, IOException {
+        String requestId = UUID.randomUUID().toString().replace("-", "");
+        stubFor(post(urlEqualTo("/test"))
+                .withRequestBody(containing("releaseDID"))
+                .withRequestBody(containing("username13"))
+                .withRequestBody(containing("password13"))
+                .withRequestBody(containing(did))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/xml")
+                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
+        
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("releaseDID").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<did>").append(did).append("</did>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+        
+        final HttpPost post = new HttpPost("http://127.0.0.1:2080");
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", "ReleaseDid");
+        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+        restcomm = new DefaultHttpClient();
+        restcomm.execute(post);
+    }
+    
     @Test
     public void testAssignDidAndCreateCallToRestcomm1() throws ClientProtocolException, IOException, InterruptedException, ParseException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
@@ -190,7 +244,7 @@ public class TelestaxProxySipTrafficTest {
         buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
         buffer.append("<item>");
         buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("Restcomm_Instance_Id").append("</endpointgroup>");
+        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
         buffer.append("</item>");
         buffer.append("</body>");
         buffer.append("</request>");
@@ -232,7 +286,13 @@ public class TelestaxProxySipTrafficTest {
         assertTrue(restcommCall1.sendIncomingCallResponse(200, "Restcomm-OK", 3600, null, null, sipBody));
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertEquals(Response.OK, aliceCall.getLastReceivedResponse().getStatusCode());
+        int responseAlice = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(responseAlice == Response.RINGING || responseAlice == Response.OK);
+
+        if (responseAlice == Response.RINGING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertEquals(Response.OK, aliceCall.getLastReceivedResponse().getStatusCode());
+        }
         assertTrue(aliceCall.sendInviteOkAck());
         assertTrue(!(aliceCall.getLastReceivedResponse().getStatusCode() >= 400));
         
@@ -241,6 +301,7 @@ public class TelestaxProxySipTrafficTest {
         assertTrue(aliceCall.disconnect());
         assertTrue(restcommCall1.waitForDisconnect(2000));
         assertTrue(restcommCall1.respondToDisconnect());
+        releaseDid("4156902867");
     }
     
     @Test
@@ -309,9 +370,9 @@ public class TelestaxProxySipTrafficTest {
         aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902869@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
-        assertFalse(restcommCall1.waitForIncomingCall(2000));
-        assertFalse(restcommCall2.waitForIncomingCall(2000));
-        assertTrue(restcommCall3.waitForIncomingCall(2000));
+        assertFalse(restcommCall1.waitForIncomingCall(1000));
+        assertFalse(restcommCall2.waitForIncomingCall(1000));
+        assertTrue(restcommCall3.waitForIncomingCall(6000));
         assertTrue(restcommCall3.sendIncomingCallResponse(180, "Restcomm-Ringing", 3600));
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.RINGING); 
@@ -319,7 +380,14 @@ public class TelestaxProxySipTrafficTest {
         assertTrue(restcommCall3.sendIncomingCallResponse(200, "Restcomm-OK", 3600, null, null, sipBody));
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertEquals(Response.OK, aliceCall.getLastReceivedResponse().getStatusCode());
+        int responseAlice = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(responseAlice == Response.RINGING || responseAlice == Response.OK);
+
+        if (responseAlice == Response.RINGING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertEquals(Response.OK, aliceCall.getLastReceivedResponse().getStatusCode());
+        }
+//        assertEquals(Response.OK, aliceCall.getLastReceivedResponse().getStatusCode());
         assertTrue(aliceCall.sendInviteOkAck());
         assertTrue(!(aliceCall.getLastReceivedResponse().getStatusCode() >= 400));
         
@@ -328,6 +396,7 @@ public class TelestaxProxySipTrafficTest {
         assertTrue(aliceCall.disconnect());
         assertTrue(restcommCall3.waitForDisconnect(2000));
         assertTrue(restcommCall3.respondToDisconnect());
+        releaseDid("4156902869");
     }
 
     private String header() {
@@ -390,7 +459,8 @@ public class TelestaxProxySipTrafficTest {
         assertLastOperationSuccess(aliceCall);
 
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR); 
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        releaseDid("4156902867");
     }
     
 

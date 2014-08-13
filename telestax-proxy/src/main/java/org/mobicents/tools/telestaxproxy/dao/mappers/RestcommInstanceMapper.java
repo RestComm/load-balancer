@@ -18,12 +18,27 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.proxy;
+package org.mobicents.tools.telestaxproxy.dao.mappers;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Select;
+import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
 /**
+ * This is the mapper for Restcomm instances
+ * 
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class VoipInnovationProxyInboundHandler {
+public abstract interface RestcommInstanceMapper {
 
+    public static final String INSERT = "INSERT INTO restcomm_instances (id, udpInterface, tcpInterface, tlsInterface, wsInterface, dateCreated) "
+            + "VALUES (#{id}, #{udpInterface}, #{tcpInterface}, #{tlsInterface}, #{wsInterface},#{dateCreated})";
+    public static final String SELECT_BY_ID = "SELECT * FROM restcomm_instances WHERE id=#{id}";
+
+    @Insert(INSERT)
+    public abstract void addRestcommInstance(RestcommInstance restcommInstance);
+    
+    @Select(SELECT_BY_ID)
+    public abstract RestcommInstance getInstanceById(String id);
 }

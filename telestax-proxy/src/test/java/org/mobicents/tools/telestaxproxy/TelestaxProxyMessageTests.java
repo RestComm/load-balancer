@@ -44,6 +44,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -65,15 +66,14 @@ public class TelestaxProxyMessageTests {
     private HttpClient restcomm;
 
     @Before
-    public void setup() throws InterruptedException {
+    public void setup() throws InterruptedException, IOException {
         balancer = new org.mobicents.tools.telestaxproxy.sip.balancer.BalancerRunner(); 
         Properties properties = new Properties();
         properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
         properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
-        // You need 16 for logging traces. 32 for debug + traces.
-        // Your code will limp at 32 but it is best for debugging.
         properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "16");
-        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
+        properties.setProperty("gov.nist.javax.sip.LOG_MESSAGE_CONTENT","false");
+        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "16");
         properties.setProperty("host", "127.0.0.1");
         properties.setProperty("internalPort", "5065");
         properties.setProperty("externalPort", "5060");
@@ -83,9 +83,17 @@ public class TelestaxProxyMessageTests {
         properties.setProperty("vi-password","password13");
         properties.setProperty("vi-endpoint", "131313");
         properties.setProperty("vi-uri", "http://127.0.0.1:8090/test");
+        properties.setProperty("mybatis-config","extra-resources/mybatis.xml");
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");
+    }
+    
+    @After
+    public void cleanup() {
+        restcomm = null;
+        balancer.stop();
+        balancer = null;
     }
 
     @Test
@@ -130,7 +138,6 @@ public class TelestaxProxyMessageTests {
         String responseContent = EntityUtils.toString(response.getEntity());
         assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        balancer.stop();
     }
 
     @Test
@@ -177,7 +184,6 @@ public class TelestaxProxyMessageTests {
         assertTrue(responseContent.contains("<statusCode>100</statusCode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
         assertTrue(responseContent.contains("<tn>4156902867</tn>"));
-        balancer.stop();
     }
 
     @Test
@@ -225,7 +231,6 @@ public class TelestaxProxyMessageTests {
         assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
         assertTrue(responseContent.contains("<TN>4156902867</TN>"));
-        balancer.stop();
     }
     
     @Test
@@ -271,7 +276,6 @@ public class TelestaxProxyMessageTests {
         assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
         assertTrue(responseContent.contains("<TN>4156902867</TN>"));
-        balancer.stop();
     }
 
     private String header() {

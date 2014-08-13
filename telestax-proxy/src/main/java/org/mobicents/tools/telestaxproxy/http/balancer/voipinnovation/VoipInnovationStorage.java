@@ -20,12 +20,10 @@
  */
 package org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation;
 
-import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
-import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
@@ -36,13 +34,13 @@ public class VoipInnovationStorage {
     private Logger logger = Logger.getLogger(VoipInnovationStorage.class);
     
     private static VoipInnovationStorage instance;
-    //Map of Did - Restcomm instance
-    private ConcurrentHashMap<String, RestcommInstance> restcommDidMap;
+//    //Map of Did - Restcomm instance
+//    private ConcurrentHashMap<String, RestcommInstance> restcommDidMap;
     //Map of RequestId - HttpRequest. Used for AssignDid requests
     private ConcurrentHashMap<String, ProxyRequest> requestsMap;
 
     private VoipInnovationStorage(){
-        restcommDidMap = new ConcurrentHashMap<String, RestcommInstance>();
+//        restcommDidMap = new ConcurrentHashMap<String, RestcommInstance>();
         requestsMap = new ConcurrentHashMap<String, ProxyRequest>();
     }
     
@@ -52,31 +50,31 @@ public class VoipInnovationStorage {
         return instance;
     }
     
-    public void assignDid(String did, RestcommInstance restcommInstance) {
-        logger.info("Storing DID: "+did+" to instance: "+restcommInstance.getRestcommInstanceId());
-        restcommDidMap.put(did, restcommInstance);
-    }
+//    public void assignDid(String did, RestcommInstance restcommInstance) {
+//        logger.info("Storing DID: "+did+" to instance: "+restcommInstance.getId());
+//        restcommDidMap.put(did, restcommInstance);
+//    }
     
-    public RestcommInstance getRestcommInstanceByDid(String did) {
-        return restcommDidMap.get(did);
-    }
+//    public RestcommInstance getRestcommInstanceByDid(String did) {
+//        return restcommDidMap.get(did);
+//    }
     
-    public ArrayList<String> getListOfDidByRestcommInstance(String restcommInstance){
-        ArrayList<String> dids = new ArrayList<String>();
-        for (String did: restcommDidMap.keySet()) {
-            if (restcommDidMap.get(did).equals(restcommInstance))
-                dids.add(did);
-        }
-        return dids;
-    }
+//    public ArrayList<String> getListOfDidByRestcommInstance(String restcommInstance){
+//        ArrayList<String> dids = new ArrayList<String>();
+//        for (String did: restcommDidMap.keySet()) {
+//            if (restcommDidMap.get(did).equals(restcommInstance))
+//                dids.add(did);
+//        }
+//        return dids;
+//    }
     
-    public boolean didExists(String did) {
-        return restcommDidMap.containsKey(did);
-    }
+//    public boolean didExists(String did) {
+//        return restcommDidMap.containsKey(did);
+//    }
     
-    public boolean releaseDid(String did) {
-        return (restcommDidMap.remove(did) != null);
-    }
+//    public boolean releaseDid(String did) {
+//        return (restcommDidMap.remove(did) != null);
+//    }
     
     public void addRequestToMap(String id, ProxyRequest request) {
         requestsMap.put(id, request);

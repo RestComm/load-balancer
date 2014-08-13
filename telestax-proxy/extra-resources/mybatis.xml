@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+	<settings>
+		<setting name="logImpl" value="LOG4J" />
+	</settings>
+	<environments default="production">
+		<environment id="development">
+			<transactionManager type="JDBC" />
+			<dataSource type="POOLED">
+				<property name="driver" value="org.h2.Driver" />
+				<property name="url"
+					value="jdbc:h2:./extra-resources/db/proxy-devel;AUTO_SERVER=TRUE;MVCC=true;INIT=RUNSCRIPT FROM './extra-resources/create_h2.sql'\;" />
+			</dataSource>
+		</environment>
+		<environment id="production">
+			<transactionManager type="JDBC" />
+			<dataSource type="POOLED">
+				<property name="driver" value="org.h2.Driver" />
+				<property name="url"
+					value="jdbc:h2:./extra-resources/proxy;IFEXISTS=TRUE;MVCC=true;" />
+				<property name="username" value="sa" />
+				<property name="password" value="" />
+			</dataSource>
+		</environment>
+	</environments>
+</configuration>

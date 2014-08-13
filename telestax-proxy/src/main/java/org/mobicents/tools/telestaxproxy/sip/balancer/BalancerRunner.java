@@ -62,28 +62,25 @@ public class BalancerRunner extends org.mobicents.tools.sip.balancer.BalancerRun
         return getInvocationContext(reg.getLatestVersion());
     }
 
-    private static Logger logger = Logger.getLogger(BalancerRunner.class
-            .getCanonicalName());
-    /**
-     * @param args
-     */
+    private static Logger logger = Logger.getLogger(BalancerRunner.class);
+
     public static void main(String[] args) {
-        if (args.length < 1) {
-            logger.error("Please specify mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
-            return;
-        }
-
-        if(!args[0].startsWith("-mobicents-balancer-config=")) {
-            logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
-            return;
-        }
-
+        logger.info("Starting Telestax Proxy");
+//        if (args.length < 1) {
+//            logger.error("Please specify mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar telestax-proxy-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+//            return;
+//        }
+//
+//        if(!args[0].startsWith("-mobicents-balancer-config=")) {
+//            logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar telestax-proxy-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+//            return;
+//        }
+        
         // Configuration file Location
         String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());
         BalancerRunner balancerRunner = new BalancerRunner();
         balancerRunner.start(configurationFileLocation); 
     }
-
 }
 @SuppressWarnings("unused")
 class SipBalancerShutdownHook extends Thread {

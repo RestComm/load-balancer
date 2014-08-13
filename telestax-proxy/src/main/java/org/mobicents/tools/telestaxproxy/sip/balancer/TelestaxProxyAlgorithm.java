@@ -22,6 +22,8 @@ package org.mobicents.tools.telestaxproxy.sip.balancer;
 
 import gov.nist.javax.sip.header.SIPHeader;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
@@ -33,6 +35,7 @@ import javax.net.ssl.SSLException;
 import javax.sip.address.SipURI;
 import javax.sip.message.Request;
 
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -59,6 +62,9 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.logging.InternalLogLevel;
 import org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.SIPNode;
+import org.mobicents.tools.telestaxproxy.dao.DaoManager;
+import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
+import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationDispatcher;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationStorage;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
@@ -80,8 +86,10 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private VoipInnovationDispatcher dispatcher;
     private volatile Channel outboundChannel;
     private XStream xstream;
-
-
+    private DaoManager daoManager;
+    private RestcommInstanceDaoManager restcommInstanceManager;
+    private PhoneNumberDaoManager phoneNumberManager;
+    
     @Override
     public void init() {        
         properties = getBalancerContext().properties;
@@ -89,7 +97,30 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         password = properties.getProperty("vi-password");
         endpoint = properties.getProperty("vi-endpoint");
         uri = properties.getProperty("vi-uri");
-        dispatcher = new VoipInnovationDispatcher(login,password,endpoint,uri);
+        String myBatisConf = properties.getProperty("mybatis-config");
+        File mybatisConfFile = null;
+        if(myBatisConf != null && !myBatisConf.equalsIgnoreCase("")) 
+            mybatisConfFile = new File(myBatisConf);
+        
+        //Setup myabtis and dao managers
+        SqlSessionFactory sessionFactory = null;
+        try {
+            if(mybatisConfFile != null) {
+                daoManager = new DaoManager(mybatisConfFile);
+            } else {
+                daoManager = new DaoManager();
+            }
+            sessionFactory = daoManager.getSessionFactory();
+        } catch (IOException e) {
+            logger.error("mybatis.xml configuration file not found: "+e);
+        } catch (Exception e) {
+            logger.error("Exception while trying to get SqlSessionFactory: "+e);
+        }
+        restcommInstanceManager = new RestcommInstanceDaoManager(sessionFactory);
+        phoneNumberManager = new PhoneNumberDaoManager(sessionFactory);
+        
+        dispatcher = new VoipInnovationDispatcher(login,password,endpoint,uri,restcommInstanceManager, phoneNumberManager);
+        
         super.init();
     }
 
@@ -103,8 +134,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             did = did.replaceFirst("\\+1", "");
             did = did.replaceFirst("001", "");
             did = did.replaceFirst("1", "");
-            if (VoipInnovationStorage.getStorage().didExists(did)) {
-                RestcommInstance restcommInstance = VoipInnovationStorage.getStorage().getRestcommInstanceByDid(did);
+            if (phoneNumberManager.didExists(did)) {
+                RestcommInstance restcommInstance = phoneNumberManager.getInstanceByDid(did);
                 for (SIPNode tempNode: invocationContext.nodes) {
                     try {
 

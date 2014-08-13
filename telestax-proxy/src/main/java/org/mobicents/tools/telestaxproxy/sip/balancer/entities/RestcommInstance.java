@@ -20,8 +20,9 @@
  */
 package org.mobicents.tools.telestaxproxy.sip.balancer.entities;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -30,29 +31,97 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class RestcommInstance {
     
-    private final String restcommInstanceId;
-    //Map of Restcomm addresses UDP - HOST:PORT
-    private ConcurrentHashMap<String, String> outboundInterfaces;
+    private String id;
+    private String udpInterface;
+    private String tcpInterface;
+    private String tlsInterface;
+    private String wsInterface;
+    private Date dateCreated;
+    List<String> addresses;
+
+    public RestcommInstance() {
+    }
     
     public RestcommInstance(final String restcommInstanceId, final List<String> addresses) {
-        this.restcommInstanceId = restcommInstanceId;
-        outboundInterfaces = new ConcurrentHashMap<String, String>();
+        this.id = restcommInstanceId;
         prepareOutboundInterfaces(addresses);
+        dateCreated = new Date();
+        this.addresses = addresses;
     }
 
     private void prepareOutboundInterfaces(List<String> addresses) {
         //Addresses from Restcomm will be: HOST:PORT:TRANSPORT
         for (String address: addresses) {
             String[] elements = address.split(":");
-            outboundInterfaces.put(elements[2], elements[0]+":"+elements[1]);
+            String transport = elements[2];
+            if(transport.equalsIgnoreCase("UDP")){
+                udpInterface = elements[0]+":"+elements[1];
+            } else if (transport.equalsIgnoreCase("TCP")) {
+                tcpInterface = elements[0]+":"+elements[1];
+            } else if (transport.equalsIgnoreCase("TLS")) {
+                tlsInterface = elements[0]+":"+elements[1];
+            } else if (transport.equalsIgnoreCase("WS")) {
+                wsInterface = elements[0]+":"+elements[1];
+            }
         }
     }
 
-    public String getRestcommInstanceId() {
-        return restcommInstanceId;
+    public String getId() {
+        return id;
     }
-    
+
+    public String getUdpInterface() {
+        return udpInterface;
+    }
+
+    public void setUdpInterface(String udpInterface) {
+        this.udpInterface = udpInterface;
+    }
+
+    public String getTcpInterface() {
+        return tcpInterface;
+    }
+
+    public void setTcpInterface(String tcpInterface) {
+        this.tcpInterface = tcpInterface;
+    }
+
+    public String getTlsInterface() {
+        return tlsInterface;
+    }
+
+    public void setTlsInterface(String tlsInterface) {
+        this.tlsInterface = tlsInterface;
+    }
+
+    public String getWsInterface() {
+        return wsInterface;
+    }
+
+    public void setWsInterface(String wsInterface) {
+        this.wsInterface = wsInterface;
+    }
+
     public String getAddressForTransport(String transport) {
-        return outboundInterfaces.get(transport);
+        String address = null;
+        if(transport.equalsIgnoreCase("UDP")){
+            address = udpInterface;
+        } else if (transport.equalsIgnoreCase("TCP")) {
+            address = tcpInterface;
+        } else if (transport.equalsIgnoreCase("TLS")) {
+            address = tlsInterface;
+        } else if (transport.equalsIgnoreCase("WS")) {
+            address = wsInterface;
+        }
+        return address;
+    }
+
+    public Date getDateCreated() {
+        return dateCreated;
+    }  
+
+    @Override
+    public String toString() {
+        return "<Restcomm instance id: "+id+" | interfaces: "+addresses+" | Date created: "+dateCreated+">";
     }
 }

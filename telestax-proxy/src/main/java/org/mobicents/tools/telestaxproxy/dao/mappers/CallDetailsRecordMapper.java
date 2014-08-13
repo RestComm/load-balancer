@@ -18,32 +18,12 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.proxy;
-
-import org.apache.log4j.Logger;
+package org.mobicents.tools.telestaxproxy.dao.mappers;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class VoipInnovationProxy {
+public class CallDetailsRecordMapper {
 
-    private static Logger logger = Logger.getLogger(VoipInnovationProxy.class);
-
-    private static VoipInnovationProxy instance;
-    
-    private VoipInnovationProxy() {
-    }
-
-    public static VoipInnovationProxy getInstance() {
-        if (instance == null) {
-            instance = new VoipInnovationProxy();
-        }
-        return instance;
-    }
-    
-    public void init() {
-        
-    }
-    
 }
