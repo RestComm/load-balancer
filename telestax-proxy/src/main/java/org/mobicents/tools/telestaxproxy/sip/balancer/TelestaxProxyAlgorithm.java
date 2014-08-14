@@ -160,8 +160,10 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 super.callIdMap.put(callId, node);
                 return node;
             } else {
-                logger.info("Telestax-Proxy: Node is null, going to super for node selection");
-                return super.processExternalRequest(request);
+//                logger.info("Telestax-Proxy: Node is null, going to super for node selection");
+//                return super.processExternalRequest(request);
+                logger.info("Telestax-Proxy: Node is null");
+                return null;
             }
         } else {
             logger.info("Telestax-Proxy: Calld-id is already known, going to super for node selection");
