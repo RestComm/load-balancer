@@ -133,7 +133,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             String did = ((SipURI)request.getRequestURI()).getUser();
             did = did.replaceFirst("\\+1", "");
             did = did.replaceFirst("001", "");
-            did = did.replaceFirst("1", "");
+            did = did.replaceFirst("^1", "");
             if (phoneNumberManager.didExists(did)) {
                 RestcommInstance restcommInstance = phoneNumberManager.getInstanceByDid(did);
                 for (SIPNode tempNode: invocationContext.nodes) {

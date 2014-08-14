@@ -19,7 +19,7 @@
 			<dataSource type="POOLED">
 				<property name="driver" value="org.mariadb.jdbc.Driver" />
 				<property name="url"
-					value="jdbc:mysql://127.0.0.1:3306/proxy" />
+					value="jdbc:mysql://127.0.0.1:3306/proxy?autoReconnect=true" />
 				<property name="username" value="usernamehere" />
 				<property name="password" value="passwordhere" />
 			</dataSource>
