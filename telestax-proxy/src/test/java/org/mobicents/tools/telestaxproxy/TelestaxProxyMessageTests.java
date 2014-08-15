@@ -78,7 +78,7 @@ public class TelestaxProxyMessageTests {
         properties.setProperty("internalPort", "5065");
         properties.setProperty("externalPort", "5060");
         properties.setProperty("earlyDialogWorstCase", "true");
-        properties.setProperty("algorithmClass", "org.mobicents.tools.telestaxproxy.TelestaxProxyAlgorithmMock");
+        properties.setProperty("algorithmClass", "org.mobicents.tools.telestaxproxy.sip.balancer.TelestaxProxyAlgorithm");
         properties.setProperty("vi-login","username13");
         properties.setProperty("vi-password","password13");
         properties.setProperty("vi-endpoint", "131313");
@@ -276,6 +276,52 @@ public class TelestaxProxyMessageTests {
         assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
         assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+    }
+    
+    @Test
+    public void testPing() throws ClientProtocolException, IOException, InterruptedException {
+        String requestId = UUID.randomUUID().toString().replace("-", "");
+        stubFor(post(urlEqualTo("/test"))
+                .withRequestBody(containing("ping"))
+                .withRequestBody(containing("username13"))
+                .withRequestBody(containing("password13"))
+//                .withRequestBody(containing("131313"))
+                .willReturn(aResponse()
+                        .withStatus(200)));
+//                        .withHeader("Content-Type", "text/xml")
+//                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
+        
+        restcomm = new DefaultHttpClient();
+        
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("ping").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<endpointgroup>").append("Restcomm_Instance_Id").append("</endpointgroup>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+
+        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", "Ping");
+        post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
+
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+
+        final HttpResponse response = restcomm.execute(post);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        Thread.sleep(2000);
+//        String responseContent = EntityUtils.toString(response.getEntity());
+//        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
+//        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+//        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
     }
 
     private String header() {

@@ -126,13 +126,14 @@ public class TelestaxProxySipTrafficTest {
         properties.setProperty("internalPort", "5065");
         properties.setProperty("externalPort", "5060");
         properties.setProperty("earlyDialogWorstCase", "true");
-        properties.setProperty("algorithmClass", "org.mobicents.tools.telestaxproxy.TelestaxProxyAlgorithmMock");
+        properties.setProperty("algorithmClass", "org.mobicents.tools.telestaxproxy.sip.balancer.TelestaxProxyAlgorithm");
         properties.setProperty("vi-login","username13");
         properties.setProperty("vi-password","password13");
         properties.setProperty("vi-endpoint", "131313");
         properties.setProperty("vi-uri", "http://127.0.0.1:8090/test");
         properties.setProperty("extraServerNodes", "127.0.0.1:5090,127.0.0.1:5091,127.0.0.1:5092");
         properties.setProperty("performanceTestingMode", "true");
+        properties.setProperty("mybatis-config","extra-resources/mybatis.xml");
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");

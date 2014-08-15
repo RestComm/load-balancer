@@ -20,12 +20,18 @@
  */
 package org.mobicents.tools.telestaxproxy.sip.balancer;
 
+import static org.jboss.netty.handler.codec.http.HttpHeaders.is100ContinueExpected;
+import static org.jboss.netty.handler.codec.http.HttpResponseStatus.CONTINUE;
+import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
+import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import gov.nist.javax.sip.header.SIPHeader;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -43,6 +49,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
@@ -54,6 +61,7 @@ import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.codec.http.HttpContentDecompressor;
 import org.jboss.netty.handler.codec.http.HttpMessage;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.logging.LoggingHandler;
 import org.jboss.netty.handler.ssl.JdkSslClientContext;
@@ -62,10 +70,11 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.logging.InternalLogLevel;
 import org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.SIPNode;
+import org.mobicents.tools.telestaxproxy.HostUtilTest;
 import org.mobicents.tools.telestaxproxy.dao.DaoManager;
 import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
 import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationDispatcher;
+import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationMessageProcessor;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationStorage;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.VoipInnovationRequest;
@@ -83,13 +92,13 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private static Logger logger = Logger.getLogger(TelestaxProxyAlgorithm.class.getCanonicalName());
     private Properties properties;
     private String login, password, endpoint, uri;
-    private VoipInnovationDispatcher dispatcher;
+    private VoipInnovationMessageProcessor dispatcher;
     private volatile Channel outboundChannel;
     private XStream xstream;
     private DaoManager daoManager;
     private RestcommInstanceDaoManager restcommInstanceManager;
     private PhoneNumberDaoManager phoneNumberManager;
-    
+
     @Override
     public void init() {        
         properties = getBalancerContext().properties;
@@ -101,7 +110,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         File mybatisConfFile = null;
         if(myBatisConf != null && !myBatisConf.equalsIgnoreCase("")) 
             mybatisConfFile = new File(myBatisConf);
-        
+
         //Setup myabtis and dao managers
         SqlSessionFactory sessionFactory = null;
         try {
@@ -118,9 +127,9 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         }
         restcommInstanceManager = new RestcommInstanceDaoManager(sessionFactory);
         phoneNumberManager = new PhoneNumberDaoManager(sessionFactory);
-        
-        dispatcher = new VoipInnovationDispatcher(login,password,endpoint,uri,restcommInstanceManager, phoneNumberManager);
-        
+
+        dispatcher = new VoipInnovationMessageProcessor(login,password,endpoint,uri,restcommInstanceManager, phoneNumberManager);
+
         super.init();
     }
 
@@ -160,8 +169,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 super.callIdMap.put(callId, node);
                 return node;
             } else {
-//                logger.info("Telestax-Proxy: Node is null, going to super for node selection");
-//                return super.processExternalRequest(request);
+                //                logger.info("Telestax-Proxy: Node is null, going to super for node selection");
+                //                return super.processExternalRequest(request);
                 logger.info("Telestax-Proxy: Node is null");
                 return null;
             }
@@ -170,27 +179,6 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             return super.processExternalRequest(request);
         }
     }
-
-
-    //    @Override
-    //    public void processInternalRequest(Request request) {
-    //        super.processInternalRequest(request);
-    //    }
-    //
-    //    @Override
-    //    public void processExternalResponse(Response response) {
-    //        super.processExternalResponse(response);
-    //    }
-    //
-    //    @Override
-    //    public void processInternalResponse(Response response) {
-    //        super.processInternalResponse(response);
-    //    }
-    //
-    //    @Override
-    //    public SIPNode processHttpRequest(HttpRequest request) {
-    //        return super.processHttpRequest(request);
-    //    }
 
     @Override
     public void proxyMessage(ChannelHandlerContext ctx, MessageEvent e){
@@ -204,6 +192,14 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         String body = getContent(originalRequest).replaceFirst("apidata=", "");
         VoipInnovationRequest viRequest = (VoipInnovationRequest) xstream.fromXML(body);
 
+        if(viRequest.getRequestType().equalsIgnoreCase("ping")){
+            pong(ctx, e, originalRequest);
+            RestcommInstance restcomm = new RestcommInstance(viRequest.getEndpointGroup(), originalRequest.headers().getAll("OutboundIntf"));
+            restcommInstanceManager.addRestcommInstance(restcomm);
+            logger.info("Received PING request from Restcomm Instance: "+restcomm);
+            return;
+        }
+
         ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, viRequest);
         VoipInnovationStorage.getStorage().addRequestToMap(viRequest.getId(), proxyRequest);
 
@@ -216,15 +212,16 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         SslContext sslCtx = null;
         try {
-            sslCtx = JdkSslClientContext.newClientContext();// SslContext.newClientContext();
+            sslCtx = JdkSslClientContext.newClientContext();
         } catch (SSLException e1) {
             logger.error("There was a problem to create the SSL Context", e1);
         }
 
         final SslHandler sslHandler = sslCtx.newHandler();
-
-        //First handler in the pipeline should be the SSL handler to decode/encode data
-        cb.getPipeline().addLast("ssl", sslHandler);
+        if(uri.startsWith("https")) {
+            //First handler in the pipeline should be the SSL handler to decode/encode data
+            cb.getPipeline().addLast("ssl", sslHandler);
+        }
         //Next handler is the HTTP Codec. This combines both RequestEncoder and ResponseDecoder
         cb.getPipeline().addLast("codec", new HttpClientCodec());
 
@@ -245,8 +242,10 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         //Connect to VoipInnovation. Important is that VI will accept connections and request from API Users with valid username/password and IP Address
         logger.debug("Will now connect to : "+uri);
+        String host = HostUtil.getInstance().getHost(uri);
+        int port = HostUtil.getInstance().getPort(uri);
         ChannelFuture f = null;
-        f = cb.connect(new InetSocketAddress("backoffice.voipinnovations.com", 443));
+        f = cb.connect(new InetSocketAddress(host, port));
 
         f.addListener(new ChannelFutureListener() {
             public void operationComplete(ChannelFuture future) {
@@ -278,6 +277,18 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
     }
 
+    private void pong(ChannelHandlerContext ctx, MessageEvent e, HttpRequest request) {
+        Channel ch = e.getChannel();
+        if (is100ContinueExpected(request)) {
+            Channels.write(ctx, Channels.future(ch), new DefaultHttpResponse(HTTP_1_1, CONTINUE));
+        }
+
+        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
+        ChannelFuture f = Channels.future(ch);
+        f.addListener(ChannelFutureListener.CLOSE);
+        Channels.write(ctx, f, response);
+    }
+
     private String getContent(HttpMessage message){
         String body = null;
         byte[] bodyBytes = new byte[message.getContent().capacity()];
@@ -291,38 +302,6 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         return body;
     }
-
-    //    private void proceedToWriteMsg(ChannelFuture future, final Channel inboundChannel, final HttpRequest httpRequest){
-    //        future.addListener(new ChannelFutureListener() {
-    //            @Override
-    //            public void operationComplete(ChannelFuture future) throws Exception {
-    //                if(future.isSuccess()) {
-    //                    SslHandler sslHandler = (SslHandler) future.getChannel().getPipeline().get("ssl");
-    //                    logger.info("SslHanler Future is success.");
-    //                    // Connection attempt succeeded:
-    //                    // Begin to accept incoming traffic.
-    //                    //                    inboundChannel.setReadable(true);
-    //                    logger.info("Writing out HttpRequest: "+httpRequest);
-    //                    byte[] bodyBytes = new byte[httpRequest.getContent().capacity()];
-    //                    httpRequest.getContent().getBytes(0, bodyBytes);
-    //                    String body = new String(bodyBytes);
-    //                    try {
-    //                        logger.info("Request's body: "+URLDecoder.decode(body, "UTF-8"));
-    //                    } catch (UnsupportedEncodingException e) {
-    //                        // TODO Auto-generated catch block
-    //                        e.printStackTrace();
-    //                    }
-    //                    outboundChannel.write(httpRequest);
-    //                } else if (future.isCancelled()){
-    //                    logger.info("SslHandler future is canceled");
-    //                } else if (future.isDone()) {
-    //                    logger.info("SslHandler future is done");
-    //                }
-    //            }
-    //        });
-    //    }
-
-
 
     private class OutboundHandler extends SimpleChannelUpstreamHandler {
 
@@ -374,22 +353,6 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 e.getChannel().setReadable(false);
             }
         }
-
-        //        @Override
-        //        public void channelInterestChanged(ChannelHandlerContext ctx, ChannelStateEvent e) {
-        //            // If outboundChannel is not saturated anymore, continue accepting
-        //            // the incoming traffic from the inboundChannel.
-        //            //            synchronized (trafficLock) {
-        //            if (e.getChannel().isWritable()) {
-        //                inboundChannel.setReadable(true);
-        //                //                }
-        //            }
-        //        }
-        //
-        //        @Override
-        //        public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) {
-        //            closeOnFlush(inboundChannel);
-        //        }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {

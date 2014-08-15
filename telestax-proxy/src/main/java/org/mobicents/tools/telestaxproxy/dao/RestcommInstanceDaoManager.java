@@ -48,6 +48,8 @@ public class RestcommInstanceDaoManager {
                 RestcommInstance restcomm = (RestcommInstance)restcommMapper.getInstanceById(restcommInstance.getId());
                 if(restcomm == null) {
                     restcommMapper.addRestcommInstance(restcommInstance);
+                } else {
+                    restcommMapper.updateRestcommInstance(restcommInstance);
                 }
                 session.commit(true);
             } catch (Exception e){

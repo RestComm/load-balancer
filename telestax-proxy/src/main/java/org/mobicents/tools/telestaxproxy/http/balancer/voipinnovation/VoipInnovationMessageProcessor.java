@@ -39,6 +39,7 @@ import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationAssignDidResponse;
 import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationReleaseDidResponse;
+import org.mobicents.tools.telestaxproxy.sip.balancer.HostUtil;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.DidEntity;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
@@ -47,9 +48,9 @@ import com.thoughtworks.xstream.XStream;
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class VoipInnovationDispatcher {
+public class VoipInnovationMessageProcessor {
 
-    private static Logger logger = Logger.getLogger(VoipInnovationDispatcher.class);
+    private static Logger logger = Logger.getLogger(VoipInnovationMessageProcessor.class);
     static enum RequestType { GetAvailablePhoneNumbersByAreaCode, AssignDid, IsValidDid, ReleaseDid };
 
     private String login;
@@ -66,7 +67,7 @@ public class VoipInnovationDispatcher {
      * @param endpoint
      * @param uri
      */
-    public VoipInnovationDispatcher(String login, String password, String endpoint, String uri, RestcommInstanceDaoManager restcommInstanceManager, PhoneNumberDaoManager phoneNumberManager) {
+    public VoipInnovationMessageProcessor(String login, String password, String endpoint, String uri, RestcommInstanceDaoManager restcommInstanceManager, PhoneNumberDaoManager phoneNumberManager) {
         this.login = login;
         this.password = password;
         this.endpoint = endpoint;
@@ -113,7 +114,7 @@ public class VoipInnovationDispatcher {
         newContent = ChannelBuffers.copiedBuffer(body, Charset.forName("UTF-8"));
 
         newRequest.setContent(newContent);
-        newRequest.headers().set("Host", "backoffice.voipinnovations.com");
+        newRequest.headers().set("Host", HostUtil.getInstance().getHost(uri));
         //        newRequest.headers().set("Content-Type", "application/xml");
         newRequest.headers().set("Content-Type", "application/x-www-form-urlencoded");
         //That was one setting to make it work with VI. If the body length is wrong then the VI doesn't accept the request

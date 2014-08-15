@@ -22,6 +22,7 @@ package org.mobicents.tools.telestaxproxy.dao.mappers;
 
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
 /**
@@ -35,10 +36,15 @@ public abstract interface RestcommInstanceMapper {
     public static final String INSERT = "INSERT INTO restcomm_instances (id, udpInterface, tcpInterface, tlsInterface, wsInterface, dateCreated) "
             + "VALUES (#{id}, #{udpInterface}, #{tcpInterface}, #{tlsInterface}, #{wsInterface},#{dateCreated})";
     public static final String SELECT_BY_ID = "SELECT * FROM restcomm_instances WHERE id=#{id}";
+    public static final String UPDATE = "UPDATE restcomm_instances SET udpInterface=#{udpInterface}, tcpInterface=#{tcpInterface}, tlsInterface=#{tlsInterface},"
+            + " wsInterface=#{wsInterface}, dateCreated=#{dateCreated}  WHERE id=#{id}";
 
     @Insert(INSERT)
     public abstract void addRestcommInstance(RestcommInstance restcommInstance);
     
     @Select(SELECT_BY_ID)
     public abstract RestcommInstance getInstanceById(String id);
+
+    @Update(UPDATE)
+    public abstract void updateRestcommInstance(RestcommInstance restcommInstance);
 }

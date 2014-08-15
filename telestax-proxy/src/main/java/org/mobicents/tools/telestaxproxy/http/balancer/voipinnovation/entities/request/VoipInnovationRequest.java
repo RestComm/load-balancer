@@ -51,6 +51,10 @@ public class VoipInnovationRequest {
         return this.body.item.endpointgroup;
     }
     
+    public String getRequestType() {
+        return this.body.requesttype;
+    }
+    
     private class Header {
         private String username;
         private String password;
