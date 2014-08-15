@@ -22,6 +22,7 @@ package org.mobicents.tools.telestaxproxy.dao;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +48,8 @@ public class PhoneNumberDaoTest {
 
     @Before
     public void setup() throws Exception {
-        daoManager = new DaoManager();
+        File mybatisConfFile = new File("extra-resources/mybatis.xml");
+        daoManager = new DaoManager(mybatisConfFile);
         daoManager.run();
         sessionFactory = daoManager.getSessionFactory();
         phoneNumberDao = new PhoneNumberDaoManager(sessionFactory);

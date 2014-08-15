@@ -22,6 +22,7 @@ package org.mobicents.tools.telestaxproxy.dao;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +47,8 @@ public class RestcommInstanceDaoTest {
     
     @Before
     public void setup() throws Exception {
-        daoManager = new DaoManager();
+        File mybatisConfFile = new File("extra-resources/mybatis.xml");
+        daoManager = new DaoManager(mybatisConfFile);
         daoManager.run();
         sessionFactory = daoManager.getSessionFactory();
         instanceDao = new RestcommInstanceDaoManager(sessionFactory);
@@ -79,4 +81,43 @@ public class RestcommInstanceDaoTest {
         assertTrue(retrievedInstance != null);
         assertTrue(retrievedInstance.getId().equalsIgnoreCase(restcommId));
     }
+    
+    @Test
+    public void testUpdateRestcommInstance() throws Exception {
+        String restcommId = "rest-12345";
+        List<String> addresses = new ArrayList<String>();
+        addresses.add("127.0.0.1:5080:udp");
+        addresses.add("127.0.0.1:5080:tcp");
+        addresses.add("127.0.0.1:5081:tls");
+        addresses.add("127.0.0.1:5082:ws");
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        
+        instanceDao.addRestcommInstance(restcomm);
+        
+        RestcommInstance retrievedInstance = instanceDao.getInstanceById(restcommId);
+        assertTrue(retrievedInstance != null);
+        assertTrue(retrievedInstance.getId().equalsIgnoreCase(restcommId));
+        assertTrue(retrievedInstance.getUdpInterface().equalsIgnoreCase("127.0.0.1:5080"));
+        assertTrue(retrievedInstance.getTcpInterface().equalsIgnoreCase("127.0.0.1:5080"));
+        assertTrue(retrievedInstance.getTlsInterface().equalsIgnoreCase("127.0.0.1:5081"));
+        assertTrue(retrievedInstance.getWsInterface().equalsIgnoreCase("127.0.0.1:5082"));
+        
+        List<String> newAddresses = new ArrayList<String>();
+        addresses.add("192.168.1.70:5080:udp");
+        addresses.add("192.168.1.70:5080:tcp");
+        addresses.add("192.168.1.70:5081:tls");
+        addresses.add("192.168.1.70:5082:ws");
+        RestcommInstance updatedRestcomm = new RestcommInstance(restcommId, addresses);
+        
+        instanceDao.addRestcommInstance(updatedRestcomm);
+        
+        retrievedInstance = instanceDao.getInstanceById(restcommId);
+        assertTrue(retrievedInstance != null);
+        assertTrue(retrievedInstance.getId().equalsIgnoreCase(restcommId));
+        assertTrue(retrievedInstance.getUdpInterface().equalsIgnoreCase("192.168.1.70:5080"));
+        assertTrue(retrievedInstance.getTcpInterface().equalsIgnoreCase("192.168.1.70:5080"));
+        assertTrue(retrievedInstance.getTlsInterface().equalsIgnoreCase("192.168.1.70:5081"));
+        assertTrue(retrievedInstance.getWsInterface().equalsIgnoreCase("192.168.1.70:5082"));        
+    }
+    
 }
