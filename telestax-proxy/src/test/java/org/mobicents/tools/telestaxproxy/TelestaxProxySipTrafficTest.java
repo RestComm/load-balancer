@@ -31,7 +31,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -134,6 +133,7 @@ public class TelestaxProxySipTrafficTest {
         properties.setProperty("extraServerNodes", "127.0.0.1:5090,127.0.0.1:5091,127.0.0.1:5092");
         properties.setProperty("performanceTestingMode", "true");
         properties.setProperty("mybatis-config","extra-resources/mybatis.xml");
+//        properties.setProperty("external-ip", "199.199.199.199");
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");
@@ -282,7 +282,12 @@ public class TelestaxProxySipTrafficTest {
         assertTrue(restcommCall1.waitForIncomingCall(5000));
         assertTrue(restcommCall1.sendIncomingCallResponse(180, "Restcomm-Ringing", 3600));
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.RINGING); 
+        int lastAliceResponseCode = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(lastAliceResponseCode == Response.TRYING || lastAliceResponseCode == Response.RINGING); 
+        if(lastAliceResponseCode == Response.TRYING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.RINGING);
+        }
 
         assertTrue(restcommCall1.sendIncomingCallResponse(200, "Restcomm-OK", 3600, null, null, sipBody));
         
@@ -376,7 +381,12 @@ public class TelestaxProxySipTrafficTest {
         assertTrue(restcommCall3.waitForIncomingCall(6000));
         assertTrue(restcommCall3.sendIncomingCallResponse(180, "Restcomm-Ringing", 3600));
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.RINGING); 
+        int lastAliceResponseCode = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(lastAliceResponseCode == Response.TRYING || lastAliceResponseCode == Response.RINGING); 
+        if(lastAliceResponseCode == Response.TRYING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.RINGING);
+        }
 
         assertTrue(restcommCall3.sendIncomingCallResponse(200, "Restcomm-OK", 3600, null, null, sipBody));
         
@@ -392,7 +402,7 @@ public class TelestaxProxySipTrafficTest {
         assertTrue(aliceCall.sendInviteOkAck());
         assertTrue(!(aliceCall.getLastReceivedResponse().getStatusCode() >= 400));
         
-        Thread.sleep(2000);
+        Thread.sleep(4000);
         
         assertTrue(aliceCall.disconnect());
         assertTrue(restcommCall3.waitForDisconnect(2000));

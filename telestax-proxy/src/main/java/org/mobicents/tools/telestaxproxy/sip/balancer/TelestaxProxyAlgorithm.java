@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
@@ -38,9 +39,17 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLException;
+import javax.sip.PeerUnavailableException;
+import javax.sip.SipException;
+import javax.sip.SipFactory;
+import javax.sip.address.Address;
+import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
 import javax.sip.header.Header;
+import javax.sip.header.HeaderFactory;
+import javax.sip.header.RecordRouteHeader;
 import javax.sip.message.Request;
+import javax.sip.message.Response;
 
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.log4j.Logger;
@@ -99,7 +108,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private RestcommInstanceDaoManager restcommInstanceManager;
     private PhoneNumberDaoManager phoneNumberManager;
     private ArrayList<String> blockedList;
-    
+    private String externalIP;
 
     @Override
     public void init() {        
@@ -131,10 +140,12 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         phoneNumberManager = new PhoneNumberDaoManager(sessionFactory);
 
         dispatcher = new VoipInnovationMessageProcessor(login,password,endpoint,uri,restcommInstanceManager, phoneNumberManager);
-        
-        String blockedValues = properties.getProperty("blocked-values", "");
+
+        externalIP = properties.getProperty("external-ip", super.getBalancerContext().host);
+
+        String blockedValues = properties.getProperty("blocked-values", "sipvicious,sipcli,friendly-scanner");
         populateBlockedList(blockedValues);
-        
+
         super.init();
     }
 
@@ -151,42 +162,46 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             logger.warn("Request failed at the security check:\n"+request);
             return null;
         }
+
         String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
-        if (!callIdMap.contains(callId)) {
-            logger.info("Telestax-Proxy: Got new Request: "+request.getRequestURI().toString()+" will check which node to dispatch");
+
+        if (!super.callIdMap.containsKey(callId)) {
+            logger.info("Telestax-Proxy: Got new Request: "+request.getMethod()+" "+request.getRequestURI().toString()+" will check which node to dispatch");
             SIPNode node = null;
             String did = ((SipURI)request.getRequestURI()).getUser();
-            did = did.replaceFirst("\\+1", "");
-            did = did.replaceFirst("001", "");
-            did = did.replaceFirst("^1", "");
-            if (phoneNumberManager.didExists(did)) {
-                RestcommInstance restcommInstance = phoneNumberManager.getInstanceByDid(did);
-                for (SIPNode tempNode: invocationContext.nodes) {
-                    try {
+            if (did != null) {
+                did = did.replaceFirst("\\+1", "");
+                did = did.replaceFirst("001", "");
+                did = did.replaceFirst("^1", "");
 
-                        String transport = ((SipURI)request.getRequestURI()).getTransportParam() == null ? "udp" : ((SipURI)request.getRequestURI()).getTransportParam() ;
-                        String ipAddressToCheck = tempNode.getIp()+":"+tempNode.getProperties().get(transport+"Port");
+                if (phoneNumberManager.didExists(did)) {
+                    RestcommInstance restcommInstance = phoneNumberManager.getInstanceByDid(did);
+                    for (SIPNode tempNode: invocationContext.nodes) {
+                        try {
 
-                        String restcommAddress = restcommInstance.getAddressForTransport(transport);
+                            String transport = ((SipURI)request.getRequestURI()).getTransportParam() == null ? "udp" : ((SipURI)request.getRequestURI()).getTransportParam() ;
+                            String ipAddressToCheck = tempNode.getIp()+":"+tempNode.getProperties().get(transport+"Port");
 
-                        logger.debug("Going to check if node ip :"+ipAddressToCheck+" equals to :"+restcommAddress);
-                        if (ipAddressToCheck.equalsIgnoreCase(restcommAddress)){
-                            node = tempNode;
+                            String restcommAddress = restcommInstance.getAddressForTransport(transport);
+
+                            logger.debug("Going to check if node ip :"+ipAddressToCheck+" equals to :"+restcommAddress);
+                            if (ipAddressToCheck.equalsIgnoreCase(restcommAddress)){
+                                node = tempNode;
+                            }
+                        } catch (Exception e) {
+                            logger.info("Exception, did was: "+did, e);
                         }
-                    } catch (Exception e) {
-                        logger.info("Exception, did was: "+did, e);
                     }
-                }
-            } else {
-                logger.info("Did :"+did+" couldn't matched to a restcomm instance. Going to super for node selection");
+                } 
+                else {
+                    logger.info("Did :"+did+" couldn't matched to a restcomm instance. Going to super for node selection");
+                } 
             }
             if (node != null) {
                 logger.info("Node found for incoming request: "+request.getRequestURI()+" Will route to node: "+node);
                 super.callIdMap.put(callId, node);
                 return node;
             } else {
-                //                logger.info("Telestax-Proxy: Node is null, going to super for node selection");
-                //                return super.processExternalRequest(request);
                 logger.info("Telestax-Proxy: Node is null");
                 return null;
             }
@@ -196,16 +211,68 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         }
     }
 
+
+    @Override
+    public void processInternalResponse(Response response) {
+        //Need to patch the response so it 
+        int port = super.getBalancerContext().externalPort;
+        String contactURI = "sip:"+externalIP+":"+port;
+        String recordRouteURI = "sip:"+externalIP+":"+port+";lr";
+        RecordRouteHeader existingRecordRouteHeader = (RecordRouteHeader) response.getHeader("Record-Route");
+
+        if(existingRecordRouteHeader != null) {
+            SipURI sipURI = (SipURI) existingRecordRouteHeader.getAddress().getURI();
+            String nodeHost = sipURI.getParameter("node_host");
+            String nodePort = sipURI.getParameter("node_port");
+            String nodeVersion = sipURI.getParameter("version");
+            String transport = sipURI.getParameter("transport");
+            if ( nodeHost != null && nodePort != null) {
+                recordRouteURI = recordRouteURI+";transport="+transport+";node_host="+nodeHost+";node_port="+nodePort+";version="+nodeVersion;
+            }
+        }
+
+        Header contactHeader = null;
+        RecordRouteHeader recordRouteHeader = null;
+
+        try {
+            HeaderFactory headerFactory = SipFactory.getInstance().createHeaderFactory(); 
+            AddressFactory addressFactory = SipFactory.getInstance().createAddressFactory();
+            contactHeader = headerFactory.createHeader("Contact", contactURI);
+            Address externalAddress = addressFactory.createAddress(recordRouteURI);
+            recordRouteHeader = headerFactory.createRecordRouteHeader(externalAddress);
+            if (contactHeader != null) {
+                response.removeFirst("Contact");
+                response.addHeader(contactHeader);
+            }
+            if (recordRouteHeader != null) {
+                response.removeHeader("Record-Route");
+                response.addFirst(recordRouteHeader);
+            }
+        } catch (PeerUnavailableException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        } catch (SipException e) {
+            e.printStackTrace();
+        }
+        if (contactHeader != null)
+            logger.info("Patched the Contact header with : "+contactHeader.toString());
+        if (recordRouteHeader != null)
+            logger.info("Added on top : "+recordRouteHeader.toString());
+    }
+
     /**
      * @param request
      * @return
      */
     private boolean securityCheck(Request request) {
-//        User-Agent: sipcli/v1.8
-//        User-Agent: friendly-scanner
-//        To: "sipvicious" <sip:100@1.1.1.1>
-//        From: "sipvicious" <sip:100@1.1.1.1>;tag=3336353363346565313363340133313330323436343236
-//        From: "1" <sip:1@87.202.36.237>;tag=3e7a78de
+        //        User-Agent: sipcli/v1.8
+        //        User-Agent: friendly-scanner
+        //        To: "sipvicious" <sip:100@1.1.1.1>
+        //        From: "sipvicious" <sip:100@1.1.1.1>;tag=3336353363346565313363340133313330323436343236
+        //        From: "1" <sip:1@87.202.36.237>;tag=3e7a78de
         Header userAgentHeader = request.getHeader("User-Agent");
         Header toHeader = request.getHeader("To");
         Header fromHeader = request.getHeader("From");

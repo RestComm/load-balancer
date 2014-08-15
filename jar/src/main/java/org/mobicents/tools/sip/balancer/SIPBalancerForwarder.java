@@ -743,7 +743,8 @@ public class SIPBalancerForwarder implements SipListener {
 
         SIPNode nextNode = null;
 
-        if(isRequestFromServer) {		    
+        if(isRequestFromServer) {
+            logger.debug("Request from server");
             Header initialAddrHeader = request.getHeader("X-Sip-Balancer-InitialRemoteAddr");
             Header initialPortHeader = request.getHeader("X-Sip-Balancer-InitialRemotePort");
             if(initialAddrHeader != null)
@@ -753,7 +754,7 @@ public class SIPBalancerForwarder implements SipListener {
             ctx.balancerAlgorithm.processInternalRequest(request);
             nextNode = hints.serverAssignedNode;
         } else {
-
+            logger.debug("Request not from server");
             // Request is NOT from app server, first check if we have hints in Route headers
             SIPNode assignedNode = hints.serverAssignedNode;
 
@@ -928,7 +929,7 @@ public class SIPBalancerForwarder implements SipListener {
     private RecordRouteHeader stampRecordRoute(RecordRouteHeader rrh, RouteHeaderHints hints, String transport) {
         SipURI uri = (SipURI) rrh.getAddress().getURI();
         try {
-
+            logger.debug("About to stamp RecordRoute for hints:\n"+hints.serverAssignedNode.toString()+"\n");
             uri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
             uri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
             uri.setParameter(ROUTE_PARAM_NODE_VERSION, hints.version);
