@@ -31,12 +31,15 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLException;
 import javax.sip.address.SipURI;
+import javax.sip.header.Header;
 import javax.sip.message.Request;
 
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -95,6 +98,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private DaoManager daoManager;
     private RestcommInstanceDaoManager restcommInstanceManager;
     private PhoneNumberDaoManager phoneNumberManager;
+    private ArrayList<String> blockedList;
+    
 
     @Override
     public void init() {        
@@ -126,12 +131,26 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         phoneNumberManager = new PhoneNumberDaoManager(sessionFactory);
 
         dispatcher = new VoipInnovationMessageProcessor(login,password,endpoint,uri,restcommInstanceManager, phoneNumberManager);
-
+        
+        String blockedValues = properties.getProperty("blocked-values", "");
+        populateBlockedList(blockedValues);
+        
         super.init();
+    }
+
+    /**
+     * @param blockedValues The values should be seperated by comma ","
+     */
+    private void populateBlockedList(String blockedValues) {
+        blockedList = new ArrayList<String>(Arrays.asList(blockedValues.split(",")));
     }
 
     @Override
     public SIPNode processExternalRequest(Request request) {
+        if (!securityCheck(request)){
+            logger.warn("Request failed at the security check:\n"+request);
+            return null;
+        }
         String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
         if (!callIdMap.contains(callId)) {
             logger.info("Telestax-Proxy: Got new Request: "+request.getRequestURI().toString()+" will check which node to dispatch");
@@ -175,6 +194,32 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             logger.info("Telestax-Proxy: Calld-id is already known, going to super for node selection");
             return super.processExternalRequest(request);
         }
+    }
+
+    /**
+     * @param request
+     * @return
+     */
+    private boolean securityCheck(Request request) {
+//        User-Agent: sipcli/v1.8
+//        User-Agent: friendly-scanner
+//        To: "sipvicious" <sip:100@1.1.1.1>
+//        From: "sipvicious" <sip:100@1.1.1.1>;tag=3336353363346565313363340133313330323436343236
+//        From: "1" <sip:1@87.202.36.237>;tag=3e7a78de
+        Header userAgentHeader = request.getHeader("User-Agent");
+        Header toHeader = request.getHeader("To");
+        Header fromHeader = request.getHeader("From");
+
+        for (String blockedValue: blockedList){
+            if(userAgentHeader != null && userAgentHeader.toString().toLowerCase().contains(blockedValue)) {
+                return false;
+            } else if (toHeader != null && toHeader.toString().toLowerCase().contains(blockedValue)) {
+                return false;
+            } else if (fromHeader != null && fromHeader.toString().toLowerCase().contains(blockedValue)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

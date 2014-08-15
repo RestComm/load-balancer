@@ -464,5 +464,196 @@ public class TelestaxProxySipTrafficTest {
         releaseDid("4156902867");
     }
     
+    @Test
+    public void testSecuriyFromHeader() throws ClientProtocolException, IOException{
+        //First create a valid DID
+        String requestId = UUID.randomUUID().toString().replace("-", "");
+        stubFor(post(urlEqualTo("/test"))
+                .withRequestBody(containing("assignDID"))
+                .withRequestBody(containing("username13"))
+                .withRequestBody(containing("password13"))
+                .withRequestBody(containing("4156902867"))
+                .withRequestBody(containing("131313"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/xml")
+                        .withBody(VoipInnovationMessages.getAssignDidResponse(requestId))));
 
+        restcomm = new DefaultHttpClient();
+
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<did>").append("4156902867").append("</did>");
+        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+
+        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+
+        final HttpResponse response = restcomm.execute(post);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        String responseContent = EntityUtils.toString(response.getEntity());
+        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
+        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+
+        //Second create a call to that DID but with blocked values in the SIP Headers
+        restcommPhone1.setLoopback(true);
+        final SipCall restcommCall1 = restcommPhone1.createSipCall();
+        restcommCall1.listenForIncomingCall();
+        
+        final SipCall aliceCall = alicePhone.createSipCall();
+        //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
+        //Also will change From header to sipvicious" <sip:100@1.1.1.1>
+        ArrayList<String> replaceHeaders = new ArrayList<String>();
+        replaceHeaders.add("To: "+restcommContact1);
+        replaceHeaders.add("From: sipvicious <sip:100@1.1.1.1>");
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        assertLastOperationSuccess(aliceCall);
+        
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);        
+    }
+
+    @Test
+    public void testSecuriyUserAgentHeader() throws ClientProtocolException, IOException{
+        //First create a valid DID
+        String requestId = UUID.randomUUID().toString().replace("-", "");
+        stubFor(post(urlEqualTo("/test"))
+                .withRequestBody(containing("assignDID"))
+                .withRequestBody(containing("username13"))
+                .withRequestBody(containing("password13"))
+                .withRequestBody(containing("4156902867"))
+                .withRequestBody(containing("131313"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/xml")
+                        .withBody(VoipInnovationMessages.getAssignDidResponse(requestId))));
+
+        restcomm = new DefaultHttpClient();
+
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<did>").append("4156902867").append("</did>");
+        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+
+        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+
+        final HttpResponse response = restcomm.execute(post);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        String responseContent = EntityUtils.toString(response.getEntity());
+        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
+        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+
+        //Second create a call to that DID but with blocked values in the SIP Headers
+        restcommPhone1.setLoopback(true);
+        final SipCall restcommCall1 = restcommPhone1.createSipCall();
+        restcommCall1.listenForIncomingCall();
+        
+        final SipCall aliceCall = alicePhone.createSipCall();
+        //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
+        //Also will change User-Agent to friendly-scanner
+        ArrayList<String> replaceHeaders = new ArrayList<String>();
+        replaceHeaders.add("To: "+restcommContact1);
+        replaceHeaders.add("User-Agent: friendly-scanner");
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        assertLastOperationSuccess(aliceCall);
+        
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);        
+    }
+    
+    @Test
+    public void testSecuriyToHeader() throws ClientProtocolException, IOException{
+        //First create a valid DID
+        String requestId = UUID.randomUUID().toString().replace("-", "");
+        stubFor(post(urlEqualTo("/test"))
+                .withRequestBody(containing("assignDID"))
+                .withRequestBody(containing("username13"))
+                .withRequestBody(containing("password13"))
+                .withRequestBody(containing("4156902867"))
+                .withRequestBody(containing("131313"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/xml")
+                        .withBody(VoipInnovationMessages.getAssignDidResponse(requestId))));
+
+        restcomm = new DefaultHttpClient();
+
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<did>").append("4156902867").append("</did>");
+        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+
+        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+
+        final HttpResponse response = restcomm.execute(post);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        String responseContent = EntityUtils.toString(response.getEntity());
+        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
+        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+
+        //Second create a call to that DID but with blocked values in the SIP Headers
+        restcommPhone1.setLoopback(true);
+        final SipCall restcommCall1 = restcommPhone1.createSipCall();
+        restcommCall1.listenForIncomingCall();
+        
+        final SipCall aliceCall = alicePhone.createSipCall();
+        //Will change To header to sipvicious" <sip:100@1.1.1.1>
+        ArrayList<String> replaceHeaders = new ArrayList<String>();
+        replaceHeaders.add("To: sipvicious <sip:100@1.1.1.1>");
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        assertLastOperationSuccess(aliceCall);
+        
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);        
+    }
 }
