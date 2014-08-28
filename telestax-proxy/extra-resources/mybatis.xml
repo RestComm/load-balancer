@@ -22,6 +22,11 @@
 					value="jdbc:mysql://127.0.0.1:3306/proxy?autoReconnect=true" />
 				<property name="username" value="usernamehere" />
 				<property name="password" value="passwordhere" />
+				<!--property name="defaultTransactionIsolationLevel" value="TRANSACTION_READ_COMMITTED"/ -->
+				<property name="poolMaximumActiveConnections" value="500" />
+				<property name="poolMaximumIdleConnections" value="100" />
+				<property name="poolPingEnabled" value="true" />
+				<property name="poolPingQuery" value="SELECT 1" />
 			</dataSource>
 		</environment>
 	</environments>
