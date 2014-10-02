@@ -311,6 +311,95 @@ public class TelestaxProxySipTrafficTest {
     }
     
     @Test
+    public void testAssignDidAndCreateCallToRestcomm1_15126001502() throws ClientProtocolException, IOException, InterruptedException, ParseException {
+        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "5126001502";
+        stubFor(post(urlEqualTo("/test"))
+                .withRequestBody(containing("assignDID"))
+                .withRequestBody(containing("username13"))
+                .withRequestBody(containing("password13"))
+                .withRequestBody(containing(did))
+                .withRequestBody(containing("131313"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/xml")
+                        .withBody(VoipInnovationMessages.getAssignDidResponse(requestId, did))));
+
+        restcomm = new DefaultHttpClient();
+
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<did>").append(did).append("</did>");
+        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+
+        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+
+        final HttpResponse response = restcomm.execute(post);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        String responseContent = EntityUtils.toString(response.getEntity());
+        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
+        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+        assertTrue(responseContent.contains("<TN>"+did+"</TN>"));
+
+        restcommPhone1.setLoopback(true);
+        final SipCall restcommCall1 = restcommPhone1.createSipCall();
+        restcommCall1.listenForIncomingCall();
+        
+        final SipCall aliceCall = alicePhone.createSipCall();
+        //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
+        ArrayList<String> replaceHeaders = new ArrayList<String>();
+        replaceHeaders.add("To: "+restcommContact1);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:+15126001502@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        assertLastOperationSuccess(aliceCall);
+        
+        assertTrue(restcommCall1.waitForIncomingCall(5000));
+        assertTrue(restcommCall1.sendIncomingCallResponse(180, "Restcomm-Ringing", 3600));
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
+        int lastAliceResponseCode = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(lastAliceResponseCode == Response.TRYING || lastAliceResponseCode == Response.RINGING); 
+        if(lastAliceResponseCode == Response.TRYING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.RINGING);
+        }
+
+        assertTrue(restcommCall1.sendIncomingCallResponse(200, "Restcomm-OK", 3600, null, null, sipBody));
+        
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+        int responseAlice = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(responseAlice == Response.RINGING || responseAlice == Response.OK);
+
+        if (responseAlice == Response.RINGING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertEquals(Response.OK, aliceCall.getLastReceivedResponse().getStatusCode());
+        }
+        assertTrue(aliceCall.sendInviteOkAck());
+        assertTrue(!(aliceCall.getLastReceivedResponse().getStatusCode() >= 400));
+        
+        Thread.sleep(2000);
+        
+        assertTrue(aliceCall.disconnect());
+        assertTrue(restcommCall1.waitForDisconnect(2000));
+        assertTrue(restcommCall1.respondToDisconnect());
+        releaseDid("5126001502");
+    }
+    
+    @Test
     public void testAssignDidAndCreateCallToRestcomm3() throws ClientProtocolException, IOException, InterruptedException, ParseException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
         stubFor(post(urlEqualTo("/test"))

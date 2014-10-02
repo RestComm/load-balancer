@@ -171,7 +171,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             String did = ((SipURI)request.getRequestURI()).getUser();
             if (did != null) {
                 did = did.replaceFirst("\\+1", "");
-                did = did.replaceFirst("001", "");
+                did = did.replaceFirst("^001", "");
                 did = did.replaceFirst("^1", "");
 
                 if (phoneNumberManager.didExists(did)) {
