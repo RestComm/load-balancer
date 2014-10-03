@@ -33,10 +33,15 @@ import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
  */
 public abstract interface RestcommInstanceMapper {
 
-    public static final String INSERT = "INSERT INTO restcomm_instances (id, udpInterface, tcpInterface, tlsInterface, wsInterface, dateCreated) "
-            + "VALUES (#{id}, #{udpInterface}, #{tcpInterface}, #{tlsInterface}, #{wsInterface},#{dateCreated})";
+    public static final String INSERT = "INSERT INTO restcomm_instances (id, publicIpAddress, udpInterface, tcpInterface, tlsInterface, wsInterface, dateCreated) "
+            + "VALUES (#{id}, #{publicIpAddress}, #{udpInterface}, #{tcpInterface}, #{tlsInterface}, #{wsInterface},#{dateCreated})";
     public static final String SELECT_BY_ID = "SELECT * FROM restcomm_instances WHERE id=#{id}";
-    public static final String UPDATE = "UPDATE restcomm_instances SET udpInterface=#{udpInterface}, tcpInterface=#{tcpInterface}, tlsInterface=#{tlsInterface},"
+    public static final String SELECT_BY_PUBLIC_ADDRESS = "SELECT * FROM restcomm_instances WHERE publicIpAddress=#{publicIpAddress}";
+    public static final String SELECT_BY_UDP_INTERFACE = "SELECT * FROM restcomm_instances WHERE udpInterface=#{udpInterface}";
+    public static final String SELECT_BY_TCP_INTERFACE = "SELECT * FROM restcomm_instances WHERE tcpInterface=#{tcpInterface}";
+    public static final String SELECT_BY_TLS_INTERFACE = "SELECT * FROM restcomm_instances WHERE tlsInterface=#{tlsInterface}";
+    public static final String SELECT_BY_WS_INTERFACE = "SELECT * FROM restcomm_instances WHERE wsInterface=#{wsInterface}";
+    public static final String UPDATE = "UPDATE restcomm_instances SET publicIpAddress=#{publicIpAddress}, udpInterface=#{udpInterface}, tcpInterface=#{tcpInterface}, tlsInterface=#{tlsInterface},"
             + " wsInterface=#{wsInterface}, dateCreated=#{dateCreated}  WHERE id=#{id}";
 
     @Insert(INSERT)
@@ -44,7 +49,22 @@ public abstract interface RestcommInstanceMapper {
     
     @Select(SELECT_BY_ID)
     public abstract RestcommInstance getInstanceById(String id);
+    
+    @Select(SELECT_BY_PUBLIC_ADDRESS)
+    public abstract RestcommInstance getInstanceByPublicIpAddress(String publicIpAddress);
+    
+    @Select(SELECT_BY_UDP_INTERFACE)
+    public abstract RestcommInstance getInstanceByUdpInterface(String udpInterface);
 
+    @Select(SELECT_BY_TCP_INTERFACE)
+    public abstract RestcommInstance getInstanceByTcpInterface(String tcpInterface);
+
+    @Select(SELECT_BY_TLS_INTERFACE)
+    public abstract RestcommInstance getInstanceByTlsInterface(String tlsInterface);
+    
+    @Select(SELECT_BY_WS_INTERFACE)
+    public abstract RestcommInstance getInstanceByWsInterface(String wsInterface);
+    
     @Update(UPDATE)
     public abstract void updateRestcommInstance(RestcommInstance restcommInstance);
 }

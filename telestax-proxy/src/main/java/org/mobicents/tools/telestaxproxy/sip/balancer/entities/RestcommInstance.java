@@ -32,6 +32,7 @@ import java.util.List;
 public class RestcommInstance {
     
     private String id;
+    private String publicIpAddress;
     private String udpInterface;
     private String tcpInterface;
     private String tlsInterface;
@@ -43,6 +44,14 @@ public class RestcommInstance {
     }
     
     public RestcommInstance(final String restcommInstanceId, final List<String> addresses) {
+        this.id = restcommInstanceId;
+        prepareOutboundInterfaces(addresses);
+        dateCreated = new Date();
+        this.addresses = addresses;
+    }
+    
+    public RestcommInstance(final String restcommInstanceId, final List<String> addresses, final String publicIpAddress) {
+        this.publicIpAddress = publicIpAddress;
         this.id = restcommInstanceId;
         prepareOutboundInterfaces(addresses);
         dateCreated = new Date();
@@ -70,6 +79,14 @@ public class RestcommInstance {
         return id;
     }
 
+    public String getPublicIpAddress() {
+        return publicIpAddress;
+    }
+    
+    public void setPublicIpAddress() {
+        this.publicIpAddress = publicIpAddress;
+    }
+    
     public String getUdpInterface() {
         return udpInterface;
     }
@@ -122,6 +139,6 @@ public class RestcommInstance {
 
     @Override
     public String toString() {
-        return "<Restcomm instance id: "+id+" | interfaces: "+addresses+" | Date created: "+dateCreated+">";
+        return "<Restcomm instance id: "+id+" | publicIpAddress: "+publicIpAddress+" | interfaces: "+addresses+" | Date created: "+dateCreated+">";
     }
 }

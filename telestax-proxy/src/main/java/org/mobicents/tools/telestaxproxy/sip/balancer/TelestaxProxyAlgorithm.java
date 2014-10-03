@@ -48,6 +48,7 @@ import javax.sip.address.SipURI;
 import javax.sip.header.Header;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.RecordRouteHeader;
+import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -164,7 +165,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         }
 
         String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
-
+        String transport = ((SipURI)request.getRequestURI()).getTransportParam() == null ? "udp" : ((SipURI)request.getRequestURI()).getTransportParam() ;
+        
         if (!super.callIdMap.containsKey(callId)) {
             logger.info("Telestax-Proxy: Got new Request: "+request.getMethod()+" "+request.getRequestURI().toString()+" will check which node to dispatch");
             SIPNode node = null;
@@ -179,7 +181,6 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                     for (SIPNode tempNode: invocationContext.nodes) {
                         try {
 
-                            String transport = ((SipURI)request.getRequestURI()).getTransportParam() == null ? "udp" : ((SipURI)request.getRequestURI()).getTransportParam() ;
                             String ipAddressToCheck = tempNode.getIp()+":"+tempNode.getProperties().get(transport+"Port");
 
                             String restcommAddress = restcommInstance.getAddressForTransport(transport);
@@ -202,8 +203,31 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 super.callIdMap.put(callId, node);
                 return node;
             } else {
-                logger.info("Telestax-Proxy: Node is null");
-                return null;
+                logger.info("Telestax-Proxy: Node is null. Will check with IP Address");
+                ToHeader toHeader = (ToHeader) request.getHeader("To");
+                String host = ((SipURI)toHeader.getAddress().getURI()).getHost();
+                logger.info("Will try to get the Restcomm instance by Public IP Address: "+host);
+                RestcommInstance restcommInstance = null;
+                restcommInstance = restcommInstanceManager.getInstanceByPublicIpAddress(host);
+                for (SIPNode tempNode: invocationContext.nodes) {
+                    try {
+                        String ipAddressToCheck = tempNode.getIp()+":"+tempNode.getProperties().get(transport+"Port");
+
+                        String restcommAddress = restcommInstance.getAddressForTransport(transport);
+
+                        logger.debug("Going to check if node ip :"+ipAddressToCheck+" equals to :"+restcommAddress);
+                        if (ipAddressToCheck.equalsIgnoreCase(restcommAddress)){
+                            node = tempNode;
+                        }
+                    } catch (Exception e) {
+                        logger.info("Exception, did was: "+did, e);
+                    }
+                }
+                if(node != null) {
+                    logger.info("Node found for incoming request: "+request.getRequestURI()+"using the ip address. Will route to node: "+node);
+                    super.callIdMap.put(callId, node);
+                }
+                return node;
             }
         } else {
             logger.info("Telestax-Proxy: Calld-id is already known, going to super for node selection");
@@ -278,11 +302,11 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         Header fromHeader = request.getHeader("From");
 
         for (String blockedValue: blockedList){
-            if(userAgentHeader != null && userAgentHeader.toString().toLowerCase().contains(blockedValue)) {
+            if(userAgentHeader != null && userAgentHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
                 return false;
-            } else if (toHeader != null && toHeader.toString().toLowerCase().contains(blockedValue)) {
+            } else if (toHeader != null && toHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
                 return false;
-            } else if (fromHeader != null && fromHeader.toString().toLowerCase().contains(blockedValue)) {
+            } else if (fromHeader != null && fromHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
                 return false;
             }
         }
@@ -303,7 +327,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         if(viRequest.getRequestType().equalsIgnoreCase("ping")){
             pong(ctx, e, originalRequest);
-            RestcommInstance restcomm = new RestcommInstance(viRequest.getEndpointGroup(), originalRequest.headers().getAll("OutboundIntf"));
+            RestcommInstance restcomm = new RestcommInstance(viRequest.getEndpointGroup(), originalRequest.headers().getAll("OutboundIntf"), originalRequest.headers().get("PublicIpAddress"));
             restcommInstanceManager.addRestcommInstance(restcomm);
             logger.info("Received PING request from Restcomm Instance: "+restcomm);
             return;

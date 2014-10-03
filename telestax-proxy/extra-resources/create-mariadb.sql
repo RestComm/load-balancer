@@ -3,6 +3,7 @@ USE proxy;
 
 CREATE TABLE restcomm_instances (
 id VARCHAR(20) NOT NULL PRIMARY KEY,
+publicIpAddress VARCHAR(50),
 udpInterface VARCHAR(50),
 tcpInterface VARCHAR(50),
 tlsInterface VARCHAR(50),

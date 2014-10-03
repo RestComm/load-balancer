@@ -77,4 +77,46 @@ public class RestcommInstanceDaoManager {
         }
     }
 
+    public RestcommInstance getInstanceByIPAddress(String IPAddress, String transport) {
+        synchronized(this){
+            RestcommInstance restcomm = null;
+            session = sessionFactory.openSession();
+            try{
+                RestcommInstanceMapper restcommMapper = session.getMapper(RestcommInstanceMapper.class);
+                if (transport.equalsIgnoreCase("udp")) {
+                    restcomm = (RestcommInstance)restcommMapper.getInstanceByUdpInterface(IPAddress);
+                } else if (transport.equalsIgnoreCase("tcp")) {
+                    restcomm = (RestcommInstance)restcommMapper.getInstanceByTcpInterface(IPAddress);
+                } else if (transport.equalsIgnoreCase("tls")) {
+                    restcomm = (RestcommInstance)restcommMapper.getInstanceByTlsInterface(IPAddress);
+                } else if (transport.equalsIgnoreCase("ws")) {
+                    restcomm = (RestcommInstance)restcommMapper.getInstanceByWsInterface(IPAddress);
+                }
+                session.commit(true);
+            } catch (Exception e){
+                logger.error("Error while adding the RestcommInstance : "+e);
+            } finally {
+                session.close();
+            }
+            return restcomm;
+        }
+    }
+
+    public RestcommInstance getInstanceByPublicIpAddress(String publicIpAddress) {
+        synchronized(this){
+            RestcommInstance restcomm = null;
+            session = sessionFactory.openSession();
+            try{
+                RestcommInstanceMapper restcommMapper = session.getMapper(RestcommInstanceMapper.class);
+                restcomm = (RestcommInstance)restcommMapper.getInstanceByPublicIpAddress(publicIpAddress);
+                session.commit(true);
+            } catch (Exception e){
+                logger.error("Error while adding the RestcommInstance : "+e);
+            } finally {
+                session.close();
+            }
+            return restcomm;
+        }
+    }
+    
 }

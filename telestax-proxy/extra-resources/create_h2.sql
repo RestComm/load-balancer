@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS call_records;
 
 CREATE TABLE IF NOT EXISTS restcomm_instances (
 id VARCHAR(20) NOT NULL PRIMARY KEY,
+publicIpAddress VARCHAR(50),
 udpInterface VARCHAR(50),
 tcpInterface VARCHAR(50),
 tlsInterface VARCHAR(50),
