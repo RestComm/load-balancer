@@ -166,7 +166,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
         String transport = ((SipURI)request.getRequestURI()).getTransportParam() == null ? "udp" : ((SipURI)request.getRequestURI()).getTransportParam() ;
-        
+
         if (!super.callIdMap.containsKey(callId)) {
             logger.info("Telestax-Proxy: Got new Request: "+request.getMethod()+" "+request.getRequestURI().toString()+" will check which node to dispatch");
             SIPNode node = null;
@@ -209,18 +209,20 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 logger.info("Will try to get the Restcomm instance by Public IP Address: "+host);
                 RestcommInstance restcommInstance = null;
                 restcommInstance = restcommInstanceManager.getInstanceByPublicIpAddress(host);
-                for (SIPNode tempNode: invocationContext.nodes) {
-                    try {
-                        String ipAddressToCheck = tempNode.getIp()+":"+tempNode.getProperties().get(transport+"Port");
+                if (restcommInstance != null) {
+                    for (SIPNode tempNode: invocationContext.nodes) {
+                        try {
+                            String ipAddressToCheck = tempNode.getIp()+":"+tempNode.getProperties().get(transport+"Port");
 
-                        String restcommAddress = restcommInstance.getAddressForTransport(transport);
+                            String restcommAddress = restcommInstance.getAddressForTransport(transport);
 
-                        logger.debug("Going to check if node ip :"+ipAddressToCheck+" equals to :"+restcommAddress);
-                        if (ipAddressToCheck.equalsIgnoreCase(restcommAddress)){
-                            node = tempNode;
+                            logger.debug("Going to check if node ip :"+ipAddressToCheck+" equals to :"+restcommAddress);
+                            if (ipAddressToCheck.equalsIgnoreCase(restcommAddress)){
+                                node = tempNode;
+                            }
+                        } catch (Exception e) {
+                            logger.info("Exception, did was: "+did, e);
                         }
-                    } catch (Exception e) {
-                        logger.info("Exception, did was: "+did, e);
                     }
                 }
                 if(node != null) {
