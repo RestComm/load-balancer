@@ -489,6 +489,21 @@ public class SIPBalancerForwarder implements SipListener {
         if (request.getContent() != null || (requestMethod.equals(Request.REGISTER) && sipProvider != balancerRunner.balancerContext.internalSipProvider)) {
             SIPMessage message = (SIPMessage)request;
 
+            // https://telestax.atlassian.net/browse/LB-25 improve performance by sending back 100 Trying right away to tame retransmissions.
+            if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
+            		requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
+            		requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
+            		requestMethod.equals(Request.UPDATE)) {
+	            try {
+		            Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.TRYING, request);
+		            sipProvider.sendResponse(response);
+	            } catch (SipException e) {
+	                logger.error("Unexpected exception while sending TRYING", e);
+	            } catch (ParseException e) {
+	                logger.error("Unexpected exception while sending TRYING", e);
+	            }
+            }
+            
             String initialRemoteAddr = message.getPeerPacketSourceAddress().getHostAddress();
             String initialRemotePort = String.valueOf(message.getPeerPacketSourcePort());
 
