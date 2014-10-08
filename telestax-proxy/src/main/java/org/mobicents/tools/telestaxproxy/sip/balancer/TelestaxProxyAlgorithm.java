@@ -206,9 +206,13 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 logger.info("Telestax-Proxy: Node is null. Will check with IP Address");
                 ToHeader toHeader = (ToHeader) request.getHeader("To");
                 String host = ((SipURI)toHeader.getAddress().getURI()).getHost();
-                logger.info("Will try to get the Restcomm instance by Public IP Address: "+host);
+                String toHeaderDid = ((SipURI)toHeader.getAddress().getURI()).getUser();
+                logger.info("Will try to get the Restcomm instance by Public IP Address: "+host+" or with Did: "+toHeaderDid);
                 RestcommInstance restcommInstance = null;
                 restcommInstance = restcommInstanceManager.getInstanceByPublicIpAddress(host);
+                if (restcommInstance == null) {
+                    restcommInstance = phoneNumberManager.getInstanceByDid(did);
+                }
                 if (restcommInstance != null) {
                     for (SIPNode tempNode: invocationContext.nodes) {
                         try {
@@ -224,9 +228,11 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                             logger.info("Exception, did was: "+did, e);
                         }
                     }
+                } else {
+                    logger.info("Node is null");
                 }
                 if(node != null) {
-                    logger.info("Node found for incoming request: "+request.getRequestURI()+"using the ip address. Will route to node: "+node);
+                    logger.info("Node found for incoming request: "+request.getRequestURI()+" using the ip address. Will route to node: "+node);
                     super.callIdMap.put(callId, node);
                 }
                 return node;

@@ -145,8 +145,11 @@ public class VoipInnovationMessageProcessor {
                 Integer statusCode = viAssignResponse.getStatusCode();
                 if(did != null && statusCode == 100){
                     logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+proxyRequest.getViRequest().getEndpointGroup());
-                    RestcommInstance restcomm = new RestcommInstance(proxyRequest.getViRequest().getEndpointGroup(), proxyRequest.getRequest().headers().getAll("OutboundIntf"));
-                    restcommInstanceManager.addRestcommInstance(restcomm);
+                    RestcommInstance restcomm = restcommInstanceManager.getInstanceById(proxyRequest.getViRequest().getEndpointGroup());
+                    if(restcomm == null){
+                        restcomm = new RestcommInstance(proxyRequest.getViRequest().getEndpointGroup(), proxyRequest.getRequest().headers().getAll("OutboundIntf"));
+                        restcommInstanceManager.addRestcommInstance(restcomm);
+                    }
                     DidEntity didEntity = new DidEntity();
                     didEntity.setDid(did);
                     didEntity.setRestcommInstance(restcomm.getId());
