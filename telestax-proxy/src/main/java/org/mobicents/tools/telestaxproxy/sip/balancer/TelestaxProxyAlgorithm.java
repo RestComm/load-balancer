@@ -166,11 +166,17 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
         String transport = ((SipURI)request.getRequestURI()).getTransportParam() == null ? "udp" : ((SipURI)request.getRequestURI()).getTransportParam() ;
-
+        String did = ((SipURI)request.getRequestURI()).getUser();
+        if (did == null || did.equalsIgnoreCase("")){
+            logger.info("Did is null or empty, most probably this is a re-invite without hints in the Route header. Will try to match request to a node using To header");
+            ToHeader toHeader = (ToHeader) request.getHeader("To");
+            did = ((SipURI)toHeader.getAddress().getURI()).getUser();
+            logger.info("Did found: "+did);
+        }
+        
         if (!super.callIdMap.containsKey(callId)) {
             logger.info("Telestax-Proxy: Got new Request: "+request.getMethod()+" "+request.getRequestURI().toString()+" will check which node to dispatch");
             SIPNode node = null;
-            String did = ((SipURI)request.getRequestURI()).getUser();
             if (did != null) {
                 did = did.replaceFirst("\\+1", "");
                 did = did.replaceFirst("^001", "");
