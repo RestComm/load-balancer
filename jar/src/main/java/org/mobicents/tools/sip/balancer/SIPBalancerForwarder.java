@@ -22,14 +22,20 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.core.NameValueList;
 import gov.nist.javax.sip.SipStackImpl;
+import gov.nist.javax.sip.address.SipUri;
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
+import gov.nist.javax.sip.header.Route;
+import gov.nist.javax.sip.header.RouteList;
 import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.SIPMessage;
 import gov.nist.javax.sip.message.SIPResponse;
 
 import java.io.ByteArrayInputStream;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -491,19 +497,35 @@ public class SIPBalancerForwarder implements SipListener {
 
             // https://telestax.atlassian.net/browse/LB-25 improve performance by sending back 100 Trying right away to tame retransmissions.
             if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
-            		requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
-            		requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
-            		requestMethod.equals(Request.UPDATE)) {
-	            try {
-		            Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.TRYING, request);
-		            sipProvider.sendResponse(response);
-	            } catch (SipException e) {
-	                logger.error("Unexpected exception while sending TRYING", e);
-	            } catch (ParseException e) {
-	                logger.error("Unexpected exception while sending TRYING", e);
-	            }
+                    requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
+                    requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
+                    requestMethod.equals(Request.UPDATE)) {
+                try {
+                    Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.TRYING, request);
+                    RouteList routeList = ((SIPMessage)request).getRouteHeaders();
+                    if (routeList != null) {
+                        Route route = (Route)routeList.getFirst();
+                        SipUri sipUri = (SipUri)route.getAddress().getURI();
+                        if (sipUri.toString().contains("node_host") || sipUri.toString().contains("node_port")) {
+                            String nodeHost = sipUri.getParameter("node_host");
+                            int nodePort = Integer.parseInt(sipUri.getParameter("node_port"));
+                            ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+                            viaHeader.setHost(nodeHost);
+                            viaHeader.setPort(nodePort);
+                        }
+                    }
+                    sipProvider.sendResponse(response);
+                } catch (SipException e) {
+                    logger.error("Unexpected exception while sending TRYING", e);
+                } catch (ParseException e) {
+                    logger.error("Unexpected exception while sending TRYING", e);
+                } catch (NumberFormatException e) {
+                    logger.error("Unexpected exception while sending TRYING", e);
+                } catch (InvalidArgumentException e) {
+                    logger.error("Unexpected exception while sending TRYING", e);
+                }
             }
-            
+
             String initialRemoteAddr = message.getPeerPacketSourceAddress().getHostAddress();
             String initialRemotePort = String.valueOf(message.getPeerPacketSourcePort());
 
