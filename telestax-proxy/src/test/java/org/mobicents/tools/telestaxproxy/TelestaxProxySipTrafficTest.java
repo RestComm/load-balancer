@@ -134,7 +134,7 @@ public class TelestaxProxySipTrafficTest {
         properties.setProperty("extraServerNodes", "127.0.0.1:5090,127.0.0.1:5091,127.0.0.1:5092");
         properties.setProperty("performanceTestingMode", "true");
         properties.setProperty("mybatis-config","extra-resources/mybatis.xml");
-//        properties.setProperty("external-ip", "199.199.199.199");
+//        properties.setProperty("public-ip", "199.199.199.199");
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");

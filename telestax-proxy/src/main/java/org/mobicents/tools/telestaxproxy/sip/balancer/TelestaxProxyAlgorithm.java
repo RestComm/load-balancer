@@ -142,7 +142,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         dispatcher = new VoipInnovationMessageProcessor(login,password,endpoint,uri,restcommInstanceManager, phoneNumberManager);
 
-//        externalIP = properties.getProperty("external-ip", super.getBalancerContext().host);
+//        externalIP = properties.getProperty("public-ip", super.getBalancerContext().host);
 
 //        String blockedValues = properties.getProperty("blocked-values", "sipvicious,sipcli,friendly-scanner");
 //        populateBlockedList(blockedValues);

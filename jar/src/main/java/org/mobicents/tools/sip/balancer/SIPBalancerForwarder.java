@@ -397,7 +397,7 @@ public class SIPBalancerForwarder implements SipListener {
                 balancerRunner.balancerContext.internalViaPort = balancerRunner.balancerContext.internalPort;
             }
             
-            balancerRunner.balancerContext.publicIP = balancerRunner.balancerContext.properties.getProperty("external-ip", balancerRunner.balancerContext.host);
+            balancerRunner.balancerContext.publicIP = balancerRunner.balancerContext.properties.getProperty("public-ip", balancerRunner.balancerContext.host);
 
             String blockedValues = balancerRunner.balancerContext.properties.getProperty("blocked-values", "sipvicious,sipcli,friendly-scanner");
             balancerRunner.balancerContext.blockedList = new ArrayList<String>(Arrays.asList(blockedValues.split(",")));
