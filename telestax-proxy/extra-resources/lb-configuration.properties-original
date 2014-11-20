@@ -4,7 +4,7 @@
 # The binding address of the load balancer
 host=YOUR_ETHERNET_IP_ADDRESS_HERE
 # If set, Proxy will use this address to patch responses from Restcomm so subsequent request will reach the proxy
-external-ip=YOUR_PUBLIC_IP_ADDRESS_HERE
+public-ip=YOUR_PUBLIC_IP_ADDRESS_HERE
 
 # The RMI port used for heartbeat signals
 rmiRegistryPort=2000

@@ -108,8 +108,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private DaoManager daoManager;
     private RestcommInstanceDaoManager restcommInstanceManager;
     private PhoneNumberDaoManager phoneNumberManager;
-    private ArrayList<String> blockedList;
-    private String externalIP;
+//    private ArrayList<String> blockedList;
+//    private String externalIP;
 
     @Override
     public void init() {        
@@ -142,27 +142,27 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         dispatcher = new VoipInnovationMessageProcessor(login,password,endpoint,uri,restcommInstanceManager, phoneNumberManager);
 
-        externalIP = properties.getProperty("external-ip", super.getBalancerContext().host);
+//        externalIP = properties.getProperty("public-ip", super.getBalancerContext().host);
 
-        String blockedValues = properties.getProperty("blocked-values", "sipvicious,sipcli,friendly-scanner");
-        populateBlockedList(blockedValues);
+//        String blockedValues = properties.getProperty("blocked-values", "sipvicious,sipcli,friendly-scanner");
+//        populateBlockedList(blockedValues);
 
         super.init();
     }
 
-    /**
-     * @param blockedValues The values should be seperated by comma ","
-     */
-    private void populateBlockedList(String blockedValues) {
-        blockedList = new ArrayList<String>(Arrays.asList(blockedValues.split(",")));
-    }
+//    /**
+//     * @param blockedValues The values should be seperated by comma ","
+//     */
+//    private void populateBlockedList(String blockedValues) {
+//        blockedList = new ArrayList<String>(Arrays.asList(blockedValues.split(",")));
+//    }
 
     @Override
     public SIPNode processExternalRequest(Request request) {
-        if (!securityCheck(request)){
-            logger.warn("Request failed at the security check:\n"+request);
-            return null;
-        }
+//        if (!securityCheck(request)){
+//            logger.warn("Request failed at the security check:\n"+request);
+//            return null;
+//        }
 
         String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
         String transport = ((SipURI)request.getRequestURI()).getTransportParam() == null ? "udp" : ((SipURI)request.getRequestURI()).getTransportParam() ;
@@ -252,80 +252,81 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
     @Override
     public void processInternalResponse(Response response) {
-        //Need to patch the response so it 
-        int port = super.getBalancerContext().externalPort;
-        String contactURI = "sip:"+externalIP+":"+port;
-        String recordRouteURI = "sip:"+externalIP+":"+port+";lr";
-        RecordRouteHeader existingRecordRouteHeader = (RecordRouteHeader) response.getHeader("Record-Route");
-
-        if(existingRecordRouteHeader != null) {
-            SipURI sipURI = (SipURI) existingRecordRouteHeader.getAddress().getURI();
-            String nodeHost = sipURI.getParameter("node_host");
-            String nodePort = sipURI.getParameter("node_port");
-            String nodeVersion = sipURI.getParameter("version");
-            String transport = sipURI.getParameter("transport");
-            if ( nodeHost != null && nodePort != null) {
-                recordRouteURI = recordRouteURI+";transport="+transport+";node_host="+nodeHost+";node_port="+nodePort+";version="+nodeVersion;
-            }
-        }
-
-        Header contactHeader = null;
-        RecordRouteHeader recordRouteHeader = null;
-
-        try {
-            HeaderFactory headerFactory = SipFactory.getInstance().createHeaderFactory(); 
-            AddressFactory addressFactory = SipFactory.getInstance().createAddressFactory();
-            contactHeader = headerFactory.createHeader("Contact", contactURI);
-            Address externalAddress = addressFactory.createAddress(recordRouteURI);
-            recordRouteHeader = headerFactory.createRecordRouteHeader(externalAddress);
-            if (contactHeader != null) {
-                response.removeFirst("Contact");
-                response.addHeader(contactHeader);
-            }
-            if (recordRouteHeader != null) {
-                response.removeHeader("Record-Route");
-                response.addFirst(recordRouteHeader);
-            }
-        } catch (PeerUnavailableException e) {
-            e.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-        } catch (SipException e) {
-            e.printStackTrace();
-        }
-        if (contactHeader != null)
-            logger.info("Patched the Contact header with : "+contactHeader.toString());
-        if (recordRouteHeader != null)
-            logger.info("Added on top : "+recordRouteHeader.toString());
+    	logger.debug("internal response");
+//        //Need to patch the response so it 
+//        int port = super.getBalancerContext().externalPort;
+//        String contactURI = "sip:"+externalIP+":"+port;
+//        String recordRouteURI = "sip:"+externalIP+":"+port+";lr";
+//        RecordRouteHeader existingRecordRouteHeader = (RecordRouteHeader) response.getHeader("Record-Route");
+//
+//        if(existingRecordRouteHeader != null) {
+//            SipURI sipURI = (SipURI) existingRecordRouteHeader.getAddress().getURI();
+//            String nodeHost = sipURI.getParameter("node_host");
+//            String nodePort = sipURI.getParameter("node_port");
+//            String nodeVersion = sipURI.getParameter("version");
+//            String transport = sipURI.getParameter("transport");
+//            if ( nodeHost != null && nodePort != null) {
+//                recordRouteURI = recordRouteURI+";transport="+transport+";node_host="+nodeHost+";node_port="+nodePort+";version="+nodeVersion;
+//            }
+//        }
+//
+//        Header contactHeader = null;
+//        RecordRouteHeader recordRouteHeader = null;
+//
+//        try {
+//            HeaderFactory headerFactory = SipFactory.getInstance().createHeaderFactory(); 
+//            AddressFactory addressFactory = SipFactory.getInstance().createAddressFactory();
+//            contactHeader = headerFactory.createHeader("Contact", contactURI);
+//            Address externalAddress = addressFactory.createAddress(recordRouteURI);
+//            recordRouteHeader = headerFactory.createRecordRouteHeader(externalAddress);
+//            if (contactHeader != null) {
+//                response.removeFirst("Contact");
+//                response.addHeader(contactHeader);
+//            }
+//            if (recordRouteHeader != null) {
+//                response.removeHeader("Record-Route");
+//                response.addFirst(recordRouteHeader);
+//            }
+//        } catch (PeerUnavailableException e) {
+//            e.printStackTrace();
+//        } catch (ParseException e) {
+//            e.printStackTrace();
+//        } catch (NullPointerException e) {
+//            e.printStackTrace();
+//        } catch (SipException e) {
+//            e.printStackTrace();
+//        }
+//        if (contactHeader != null)
+//            logger.info("Patched the Contact header with : "+contactHeader.toString());
+//        if (recordRouteHeader != null)
+//            logger.info("Added on top : "+recordRouteHeader.toString());
     }
 
-    /**
-     * @param request
-     * @return
-     */
-    private boolean securityCheck(Request request) {
-        //        User-Agent: sipcli/v1.8
-        //        User-Agent: friendly-scanner
-        //        To: "sipvicious" <sip:100@1.1.1.1>
-        //        From: "sipvicious" <sip:100@1.1.1.1>;tag=3336353363346565313363340133313330323436343236
-        //        From: "1" <sip:1@87.202.36.237>;tag=3e7a78de
-        Header userAgentHeader = request.getHeader("User-Agent");
-        Header toHeader = request.getHeader("To");
-        Header fromHeader = request.getHeader("From");
-
-        for (String blockedValue: blockedList){
-            if(userAgentHeader != null && userAgentHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
-                return false;
-            } else if (toHeader != null && toHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
-                return false;
-            } else if (fromHeader != null && fromHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
-                return false;
-            }
-        }
-        return true;
-    }
+//    /**
+//     * @param request
+//     * @return
+//     */
+//    private boolean securityCheck(Request request) {
+//        //        User-Agent: sipcli/v1.8
+//        //        User-Agent: friendly-scanner
+//        //        To: "sipvicious" <sip:100@1.1.1.1>
+//        //        From: "sipvicious" <sip:100@1.1.1.1>;tag=3336353363346565313363340133313330323436343236
+//        //        From: "1" <sip:1@87.202.36.237>;tag=3e7a78de
+//        Header userAgentHeader = request.getHeader("User-Agent");
+//        Header toHeader = request.getHeader("To");
+//        Header fromHeader = request.getHeader("From");
+//
+//        for (String blockedValue: blockedList){
+//            if(userAgentHeader != null && userAgentHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
+//                return false;
+//            } else if (toHeader != null && toHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
+//                return false;
+//            } else if (fromHeader != null && fromHeader.toString().toLowerCase().contains(blockedValue.toLowerCase())) {
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
     @Override
     public void proxyMessage(ChannelHandlerContext ctx, MessageEvent e){
