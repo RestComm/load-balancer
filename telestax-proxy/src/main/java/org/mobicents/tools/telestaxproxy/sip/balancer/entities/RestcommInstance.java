@@ -20,9 +20,10 @@
  */
 package org.mobicents.tools.telestaxproxy.sip.balancer.entities;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 
 
 /**
@@ -32,6 +33,7 @@ import java.util.List;
 public class RestcommInstance {
     
     private String id;
+    private ProvisionProvider provisionProvider;
     private String publicIpAddress;
     private String udpInterface;
     private String tcpInterface;
@@ -50,9 +52,14 @@ public class RestcommInstance {
         this.addresses = addresses;
     }
     
-    public RestcommInstance(final String restcommInstanceId, final List<String> addresses, final String publicIpAddress) {
+    public RestcommInstance(final String restcommInstanceId, final String provisionProvider, final List<String> addresses, final String publicIpAddress) {
         this.publicIpAddress = publicIpAddress;
         this.id = restcommInstanceId;
+        if (provisionProvider.toLowerCase().contains("voipinnovations")) {
+            this.setProvisionProvider(ProvisionProvider.VOIPINNOVATIONS);
+        } else if (provisionProvider.toLowerCase().contains("Bandwidth")) {
+            this.setProvisionProvider(ProvisionProvider.BANDWIDTH);
+        }
         prepareOutboundInterfaces(addresses);
         dateCreated = new Date();
         this.addresses = addresses;
@@ -77,6 +84,14 @@ public class RestcommInstance {
 
     public String getId() {
         return id;
+    }
+    
+    public ProvisionProvider getProvisionProvider() {
+        return provisionProvider;
+    }
+
+    public void setProvisionProvider(ProvisionProvider provisionProvider) {
+        this.provisionProvider = provisionProvider;
     }
 
     public String getPublicIpAddress() {

@@ -285,6 +285,7 @@ public class TelestaxProxyMessageTests {
                 .withRequestBody(containing("ping"))
                 .withRequestBody(containing("username13"))
                 .withRequestBody(containing("password13"))
+                .withRequestBody(containing("org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager"))
 //                .withRequestBody(containing("131313"))
                 .willReturn(aResponse()
                         .withStatus(200)));
@@ -300,6 +301,7 @@ public class TelestaxProxyMessageTests {
         buffer.append("<requesttype>").append("ping").append("</requesttype>");
         buffer.append("<item>");
         buffer.append("<endpointgroup>").append("Restcomm_Instance_Id").append("</endpointgroup>");
+        buffer.append("<provider>").append("org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager").append("</provider>");
         buffer.append("</item>");
         buffer.append("</body>");
         buffer.append("</request>");

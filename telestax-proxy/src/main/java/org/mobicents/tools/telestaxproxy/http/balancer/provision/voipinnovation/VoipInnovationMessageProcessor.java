@@ -19,7 +19,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation;
 
 
 
@@ -36,9 +36,7 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
 import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationAssignDidResponse;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationReleaseDidResponse;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProxyRequest;
 import org.mobicents.tools.telestaxproxy.sip.balancer.HostUtil;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.DidEntity;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
@@ -144,10 +142,10 @@ public class VoipInnovationMessageProcessor {
                 String did = viAssignResponse.getTN();
                 Integer statusCode = viAssignResponse.getStatusCode();
                 if(did != null && statusCode == 100){
-                    logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+proxyRequest.getViRequest().getEndpointGroup());
-                    RestcommInstance restcomm = restcommInstanceManager.getInstanceById(proxyRequest.getViRequest().getEndpointGroup());
+                    logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+proxyRequest.getProvisionRequest().getEndpointGroup());
+                    RestcommInstance restcomm = restcommInstanceManager.getInstanceById(proxyRequest.getProvisionRequest().getEndpointGroup());
                     if(restcomm == null){
-                        restcomm = new RestcommInstance(proxyRequest.getViRequest().getEndpointGroup(), proxyRequest.getRequest().headers().getAll("OutboundIntf"));
+                        restcomm = new RestcommInstance(proxyRequest.getProvisionRequest().getEndpointGroup(), proxyRequest.getRequest().headers().getAll("OutboundIntf"));
                         restcommInstanceManager.addRestcommInstance(restcomm);
                     }
                     DidEntity didEntity = new DidEntity();
@@ -164,7 +162,7 @@ public class VoipInnovationMessageProcessor {
                 String did = viReleaseResponse.getTN();
                 Integer statusCode = viReleaseResponse.getStatusCode();
                 if(did != null && statusCode == 100){
-                    logger.info("Release DID request to VI was succesfully executed. Will now remove the DID: "+did+" ,from the map for Restcomm instance: "+proxyRequest.getViRequest().getEndpointGroup());
+                    logger.info("Release DID request to VI was succesfully executed. Will now remove the DID: "+did+" ,from the map for Restcomm instance: "+proxyRequest.getProvisionRequest().getEndpointGroup());
                     phoneNumberManager.removeDid(did);
                 }
             }

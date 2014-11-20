@@ -18,7 +18,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.common;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
@@ -33,13 +33,13 @@ public class ProxyRequest {
     private final ChannelHandlerContext context;
     private final MessageEvent event;
     private final HttpRequest request;
-    private final VoipInnovationRequest viRequest;
+    private final ProvisionRequest provisionRequest;
 
-    public ProxyRequest(final ChannelHandlerContext context, final MessageEvent event, final HttpRequest request, final VoipInnovationRequest viRequest) {
+    public ProxyRequest(final ChannelHandlerContext context, final MessageEvent event, final HttpRequest request, final ProvisionRequest provisionRequest) {
         this.context = context;
         this.event = event;
         this.request = request;
-        this.viRequest = viRequest;
+        this.provisionRequest = provisionRequest;
     }
 
     public ChannelHandlerContext getContext() {
@@ -54,7 +54,7 @@ public class ProxyRequest {
         return request;
     }
 
-    public VoipInnovationRequest getViRequest() {
-        return viRequest;
+    public ProvisionRequest getProvisionRequest() {
+        return provisionRequest;
     }
 }

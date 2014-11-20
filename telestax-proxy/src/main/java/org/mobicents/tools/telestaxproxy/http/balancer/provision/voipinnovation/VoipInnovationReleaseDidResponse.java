@@ -18,14 +18,11 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import com.thoughtworks.xstream.annotations.XStreamAlias;
-import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
@@ -33,40 +30,27 @@ import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
  */
 @XmlRootElement(name="response")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class VoipInnovationResponse {
-
-    private Header header;
+public class VoipInnovationReleaseDidResponse extends VoipInnovationResponse {
     
-    @XStreamAlias("id")
-    @XStreamAsAttribute
-    private String id;
+    private Body body;
     
-    public Header getHeader() {
-        return header;
+    public String getTN() {
+        return body.did.TN;
     }
-
-    public void setHeader(Header header) {
-        this.header = header;
+    
+    public Integer getStatusCode() {
+        return Integer.valueOf(body.did.statuscode);
     }
-
-    public String getId() {
-        return id;
+    
+    private class Body {
+        private Did did;
     }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    private class Header {
-        private String sessionid;
-
-        public String getSessionid() {
-            return sessionid;
-        }
-
-        public void setSessionid(String sessionid) {
-            this.sessionid = sessionid;
-        } 
+    
+    @SuppressWarnings("unused")
+    private class Did {
+        private String TN;
+        private String status;
+        private String statuscode;
     }
 }
 

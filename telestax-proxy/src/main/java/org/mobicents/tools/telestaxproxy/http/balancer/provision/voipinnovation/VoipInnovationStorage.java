@@ -18,12 +18,12 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProxyRequest;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>

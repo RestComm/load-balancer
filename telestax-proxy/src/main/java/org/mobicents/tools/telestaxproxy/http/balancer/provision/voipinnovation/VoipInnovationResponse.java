@@ -18,7 +18,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -31,44 +31,42 @@ import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-@XmlRootElement(name="request")
+@XmlRootElement(name="response")
 @XmlAccessorType(XmlAccessType.FIELD)
-@SuppressWarnings("unused")
-public class VoipInnovationRequest {
+public class VoipInnovationResponse {
 
     private Header header;
-
+    
     @XStreamAlias("id")
     @XStreamAsAttribute
     private String id;
-    private Body body;
+    
+    public Header getHeader() {
+        return header;
+    }
+
+    public void setHeader(Header header) {
+        this.header = header;
+    }
 
     public String getId() {
-        return this.id;
+        return id;
     }
-    
-    public String getEndpointGroup() {
-        return this.body.item.endpointgroup;
+
+    public void setId(String id) {
+        this.id = id;
     }
-    
-    public String getRequestType() {
-        return this.body.requesttype;
-    }
-    
+
     private class Header {
-        private String username;
-        private String password;
-    }
-    
-    private class Body {
-        private String requesttype;
-        private Item item;
-    }
-    
-    private class Item {
-        private String did;
-        private String refid;
-        private String endpointgroup;
-        private String cnam;
+        private String sessionid;
+
+        public String getSessionid() {
+            return sessionid;
+        }
+
+        public void setSessionid(String sessionid) {
+            this.sessionid = sessionid;
+        } 
     }
 }
+

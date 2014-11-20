@@ -18,7 +18,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -30,8 +30,8 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name="response")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class VoipInnovationReleaseDidResponse extends VoipInnovationResponse {
-    
+public class VoipInnovationAssignDidResponse extends VoipInnovationResponse {
+
     private Body body;
     
     public String getTN() {
@@ -41,7 +41,7 @@ public class VoipInnovationReleaseDidResponse extends VoipInnovationResponse {
     public Integer getStatusCode() {
         return Integer.valueOf(body.did.statuscode);
     }
-    
+
     private class Body {
         private Did did;
     }
@@ -51,6 +51,9 @@ public class VoipInnovationReleaseDidResponse extends VoipInnovationResponse {
         private String TN;
         private String status;
         private String statuscode;
+        private String refid;
+        private String cnam;
+        private String tier;
     }
 }
 
