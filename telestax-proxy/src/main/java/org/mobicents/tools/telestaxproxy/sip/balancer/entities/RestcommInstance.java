@@ -33,7 +33,7 @@ import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.Provisio
 public class RestcommInstance {
     
     private String id;
-    private ProvisionProvider provisionProvider;
+    private ProvisionProvider.PROVIDER provisionProvider;
     private String publicIpAddress;
     private String udpInterface;
     private String tcpInterface;
@@ -55,10 +55,10 @@ public class RestcommInstance {
     public RestcommInstance(final String restcommInstanceId, final String provisionProvider, final List<String> addresses, final String publicIpAddress) {
         this.publicIpAddress = publicIpAddress;
         this.id = restcommInstanceId;
-        if (provisionProvider.toLowerCase().contains("voipinnovations")) {
-            this.setProvisionProvider(ProvisionProvider.VOIPINNOVATIONS);
-        } else if (provisionProvider.toLowerCase().contains("Bandwidth")) {
-            this.setProvisionProvider(ProvisionProvider.BANDWIDTH);
+        if (provisionProvider.equalsIgnoreCase(ProvisionProvider.voipinnovationsClass)) {
+            this.setProvisionProvider(ProvisionProvider.PROVIDER.VOIPINNOVATIONS);
+        } else if (provisionProvider.equalsIgnoreCase(ProvisionProvider.bandiwidthClass)) {
+            this.setProvisionProvider(ProvisionProvider.PROVIDER.BANDWIDTH);
         }
         prepareOutboundInterfaces(addresses);
         dateCreated = new Date();
@@ -86,11 +86,11 @@ public class RestcommInstance {
         return id;
     }
     
-    public ProvisionProvider getProvisionProvider() {
+    public ProvisionProvider.PROVIDER getProvisionProvider() {
         return provisionProvider;
     }
 
-    public void setProvisionProvider(ProvisionProvider provisionProvider) {
+    public void setProvisionProvider(ProvisionProvider.PROVIDER provisionProvider) {
         this.provisionProvider = provisionProvider;
     }
 
@@ -154,6 +154,6 @@ public class RestcommInstance {
 
     @Override
     public String toString() {
-        return "<Restcomm instance id: "+id+" | publicIpAddress: "+publicIpAddress+" | interfaces: "+addresses+" | Date created: "+dateCreated+">";
+        return "<Restcomm instance id: "+id+" | publicIpAddress: "+publicIpAddress+" | interfaces: "+addresses+" | Provider: "+provisionProvider.name()+" | Date created: "+dateCreated+">";
     }
 }

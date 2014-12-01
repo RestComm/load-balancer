@@ -18,14 +18,14 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.provision.common;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class ProvisionProvider {
-    public static enum PROVIDER {VOIPINNOVATIONS,BANDWIDTH};
-    public static String voipinnovationsClass = "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager";
-    public static String bandiwidthClass = "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager";
+public class VoipInnovationRequestHandler {
+
+    
+    
 }

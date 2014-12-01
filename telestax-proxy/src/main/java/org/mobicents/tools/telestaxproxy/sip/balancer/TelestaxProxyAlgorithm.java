@@ -31,23 +31,12 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLException;
-import javax.sip.PeerUnavailableException;
-import javax.sip.SipException;
-import javax.sip.SipFactory;
-import javax.sip.address.Address;
-import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
-import javax.sip.header.Header;
-import javax.sip.header.HeaderFactory;
-import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -84,11 +73,12 @@ import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.telestaxproxy.dao.DaoManager;
 import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
 import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationMessageProcessor;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationStorage;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.VoipInnovationRequest;
-import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationResponse;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProxyRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationMessageProcessor;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationResponse;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationStorage;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
 import com.thoughtworks.xstream.XStream;
@@ -108,8 +98,6 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private DaoManager daoManager;
     private RestcommInstanceDaoManager restcommInstanceManager;
     private PhoneNumberDaoManager phoneNumberManager;
-//    private ArrayList<String> blockedList;
-//    private String externalIP;
 
     @Override
     public void init() {        
@@ -255,7 +243,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
     @Override
     public void processInternalResponse(Response response) {
-    	logger.debug("internal response");
+      logger.debug("internal response");
 //        //Need to patch the response so it 
 //        int port = super.getBalancerContext().externalPort;
 //        String contactURI = "sip:"+externalIP+":"+port;
@@ -338,21 +326,29 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         xstream = new XStream();
         xstream.ignoreUnknownElements();
-        xstream.alias("request", VoipInnovationRequest.class);
-        xstream.processAnnotations(VoipInnovationRequest.class);
+        xstream.alias("request", ProvisionRequest.class);
+        xstream.processAnnotations(ProvisionRequest.class);
         String body = getContent(originalRequest).replaceFirst("apidata=", "");
-        VoipInnovationRequest viRequest = (VoipInnovationRequest) xstream.fromXML(body);
+        ProvisionRequest provisionRequest = (ProvisionRequest) xstream.fromXML(body);
 
-        if(viRequest.getRequestType().equalsIgnoreCase("ping")){
+        if(provisionRequest.getRequestType().equalsIgnoreCase("ping")){
             pong(ctx, e, originalRequest);
-            RestcommInstance restcomm = new RestcommInstance(viRequest.getEndpointGroup(), originalRequest.headers().getAll("OutboundIntf"), originalRequest.headers().get("PublicIpAddress"));
+            RestcommInstance restcomm = new RestcommInstance(provisionRequest.getEndpointGroup(), provisionRequest.getProvider(), originalRequest.headers().getAll("OutboundIntf"), originalRequest.headers().get("PublicIpAddress"));
             restcommInstanceManager.addRestcommInstance(restcomm);
             logger.info("Received PING request from Restcomm Instance: "+restcomm);
             return;
         }
-
-        ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, viRequest);
-        VoipInnovationStorage.getStorage().addRequestToMap(viRequest.getId(), proxyRequest);
+        
+        ProvisionProvider.PROVIDER provider;
+        String providerClass = originalRequest.headers().get("Provider");
+        if (providerClass.equalsIgnoreCase(ProvisionProvider.voipinnovationsClass)) {
+            provider = ProvisionProvider.PROVIDER.VOIPINNOVATIONS;
+        } else if (providerClass.equalsIgnoreCase(ProvisionProvider.bandiwidthClass)) {
+            provider = ProvisionProvider.PROVIDER.BANDWIDTH;
+        }
+        
+        ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, provisionRequest);
+        VoipInnovationStorage.getStorage().addRequestToMap(provisionRequest.getId(), proxyRequest);
 
         final HttpRequest request = dispatcher.patchHttpRequest(originalRequest);
 
