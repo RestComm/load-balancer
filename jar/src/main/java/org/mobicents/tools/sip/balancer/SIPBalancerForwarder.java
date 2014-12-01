@@ -968,7 +968,7 @@ public class SIPBalancerForwarder implements SipListener {
         } else {
             // Check if the next hop is actually the load balancer again
             if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
-            request.addHeader(viaHeaderExternal); 
+            if(viaHeaderExternal != null) request.addHeader(viaHeaderExternal); 
             balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
         }
     }

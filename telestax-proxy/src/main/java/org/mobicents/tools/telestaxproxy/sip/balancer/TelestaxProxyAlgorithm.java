@@ -84,11 +84,11 @@ import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.telestaxproxy.dao.DaoManager;
 import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
 import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionRequest;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProxyRequest;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationMessageProcessor;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationResponse;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationStorage;
+import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationMessageProcessor;
+import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.VoipInnovationStorage;
+import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.ProxyRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.request.VoipInnovationRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.voipinnovation.entities.responses.VoipInnovationResponse;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
 import com.thoughtworks.xstream.XStream;
@@ -240,8 +240,11 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 if(node != null) {
                     logger.info("Node found for incoming request: "+request.getRequestURI()+" using the ip address. Will route to node: "+node);
                     super.callIdMap.put(callId, node);
+                    return node;
+                } else {
+                    logger.info("Going to super for node selection");
+                    return super.processExternalRequest(request);
                 }
-                return node;
             }
         } else {
             logger.info("Telestax-Proxy: Calld-id is already known, going to super for node selection");
@@ -335,21 +338,21 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         xstream = new XStream();
         xstream.ignoreUnknownElements();
-        xstream.alias("request", ProvisionRequest.class);
-        xstream.processAnnotations(ProvisionRequest.class);
+        xstream.alias("request", VoipInnovationRequest.class);
+        xstream.processAnnotations(VoipInnovationRequest.class);
         String body = getContent(originalRequest).replaceFirst("apidata=", "");
-        ProvisionRequest provisionRequest = (ProvisionRequest) xstream.fromXML(body);
+        VoipInnovationRequest viRequest = (VoipInnovationRequest) xstream.fromXML(body);
 
-        if(provisionRequest.getRequestType().equalsIgnoreCase("ping")){
+        if(viRequest.getRequestType().equalsIgnoreCase("ping")){
             pong(ctx, e, originalRequest);
-            RestcommInstance restcomm = new RestcommInstance(provisionRequest.getEndpointGroup(), provisionRequest.getProvider(), originalRequest.headers().getAll("OutboundIntf"), originalRequest.headers().get("PublicIpAddress"));
+            RestcommInstance restcomm = new RestcommInstance(viRequest.getEndpointGroup(), originalRequest.headers().getAll("OutboundIntf"), originalRequest.headers().get("PublicIpAddress"));
             restcommInstanceManager.addRestcommInstance(restcomm);
             logger.info("Received PING request from Restcomm Instance: "+restcomm);
             return;
         }
 
-        ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, provisionRequest);
-        VoipInnovationStorage.getStorage().addRequestToMap(provisionRequest.getId(), proxyRequest);
+        ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, viRequest);
+        VoipInnovationStorage.getStorage().addRequestToMap(viRequest.getId(), proxyRequest);
 
         final HttpRequest request = dispatcher.patchHttpRequest(originalRequest);
 
