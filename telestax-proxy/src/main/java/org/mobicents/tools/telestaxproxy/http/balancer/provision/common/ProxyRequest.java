@@ -23,6 +23,7 @@ package org.mobicents.tools.telestaxproxy.http.balancer.provision.common;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationProvisionRequest;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
@@ -33,13 +34,21 @@ public class ProxyRequest {
     private final ChannelHandlerContext context;
     private final MessageEvent event;
     private final HttpRequest request;
-    private final ProvisionRequest provisionRequest;
+    private VoipInnovationProvisionRequest viProvisionRequest;
+    private HttpRequest bwHttpRequest;
 
-    public ProxyRequest(final ChannelHandlerContext context, final MessageEvent event, final HttpRequest request, final ProvisionRequest provisionRequest) {
+    public ProxyRequest(final ChannelHandlerContext context, final MessageEvent event, final HttpRequest request, final VoipInnovationProvisionRequest viProvisionRequest) {
         this.context = context;
         this.event = event;
         this.request = request;
-        this.provisionRequest = provisionRequest;
+        this.viProvisionRequest = viProvisionRequest;
+    }
+    
+    public ProxyRequest(final ChannelHandlerContext context, final MessageEvent event, final HttpRequest request, final HttpRequest bwHttpRequest) {
+        this.context = context;
+        this.event = event;
+        this.request = request;
+        this.bwHttpRequest = bwHttpRequest;
     }
 
     public ChannelHandlerContext getContext() {
@@ -54,7 +63,7 @@ public class ProxyRequest {
         return request;
     }
 
-    public ProvisionRequest getProvisionRequest() {
-        return provisionRequest;
+    public VoipInnovationProvisionRequest getProvisionRequest() {
+        return viProvisionRequest;
     }
 }

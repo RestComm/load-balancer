@@ -52,14 +52,10 @@ public class RestcommInstance {
         this.addresses = addresses;
     }
     
-    public RestcommInstance(final String restcommInstanceId, final String provisionProvider, final List<String> addresses, final String publicIpAddress) {
+    public RestcommInstance(final String restcommInstanceId, final ProvisionProvider.PROVIDER provisionProvider, final List<String> addresses, final String publicIpAddress) {
         this.publicIpAddress = publicIpAddress;
         this.id = restcommInstanceId;
-        if (provisionProvider.equalsIgnoreCase(ProvisionProvider.voipinnovationsClass)) {
-            this.setProvisionProvider(ProvisionProvider.PROVIDER.VOIPINNOVATIONS);
-        } else if (provisionProvider.equalsIgnoreCase(ProvisionProvider.bandiwidthClass)) {
-            this.setProvisionProvider(ProvisionProvider.PROVIDER.BANDWIDTH);
-        }
+        this.provisionProvider = provisionProvider;
         prepareOutboundInterfaces(addresses);
         dateCreated = new Date();
         this.addresses = addresses;

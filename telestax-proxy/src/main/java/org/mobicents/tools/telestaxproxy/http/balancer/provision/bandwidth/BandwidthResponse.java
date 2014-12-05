@@ -18,62 +18,18 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.tools.telestaxproxy.http.balancer.provision.common;
+package org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.thoughtworks.xstream.annotations.XStreamAlias;
-import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
-
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-@XmlRootElement(name="request")
+@XmlRootElement(name="response")
 @XmlAccessorType(XmlAccessType.FIELD)
-@SuppressWarnings("unused")
-public class ProvisionRequest {
+public class BandwidthResponse {
 
-    private Header header;
-
-    @XStreamAlias("id")
-    @XStreamAsAttribute
-    private String id;
-    private Body body;
-
-    public String getId() {
-        return this.id;
-    }
-    
-    public String getEndpointGroup() {
-        return this.body.item.endpointgroup;
-    }
-    
-    public String getRequestType() {
-        return this.body.requesttype;
-    }
-    
-    public String getProvider() {
-        return this.body.item.provider;
-    }
-    
-    private class Header {
-        private String username;
-        private String password;
-    }
-    
-    private class Body {
-        private String requesttype;
-        private Item item;
-    }
-    
-    private class Item {
-        private String did;
-        private String refid;
-        private String endpointgroup;
-        private String provider;
-        private String cnam;
-    }
 }
