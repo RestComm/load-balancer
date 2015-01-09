@@ -32,6 +32,7 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
 /**
@@ -73,7 +74,7 @@ public class RestcommInstanceDaoTest {
         addresses.add("127.0.0.1:5080:tcp");
         addresses.add("127.0.0.1:5081:tls");
         addresses.add("127.0.0.1:5082:ws");
-        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
         
         instanceDao.addRestcommInstance(restcomm);
         
@@ -90,7 +91,7 @@ public class RestcommInstanceDaoTest {
         addresses.add("127.0.0.1:5080:tcp");
         addresses.add("127.0.0.1:5081:tls");
         addresses.add("127.0.0.1:5082:ws");
-        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
         
         instanceDao.addRestcommInstance(restcomm);
         
@@ -107,7 +108,7 @@ public class RestcommInstanceDaoTest {
         addresses.add("192.168.1.70:5080:tcp");
         addresses.add("192.168.1.70:5081:tls");
         addresses.add("192.168.1.70:5082:ws");
-        RestcommInstance updatedRestcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance updatedRestcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
         
         instanceDao.addRestcommInstance(updatedRestcomm);
         

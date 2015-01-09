@@ -36,6 +36,7 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
 import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProxyRequest;
 import org.mobicents.tools.telestaxproxy.sip.balancer.HostUtil;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.DidEntity;
@@ -142,15 +143,16 @@ public class VoipInnovationMessageProcessor {
                 String did = viAssignResponse.getTN();
                 Integer statusCode = viAssignResponse.getStatusCode();
                 if(did != null && statusCode == 100){
-                    logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+proxyRequest.getProvisionRequest().getEndpointGroup());
                     RestcommInstance restcomm = restcommInstanceManager.getInstanceById(proxyRequest.getProvisionRequest().getEndpointGroup());
                     if(restcomm == null){
-                        restcomm = new RestcommInstance(proxyRequest.getProvisionRequest().getEndpointGroup(), proxyRequest.getRequest().headers().getAll("OutboundIntf"));
+                        restcomm = new RestcommInstance(proxyRequest.getProvisionRequest().getEndpointGroup(), 
+                                proxyRequest.getRequest().headers().getAll("OutboundIntf"), ProvisionProvider.PROVIDER.VOIPINNOVATIONS);
                         restcommInstanceManager.addRestcommInstance(restcomm);
                     }
                     DidEntity didEntity = new DidEntity();
                     didEntity.setDid(did);
                     didEntity.setRestcommInstance(restcomm.getId());
+                    logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+restcomm.toString());
                     phoneNumberManager.addDid(didEntity);
                 }
             } else if (proxyRequest.getRequest().headers().get("RequestType").equals(RequestType.ReleaseDid.name())) {
@@ -162,8 +164,11 @@ public class VoipInnovationMessageProcessor {
                 String did = viReleaseResponse.getTN();
                 Integer statusCode = viReleaseResponse.getStatusCode();
                 if(did != null && statusCode == 100){
-                    logger.info("Release DID request to VI was succesfully executed. Will now remove the DID: "+did+" ,from the map for Restcomm instance: "+proxyRequest.getProvisionRequest().getEndpointGroup());
-                    phoneNumberManager.removeDid(did);
+                    RestcommInstance restcomm = phoneNumberManager.getInstanceByDid(did);
+                    if (restcomm != null) {
+                        logger.info("Release DID request to VI was succesfully executed. Will now remove the DID: "+did+" ,from the map for Restcomm instance: "+restcomm.toString());
+                        phoneNumberManager.removeDid(did);
+                    }
                 }
             }
         } else {

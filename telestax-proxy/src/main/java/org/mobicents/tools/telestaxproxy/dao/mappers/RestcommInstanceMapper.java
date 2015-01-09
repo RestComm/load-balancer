@@ -33,8 +33,8 @@ import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
  */
 public abstract interface RestcommInstanceMapper {
 
-    public static final String INSERT = "INSERT INTO restcomm_instances (id, publicIpAddress, udpInterface, tcpInterface, tlsInterface, wsInterface, dateCreated) "
-            + "VALUES (#{id}, #{publicIpAddress}, #{udpInterface}, #{tcpInterface}, #{tlsInterface}, #{wsInterface},#{dateCreated})";
+    public static final String INSERT = "INSERT INTO restcomm_instances (id, publicIpAddress, udpInterface, tcpInterface, tlsInterface, wsInterface, dateCreated, provisionProvider) "
+            + "VALUES (#{id}, #{publicIpAddress}, #{udpInterface}, #{tcpInterface}, #{tlsInterface}, #{wsInterface},#{dateCreated}, #{provisionProvider})";
     public static final String SELECT_BY_ID = "SELECT * FROM restcomm_instances WHERE id=#{id}";
     public static final String SELECT_BY_PUBLIC_ADDRESS = "SELECT * FROM restcomm_instances WHERE publicIpAddress=#{publicIpAddress}";
     public static final String SELECT_BY_UDP_INTERFACE = "SELECT * FROM restcomm_instances WHERE udpInterface=#{udpInterface}";
@@ -42,7 +42,7 @@ public abstract interface RestcommInstanceMapper {
     public static final String SELECT_BY_TLS_INTERFACE = "SELECT * FROM restcomm_instances WHERE tlsInterface=#{tlsInterface}";
     public static final String SELECT_BY_WS_INTERFACE = "SELECT * FROM restcomm_instances WHERE wsInterface=#{wsInterface}";
     public static final String UPDATE = "UPDATE restcomm_instances SET publicIpAddress=#{publicIpAddress}, udpInterface=#{udpInterface}, tcpInterface=#{tcpInterface}, tlsInterface=#{tlsInterface},"
-            + " wsInterface=#{wsInterface}, dateCreated=#{dateCreated}  WHERE id=#{id}";
+            + " wsInterface=#{wsInterface}, dateCreated=#{dateCreated}, provisionProvider=#{provisionProvider}  WHERE id=#{id}";
 
     @Insert(INSERT)
     public abstract void addRestcommInstance(RestcommInstance restcommInstance);

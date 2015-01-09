@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.DidEntity;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
@@ -73,7 +74,7 @@ public class PhoneNumberDaoTest {
         addresses.add("127.0.0.1:5080:tcp");
         addresses.add("127.0.0.1:5081:tls");
         addresses.add("127.0.0.1:5082:ws");
-        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
 
         DidEntity did = new DidEntity();
         did.setDid(didNumber);
@@ -98,7 +99,7 @@ public class PhoneNumberDaoTest {
 
         List<String> addresses = new ArrayList<String>();
         addresses.add("127.0.0.1:5080:udp");
-        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
 
         DidEntity did = new DidEntity();
         did.setDid(didNumber);
@@ -126,7 +127,7 @@ public class PhoneNumberDaoTest {
         addresses.add("127.0.0.1:5080:tcp");
         addresses.add("127.0.0.1:5081:tls");
         addresses.add("127.0.0.1:5082:ws");
-        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
 
         DidEntity did = new DidEntity();
         did.setDid(didNumber);
@@ -153,7 +154,7 @@ public class PhoneNumberDaoTest {
         addresses.add("127.0.0.1:5080:tcp");
         addresses.add("127.0.0.1:5081:tls");
         addresses.add("127.0.0.1:5082:ws");
-        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
 
         logger.info("Will add restcomm instance: "+restcomm);
         instanceDao.addRestcommInstance(restcomm);
@@ -182,7 +183,7 @@ public class PhoneNumberDaoTest {
         addresses.add("127.0.0.1:5080:tcp");
         addresses.add("127.0.0.1:5081:tls");
         addresses.add("127.0.0.1:5082:ws");
-        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses);
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN);
 
         logger.info("Will add restcomm instance: "+restcomm);
         instanceDao.addRestcommInstance(restcomm);

@@ -22,12 +22,29 @@ package org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
+@XmlRootElement(name="SearchResult")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BandwidthResponse {
+public class BandwidthSearchResponse extends BandwidthResponse{
 
+    @XStreamAlias("ResultCount")
+    @XStreamAsAttribute
+    private String resultCount;
+
+
+    public String getResultCount() {
+        return resultCount;
+    }
+
+    public void setResultCount(String resultCount) {
+        this.resultCount = resultCount;
+    }
 }

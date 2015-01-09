@@ -20,14 +20,14 @@
   </appender> 
 
 <category name="org.mobicents">
-     <priority value="INFO" />
+     <priority value="DEBUG" />
    </category>
    <category name="gov.nist">
      <priority value="INFO" />
    </category>
 
   <root> 
-    <priority value ="INFO" />     
+    <priority value ="DEBUG" />     
     <appender-ref ref="console" />
     <appender-ref ref="file" />
   </root>   

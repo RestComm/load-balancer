@@ -22,7 +22,6 @@
 package org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 
@@ -35,16 +34,12 @@ import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMessage;
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.QueryStringDecoder;
 import org.jboss.netty.util.CharsetUtil;
 import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
 import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProxyRequest;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationAssignDidResponse;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationReleaseDidResponse;
-import org.mobicents.tools.telestaxproxy.sip.balancer.HostUtil;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.DidEntity;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
 
@@ -58,9 +53,9 @@ public class BandwidthMessageProcessor {
 
     private static Logger logger = Logger.getLogger(BandwidthMessageProcessor.class);
 
-    static enum RequestType {
-        GetAvailablePhoneNumbersByAreaCode, AssignDid, IsValidDid, ReleaseDid
-    };
+    //    static enum RequestType {
+    //        Search, Order, IsValidDid, ReleaseDid
+    //    };
 
     private String login;
     private String password;
@@ -91,7 +86,7 @@ public class BandwidthMessageProcessor {
         // xstream.ignoreUnknownElements();
     }
 
-    public HttpRequest patchHttpRequest(HttpRequest request) {
+    public HttpRequest patchHttpRequest(HttpRequest request) throws Exception {
         //String requestType = request.headers().get("RequestType");
         ProvisionProvider.REQUEST_TYPE requestType = ProvisionProvider.REQUEST_TYPE.valueOf(request.headers().get("RequestType").toUpperCase());
         HttpRequest newRequest = null;
@@ -135,111 +130,134 @@ public class BandwidthMessageProcessor {
                 ChannelBuffer authChannelBuffer = ChannelBuffers.copiedBuffer(authString, CharsetUtil.UTF_8);
                 ChannelBuffer encodedAuthChannelBuffer = Base64.encode(authChannelBuffer);
                 newRequest.headers().add(HttpHeaders.Names.AUTHORIZATION, "Basic "+encodedAuthChannelBuffer.toString(CharsetUtil.UTF_8));
+                newRequest.headers().add("Connection", "Keep-Alive");
                 return newRequest;
 
             } catch (Exception e) {
                 logger.error("Exception while patching request: "+request+" : "+e);
+                throw new Exception(e);
             }
         } else if(requestType.equals(ProvisionProvider.REQUEST_TYPE.ASSIGNDID)) {
-            
-        }
-
-        String body = getContent(request);
-
-        if (body != null) {
+            QueryStringDecoder decoder = new QueryStringDecoder(request.getUri());
             try {
-                body = URLDecoder.decode(body, "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                logger.error("There was a problem to decode the Request's content ", e);
-            }
+                URIBuilder builder = new URIBuilder(this.uri);
+                builder.setPath("/v1.0/accounts/" + this.accountId + "/orders");
 
-            if (logger.isDebugEnabled()) {
-                logger.info("Patch Request with body: " + body);
-            }
+                String body = getContent(request);
 
-            body = body.replaceFirst("<login>.*</login>", "<login>" + login + "</login>");
-            body = body.replaceFirst("<password>.*</password>", "<password>" + password + "</password>");
+                try {
+                    body = URLDecoder.decode(body, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    logger.error("There was a problem to decode the Request's content ",e);
+                }
 
-            body = body
-                    .replaceFirst("apidata=",
-                            "apidata=<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><!DOCTYPE request SYSTEM \"https://www.loginto.us/Voip/api2.pl\">");
+                xstream = new XStream();
+                xstream.ignoreUnknownElements();
+                BandwidthOrderRequest bwRequest = null;
+                xstream.alias("Order", BandwidthOrderRequest.class);
+                xstream.processAnnotations(BandwidthOrderRequest.class);
+                bwRequest = (BandwidthOrderRequest) xstream.fromXML(body);
+                if (bwRequest.getCustomerOrderId() == null || bwRequest.getCustomerOrderId() == "")
+                    bwRequest.setCustomerOrderId(bwRequest.getSiteId());
 
-            //            if (requestType.equalsIgnoreCase(RequestType.AssignDid.name())) {
-            //                body = body.replaceFirst("<endpointgroup>.*</endpointgroup>", "<endpointgroup>" + siteId + "</endpointgroup>");
-            //                newRequest.headers().set("RequestType", RequestType.AssignDid.name());
-            //            } else if (requestType.equalsIgnoreCase(RequestType.IsValidDid.name())) {
-            //                newRequest.headers().set("RequestType", RequestType.IsValidDid.name());
-            //            } else if (requestType.equalsIgnoreCase(RequestType.GetAvailablePhoneNumbersByAreaCode.name())) {
-            //                newRequest.headers().set("RequestType", RequestType.GetAvailablePhoneNumbersByAreaCode.name());
-            //            } else if (requestType.equalsIgnoreCase(RequestType.ReleaseDid.name())) {
-            //                newRequest.headers().set("RequestType", RequestType.ReleaseDid.name());
-            //            }
+                bwRequest.setSiteId(siteId);
 
-            ChannelBuffer newContent = null;
-            newContent = ChannelBuffers.copiedBuffer(body, Charset.forName("UTF-8"));
+                body = xstream.toXML(bwRequest);
 
-            newRequest.setContent(newContent);
-            newRequest.headers().set("Host", HostUtil.getInstance().getHost(uri));
-            // newRequest.headers().set("Content-Type", "application/xml");
-            newRequest.headers().set("Content-Type", "application/x-www-form-urlencoded");
-            // That was one setting to make it work with VI. If the body length is wrong then the VI doesn't accept the request
-            newRequest.headers().set("Content-Length", body.length());
+                newRequest = new DefaultHttpRequest(request.getProtocolVersion(), request.getMethod(), builder.build().toString());
+                String authString = this.login + ":" + this.password;
+                ChannelBuffer authChannelBuffer = ChannelBuffers.copiedBuffer(authString, CharsetUtil.UTF_8);
+                ChannelBuffer encodedAuthChannelBuffer = Base64.encode(authChannelBuffer);
+                newRequest.headers().add(HttpHeaders.Names.AUTHORIZATION, "Basic "+encodedAuthChannelBuffer.toString(CharsetUtil.UTF_8));
+                ChannelBuffer newContent = null;
+                newContent = ChannelBuffers.copiedBuffer(body, Charset.forName("UTF-8"));
+                newRequest.setContent(newContent);
+                newRequest.headers().add(HttpHeaders.Names.CONTENT_LENGTH, body.length());
+                newRequest.headers().add(HttpHeaders.Names.CONTENT_TYPE, "application/xml; charset=ISO-8859-1");
+                newRequest.headers().add("Connection", "Keep-Alive");
+                return newRequest;
+            } catch (Exception e) {
+                logger.error("Exception while patching request: "+request+" : "+e);
+                throw new Exception(e);
+            }            
+        } else if (requestType.equals(ProvisionProvider.REQUEST_TYPE.RELEASEDID)) {
+            //            POST /v1.0/accounts/i-12345/disconnects HTTP/1.1
+            QueryStringDecoder decoder = new QueryStringDecoder(request.getUri());
+            try {
+                URIBuilder builder = new URIBuilder(this.uri);
+                builder.setPath("/v1.0/accounts/" + this.accountId + "/disconnects");
 
-            if (logger.isDebugEnabled()) {
-                logger.debug("****************** VI Request ********************************");
-                logger.debug("VoipInnovation Request, original request: " + request + "\nnew request: " + newRequest
-                        + "\nand body: " + body);
-                logger.debug("****************** VI Request ********************************");
-            }
-            return newRequest; 
+                String body = getContent(request);
+                if (body != null) {
+                    try {
+                        body = URLDecoder.decode(body, "UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        logger.error("There was a problem to decode the Request's content ",e);
+                    }
+                }
+
+                xstream = new XStream();
+                xstream.ignoreUnknownElements();
+                BandwidthReleaseRequest bwRequest = null;
+                xstream.alias("DisconnectTelephoneNumberOrder", BandwidthReleaseRequest.class);
+                xstream.processAnnotations(BandwidthReleaseRequest.class);
+                bwRequest = (BandwidthReleaseRequest) xstream.fromXML(body);
+                if (bwRequest.getCustomerOrderId() == null || bwRequest.getCustomerOrderId() == "")
+                    bwRequest.setCustomerOrderId(bwRequest.getSiteId());
+
+                newRequest = new DefaultHttpRequest(request.getProtocolVersion(), request.getMethod(), builder.build().toString());
+                String authString = this.login + ":" + this.password;
+                ChannelBuffer authChannelBuffer = ChannelBuffers.copiedBuffer(authString, CharsetUtil.UTF_8);
+                ChannelBuffer encodedAuthChannelBuffer = Base64.encode(authChannelBuffer);
+                newRequest.headers().add(HttpHeaders.Names.AUTHORIZATION, "Basic "+encodedAuthChannelBuffer.toString(CharsetUtil.UTF_8));
+                ChannelBuffer newContent = null;
+                newContent = ChannelBuffers.copiedBuffer(body, Charset.forName("UTF-8"));
+                newRequest.setContent(newContent);
+                newRequest.headers().add(HttpHeaders.Names.CONTENT_LENGTH, body.length());
+                newRequest.headers().add(HttpHeaders.Names.CONTENT_TYPE, "application/xml; charset=ISO-8859-1");
+                newRequest.headers().add("Connection", "Keep-Alive");
+                return newRequest;
+            } catch (Exception e) {
+                logger.error("Exception while patching request: "+request+" : "+e);
+                throw new Exception(e);
+            }       
         }
-        return newRequest;
-
+        return null;
     }
 
     /**
      * @param response
      */
-    public void processHttpResponse(HttpResponse response, ProxyRequest proxyRequest) {
-        String body = getContent(response);
+    public void processHttpResponse(BandwidthResponse response, ProxyRequest proxyRequest, ProvisionProvider.REQUEST_TYPE requestType) {
 
         if (proxyRequest != null && proxyRequest.getRequest() != null) {
-            if (proxyRequest.getRequest().headers().get("RequestType").equals(RequestType.AssignDid.name())) {
-                xstream = new XStream();
-                xstream.ignoreUnknownElements();
-                xstream.alias("response", VoipInnovationAssignDidResponse.class);
-                xstream.processAnnotations(VoipInnovationAssignDidResponse.class);
-                VoipInnovationAssignDidResponse viAssignResponse = (VoipInnovationAssignDidResponse) xstream.fromXML(body);
-                String did = viAssignResponse.getTN();
-                Integer statusCode = viAssignResponse.getStatusCode();
-                if (did != null && statusCode == 100) {
-                    logger.info("Will store the new assignDID request to map for DID: " + did + " ,Restcomm instance: "
-                            + proxyRequest.getProvisionRequest().getEndpointGroup());
-                    RestcommInstance restcomm = restcommInstanceManager.getInstanceById(proxyRequest.getProvisionRequest()
-                            .getEndpointGroup());
-                    if (restcomm == null) {
-                        restcomm = new RestcommInstance(proxyRequest.getProvisionRequest().getEndpointGroup(), proxyRequest
-                                .getRequest().headers().getAll("OutboundIntf"));
-                        restcommInstanceManager.addRestcommInstance(restcomm);
-                    }
-                    DidEntity didEntity = new DidEntity();
-                    didEntity.setDid(did);
-                    didEntity.setRestcommInstance(restcomm.getId());
-                    phoneNumberManager.addDid(didEntity);
+            if(requestType.equals(ProvisionProvider.REQUEST_TYPE.ASSIGNDID)){
+                BandwidthOrderResponse orderResponse = (BandwidthOrderResponse)response;
+                String did = orderResponse.getTelephoneNumber();
+                RestcommInstance restcomm = restcommInstanceManager.getInstanceById(orderResponse.getCustomerOrderId());
+                if (restcomm == null) {
+                    logger.info("Restcomm instance is null. Will create a new one for instance Id: "+orderResponse.getCustomerOrderId()+" and outboundIntf: "
+                            +proxyRequest.getRequest().headers().getAll("OutboundIntf"));
+                    restcomm = new RestcommInstance(orderResponse.getCustomerOrderId(), proxyRequest
+                            .getRequest().headers().getAll("OutboundIntf"), ProvisionProvider.PROVIDER.BANDWIDTH);
+                    restcommInstanceManager.addRestcommInstance(restcomm);
                 }
-            } else if (proxyRequest.getRequest().headers().get("RequestType").equals(RequestType.ReleaseDid.name())) {
-                xstream = new XStream();
-                xstream.ignoreUnknownElements();
-                xstream.alias("response", VoipInnovationReleaseDidResponse.class);
-                xstream.processAnnotations(VoipInnovationReleaseDidResponse.class);
-                VoipInnovationReleaseDidResponse viReleaseResponse = (VoipInnovationReleaseDidResponse) xstream.fromXML(body);
-                String did = viReleaseResponse.getTN();
-                Integer statusCode = viReleaseResponse.getStatusCode();
-                if (did != null && statusCode == 100) {
-                    logger.info("Release DID request to VI was succesfully executed. Will now remove the DID: " + did
-                            + " ,from the map for Restcomm instance: " + proxyRequest.getProvisionRequest().getEndpointGroup());
-                    phoneNumberManager.removeDid(did);
-                }
+                DidEntity didEntity = new DidEntity();
+                didEntity.setDid(did);
+                didEntity.setRestcommInstance(restcomm.getId());
+                logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+restcomm.toString());
+                phoneNumberManager.addDid(didEntity);
+            } 
+        } else if (requestType.equals(ProvisionProvider.REQUEST_TYPE.RELEASEDID)) {
+            BandwidthReleaseResponse releaseResponse = (BandwidthReleaseResponse)response;
+            String did = releaseResponse.getTelephoneNumber();
+            RestcommInstance restcommInstance = phoneNumberManager.getInstanceByDid(did);
+            if (restcommInstance != null) {
+                logger.info("Release DID request to Bandwidth was succesfully executed. Will now remove the DID: " + did
+                        + " ,from the map for Restcomm instance: " + restcommInstance.toString());
+                phoneNumberManager.removeDid(did);
+            } else {
+                logger.info("Restcomm instance is null and DID wont be removed");
             }
         } else {
             logger.info("Either ProxyRequest is null or HttpRequest");

@@ -74,11 +74,17 @@ import org.mobicents.tools.telestaxproxy.dao.DaoManager;
 import org.mobicents.tools.telestaxproxy.dao.PhoneNumberDaoManager;
 import org.mobicents.tools.telestaxproxy.dao.RestcommInstanceDaoManager;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthMessageProcessor;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthOrderRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthOrderResponse;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthReleaseRequest;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthReleaseResponse;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthResponse;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthSearchResponse;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthStorage;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProxyRequest;
-import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationProvisionRequest;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationMessageProcessor;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationProvisionRequest;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationResponse;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.voipinnovation.VoipInnovationStorage;
 import org.mobicents.tools.telestaxproxy.sip.balancer.entities.RestcommInstance;
@@ -108,7 +114,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         properties = getBalancerContext().properties;
 
         viLogin = properties.getProperty("vi-login");
-        viPassword = properties.getProperty("vi-viPassword");
+        viPassword = properties.getProperty("vi-password");
         viEndpoint = properties.getProperty("vi-endpoint");
         viUri = properties.getProperty("vi-uri");
 
@@ -347,7 +353,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         } else if (providerClass.equalsIgnoreCase(ProvisionProvider.bandiwidthClass)) {
             provider = ProvisionProvider.PROVIDER.BANDWIDTH;
         }
-        
+
         ProvisionProvider.REQUEST_TYPE requestType = ProvisionProvider.REQUEST_TYPE.valueOf(originalRequest.headers().get("RequestType").toUpperCase());
 
         if(requestType.equals(ProvisionProvider.REQUEST_TYPE.PING)){
@@ -359,7 +365,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             logger.info("Received PING request from Restcomm Instance: "+restcomm);
             return;
         }
-        
+
         if(provider != null && provider.equals(ProvisionProvider.PROVIDER.VOIPINNOVATIONS)) {
             String body = getContent(originalRequest).replaceFirst("apidata=", "");
             VoipInnovationProvisionRequest viProvisionRequest = (VoipInnovationProvisionRequest) xstream.fromXML(body);
@@ -416,6 +422,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                     if (future.isSuccess()) {
                         outboundChannel = future.getChannel();
                         outboundChannel.setReadable(true);
+                        outboundChannel.setAttachment(inboundChannel);
                         inboundChannel.setReadable(true);
 
                         if (logger.isDebugEnabled()) {
@@ -439,100 +446,117 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             });
         } else if (provider != null && provider.equals(ProvisionProvider.PROVIDER.BANDWIDTH)){
             //Process a number provision request for Bandwidth
-            final HttpRequest request =  bwDispatcher.patchHttpRequest(originalRequest);
-//            if (requestType.equals(ProvisionProvider.REQUEST_TYPE.GETDIDS)) {
-////                request =
-//            } else if (requestType.equals(ProvisionProvider.REQUEST_TYPE.ASSIGNDID)) {
-//                String body = getContent(originalRequest);
-//                VoipInnovationProvisionRequest provisionRequest = null;
-//                ProxyRequest proxyRequest = null;
-//                if (requestType.equals(ProvisionProvider.REQUEST_TYPE.GETDIDS)){
-//                    provisionRequest = new VoipInnovationProvisionRequest();
-//                }
-//
-//                if (body != null) {
-//                    body = body.replaceFirst("apidata=", "");
-//                    provisionRequest = (VoipInnovationProvisionRequest) xstream.fromXML(body);
-//                    proxyRequest = new ProxyRequest(ctx, e, originalRequest, provisionRequest);
-//                }
-//
-//                BandwidthStorage.getStorage().addRequestToMap(provisionRequest.getId(), proxyRequest);
-//                request = bwDispatcher.patchHttpRequest(originalRequest);   
-//            }
-
-            // Start the connection attempt.
-            Executor executor = Executors.newCachedThreadPool();
-            ClientSocketChannelFactory cf = new NioClientSocketChannelFactory(executor, executor);
-            ClientBootstrap cb = new ClientBootstrap(cf);
-
-            SslContext sslCtx = null;
-            try {
-                sslCtx = JdkSslClientContext.newClientContext();
-            } catch (SSLException e1) {
-                logger.error("There was a problem to create the SSL Context", e1);
-            }
-
-            final SslHandler sslHandler = sslCtx.newHandler();
-            if(viUri.startsWith("https")) {
-                //First handler in the pipeline should be the SSL handler to decode/encode data
-                cb.getPipeline().addLast("ssl", sslHandler);
-            }
-            //Next handler is the HTTP Codec. This combines both RequestEncoder and ResponseDecoder
-            cb.getPipeline().addLast("codec", new HttpClientCodec());
-
-            //        cb.getPipeline().addLast("HttpRequestEncoder", new HttpRequestEncoder());
-            //        cb.getPipeline().addLast("HttpRequestDecoder", new HttpRequestDecoder());
-
-            //Decompresses an HttpMessage and an HttpChunk compressed in gzip or deflate encoding
-            cb.getPipeline().addLast("inflater", new HttpContentDecompressor());
-
-            //Handles HttpChunks.
-            cb.getPipeline().addLast("aggregator", new HttpChunkAggregator(1048576));
-
-            cb.getPipeline().addLast("logger", new LoggingHandler(InternalLogLevel.DEBUG));
-
-            //Telestax Proxy handler
-            //        cb.getPipeline().addLast("handler", new VoipInnovationsOutboundHandler(e.getChannel()));
-            cb.getPipeline().addLast("handler", new BandwidthOutboundHandler());
-
-            //Connect to VoipInnovation. Important is that VI will accept connections and request from API Users with valid username/viPassword and IP Address
-            logger.debug("Will now connect to : "+bwUri);
-            String host = HostUtil.getInstance().getHost(bwUri);
-            int port = HostUtil.getInstance().getPort(bwUri);
-            ChannelFuture f = null;
-            f = cb.connect(new InetSocketAddress(host, port));
-
-            f.addListener(new ChannelFutureListener() {
-                public void operationComplete(ChannelFuture future) {
-                    if (future.isSuccess()) {
-                        outboundChannel = future.getChannel();
-                        outboundChannel.setReadable(true);
-                        inboundChannel.setReadable(true);
-
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Writing out HttpRequest: "+request);
-                            byte[] bodyBytes = new byte[request.getContent().capacity()];
-                            request.getContent().getBytes(0, bodyBytes);
-                            String body = new String(bodyBytes);
-                            try {
-                                logger.debug("Request's body: "+URLDecoder.decode(body, "UTF-8"));
-                            } catch (UnsupportedEncodingException e) {
-                                logger.debug("Exception: "+e);
-                            }
-                        }
-                        //Write the request to the outbound channel (to VI)
-                        outboundChannel.write(request);
-                    } else {
-                        // Close the connection if the connection attempt has failed.
-                        inboundChannel.close();
-                    }
+            String body = getContent(originalRequest);
+            if (body != null) {
+                try {
+                    body = URLDecoder.decode(body, "UTF-8");
+                } catch (UnsupportedEncodingException exception) {
+                    logger.error("There was a problem to decode the Request's content ",exception);
                 }
-            });
+            }
+
+            if (requestType.equals(ProvisionProvider.REQUEST_TYPE.GETDIDS)) {
+            } else if (requestType.equals(ProvisionProvider.REQUEST_TYPE.ASSIGNDID)) {
+                xstream = new XStream();
+                xstream.ignoreUnknownElements();
+                BandwidthOrderRequest bwRequest = null;
+                xstream.alias("Order", BandwidthOrderRequest.class);
+                xstream.processAnnotations(BandwidthOrderRequest.class);
+                bwRequest = (BandwidthOrderRequest) xstream.fromXML(body);
+
+                ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, bwRequest);                           
+                BandwidthStorage.getStorage().addRequestToMap(((BandwidthOrderRequest)bwRequest).getSiteId(), proxyRequest);
+            } else if (requestType.equals(ProvisionProvider.REQUEST_TYPE.RELEASEDID)) {
+                xstream = new XStream();
+                xstream.ignoreUnknownElements();
+                BandwidthReleaseRequest bwRequest = null;
+                xstream.alias("DisconnectTelephoneNumberOrder", BandwidthReleaseRequest.class);
+                xstream.processAnnotations(BandwidthReleaseRequest.class);
+                bwRequest = (BandwidthReleaseRequest) xstream.fromXML(body);
+
+                String siteId = originalRequest.headers().get("SiteId");
+                bwRequest.setSiteId(siteId);
+
+                ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, bwRequest);                           
+                BandwidthStorage.getStorage().addRequestToMap(((BandwidthReleaseRequest)bwRequest).getSiteId(), proxyRequest);
+            }
+
+            try {
+                final HttpRequest request =  bwDispatcher.patchHttpRequest(originalRequest);
+
+                // Start the connection attempt.
+                Executor executor = Executors.newCachedThreadPool();
+                ClientSocketChannelFactory cf = new NioClientSocketChannelFactory(executor, executor);
+                ClientBootstrap cb = new ClientBootstrap(cf);
+
+                SslContext sslCtx = null;
+                try {
+                    sslCtx = JdkSslClientContext.newClientContext();
+                } catch (SSLException e1) {
+                    logger.error("There was a problem to create the SSL Context", e1);
+                }
+
+                final SslHandler sslHandler = sslCtx.newHandler();
+                if(viUri.startsWith("https")) {
+                    //First handler in the pipeline should be the SSL handler to decode/encode data
+                    cb.getPipeline().addLast("ssl", sslHandler);
+                }
+                //Next handler is the HTTP Codec. This combines both RequestEncoder and ResponseDecoder
+                cb.getPipeline().addLast("codec", new HttpClientCodec());
+
+                //        cb.getPipeline().addLast("HttpRequestEncoder", new HttpRequestEncoder());
+                //        cb.getPipeline().addLast("HttpRequestDecoder", new HttpRequestDecoder());
+
+                //Decompresses an HttpMessage and an HttpChunk compressed in gzip or deflate encoding
+                cb.getPipeline().addLast("inflater", new HttpContentDecompressor());
+
+                //Handles HttpChunks.
+                cb.getPipeline().addLast("aggregator", new HttpChunkAggregator(1048576));
+
+                cb.getPipeline().addLast("logger", new LoggingHandler(InternalLogLevel.DEBUG));
+
+                //Telestax Proxy handler
+                //        cb.getPipeline().addLast("handler", new VoipInnovationsOutboundHandler(e.getChannel()));
+                cb.getPipeline().addLast("handler", new BandwidthOutboundHandler());
+
+                //Connect to VoipInnovation. Important is that VI will accept connections and request from API Users with valid username/viPassword and IP Address
+                logger.debug("Will now connect to : "+bwUri);
+                String host = HostUtil.getInstance().getHost(bwUri);
+                int port = HostUtil.getInstance().getPort(bwUri);
+                ChannelFuture f = null;
+                f = cb.connect(new InetSocketAddress(host, port));
+
+                f.addListener(new ChannelFutureListener() {
+                    public void operationComplete(ChannelFuture future) {
+                        if (future.isSuccess()) {
+                            outboundChannel = future.getChannel();
+                            outboundChannel.setReadable(true);
+                            outboundChannel.setAttachment(inboundChannel);
+                            inboundChannel.setReadable(true);
+
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Writing out HttpRequest: "+request);
+                                byte[] bodyBytes = new byte[request.getContent().capacity()];
+                                request.getContent().getBytes(0, bodyBytes);
+                                String body = new String(bodyBytes);
+                                try {
+                                    logger.debug("Request's body: "+URLDecoder.decode(body, "UTF-8"));
+                                } catch (UnsupportedEncodingException e) {
+                                    logger.debug("Exception: "+e);
+                                }
+                            }
+                            //Write the request to the outbound channel (to VI)
+                            outboundChannel.write(request);
+                        } else {
+                            // Close the connection if the connection attempt has failed.
+                            inboundChannel.close();
+                        }
+                    }
+                });
+            } catch (Exception exception) {
+                logger.error("Exception occured while trying to proxy message: "+originalRequest);
+            }
         }
-
-
-
-
     }
 
     private void pong(ChannelHandlerContext ctx, MessageEvent e, HttpRequest request) {
@@ -587,15 +611,16 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         public void messageReceived(ChannelHandlerContext ctx, final MessageEvent e) {
             DefaultHttpResponse response = (DefaultHttpResponse) e.getMessage();
             String body = getContent(response);
+            Channel inboundChannel = (Channel) e.getChannel().getAttachment();
 
             HttpResponseStatus status = response.getStatus();
             if (status.getCode() != 200){
-                //TODO: Need to find a way to close inbound channel
-                logger.info("Error response: "+status.getCode()+" reason: "+status.getReasonPhrase());
+                inboundChannel.close();
+                logger.error("Error response: "+status.getCode()+" reason: "+status.getReasonPhrase());
                 return;
             } else if (body.contains("<type>Error</type>")){
-                //TODO: Need to find a way to close inbound channel
-                logger.info("Received Error response, body: "+body);
+                inboundChannel.close();
+                logger.error("Received Error response, body: "+body);
                 return;
             }
 
@@ -606,7 +631,6 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             VoipInnovationResponse viResponse = (VoipInnovationResponse) xstream.fromXML(body);
 
             ProxyRequest proxyRequest = VoipInnovationStorage.getStorage().getProxyRequest(viResponse.getId()); 
-            Channel inboundChannel = proxyRequest.getEvent().getChannel();
 
             if (logger.isDebugEnabled()) {
                 logger.debug("******************** VI Response ******************************");
@@ -633,7 +657,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private class BandwidthOutboundHandler extends SimpleChannelUpstreamHandler {
 
         /*
-         * The VoipInnovationsOutboundHandler class will process the VoipInnovation response.
+         * The Bandwidth class will process the Bandwidth response.
          * Currently supports only one inbound channel but this is not correct. 
          * There might be several request from several Restcomm instances, so the inbound channel should be
          * the appropriate according the the Restcomm instance
@@ -646,36 +670,56 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             DefaultHttpResponse response = (DefaultHttpResponse) e.getMessage();
             String body = getContent(response);
 
+            Channel inboundChannel = (Channel) e.getChannel().getAttachment();
+
             HttpResponseStatus status = response.getStatus();
-            if (status.getCode() != 200){
-                //TODO: Need to find a way to close inbound channel
-                logger.info("Error response: "+status.getCode()+" reason: "+status.getReasonPhrase());
+            if ( (status.getCode() >= 299) ){
+                inboundChannel.close();
+                logger.error("Error response: "+status.getCode()+" reason: "+status.getReasonPhrase());
                 return;
             } else if (body.contains("<type>Error</type>")){
-                //TODO: Need to find a way to close inbound channel
-                logger.info("Received Error response, body: "+body);
+                inboundChannel.close();
+                logger.error("Received Error response, body: "+body);
                 return;
             }
 
             xstream = new XStream();
             xstream.ignoreUnknownElements();
-            xstream.alias("response", VoipInnovationResponse.class);
-            xstream.processAnnotations(VoipInnovationResponse.class);
-            VoipInnovationResponse viResponse = (VoipInnovationResponse) xstream.fromXML(body);
-
-            ProxyRequest proxyRequest = VoipInnovationStorage.getStorage().getProxyRequest(viResponse.getId()); 
-            Channel inboundChannel = proxyRequest.getEvent().getChannel();
+            BandwidthResponse bwResponse = null;
+            if (body.contains("<SearchResult>")) {
+                xstream.alias("SearchResult", BandwidthSearchResponse.class);
+                xstream.processAnnotations(BandwidthSearchResponse.class);
+                bwResponse = (BandwidthSearchResponse) xstream.fromXML(body);
+            } else if (body.contains("<OrderResponse>")) {
+                xstream.alias("OrderResponse", BandwidthOrderResponse.class);
+                xstream.processAnnotations(BandwidthOrderResponse.class);
+                bwResponse = (BandwidthOrderResponse) xstream.fromXML(body);
+                //If Order Response is 201 and OrderStatus RECEIVED, then store the DID for this instance
+                if (status.getCode()==201 && ((BandwidthOrderResponse)bwResponse).getOrderStatus().equalsIgnoreCase("received")) {
+                    ProxyRequest proxyRequest = BandwidthStorage.getStorage().getProxyRequest(((BandwidthOrderResponse)bwResponse).getCustomerOrderId());
+                    bwDispatcher.processHttpResponse(bwResponse, proxyRequest, ProvisionProvider.REQUEST_TYPE.ASSIGNDID);
+                }
+            } else if (body.contains("<DisconnectTelephoneNumberOrderResponse>")) {
+                xstream.alias("DisconnectTelephoneNumberOrderResponse", BandwidthReleaseResponse.class);
+                xstream.processAnnotations(BandwidthReleaseResponse.class);
+                bwResponse = (BandwidthReleaseResponse) xstream.fromXML(body);
+                //If Order Response is 201 and OrderStatus RECEIVED, then remove the DID from the db for this instance
+                if (status.getCode()==201 && ((BandwidthReleaseResponse)bwResponse).getOrderStatus().equalsIgnoreCase("received")) {
+                    bwDispatcher.processHttpResponse(bwResponse, null, ProvisionProvider.REQUEST_TYPE.RELEASEDID);
+                }
+            }
 
             if (logger.isDebugEnabled()) {
-                logger.debug("******************** VI Response ******************************");
+                logger.debug("******************** BW Response ******************************");
                 logger.debug("Received response: "+response);
                 logger.debug("Response body: "+body);
-                logger.debug("******************** VI Response ******************************");
+                logger.debug("******************** BW Response ******************************");
             }            
 
-            viDispatcher.processHttpResponse(response, proxyRequest);
             inboundChannel.write(response);
 
+            e.getChannel().close();
+            
             if (!inboundChannel.isWritable()) {
                 e.getChannel().setReadable(false);
             }
@@ -683,7 +727,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-            e.getCause().printStackTrace();
+            logger.error("Exception caught: "+e.getCause().getStackTrace());
             closeOnFlush(e.getChannel());
         }
     }

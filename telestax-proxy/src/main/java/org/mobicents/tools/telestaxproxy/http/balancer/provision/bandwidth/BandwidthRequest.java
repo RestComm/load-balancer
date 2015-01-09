@@ -28,6 +28,6 @@ import javax.xml.bind.annotation.XmlAccessorType;
  *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BandwidthResponse {
+public class BandwidthRequest {
 
 }

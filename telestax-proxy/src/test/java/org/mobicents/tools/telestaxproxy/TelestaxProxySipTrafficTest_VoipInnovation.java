@@ -61,6 +61,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 
@@ -68,13 +69,13 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class TelestaxProxySipTrafficTest {
+public class TelestaxProxySipTrafficTest_VoipInnovation {
 
-    private static Logger logger = Logger.getLogger(TelestaxProxyMessageTests.class);
+    private static Logger logger = Logger.getLogger(TelestaxProxyMessageTests_VoipInnovation.class);
     BalancerRunner balancer;
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(8090);
-
+    
     private HttpClient restcomm;
     private static final byte[] bytes = new byte[] { 118, 61, 48, 13, 10, 111, 61, 117, 115, 101, 114, 49, 32, 53, 51, 54, 53,
         53, 55, 54, 53, 32, 50, 51, 53, 51, 54, 56, 55, 54, 51, 55, 32, 73, 78, 32, 73, 80, 52, 32, 49, 50, 55, 46, 48, 46,
@@ -213,8 +214,9 @@ public class TelestaxProxySipTrafficTest {
         
         final HttpPost post = new HttpPost("http://127.0.0.1:2080");
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "ReleaseDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
         
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -255,8 +257,9 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -343,8 +346,9 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -440,9 +444,10 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
         post.setEntity(new UrlEncodedFormEntity(parameters));
@@ -528,8 +533,9 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5092:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -637,8 +643,9 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -693,9 +700,10 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
         post.setEntity(new UrlEncodedFormEntity(parameters));
@@ -758,8 +766,9 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -823,8 +832,9 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -888,8 +898,9 @@ public class TelestaxProxySipTrafficTest {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));

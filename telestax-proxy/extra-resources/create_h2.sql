@@ -12,6 +12,7 @@ tcpInterface VARCHAR(50),
 tlsInterface VARCHAR(50),
 wsInterface VARCHAR(50),
 dateCreated DATETIME NOT NULL,
+provisionProvider VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS phone_numbers (

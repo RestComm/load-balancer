@@ -20,6 +20,7 @@
  */
 package org.mobicents.tools.telestaxproxy.sip.balancer.entities;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -40,16 +41,17 @@ public class RestcommInstance {
     private String tlsInterface;
     private String wsInterface;
     private Date dateCreated;
-    List<String> addresses;
+    private List<String> addresses;
 
     public RestcommInstance() {
     }
     
-    public RestcommInstance(final String restcommInstanceId, final List<String> addresses) {
+    public RestcommInstance(final String restcommInstanceId, final List<String> addresses, final ProvisionProvider.PROVIDER provisionProvider) {
         this.id = restcommInstanceId;
         prepareOutboundInterfaces(addresses);
         dateCreated = new Date();
-        this.addresses = addresses;
+        this.setAddresses(addresses);
+        this.setProvisionProvider(provisionProvider);
     }
     
     public RestcommInstance(final String restcommInstanceId, final ProvisionProvider.PROVIDER provisionProvider, final List<String> addresses, final String publicIpAddress) {
@@ -58,7 +60,7 @@ public class RestcommInstance {
         this.provisionProvider = provisionProvider;
         prepareOutboundInterfaces(addresses);
         dateCreated = new Date();
-        this.addresses = addresses;
+        this.setAddresses(addresses);
     }
 
     private void prepareOutboundInterfaces(List<String> addresses) {
@@ -79,11 +81,11 @@ public class RestcommInstance {
     }
 
     public String getId() {
-        return id;
+        return id != null ? id:"";
     }
     
     public ProvisionProvider.PROVIDER getProvisionProvider() {
-        return provisionProvider;
+        return provisionProvider != null ? provisionProvider : ProvisionProvider.PROVIDER.UNKNOWN;
     }
 
     public void setProvisionProvider(ProvisionProvider.PROVIDER provisionProvider) {
@@ -91,7 +93,7 @@ public class RestcommInstance {
     }
 
     public String getPublicIpAddress() {
-        return publicIpAddress;
+        return publicIpAddress != null ? publicIpAddress:"";
     }
     
     public void setPublicIpAddress() {
@@ -99,7 +101,7 @@ public class RestcommInstance {
     }
     
     public String getUdpInterface() {
-        return udpInterface;
+        return udpInterface != null ? udpInterface:"";
     }
 
     public void setUdpInterface(String udpInterface) {
@@ -107,7 +109,7 @@ public class RestcommInstance {
     }
 
     public String getTcpInterface() {
-        return tcpInterface;
+        return tcpInterface != null ? tcpInterface:"";
     }
 
     public void setTcpInterface(String tcpInterface) {
@@ -115,7 +117,7 @@ public class RestcommInstance {
     }
 
     public String getTlsInterface() {
-        return tlsInterface;
+        return tlsInterface != null ? tlsInterface:"";
     }
 
     public void setTlsInterface(String tlsInterface) {
@@ -123,7 +125,7 @@ public class RestcommInstance {
     }
 
     public String getWsInterface() {
-        return wsInterface;
+        return wsInterface != null ? wsInterface:"";
     }
 
     public void setWsInterface(String wsInterface) {
@@ -147,9 +149,17 @@ public class RestcommInstance {
     public Date getDateCreated() {
         return dateCreated;
     }  
+    
+    public List<String> getAddresses() {
+        return addresses != null ? addresses : new ArrayList<String>();
+    }
+
+    public void setAddresses(List<String> addresses) {
+        this.addresses = addresses;
+    }
 
     @Override
     public String toString() {
-        return "<Restcomm instance id: "+id+" | publicIpAddress: "+publicIpAddress+" | interfaces: "+addresses+" | Provider: "+provisionProvider.name()+" | Date created: "+dateCreated+">";
+        return "<Restcomm instance id: "+getId()+" | publicIpAddress: "+getPublicIpAddress()+" | interfaces: "+getAddresses()+" | Provider: "+getProvisionProvider().name()+" | Date created: "+getDateCreated()+">";
     }
 }
