@@ -30,7 +30,7 @@ public class BalancerRunner extends org.mobicents.tools.sip.balancer.BalancerRun
 
     public static void main(String[] args) {
         System.out.println("Starting Telestax Proxy");
-        
+//        
         // Configuration file Location
         String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());
         BalancerRunner balancerRunner = new BalancerRunner();

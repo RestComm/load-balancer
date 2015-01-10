@@ -58,6 +58,7 @@ import org.jboss.arquillian.container.mss.extension.SipStackTool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
@@ -69,7 +70,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class TelestaxProxySipTrafficTest_VoipInnovation {
+public class TelestaxProxyVoipInnovationSipTrafficTest {
 
     private static Logger logger = Logger.getLogger(TelestaxProxyMessageTests_VoipInnovation.class);
     BalancerRunner balancer;
@@ -122,7 +123,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         // You need 16 for logging traces. 32 for debug + traces.
         // Your code will limp at 32 but it is best for debugging.
         properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "16");
-        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
+        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "64");
         properties.setProperty("host", "127.0.0.1");
         properties.setProperty("internalPort", "5065");
         properties.setProperty("externalPort", "5060");
@@ -135,7 +136,13 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         properties.setProperty("extraServerNodes", "127.0.0.1:5090,127.0.0.1:5091,127.0.0.1:5092");
         properties.setProperty("performanceTestingMode", "true");
         properties.setProperty("mybatis-config","extra-resources/mybatis.xml");
-//        properties.setProperty("public-ip", "199.199.199.199");
+        properties.setProperty("bw-login", "customer");
+        properties.setProperty("bw-password", "password");
+        properties.setProperty("bw-accountId","9500149");
+        properties.setProperty("bw-siteId", "1381");
+        properties.setProperty("bw-uri", "https://api.test.inetwork.com/");
+        properties.setProperty("blocked-values", "sipvicious,sipcli,friendly-scanner"); 
+        properties.setProperty("public-ip", "199.199.199.199");
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");
@@ -151,6 +158,8 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         
         aliceSipStack = tool4.initializeSipStack(SipStack.PROTOCOL_UDP, "127.0.0.1", "5093", "127.0.0.1:5060");
         alicePhone = aliceSipStack.createSipPhone("127.0.0.1", SipStack.PROTOCOL_UDP, 5060, aliceContact);
+        
+        logger.info("Done with the setup");
     }
 
     @After
@@ -187,46 +196,10 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         restcomm = null;
 //        Thread.sleep(3000);
     }
-
-    private void releaseDid(String did) throws ClientProtocolException, IOException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("releaseDID"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing(did))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
-        
-        final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("releaseDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append(did).append("</did>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
-        final String body = buffer.toString();
-        
-        final HttpPost post = new HttpPost("http://127.0.0.1:2080");
-        post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.name());
-        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
-        
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
-        restcomm = new DefaultHttpClient();
-        restcomm.execute(post);
-    }
     
     @Test
     public void testAssignDidAndCreateCallToRestcomm1() throws ClientProtocolException, IOException, InterruptedException, ParseException {
+        logger.info("Starting testAssignDidAndCreateCallToRestcomm1");
         String requestId = UUID.randomUUID().toString().replace("-", "");
         stubFor(post(urlEqualTo("/test"))
                 .withRequestBody(containing("assignDID"))
@@ -259,7 +232,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -348,7 +321,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -446,7 +419,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
         
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -535,7 +508,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5092:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -645,7 +618,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -702,7 +675,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
         
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -768,7 +741,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -834,7 +807,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -900,7 +873,7 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -927,5 +900,42 @@ public class TelestaxProxySipTrafficTest_VoipInnovation {
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);        
+    }
+    
+    private void releaseDid(String did) throws ClientProtocolException, IOException {
+        String requestId = UUID.randomUUID().toString().replace("-", "");
+        stubFor(post(urlEqualTo("/test"))
+                .withRequestBody(containing("releaseDID"))
+                .withRequestBody(containing("username13"))
+                .withRequestBody(containing("password13"))
+                .withRequestBody(containing(did))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/xml")
+                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
+        
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("releaseDID").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<did>").append(did).append("</did>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+        
+        final HttpPost post = new HttpPost("http://127.0.0.1:2080");
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.name());
+        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+        restcomm = new DefaultHttpClient();
+        restcomm.execute(post);
     }
 }

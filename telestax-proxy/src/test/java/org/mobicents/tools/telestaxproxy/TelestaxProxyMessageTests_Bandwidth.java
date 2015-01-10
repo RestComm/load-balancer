@@ -49,6 +49,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 
@@ -62,8 +63,6 @@ public class TelestaxProxyMessageTests_Bandwidth {
     BalancerRunner balancer;
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(8090);
-
-    private String provisionManagerName = "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager";
     
     private HttpClient restcomm;
 
@@ -128,9 +127,9 @@ public class TelestaxProxyMessageTests_Bandwidth {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "GetAvailablePhoneNumbersByAreaCode");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.GETDIDS.toString());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", provisionManagerName);
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -174,9 +173,9 @@ public class TelestaxProxyMessageTests_Bandwidth {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "IsValidDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.QUERYDID.toString());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", provisionManagerName);
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -224,7 +223,7 @@ public class TelestaxProxyMessageTests_Bandwidth {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", "AssignDid");
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", provisionManagerName);
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -270,7 +269,7 @@ public class TelestaxProxyMessageTests_Bandwidth {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", "ReleaseDid");
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", provisionManagerName);
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -318,7 +317,7 @@ public class TelestaxProxyMessageTests_Bandwidth {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", "Ping");
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", provisionManagerName);
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
