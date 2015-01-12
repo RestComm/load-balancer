@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import javax.sip.message.Response;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -41,6 +42,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -67,7 +69,7 @@ import com.squareup.okhttp.mockwebserver.MockWebServer;
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
  *
  */
-public class TelestaxProxyVoipInnovationSipTrafficTest {
+public class TelestaxProxyBandwidthSipTrafficTest {
 
     private static Logger logger = Logger.getLogger(TelestaxProxyMessageTests_VoipInnovation.class);
     private static BalancerRunner balancer;
@@ -133,7 +135,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         properties.setProperty("bw-password", "password");
         properties.setProperty("bw-accountId","9500149");
         properties.setProperty("bw-siteId", "1381");
-        properties.setProperty("bw-uri", "https://api.test.inetwork.com/");
+        properties.setProperty("bw-uri", "http://127.0.0.1:8090");
         properties.setProperty("blocked-values", "sipvicious,sipcli,friendly-scanner"); 
 //        properties.setProperty("public-ip", "199.199.199.199");
         balancer.start(properties);
@@ -206,22 +208,24 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
     @Test
     public void testAssignDidAndCreateCallToRestcomm1() throws ClientProtocolException, IOException, InterruptedException, ParseException {
         logger.info("Starting testAssignDidAndCreateCallToRestcomm1");
-        String requestId = UUID.randomUUID().toString().replace("-", "");        
+        String did = "2052355024";      
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -229,18 +233,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         restcommPhone1.setLoopback(true);
         final SipCall restcommCall1 = restcommPhone1.createSipCall();
@@ -250,7 +251,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(restcommCall1.waitForIncomingCall(5000));
@@ -281,27 +282,29 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         assertTrue(aliceCall.disconnect());
         assertTrue(restcommCall1.waitForDisconnect(2000));
         assertTrue(restcommCall1.respondToDisconnect());
-        releaseDid("4156902867");
+        releaseDid(did);
     }
 
     @Test
     public void testAssignDidAndCreateCallToRestcomm1withReInvite() throws ClientProtocolException, IOException, InterruptedException, ParseException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "2052355024"; 
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -309,18 +312,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         restcommPhone1.setLoopback(true);
         final SipCall restcommCall1 = restcommPhone1.createSipCall();
@@ -330,7 +330,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(restcommCall1.waitForIncomingCall(5000));
@@ -369,28 +369,29 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         assertTrue(aliceCall.disconnect());
         assertTrue(restcommCall1.waitForDisconnect(2000));
         assertTrue(restcommCall1.respondToDisconnect());
-        releaseDid("4156902867");
+        releaseDid(did);
     }
     
     @Test
     public void testAssignDidAndCreateCallToRestcomm1_15126001502() throws ClientProtocolException, IOException, InterruptedException, ParseException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
-        String did = "5126001502";
+        String did = "2052355024"; 
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId, did)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append(did).append("</did>");
-        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -398,18 +399,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
-        
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
+
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>"+did+"</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         restcommPhone1.setLoopback(true);
         final SipCall restcommCall1 = restcommPhone1.createSipCall();
@@ -419,7 +417,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:+15126001502@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:+1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(restcommCall1.waitForIncomingCall(5000));
@@ -450,27 +448,30 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         assertTrue(aliceCall.disconnect());
         assertTrue(restcommCall1.waitForDisconnect(2000));
         assertTrue(restcommCall1.respondToDisconnect());
-        releaseDid("5126001502");
+        releaseDid(did);
     }
     
     @Test
     public void testAssignDidAndCreateCallToRestcomm3() throws ClientProtocolException, IOException, InterruptedException, ParseException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "2052355025";
+        String siteId = "i-787878";
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId, "4156902869")));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(siteId, did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902869").append("</did>");
-        buffer.append("<endpointgroup>").append("Restcomm_Instance_Id").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>"+siteId+"</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -478,18 +479,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5092:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902869</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         restcommPhone1.setLoopback(true);
         final SipCall restcommCall1 = restcommPhone1.createSipCall();
@@ -508,9 +506,9 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact3);
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902869@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
-        
+               
         assertFalse(restcommCall1.waitForIncomingCall(1000));
         assertFalse(restcommCall2.waitForIncomingCall(1000));
         assertTrue(restcommCall3.waitForIncomingCall(6000));
@@ -542,7 +540,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         assertTrue(aliceCall.disconnect());
         assertTrue(restcommCall3.waitForDisconnect(2000));
         assertTrue(restcommCall3.respondToDisconnect());
-        releaseDid("4156902869");
+        releaseDid(did);
     }
 
     private String header() {
@@ -556,22 +554,24 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
     
     @Test @Ignore //Ignore because if TelestaxProxy doesn't find a Restcomm instance, will dispatch request to super algorithm to pickup node
     public void testCreateCallToUnknownDid() throws ClientProtocolException, IOException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "2052355024"; 
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("Restcomm_Instance_Id").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -579,18 +579,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
         
         final SipCall aliceCall = alicePhone.createSipCall();
         aliceCall.initiateOutgoingCall(aliceContact, "sip:1313131313@sipbalancer.com", null, sipBody, "application", "sdp", null, null);
@@ -598,28 +595,30 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
 
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
-        releaseDid("4156902867");
+        releaseDid(did);
     }
     
     @Test
     public void testSecuriyFromHeader() throws ClientProtocolException, IOException{
         //First create a valid DID
-        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "2052355024"; 
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -627,18 +626,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
-        
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
+
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         //Second create a call to that DID but with blocked values in the SIP Headers
         restcommPhone1.setLoopback(true);
@@ -651,34 +647,37 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
         replaceHeaders.add("From: sipvicious <sip:100@1.1.1.1>");
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.TRYING);
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR); 
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        releaseDid(did);
     }
 
     @Test
     public void testSecuriyUserAgentHeader() throws ClientProtocolException, IOException{
         //First create a valid DID
-        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "2052355024"; 
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -686,18 +685,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         //Second create a call to that DID but with blocked values in the SIP Headers
         restcommPhone1.setLoopback(true);
@@ -710,34 +706,37 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
         replaceHeaders.add("User-Agent: friendly-scanner");
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.TRYING);
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        releaseDid(did);
     }
     
     @Test
     public void testSecuriyUserAgentHeaderSipCLIAgent() throws ClientProtocolException, IOException{
         //First create a valid DID
-        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "2052355024"; 
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -745,18 +744,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         //Second create a call to that DID but with blocked values in the SIP Headers
         restcommPhone1.setLoopback(true);
@@ -769,34 +765,37 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
         replaceHeaders.add("User-Agent: sipcli/v1.8");
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.TRYING);
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
         assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        releaseDid(did);
     }
     
     @Test
     public void testSecuriyToHeader() throws ClientProtocolException, IOException{
         //First create a valid DID
-        String requestId = UUID.randomUUID().toString().replace("-", "");
+        String did = "2052355024"; 
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)).setResponseCode(201));
         server.play(8090);
 
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-54321</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
@@ -804,18 +803,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
 
         //Second create a call to that DID but with blocked values in the SIP Headers
         restcommPhone1.setLoopback(true);
@@ -826,7 +822,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         //Will change To header to sipvicious" <sip:100@1.1.1.1>
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: sipvicious <sip:100@1.1.1.1>");
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:1"+did+"@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
@@ -839,30 +835,30 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         String requestId = UUID.randomUUID().toString().replace("-", "");
         server.shutdown();
         server = new MockWebServer();
-        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getReleaseDidResponse(requestId)));
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getReleaseDidResponse(did)));
         server.play(8090);
-        
+
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("releaseDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append(did).append("</did>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>");
+        buffer.append("<DisconnectTelephoneNumberOrder>");
+        buffer.append("<Name>Disconnect Order For Number: "+did+"</Name>");
+        buffer.append("<DisconnectTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</DisconnectTelephoneNumberOrderType>");
+        buffer.append("</DisconnectTelephoneNumberOrder>");
         final String body = buffer.toString();
-        
-        final HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
+        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.name());
-        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
-        
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.toString());
+        post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
+
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
         restcomm.execute(post);
         server.shutdown();
     }

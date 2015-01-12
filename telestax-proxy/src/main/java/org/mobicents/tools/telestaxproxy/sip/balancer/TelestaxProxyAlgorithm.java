@@ -477,8 +477,9 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 String siteId = originalRequest.headers().get("SiteId");
                 bwRequest.setSiteId(siteId);
 
-                ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, bwRequest);                           
-                BandwidthStorage.getStorage().addRequestToMap(((BandwidthReleaseRequest)bwRequest).getSiteId(), proxyRequest);
+                ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, bwRequest);
+                if (((BandwidthReleaseRequest)bwRequest).getSiteId() != null && proxyRequest != null)
+                    BandwidthStorage.getStorage().addRequestToMap(((BandwidthReleaseRequest)bwRequest).getSiteId(), proxyRequest);
             }
 
             try {
@@ -719,7 +720,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             inboundChannel.write(response);
 
             e.getChannel().close();
-            
+
             if (!inboundChannel.isWritable()) {
                 e.getChannel().setReadable(false);
             }
@@ -727,7 +728,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-            logger.error("Exception caught: "+e.getCause().getStackTrace());
+            logger.error("Exception caught: "+e.getCause());
+            logger.error("Exception :"+e);
             closeOnFlush(e.getChannel());
         }
     }

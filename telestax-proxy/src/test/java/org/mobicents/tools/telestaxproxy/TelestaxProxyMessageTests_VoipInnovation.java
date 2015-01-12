@@ -20,11 +20,6 @@
  */
 package org.mobicents.tools.telestaxproxy;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -40,18 +35,20 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.squareup.okhttp.mockwebserver.MockResponse;
+import com.squareup.okhttp.mockwebserver.MockWebServer;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
@@ -60,14 +57,13 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 public class TelestaxProxyMessageTests_VoipInnovation {
 
     private static Logger logger = Logger.getLogger(TelestaxProxyMessageTests_VoipInnovation.class);
-    BalancerRunner balancer;
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(8090);
+    private static BalancerRunner balancer;
     
     private HttpClient restcomm;
 
-    @Before
-    public void setup() throws InterruptedException, IOException {
+    @BeforeClass
+    public static void beforeClass() throws InterruptedException {
+        logger.info("Starting LoadBalancer");
         balancer = new org.mobicents.tools.telestaxproxy.sip.balancer.BalancerRunner(); 
         Properties properties = new Properties();
         properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
@@ -88,30 +84,32 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");
+        
+    }
+    
+    @AfterClass
+    public static void afterClass() {
+        balancer.stop();
+        balancer = null;
+    }
+    
+    @Before
+    public void setup() throws InterruptedException, IOException {
+        restcomm = HttpClientBuilder.create().build();
     }
     
     @After
     public void cleanup() {
         restcomm = null;
-        balancer.stop();
-        balancer = null;
     }
 
     @Test
     public void testGetDids() throws ClientProtocolException, IOException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("getDIDs"))
-                .withRequestBody(containing("415"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getDidsResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
-        
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getDidsResponse(requestId)));
+        server.play(8090);
+                
         final StringBuilder buffer = new StringBuilder();
         buffer.append("<request id=\""+requestId+"\">");
         buffer.append(header());
@@ -129,7 +127,7 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.GETDIDS.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -140,23 +138,15 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         String responseContent = EntityUtils.toString(response.getEntity());
         assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+        server.shutdown();
     }
 
     @Test
     public void testIsValidDid() throws ClientProtocolException, IOException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("queryDID"))
-                .withRequestBody(containing("415"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("4156902867"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getIsValidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getIsValidResponse(requestId)));
+        server.play(8090);
         
         final StringBuilder buffer = new StringBuilder();
         buffer.append("<request id=\""+requestId+"\">");
@@ -175,7 +165,7 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.QUERYDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -187,23 +177,16 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         assertTrue(responseContent.contains("<statusCode>100</statusCode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
         assertTrue(responseContent.contains("<tn>4156902867</tn>"));
+        server.shutdown();
+        
     }
 
     @Test
     public void testAssignDid() throws ClientProtocolException, IOException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("assignDID"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("4156902867"))
-                .withRequestBody(containing("131313"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getAssignDidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.play(8090);
         
         final StringBuilder buffer = new StringBuilder();
         buffer.append("<request id=\""+requestId+"\">");
@@ -223,7 +206,7 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -235,23 +218,16 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
         assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        server.shutdown();
     }
     
     @Test
     public void testReleaseDid() throws ClientProtocolException, IOException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("releaseDID"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("4156902867"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
-        
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getReleaseDidResponse(requestId)));
+        server.play(8090);
+
         final StringBuilder buffer = new StringBuilder();
         buffer.append("<request id=\""+requestId+"\">");
         buffer.append(header());
@@ -269,7 +245,7 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -281,23 +257,15 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
         assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
         assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        server.shutdown();
     }
     
     @Test
     public void testPing() throws ClientProtocolException, IOException, InterruptedException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("ping"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager"))
-//                .withRequestBody(containing("131313"))
-                .willReturn(aResponse()
-                        .withStatus(200)));
-//                        .withHeader("Content-Type", "text/xml")
-//                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setStatus("200"));
+        server.play(8090);
         
         final StringBuilder buffer = new StringBuilder();
         buffer.append("<request id=\""+requestId+"\">");
@@ -317,7 +285,7 @@ public class TelestaxProxyMessageTests_VoipInnovation {
         post.addHeader("TelestaxProxy", "true");
         post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.PING.name());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", ProvisionProvider.PROVIDER.VOIPINNOVATIONS.name());
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
 
         List<NameValuePair> parameters = new ArrayList<NameValuePair>();
         parameters.add(new BasicNameValuePair("apidata", body));
@@ -325,7 +293,7 @@ public class TelestaxProxyMessageTests_VoipInnovation {
 
         final HttpResponse response = restcomm.execute(post);
         assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
-        Thread.sleep(2000);
+        server.shutdown();
 //        String responseContent = EntityUtils.toString(response.getEntity());
 //        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
 //        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));

@@ -50,7 +50,7 @@ import com.thoughtworks.xstream.XStream;
 public class VoipInnovationMessageProcessor {
 
     private static Logger logger = Logger.getLogger(VoipInnovationMessageProcessor.class);
-    static enum RequestType { GetAvailablePhoneNumbersByAreaCode, AssignDid, IsValidDid, ReleaseDid };
+//    static enum RequestType { GetAvailablePhoneNumbersByAreaCode, AssignDid, IsValidDid, ReleaseDid };
 
     private String login;
     private String password;
@@ -98,15 +98,15 @@ public class VoipInnovationMessageProcessor {
 
         body = body.replaceFirst("apidata=", "apidata=<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><!DOCTYPE request SYSTEM \"https://www.loginto.us/Voip/api2.pl\">");
 
-        if(requestType.equalsIgnoreCase(RequestType.AssignDid.name())){
+        if(requestType.equalsIgnoreCase(ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name())){
             body = body.replaceFirst("<endpointgroup>.*</endpointgroup>", "<endpointgroup>"+endpoint+"</endpointgroup>");
-            newRequest.headers().set("RequestType", RequestType.AssignDid.name());
-        } else if (requestType.equalsIgnoreCase(RequestType.IsValidDid.name())) {
-            newRequest.headers().set("RequestType", RequestType.IsValidDid.name());
-        } else if (requestType.equalsIgnoreCase(RequestType.GetAvailablePhoneNumbersByAreaCode.name())) {
-            newRequest.headers().set("RequestType", RequestType.GetAvailablePhoneNumbersByAreaCode.name());
-        } else if (requestType.equalsIgnoreCase(RequestType.ReleaseDid.name())) {
-            newRequest.headers().set("RequestType", RequestType.ReleaseDid.name());
+            newRequest.headers().set("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
+        } else if (requestType.equalsIgnoreCase(ProvisionProvider.REQUEST_TYPE.QUERYDID.name())) {
+            newRequest.headers().set("RequestType", ProvisionProvider.REQUEST_TYPE.QUERYDID.name());
+        } else if (requestType.equalsIgnoreCase(ProvisionProvider.REQUEST_TYPE.GETDIDS.name())) {
+            newRequest.headers().set("RequestType", ProvisionProvider.REQUEST_TYPE.GETDIDS.name());
+        } else if (requestType.equalsIgnoreCase(ProvisionProvider.REQUEST_TYPE.RELEASEDID.name())) {
+            newRequest.headers().set("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.name());
         } 
 
         ChannelBuffer newContent = null;
@@ -134,7 +134,7 @@ public class VoipInnovationMessageProcessor {
         String body = getContent(response);
 
         if (proxyRequest != null && proxyRequest.getRequest() != null) {
-            if (proxyRequest.getRequest().headers().get("RequestType").equals(RequestType.AssignDid.name())) {
+            if (proxyRequest.getRequest().headers().get("RequestType").equals(ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name())) {
                 xstream = new XStream();
                 xstream.ignoreUnknownElements();
                 xstream.alias("response", VoipInnovationAssignDidResponse.class);
@@ -155,7 +155,7 @@ public class VoipInnovationMessageProcessor {
                     logger.info("Will store the new assignDID request to map for DID: "+did+" ,Restcomm instance: "+restcomm.toString());
                     phoneNumberManager.addDid(didEntity);
                 }
-            } else if (proxyRequest.getRequest().headers().get("RequestType").equals(RequestType.ReleaseDid.name())) {
+            } else if (proxyRequest.getRequest().headers().get("RequestType").equals(ProvisionProvider.REQUEST_TYPE.RELEASEDID.name())) {
                 xstream = new XStream();
                 xstream.ignoreUnknownElements();
                 xstream.alias("response", VoipInnovationReleaseDidResponse.class);

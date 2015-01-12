@@ -126,10 +126,12 @@ public class BandwidthMessageProcessor {
                     builder.addParameter("tollFreeVanity", decoder.getParameters().get("tollFreeVanity").get(0));
 
                 newRequest = new DefaultHttpRequest(request.getProtocolVersion(), request.getMethod(), builder.build().toString());
-                String authString = this.login + ":" + this.password;
-                ChannelBuffer authChannelBuffer = ChannelBuffers.copiedBuffer(authString, CharsetUtil.UTF_8);
-                ChannelBuffer encodedAuthChannelBuffer = Base64.encode(authChannelBuffer);
-                newRequest.headers().add(HttpHeaders.Names.AUTHORIZATION, "Basic "+encodedAuthChannelBuffer.toString(CharsetUtil.UTF_8));
+                if (login != null && password != null) {
+                    String authString = this.login + ":" + this.password;
+                    ChannelBuffer authChannelBuffer = ChannelBuffers.copiedBuffer(authString, CharsetUtil.UTF_8);
+                    ChannelBuffer encodedAuthChannelBuffer = Base64.encode(authChannelBuffer);
+                    newRequest.headers().add(HttpHeaders.Names.AUTHORIZATION, "Basic "+encodedAuthChannelBuffer.toString(CharsetUtil.UTF_8));
+                }
                 newRequest.headers().add("Connection", "Keep-Alive");
                 return newRequest;
 

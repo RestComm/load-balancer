@@ -20,38 +20,35 @@
  */
 package org.mobicents.tools.telestaxproxy;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.UUID;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.telestaxproxy.http.balancer.provision.common.ProvisionProvider;
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.squareup.okhttp.mockwebserver.MockResponse;
+import com.squareup.okhttp.mockwebserver.MockWebServer;
 
 /**
  * @author <a href="mailto:gvagenas@gmail.com">gvagenas</a>
@@ -60,21 +57,21 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 public class TelestaxProxyMessageTests_Bandwidth {
 
     private static Logger logger = Logger.getLogger(TelestaxProxyMessageTests_Bandwidth.class);
-    BalancerRunner balancer;
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(8090);
-    
+    private static BalancerRunner balancer;
+
     private HttpClient restcomm;
 
-    @Before
-    public void setup() throws InterruptedException, IOException {
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        logger.info("About to start LoadBalancer");
         balancer = new org.mobicents.tools.telestaxproxy.sip.balancer.BalancerRunner(); 
         Properties properties = new Properties();
         properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
         properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
+        // You need 16 for logging traces. 32 for debug + traces.
+        // Your code will limp at 32 but it is best for debugging.
         properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "16");
-        properties.setProperty("gov.nist.javax.sip.LOG_MESSAGE_CONTENT","false");
-        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "16");
+        properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "64");
         properties.setProperty("host", "127.0.0.1");
         properties.setProperty("internalPort", "5065");
         properties.setProperty("externalPort", "5060");
@@ -84,221 +81,153 @@ public class TelestaxProxyMessageTests_Bandwidth {
         properties.setProperty("vi-password","password13");
         properties.setProperty("vi-endpoint", "131313");
         properties.setProperty("vi-uri", "http://127.0.0.1:8090/test");
+        properties.setProperty("extraServerNodes", "127.0.0.1:5090,127.0.0.1:5091,127.0.0.1:5092");
+        properties.setProperty("performanceTestingMode", "true");
         properties.setProperty("mybatis-config","extra-resources/mybatis.xml");
+        properties.setProperty("bw-login", "customer");
+        properties.setProperty("bw-password", "password");
+        properties.setProperty("bw-accountId","9500149");
+        properties.setProperty("bw-siteId", "1381");
+        properties.setProperty("bw-uri", "http://127.0.0.1:8090");
+        properties.setProperty("blocked-values", "sipvicious,sipcli,friendly-scanner"); 
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");
     }
-    
-    @After
-    public void cleanup() {
-        restcomm = null;
+
+    @AfterClass
+    public static void afterClass() {
         balancer.stop();
         balancer = null;
     }
 
-    @Test
-    public void testGetDids() throws ClientProtocolException, IOException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("getDIDs"))
-                .withRequestBody(containing("415"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getDidsResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
-        
-        final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("getDIDs").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<npa>415</npa>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
-        final String body = buffer.toString();
+    @Before
+    public void setup() throws InterruptedException, IOException {
+        restcomm = HttpClientBuilder.create().build();
+    }
 
-        HttpPost post = new HttpPost("http://127.0.0.1:2080");
-
-        post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.GETDIDS.toString());
-        post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
-
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
-
-        final HttpResponse response = restcomm.execute(post);
-        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
-        String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+    @After
+    public void cleanup() {
+        restcomm = null;
     }
 
     @Test
-    public void testIsValidDid() throws ClientProtocolException, IOException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("queryDID"))
-                .withRequestBody(containing("415"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("4156902867"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getIsValidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
-        
-        final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("queryDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
-        final String body = buffer.toString();
+    public void testGetDids() throws ClientProtocolException, IOException, URISyntaxException {
+        String areaCode = "415";
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getDidsResponse(areaCode)));
+        server.play(8090);
+        //        http://192.168.1.151:2080/v1.0/accounts/account1234/availableNumbers?areaCode=626&enableTNDetail=true&quantity=5
 
-        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+        URIBuilder builder = new URIBuilder("http://127.0.0.1:2080");
+        builder.setPath("/v1.0/accounts/i-12345/availableNumbers");
+        builder.addParameter("areaCode", areaCode);
+        builder.addParameter("enableTNDetail", "true");
+        builder.addParameter("quantity", "5");
 
-        post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.QUERYDID.toString());
-        post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        HttpGet get = new HttpGet();
+        get.setURI(builder.build());
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        get.addHeader("TelestaxProxy", "true");
+        get.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.GETDIDS.toString());
+        get.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
+        get.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        final HttpResponse response = restcomm.execute(post);
+
+        final HttpResponse response = restcomm.execute(get);
         assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statusCode>100</statusCode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<tn>4156902867</tn>"));
+        assertTrue(responseContent.contains("<FullNumber>"+areaCode+"2355024</FullNumber>"));
+        server.shutdown();
     }
 
     @Test
     public void testAssignDid() throws ClientProtocolException, IOException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("assignDID"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("4156902867"))
-                .withRequestBody(containing("131313"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getAssignDidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
-        
+        String did = "2052355024";
+
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getAssignDidResponse(did)));
+        server.play(8090);
+
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("<endpointgroup>").append("Restcomm_Instance_Id").append("</endpointgroup>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        buffer.append("<Order>");
+        buffer.append("<BackOrderRequested>false</BackOrderRequested>");
+        buffer.append("<Name>Order For Number: "+did+"</Name>");
+        buffer.append("<SiteId>i-123456</SiteId>");
+        buffer.append("<PartialAllowed>false</PartialAllowed>");
+        buffer.append("<ExistingTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</ExistingTelephoneNumberOrderType>");
+        buffer.append("</Order>");
         final String body = buffer.toString();
 
-        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+        HttpPost post = new HttpPost("http://127.0.0.1:2080/v1.0/accounts/i-123456/orders");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "AssignDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.toString());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
+
 
         final HttpResponse response = restcomm.execute(post);
         assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
+        server.shutdown();
     }
-    
+
     @Test
     public void testReleaseDid() throws ClientProtocolException, IOException {
-        String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("releaseDID"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("4156902867"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "text/xml")
-                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
-        
+        String did = "2052355024";
+
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(BandwidthMessages.getReleaseDidResponse(did)));
+        server.play(8090);
+
         final StringBuilder buffer = new StringBuilder();
-        buffer.append("<request id=\""+requestId+"\">");
-        buffer.append(header());
-        buffer.append("<body>");
-        buffer.append("<requesttype>").append("releaseDID").append("</requesttype>");
-        buffer.append("<item>");
-        buffer.append("<did>").append("4156902867").append("</did>");
-        buffer.append("</item>");
-        buffer.append("</body>");
-        buffer.append("</request>");
+        buffer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>");
+        buffer.append("<DisconnectTelephoneNumberOrder>");
+        buffer.append("<Name>Disconnect Order For Number: "+did+"</Name>");
+        buffer.append("<DisconnectTelephoneNumberOrderType>");
+        buffer.append("<TelephoneNumberList>");
+        buffer.append("<TelephoneNumber>"+did+"</TelephoneNumber>");
+        buffer.append("</TelephoneNumberList>");
+        buffer.append("</DisconnectTelephoneNumberOrderType>");
+        buffer.append("</DisconnectTelephoneNumberOrder>");
         final String body = buffer.toString();
 
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "ReleaseDid");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.RELEASEDID.toString());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
         assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
         String responseContent = EntityUtils.toString(response.getEntity());
-        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        assertTrue(responseContent.contains("<TelephoneNumber>"+did+"</TelephoneNumber>"));
+        assertTrue(responseContent.contains("<DisconnectMode>normal</DisconnectMode>"));
+        server.shutdown();
     }
-    
+
     @Test
     public void testPing() throws ClientProtocolException, IOException, InterruptedException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
-        stubFor(post(urlEqualTo("/test"))
-                .withRequestBody(containing("ping"))
-                .withRequestBody(containing("username13"))
-                .withRequestBody(containing("password13"))
-                .withRequestBody(containing("org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager"))
-//                .withRequestBody(containing("131313"))
-                .willReturn(aResponse()
-                        .withStatus(200)));
-//                        .withHeader("Content-Type", "text/xml")
-//                        .withBody(VoipInnovationMessages.getReleaseDidResponse(requestId))));
-        
-        restcomm = new DefaultHttpClient();
-        
+
+        MockWebServer server = new MockWebServer();
+        server.enqueue(new MockResponse().setStatus("200"));
+        server.play(8090);
+
         final StringBuilder buffer = new StringBuilder();
         buffer.append("<request id=\""+requestId+"\">");
         buffer.append(header());
@@ -306,7 +235,6 @@ public class TelestaxProxyMessageTests_Bandwidth {
         buffer.append("<requesttype>").append("ping").append("</requesttype>");
         buffer.append("<item>");
         buffer.append("<endpointgroup>").append("Restcomm_Instance_Id").append("</endpointgroup>");
-        buffer.append("<provider>").append("org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager").append("</provider>");
         buffer.append("</item>");
         buffer.append("</body>");
         buffer.append("</request>");
@@ -315,21 +243,16 @@ public class TelestaxProxyMessageTests_Bandwidth {
         HttpPost post = new HttpPost("http://127.0.0.1:2080");
 
         post.addHeader("TelestaxProxy", "true");
-        post.addHeader("RequestType", "Ping");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.PING.toString());
         post.addHeader("OutboundIntf", "127.0.0.1:5080:udp");
-        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.bandwidth.BandwidthNumberProvisioningManager");
 
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
-        parameters.add(new BasicNameValuePair("apidata", body));
-        post.setEntity(new UrlEncodedFormEntity(parameters));
+        HttpEntity entity = new ByteArrayEntity(body.getBytes("UTF-8"));
+        post.setEntity(entity);
 
         final HttpResponse response = restcomm.execute(post);
         assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
-        Thread.sleep(2000);
-//        String responseContent = EntityUtils.toString(response.getEntity());
-//        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
-//        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
-//        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+        server.shutdown();
     }
 
     private String header() {
