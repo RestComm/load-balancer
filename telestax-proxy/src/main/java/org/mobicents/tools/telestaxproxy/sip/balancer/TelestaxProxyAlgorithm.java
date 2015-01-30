@@ -365,9 +365,11 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             logger.info("Received PING request from Restcomm Instance: "+restcomm);
             return;
         }
-
+        //        if (provider != null)
+        //            logger.info("New request received. ProvisionProvider: "+provider.name()+" originalRequest.getUri(): "+originalRequest.getUri());
         if(provider != null && provider.equals(ProvisionProvider.PROVIDER.VOIPINNOVATIONS)) {
             String body = getContent(originalRequest).replaceFirst("apidata=", "");
+            logger.info("Received VoipInnovation ProvisionRequest: "+body);
             VoipInnovationProvisionRequest viProvisionRequest = (VoipInnovationProvisionRequest) xstream.fromXML(body);
             ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, viProvisionRequest);
 
@@ -450,9 +452,12 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             if (body != null) {
                 try {
                     body = URLDecoder.decode(body, "UTF-8");
+                    logger.info("Received Bandwidth ProvisionRequest: "+body);
                 } catch (UnsupportedEncodingException exception) {
                     logger.error("There was a problem to decode the Request's content ",exception);
                 }
+            } else {
+                logger.info("Received Bandwidth ProvisionRequest: "+originalRequest.getUri());
             }
 
             if (requestType.equals(ProvisionProvider.REQUEST_TYPE.GETDIDS)) {
@@ -463,6 +468,9 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 xstream.alias("Order", BandwidthOrderRequest.class);
                 xstream.processAnnotations(BandwidthOrderRequest.class);
                 bwRequest = (BandwidthOrderRequest) xstream.fromXML(body);
+
+                String siteId = originalRequest.headers().get("SiteId");
+                bwRequest.setSiteId(siteId);
 
                 ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, bwRequest);                           
                 BandwidthStorage.getStorage().addRequestToMap(((BandwidthOrderRequest)bwRequest).getSiteId(), proxyRequest);
