@@ -26,7 +26,9 @@ import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import gov.nist.javax.sip.header.SIPHeader;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
@@ -34,6 +36,8 @@ import java.net.URLDecoder;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -108,7 +112,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
     private DaoManager daoManager;
     private RestcommInstanceDaoManager restcommInstanceManager;
     private PhoneNumberDaoManager phoneNumberManager;
-//    private ArrayList<String> blockedList;
+    private List<String> blockedList;
 //    private String externalIP;
 
     @Override
@@ -123,6 +127,14 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
         if(myBatisConf != null && !myBatisConf.equalsIgnoreCase("")) 
             mybatisConfFile = new File(myBatisConf);
 
+        String blackListLocation = properties.getProperty("blacklist");
+        File blackListFile = null;
+        if (blackListLocation != null && !blackListLocation.equalsIgnoreCase(""))
+            blackListFile = new File(blackListLocation);
+        
+        if(blackListFile != null)
+            processBlackList(blackListFile);
+        
         //Setup myabtis and dao managers
         SqlSessionFactory sessionFactory = null;
         try {
@@ -156,6 +168,47 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 //    private void populateBlockedList(String blockedValues) {
 //        blockedList = new ArrayList<String>(Arrays.asList(blockedValues.split(",")));
 //    }
+    
+
+    private void processBlackList(final File blackListFile) {
+        blockedList = Collections.synchronizedList(new ArrayList<String>());
+        try {
+            FileReader fr = new FileReader(blackListFile);
+            BufferedReader br = new BufferedReader(fr);
+            String stringRead = br.readLine();
+            while (stringRead != null) {
+                blockedList.addAll(Arrays.asList(stringRead.split(",")));
+
+                stringRead = br.readLine();
+            }
+            br.close();
+        } catch (IOException e) {
+            logger.error("Exception while processing the black list");
+        }
+    }
+    
+    @Override
+    public boolean blockInternalRequest(Request request) {
+        boolean blockDestination = false;
+        if (blockedList != null && !blockedList.isEmpty()) {
+            String did = ((SipURI)request.getRequestURI()).getUser();
+            if (did == null || did.equalsIgnoreCase("")){
+                ToHeader toHeader = (ToHeader) request.getHeader("To");
+                did = ((SipURI)toHeader.getAddress().getURI()).getUser();
+            }
+            if (did != null) {
+                did = did.replaceFirst("^\\+", "");
+                did = did.replaceFirst("^00", "");
+            }
+            for (String blocked: blockedList) {
+                if (did.startsWith(blocked)) {
+                    blockDestination = true;
+                    break;
+                }
+            }
+        }
+        return blockDestination;
+    }
 
     @Override
     public SIPNode processExternalRequest(Request request) {
