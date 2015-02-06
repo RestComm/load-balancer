@@ -26,7 +26,9 @@ import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import gov.nist.javax.sip.header.SIPHeader;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
@@ -34,6 +36,8 @@ import java.net.URLDecoder;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -524,6 +528,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             }
 
             if (requestType.equals(ProvisionProvider.REQUEST_TYPE.GETDIDS)) {
+                // REQUEST_TYPE.GETDIDS doesn't have XML body and is handled 
+                // at org.mobicents.tools.telestaxproxy.http.balancer.provision.bandwidth.BandwidthMessageProcessor.patchHttpRequest(HttpRequest) 
             } else if (requestType.equals(ProvisionProvider.REQUEST_TYPE.ASSIGNDID)) {
                 xstream = new XStream();
                 xstream.ignoreUnknownElements();
@@ -533,7 +539,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 bwRequest = (BandwidthOrderRequest) xstream.fromXML(body);
 
                 String siteId = originalRequest.headers().get("SiteId");
-                bwRequest.setSiteId(siteId);
+                if (siteId != null)
+                    bwRequest.setSiteId(siteId);
 
                 ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, bwRequest);                           
                 BandwidthStorage.getStorage().addRequestToMap(((BandwidthOrderRequest)bwRequest).getSiteId(), proxyRequest);
@@ -546,7 +553,8 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
                 bwRequest = (BandwidthReleaseRequest) xstream.fromXML(body);
 
                 String siteId = originalRequest.headers().get("SiteId");
-                bwRequest.setSiteId(siteId);
+                if (siteId != null)
+                    bwRequest.setSiteId(siteId);
 
                 ProxyRequest proxyRequest = new ProxyRequest(ctx, e, originalRequest, bwRequest);
                 if (((BandwidthReleaseRequest)bwRequest).getSiteId() != null && proxyRequest != null)

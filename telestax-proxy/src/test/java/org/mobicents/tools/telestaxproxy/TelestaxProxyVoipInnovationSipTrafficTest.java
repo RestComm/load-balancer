@@ -199,7 +199,8 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         }
 
         restcomm = null;
-        server.shutdown();
+        if (server != null)
+            server.shutdown();
         Thread.sleep(3000);
     }
     
