@@ -124,6 +124,11 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	@Override
 	public void proxyMessage(ChannelHandlerContext ctx, MessageEvent e){}
 	
+	@Override
+	public boolean blockInternalRequest(Request request){
+	    return false;
+	}
+	
 	public SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode) {
 		return assignedNode;
 	}

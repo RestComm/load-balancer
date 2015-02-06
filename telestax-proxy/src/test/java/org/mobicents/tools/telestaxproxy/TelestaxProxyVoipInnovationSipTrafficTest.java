@@ -47,6 +47,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.cafesip.sipunit.SipCall;
 import org.cafesip.sipunit.SipPhone;
+import org.cafesip.sipunit.SipResponse;
 import org.cafesip.sipunit.SipStack;
 import org.cafesip.sipunit.SipTransaction;
 import org.jboss.arquillian.container.mss.extension.SipStackTool;
@@ -129,6 +130,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         properties.setProperty("extraServerNodes", "127.0.0.1:5090,127.0.0.1:5091,127.0.0.1:5092");
         properties.setProperty("performanceTestingMode", "true");
         properties.setProperty("mybatis-config","extra-resources/mybatis.xml");
+		properties.setProperty("blacklist", "extra-resources/blacklist.csv");
         properties.setProperty("bw-login", "customer");
         properties.setProperty("bw-password", "password");
         properties.setProperty("bw-accountId","9500149");
@@ -596,8 +598,12 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         aliceCall.initiateOutgoingCall(aliceContact, "sip:1313131313@sipbalancer.com", null, sipBody, "application", "sdp", null, null);
         assertLastOperationSuccess(aliceCall);
 
-        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+        SipResponse sipResponse = aliceCall.getLastReceivedResponse();
+        assertTrue(sipResponse.getStatusCode() == Response.TRYING);
+        
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);  
         releaseDid("4156902867");
     }
     
@@ -655,9 +661,11 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.TRYING);
+        SipResponse sipResponse = aliceCall.getLastReceivedResponse();
+        assertTrue(sipResponse.getStatusCode() == Response.TRYING);
+        
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR); 
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);         
     }
 
     @Test
@@ -714,9 +722,11 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.TRYING);
+        SipResponse sipResponse = aliceCall.getLastReceivedResponse();
+        assertTrue(sipResponse.getStatusCode() == Response.TRYING);
+        
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);         
     }
     
     @Test
@@ -769,13 +779,15 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
         replaceHeaders.add("User-Agent: sipcli/v1.8");
-        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", null, replaceHeaders);
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@127.0.0.1", null, sipBody, "application", "sdp", null, replaceHeaders);
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.TRYING);
+        SipResponse sipResponse = aliceCall.getLastReceivedResponse();
+        assertTrue(sipResponse.getStatusCode() == Response.TRYING);
+        
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);        
     }
     
     @Test
@@ -830,11 +842,87 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         assertLastOperationSuccess(aliceCall);
         
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.TRYING);
+        SipResponse sipResponse = aliceCall.getLastReceivedResponse();
+        assertTrue(sipResponse.getStatusCode() == Response.TRYING);
+        
         assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
-        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);         
     }
     
+    @Test
+    public void testBlockedDestination() throws ClientProtocolException, IOException, InterruptedException{
+        //Second create a call to that DID but with blocked values in the SIP Headers
+        restcommPhone1.setLoopback(true);
+        final SipCall restcommCall1 = restcommPhone1.createSipCall();
+        restcommCall1.listenForIncomingCall();
+        
+        SipCall restcommCall = restcommPhone1.createSipCall();
+        restcommCall.initiateOutgoingCall(aliceContact, "sip:0021254014156902867@127.0.0.1", null, sipBody, "application", "sdp", null, null);
+        assertLastOperationSuccess(restcommCall);
+        
+        assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+        SipResponse response = restcommCall.getLastReceivedResponse();
+        if (response.getStatusCode() == Response.TRYING) {
+            assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+            response = restcommCall.getLastReceivedResponse();
+        }
+        assertTrue(response.getStatusCode() == Response.FORBIDDEN);
+        
+        Thread.sleep(1000);
+        
+        restcommCall.initiateOutgoingCall(aliceContact, "sip:0087063156902867@127.0.0.1", null, sipBody, "application", "sdp", null, null);
+        assertLastOperationSuccess(restcommCall);
+        
+        assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+        response = restcommCall.getLastReceivedResponse();
+        if (response.getStatusCode() == Response.TRYING) {
+            assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+            response = restcommCall.getLastReceivedResponse();
+        }
+        assertTrue(response.getStatusCode() == Response.FORBIDDEN);
+        
+        Thread.sleep(1000);
+        
+        restcommCall.initiateOutgoingCall(aliceContact, "sip:+87063156902867@127.0.0.1", null, sipBody, "application", "sdp", null, null);
+        assertLastOperationSuccess(restcommCall);
+        
+        assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+        response = restcommCall.getLastReceivedResponse();
+        if (response.getStatusCode() == Response.TRYING) {
+            assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+            response = restcommCall.getLastReceivedResponse();
+        }
+        assertTrue(response.getStatusCode() == Response.FORBIDDEN);
+        
+        Thread.sleep(1000);
+        
+        restcommCall.initiateOutgoingCall(aliceContact, "sip:+9610156902867@127.0.0.1", null, sipBody, "application", "sdp", null, null);
+        assertLastOperationSuccess(restcommCall);
+        
+        assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+        response = restcommCall.getLastReceivedResponse();
+        assertTrue(response.getStatusCode() == Response.TRYING);
+        
+        assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+        assertTrue(restcommCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        restcommCall.disconnect();
+
+        Thread.sleep(1000);
+        
+        restcommCall.initiateOutgoingCall(aliceContact, "sip:+30210156902867@127.0.0.1", null, sipBody, "application", "sdp", null, null);
+        assertLastOperationSuccess(restcommCall);
+        
+        assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+        response = restcommCall.getLastReceivedResponse();
+        assertTrue(response.getStatusCode() == Response.TRYING);
+        
+        assertTrue(restcommCall.waitOutgoingCallResponse(5 * 1000));
+        assertTrue(restcommCall.getLastReceivedResponse().getStatusCode() == Response.SERVER_INTERNAL_ERROR);
+        restcommCall.disconnect();
+        
+        Thread.sleep(10000);
+    }
+
     private void releaseDid(String did) throws ClientProtocolException, IOException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
         server.shutdown();

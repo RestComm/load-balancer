@@ -54,7 +54,13 @@ public interface BalancerAlgorithm {
 	SIPNode processExternalRequest(Request request);
 	SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode);
 	void processInternalRequest(Request request);
-	
+	/**
+	 * Check whether LB should forward request or not
+	 * Useful for blocking outbound calls to specific destinations
+	 * @param request
+	 * @return
+	 */
+	boolean blockInternalRequest(Request request);
 	/**
 	 * Handle HttpRequests here. Use the Netty API for Http request analysis.
 	 * @param request

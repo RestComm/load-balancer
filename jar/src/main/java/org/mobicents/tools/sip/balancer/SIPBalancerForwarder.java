@@ -795,6 +795,12 @@ public class SIPBalancerForwarder implements SipListener {
             if(initialPortHeader != null)
                 request.removeHeader(initialPortHeader.getName());
             ctx.balancerAlgorithm.processInternalRequest(request);
+            if (request.getMethod().equalsIgnoreCase(Request.INVITE) && ctx.balancerAlgorithm.blockInternalRequest(request)) {
+                Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.FORBIDDEN, request);          
+                response.setReasonPhrase("Destination not allowed");
+                sipProvider.sendResponse(response);
+                return;
+            }
             nextNode = hints.serverAssignedNode;
         } else {
             logger.debug("Request not from server");
