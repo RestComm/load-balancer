@@ -199,6 +199,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             if (did != null) {
                 did = did.replaceFirst("^\\+", "");
                 did = did.replaceFirst("^00", "");
+                did = did.replaceFirst("^011", "");
             }
             for (String blocked: blockedList) {
                 if (did.startsWith(blocked)) {
