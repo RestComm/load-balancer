@@ -24,6 +24,7 @@ import static org.cafesip.sipunit.SipAssert.assertLastOperationSuccess;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import gov.nist.javax.sip.header.RecordRouteList;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -32,6 +33,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import javax.sip.header.Header;
+import javax.sip.header.RecordRouteHeader;
 import javax.sip.message.Response;
 
 import org.apache.http.HttpResponse;
@@ -924,6 +927,96 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         Thread.sleep(10000);
     }
 
+    @Test
+    public void testAssignDidAndCreateCallToRestcomm1MultipleRecordRouteHeaders() throws ClientProtocolException, IOException, InterruptedException, ParseException {
+        logger.info("Starting testAssignDidAndCreateCallToRestcomm1");
+        String requestId = UUID.randomUUID().toString().replace("-", "");        
+        server = new MockWebServer();
+        server.enqueue(new MockResponse().setBody(VoipInnovationMessages.getAssignDidResponse(requestId)));
+        server.play(8090);
+
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("<request id=\""+requestId+"\">");
+        buffer.append(header());
+        buffer.append("<body>");
+        buffer.append("<requesttype>").append("assignDID").append("</requesttype>");
+        buffer.append("<item>");
+        buffer.append("<did>").append("4156902867").append("</did>");
+        buffer.append("<endpointgroup>").append("rest-12345").append("</endpointgroup>");
+        buffer.append("</item>");
+        buffer.append("</body>");
+        buffer.append("</request>");
+        final String body = buffer.toString();
+
+        HttpPost post = new HttpPost("http://127.0.0.1:2080");
+
+        post.addHeader("TelestaxProxy", "true");
+        post.addHeader("RequestType", ProvisionProvider.REQUEST_TYPE.ASSIGNDID.name());
+        post.addHeader("OutboundIntf", "127.0.0.1:5090:udp");
+        post.addHeader("Provider", "org.mobicents.servlet.restcomm.provisioning.number.vi.VoIPInnovationsNumberProvisioningManager");
+
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("apidata", body));
+        post.setEntity(new UrlEncodedFormEntity(parameters));
+
+        final HttpResponse response = restcomm.execute(post);
+        assertTrue(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK);
+        String responseContent = EntityUtils.toString(response.getEntity());
+        assertTrue(responseContent.contains("<statuscode>100</statuscode>"));
+        assertTrue(responseContent.contains("<response id=\""+requestId+"\">"));
+        assertTrue(responseContent.contains("<TN>4156902867</TN>"));
+
+        restcommPhone1.setLoopback(true);
+        final SipCall restcommCall1 = restcommPhone1.createSipCall();
+        restcommCall1.listenForIncomingCall();
+        
+        final SipCall aliceCall = alicePhone.createSipCall();
+        //Need to replace the To header with 127.0.0.1:5092 so the sipUnit will accept the Invite. Also need restcommPhone1.setLoopback(true);
+        ArrayList<String> replaceHeaders = new ArrayList<String>();
+        replaceHeaders.add("To: "+restcommContact1);
+        ArrayList<String> additionalHeaders = new ArrayList<String>();
+        RecordRouteHeader recordRoute1 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9001"));
+        RecordRouteHeader recordRoute2 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9002"));
+        RecordRouteHeader recordRoute3 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9003"));
+        RecordRouteHeader recordRoute4 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9004"));
+        additionalHeaders.add(recordRoute1.toString());
+        additionalHeaders.add(recordRoute2.toString());
+        additionalHeaders.add(recordRoute3.toString());
+        additionalHeaders.add(recordRoute4.toString());
+        aliceCall.initiateOutgoingCall(aliceContact, "sip:14156902867@sipbalancer.com", null, sipBody, "application", "sdp", additionalHeaders, replaceHeaders);
+        assertLastOperationSuccess(aliceCall);
+        
+        assertTrue(restcommCall1.waitForIncomingCall(5000));
+        assertTrue(restcommCall1.sendIncomingCallResponse(180, "Restcomm-Ringing", 3600));
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));    
+        int lastAliceResponseCode = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(lastAliceResponseCode == Response.TRYING || lastAliceResponseCode == Response.RINGING); 
+        if(lastAliceResponseCode == Response.TRYING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertTrue(aliceCall.getLastReceivedResponse().getStatusCode() == Response.RINGING);
+        }
+
+        assertTrue(restcommCall1.sendIncomingCallResponse(200, "Restcomm-OK", 3600, null, null, sipBody));
+        
+        assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+        int responseAlice = aliceCall.getLastReceivedResponse().getStatusCode();
+        assertTrue(responseAlice == Response.RINGING || responseAlice == Response.OK);
+
+        if (responseAlice == Response.RINGING) {
+            assertTrue(aliceCall.waitOutgoingCallResponse(5 * 1000));
+            assertEquals(Response.OK, aliceCall.getLastReceivedResponse().getStatusCode());
+        }
+        assertTrue(aliceCall.sendInviteOkAck());
+        assertTrue(!(aliceCall.getLastReceivedResponse().getStatusCode() >= 400));
+        
+        Thread.sleep(2000);
+        
+        assertTrue(aliceCall.disconnect());
+        assertTrue(restcommCall1.waitForDisconnect(2000));
+        assertTrue(restcommCall1.respondToDisconnect());
+        releaseDid("4156902867");
+    }
+    
     private void releaseDid(String did) throws ClientProtocolException, IOException {
         String requestId = UUID.randomUUID().toString().replace("-", "");
         server.shutdown();

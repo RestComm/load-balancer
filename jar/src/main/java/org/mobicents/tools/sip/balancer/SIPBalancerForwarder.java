@@ -25,6 +25,7 @@ package org.mobicents.tools.sip.balancer;
 import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.address.SipUri;
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
+import gov.nist.javax.sip.header.RecordRouteList;
 import gov.nist.javax.sip.header.Route;
 import gov.nist.javax.sip.header.RouteList;
 import gov.nist.javax.sip.header.SIPHeader;
@@ -1400,7 +1401,7 @@ public class SIPBalancerForwarder implements SipListener {
                 response.addHeader(contactHeader);
             }
             if (recordRouteHeader != null) {
-                response.removeHeader("Record-Route");
+                response.removeFirst("Record-Route");
                 response.addFirst(recordRouteHeader);
             }
         } catch (Exception e) {
