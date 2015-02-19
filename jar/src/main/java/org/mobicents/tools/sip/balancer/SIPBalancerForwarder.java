@@ -1203,7 +1203,7 @@ public class SIPBalancerForwarder implements SipListener {
      */
     private boolean isRouteHeaderExternal(String host, int port) {
         //FIXME check against a list of host we may have too and add transport
-        if((host.equalsIgnoreCase(balancerRunner.balancerContext.externalHost) || host.equalsIgnoreCase(balancerRunner.balancerContext.internalHost))
+        if((host.equalsIgnoreCase(balancerRunner.balancerContext.externalHost) || host.equalsIgnoreCase(balancerRunner.balancerContext.internalHost) || host.equalsIgnoreCase(balancerRunner.balancerContext.publicIP))
                 && (port == balancerRunner.balancerContext.externalPort || port == balancerRunner.balancerContext.internalPort)) {
             return false;
         }
