@@ -713,11 +713,11 @@ public class SIPBalancerForwarder implements SipListener {
             }
         }
         if(uri != null) {
-            if( (uri.getHost().equals(balancerRunner.balancerContext.externalHost) && 
-                    uri.getPort() == balancerRunner.balancerContext.externalPort)
+            if( (((uri.getHost().equals(balancerRunner.balancerContext.externalHost) || uri.getHost().equals(balancerRunner.balancerContext.publicIP)) && 
+                    uri.getPort() == balancerRunner.balancerContext.externalPort))
 
-                    || (uri.getHost().equals(balancerRunner.balancerContext.internalHost) && 
-                            uri.getPort() == balancerRunner.balancerContext.internalPort)) {
+                    || (((uri.getHost().equals(balancerRunner.balancerContext.internalHost) || uri.getHost().equals(balancerRunner.balancerContext.publicIP)) && 
+                            uri.getPort() == balancerRunner.balancerContext.internalPort))) {
                 return uri;
             }
         }
