@@ -415,10 +415,14 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
 
         ProvisionProvider.PROVIDER provider = null;
         final String providerClass = originalRequest.headers().get("Provider");
-        if (providerClass.equalsIgnoreCase(ProvisionProvider.voipinnovationsClass)) {
+        if (providerClass != null) {
+            if (providerClass.equalsIgnoreCase(ProvisionProvider.voipinnovationsClass)) {
+                provider = ProvisionProvider.PROVIDER.VOIPINNOVATIONS;
+            } else if (providerClass.equalsIgnoreCase(ProvisionProvider.bandiwidthClass)) {
+                provider = ProvisionProvider.PROVIDER.BANDWIDTH;
+            }
+        } else {
             provider = ProvisionProvider.PROVIDER.VOIPINNOVATIONS;
-        } else if (providerClass.equalsIgnoreCase(ProvisionProvider.bandiwidthClass)) {
-            provider = ProvisionProvider.PROVIDER.BANDWIDTH;
         }
 
         ProvisionProvider.REQUEST_TYPE requestType = ProvisionProvider.REQUEST_TYPE.valueOf(originalRequest.headers().get("RequestType").toUpperCase());
