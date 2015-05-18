@@ -975,10 +975,10 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         ArrayList<String> replaceHeaders = new ArrayList<String>();
         replaceHeaders.add("To: "+restcommContact1);
         ArrayList<String> additionalHeaders = new ArrayList<String>();
-        RecordRouteHeader recordRoute1 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9001"));
-        RecordRouteHeader recordRoute2 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9002"));
-        RecordRouteHeader recordRoute3 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9003"));
-        RecordRouteHeader recordRoute4 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("127.0.0.1:9004"));
+        RecordRouteHeader recordRoute1 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("sip:127.0.0.1:9001"));
+        RecordRouteHeader recordRoute2 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("sip:127.0.0.1:9002"));
+        RecordRouteHeader recordRoute3 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("sip:127.0.0.1:9003"));
+        RecordRouteHeader recordRoute4 = aliceSipStack.getHeaderFactory().createRecordRouteHeader(aliceSipStack.getAddressFactory().createAddress("sip:127.0.0.1:9004"));
         additionalHeaders.add(recordRoute1.toString());
         additionalHeaders.add(recordRoute2.toString());
         additionalHeaders.add(recordRoute3.toString());

@@ -9,15 +9,23 @@
 		</layout>
 	</appender>
 
-	<logger name="org.mybatis" additivity="false">
-		<level value="DEBUG" />
-		<appender-ref ref="console" />
-	</logger>
+	<category name="org.mobicents">
+		<priority value="INFO" />
+	</category>
+	<category name="gov.nist">
+		<priority value="INFO" />
+	</category>
 
-	<logger name="org.apache.ibatis.logging.LogFactory" additivity="false">
-		<level value="INFO" />
-		<appender-ref ref="console" />
-	</logger>
+
+	<category name="org.mobicents.tools.telestaxproxy">
+		<priority value="DEBUG" />
+	</category>
+
+
+	<!-- <logger name="org.mybatis" additivity="false"> <level value="DEBUG" 
+		/> <appender-ref ref="console" /> </logger> <logger name="org.apache.ibatis.logging.LogFactory" 
+		additivity="false"> <level value="DEBUG" /> <appender-ref ref="console" /> 
+		</logger> -->
 
 	<root>
 		<level value="DEBUG" />
