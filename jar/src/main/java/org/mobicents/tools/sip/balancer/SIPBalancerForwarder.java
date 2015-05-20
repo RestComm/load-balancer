@@ -66,6 +66,7 @@ import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
 import javax.sip.address.URI;
 import javax.sip.header.CallIdHeader;
+import javax.sip.header.ContactHeader;
 import javax.sip.header.Header;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
@@ -789,7 +790,7 @@ public class SIPBalancerForwarder implements SipListener {
         SIPNode nextNode = null;
 
         if(isRequestFromServer) {
-            logger.debug("Request from server");
+            logger.info("Request from server");
             Header initialAddrHeader = request.getHeader("X-Sip-Balancer-InitialRemoteAddr");
             Header initialPortHeader = request.getHeader("X-Sip-Balancer-InitialRemotePort");
             if(initialAddrHeader != null)
@@ -805,7 +806,7 @@ public class SIPBalancerForwarder implements SipListener {
             }
             nextNode = hints.serverAssignedNode;
         } else {
-            logger.debug("Request not from server");
+            logger.info("Request not from server");
             // Request is NOT from app server, first check if we have hints in Route headers
             SIPNode assignedNode = hints.serverAssignedNode;
 
@@ -1052,12 +1053,13 @@ public class SIPBalancerForwarder implements SipListener {
                         balancerRunner.balancerContext.activeExternalHeader[transportIndex],
                         balancerRunner.balancerContext.activeInternalHeader[transportIndex],
                         hints, transport);
-
             } else { // comes from app server
                 addTwoRecordRoutes(request,
                         balancerRunner.balancerContext.activeInternalHeader[transportIndex],
                         balancerRunner.balancerContext.activeExternalHeader[transportIndex],
                         hints, transport);
+                logger.info("Will patch Request : \""+request.getRequestURI()+"\" to provide public IP address for the RecordRoute header");
+                patchSipMessageForNAT(request);
             }	
         } else {
             RecordRouteHeader recordRouteHeader = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
@@ -1313,7 +1315,8 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 			}*/
             if(balancerRunner.balancerContext.publicIP != null && balancerRunner.balancerContext.publicIP.trim().length() > 0) {
-                patchResponseForNAT(response);
+                logger.info("Will add Record-Route header to response with public IP Address: "+balancerRunner.balancerContext.publicIP);
+                patchSipMessageForNAT(response);
             }
             ctx.balancerAlgorithm.processInternalResponse(response);
             try {	
@@ -1367,70 +1370,89 @@ public class SIPBalancerForwarder implements SipListener {
     /**
      * Patch Response for NAT Environment where the Load Balancer runs on a private IP but UAs need to know the LB public IP to 
      * send back subsequent requests to it.
-     * @param response the response to patch
+     * @param sipMessage the response to patch
      * @throws PeerUnavailableException 
      * @throws ParseException 
      */
-    public void patchResponseForNAT(Response response) {
+    public void patchSipMessageForNAT(javax.sip.message.Message sipMessage) {
         //Need to patch the response so the subsequent requests are directly correctly at the public IP Address of the LB
         // Useful for NAT environment such as Amazon EC2
-        int port = balancerRunner.balancerContext.externalPort;
-        String privateIp = balancerRunner.balancerContext.host;
-        String contactURI = "sip:"+balancerRunner.balancerContext.publicIP+":"+port;
-        String recordRouteURI = "sip:"+balancerRunner.balancerContext.publicIP+":"+port+";lr";
-        //        RecordRouteHeader existingRecordRouteHeader = (RecordRouteHeader) response.getHeader("Record-Route");        
-        ListIterator<RecordRouteHeader> recordRouteHeaderList = response.getHeaders(RecordRouteHeader.NAME);
-        response.removeHeader(RecordRouteHeader.NAME);
+        if (balancerRunner.balancerContext.publicIP != null && !balancerRunner.balancerContext.publicIP.isEmpty()) {
+            int port = balancerRunner.balancerContext.externalPort;
+            String privateIp = balancerRunner.balancerContext.host;
+            String recordRouteURI = "sip:"+balancerRunner.balancerContext.publicIP+":"+port+";lr";
+            //        RecordRouteHeader existingRecordRouteHeader = (RecordRouteHeader) response.getHeader("Record-Route");        
+            ListIterator<RecordRouteHeader> recordRouteHeaderList = sipMessage.getHeaders(RecordRouteHeader.NAME);
+            sipMessage.removeHeader(RecordRouteHeader.NAME);
 
-        try {
-            HeaderFactory headerFactory = SipFactory.getInstance().createHeaderFactory(); 
-            AddressFactory addressFactory = SipFactory.getInstance().createAddressFactory();
-            Header contactHeader = null;
-            RecordRouteHeader recordRouteHeaderToAdd = null;
+            try {
+                HeaderFactory headerFactory = SipFactory.getInstance().createHeaderFactory(); 
+                AddressFactory addressFactory = SipFactory.getInstance().createAddressFactory();
+                Header contactHeader = null;
+                RecordRouteHeader recordRouteHeaderToAdd = null;
 
-            while (recordRouteHeaderList.hasNext()) {
-                RecordRouteHeader recordRouteHeader = (RecordRouteHeader) recordRouteHeaderList.next();
-                logger.info("About to check Record-Route header: "+recordRouteHeader.toString());
-                if (((SipURI)recordRouteHeader.getAddress().getURI()).getHost().equals(privateIp)) { //If this RecordRoute header is from LB
-                    if (((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==port) { // And if the port is the external Port 5060
-                        SipURI sipURI = (SipURI) recordRouteHeader.getAddress().getURI();
-                        String nodeHost = sipURI.getParameter("node_host");
-                        String nodePort = sipURI.getParameter("node_port");
-                        String nodeVersion = sipURI.getParameter("version");
-                        String transport = sipURI.getParameter("transport");
-                        if ( nodeHost != null && nodePort != null) {
-                            recordRouteURI = recordRouteURI+";transport="+transport+";node_host="+nodeHost+";node_port="+nodePort+";version="+nodeVersion;
+                if (!recordRouteHeaderList.hasNext()) {
+                    logger.info("Record Route header list is empty");
+                }
+
+                while (recordRouteHeaderList.hasNext()) {
+                    RecordRouteHeader recordRouteHeader = (RecordRouteHeader) recordRouteHeaderList.next();
+                    logger.info("About to check Record-Route header: "+recordRouteHeader.toString());
+                    if (((SipURI)recordRouteHeader.getAddress().getURI()).getHost().equals(privateIp)) { //If this RecordRoute header is from LB
+                        if (((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==port) { // And if the port is the external Port 5060
+                            SipURI sipURI = (SipURI) recordRouteHeader.getAddress().getURI();
+                            String nodeHost = sipURI.getParameter("node_host");
+                            String nodePort = sipURI.getParameter("node_port");
+                            String nodeVersion = sipURI.getParameter("version");
+                            String transport = sipURI.getParameter("transport");
+                            if ( nodeHost != null && nodePort != null) {
+                                recordRouteURI = recordRouteURI+";transport="+transport+";node_host="+nodeHost+";node_port="+nodePort+";version="+nodeVersion;
+                            } else {
+                                recordRouteURI = recordRouteURI+";transport="+transport;
+                            }
+                            Address externalAddress = addressFactory.createAddress(recordRouteURI);
+                            recordRouteHeaderToAdd = headerFactory.createRecordRouteHeader(externalAddress);
+                            logger.info("Will add last the Record Route header: "+recordRouteHeaderToAdd.toString());
+                            sipMessage.addLast(recordRouteHeaderToAdd);
+                            break;
                         }
-                        Address externalAddress = addressFactory.createAddress(recordRouteURI);
-                        recordRouteHeaderToAdd = headerFactory.createRecordRouteHeader(externalAddress);
-                        logger.info("Will add last the Record Route header: "+recordRouteHeaderToAdd.toString());
-                        response.addLast(recordRouteHeaderToAdd);
-                        break;
+                    } else {
+                        logger.info("Didn't patched the Record-Route because ip address is not the private one: "+((SipURI)recordRouteHeader.getAddress().getURI()).getHost()); 
+                    }
+                    logger.info("Will add the Record Route header: "+recordRouteHeader.toString());
+                    sipMessage.addHeader(recordRouteHeader);
+                }
+
+                if (sipMessage.getHeader(ContactHeader.NAME) != null) {
+                    final String displayedName = ((ContactHeader)sipMessage.getHeader("Contact")).getAddress().getDisplayName();
+                    if (displayedName != null && !displayedName.isEmpty()) {
+                        final String contactURI = "sip:"+displayedName+"@"+balancerRunner.balancerContext.publicIP+":"+port;
+                        contactHeader = headerFactory.createHeader("Contact", contactURI);
+                        ((ContactHeader)contactHeader).getAddress().setDisplayName(displayedName);
+                    } else {
+                        final String contactURI = "sip:"+balancerRunner.balancerContext.publicIP+":"+port;
+                        contactHeader = headerFactory.createHeader("Contact", contactURI);
+                    }
+                    if (contactHeader != null) {
+                        sipMessage.removeFirst("Contact");
+                        sipMessage.addHeader(contactHeader);
                     }
                 }
-                logger.info("Will add the Record Route header: "+recordRouteHeader.toString());
-                response.addHeader(recordRouteHeader);
+
+                if (contactHeader != null)
+                    logger.debug("Patched the Contact header with : "+contactHeader.toString());
+                if (recordRouteHeaderToAdd != null)
+                    logger.debug("Added on top : "+recordRouteHeaderToAdd.toString());
+
+            } catch (PeerUnavailableException peerUnavailableException) {
+                logger.error("Unexpected exception while forwarding the response \n" + sipMessage, peerUnavailableException);
+            } catch (ParseException parseException) {
+                logger.error("Unexpected exception while forwarding the response \n" + sipMessage, parseException);
+            } catch (NullPointerException e) {
+                logger.error("Unexpected exception while forwarding the response \n" + sipMessage, e);
+            } catch (SipException e) {
+                logger.error("Unexpected exception while forwarding the response \n" + sipMessage, e);
             }
-
-            contactHeader = headerFactory.createHeader("Contact", contactURI);
-            if (contactHeader != null) {
-                response.removeFirst("Contact");
-                response.addHeader(contactHeader);
-            }
-
-            if (contactHeader != null)
-                logger.debug("Patched the Contact header with : "+contactHeader.toString());
-            if (recordRouteHeaderToAdd != null)
-                logger.debug("Added on top : "+recordRouteHeaderToAdd.toString());
-
-        } catch (PeerUnavailableException peerUnavailableException) {
-            logger.error("Unexpected exception while forwarding the response \n" + response, peerUnavailableException);
-        } catch (ParseException parseException) {
-            logger.error("Unexpected exception while forwarding the response \n" + response, parseException);
-        } catch (NullPointerException e) {
-            logger.error("Unexpected exception while forwarding the response \n" + response, e);
-        } catch (SipException e) {
-            logger.error("Unexpected exception while forwarding the response \n" + response, e);
         }
     }
 

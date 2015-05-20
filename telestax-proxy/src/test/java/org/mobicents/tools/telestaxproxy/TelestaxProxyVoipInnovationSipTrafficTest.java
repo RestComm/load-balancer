@@ -140,7 +140,7 @@ public class TelestaxProxyVoipInnovationSipTrafficTest {
         properties.setProperty("bw-siteId", "1381");
         properties.setProperty("bw-uri", "https://api.test.inetwork.com/");
         properties.setProperty("blocked-values", "sipvicious,sipcli,friendly-scanner"); 
-//        properties.setProperty("public-ip", "199.199.199.199");
+        properties.setProperty("public-ip", "199.199.199.199");
         balancer.start(properties);
         Thread.sleep(1000);
         logger.info("Balancer Started");
