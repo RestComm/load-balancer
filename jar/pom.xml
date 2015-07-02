@@ -22,7 +22,7 @@
 		</manifest.implementation.version>
 		<manifest.implementation.vendor>TeleStax, Inc.
 		</manifest.implementation.vendor>
-		<telscale.license.version>1.5.1</telscale.license.version>
+		<telscale.license.version>2.2.0.Final</telscale.license.version>
 	</properties>
 
 	<dependencies>
@@ -98,6 +98,13 @@
 		<dependency>
 		   <groupId>com.telscale.licensing</groupId>
 		   <artifactId>lce-secret</artifactId>
+		   <version>${telscale.license.version}</version>
+		   <classifier>obfuscated</classifier>
+		</dependency>	
+
+		<dependency>
+		   <groupId>com.telscale.licensing</groupId>
+		   <artifactId>lce-offline</artifactId>
 		   <version>${telscale.license.version}</version>
 		   <classifier>obfuscated</classifier>
 		</dependency>	
