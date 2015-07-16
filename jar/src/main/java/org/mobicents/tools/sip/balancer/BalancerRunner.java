@@ -221,6 +221,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				return ; 
 			}
 			
+			if(logger.isDebugEnabled()) {
+                logger.debug("About to startRegistry at: "+rmiRegistryPort+" and remoteObjectPort: "+remoteObjectPort);
+            }
+			logger.info("About to startRegistry at: "+rmiRegistryPort+" and remoteObjectPort: "+remoteObjectPort);
 			reg.startRegistry(rmiRegistryPort, remoteObjectPort);
 			if(logger.isDebugEnabled()) {
 				logger.debug("adding shutdown hook");

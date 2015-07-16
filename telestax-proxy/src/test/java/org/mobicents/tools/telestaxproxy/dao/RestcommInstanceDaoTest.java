@@ -121,4 +121,49 @@ public class RestcommInstanceDaoTest {
         assertTrue(retrievedInstance.getWsInterface().equalsIgnoreCase("192.168.1.70:5082"));        
     }
     
+    @Test //https://telestax.atlassian.net/browse/SPP-11
+    public void testMovePublicIpAddress() throws Exception {
+        String restcommId = "rest-12345";
+        String publicIp = "10.10.10.10";
+        List<String> addresses = new ArrayList<String>();
+        addresses.add("127.0.0.1:5080:udp");
+        addresses.add("127.0.0.1:5080:tcp");
+        addresses.add("127.0.0.1:5081:tls");
+        addresses.add("127.0.0.1:5082:ws");
+        RestcommInstance restcomm = new RestcommInstance(restcommId, addresses, ProvisionProvider.PROVIDER.UNKNOWN, publicIp);
+        
+        instanceDao.addRestcommInstance(restcomm);
+        
+        RestcommInstance retrievedInstance = instanceDao.getInstanceById(restcommId);
+        assertTrue(retrievedInstance != null);
+        assertTrue(retrievedInstance.getId().equalsIgnoreCase(restcommId));
+        assertTrue(retrievedInstance.getUdpInterface().equalsIgnoreCase("127.0.0.1:5080"));
+        assertTrue(retrievedInstance.getTcpInterface().equalsIgnoreCase("127.0.0.1:5080"));
+        assertTrue(retrievedInstance.getTlsInterface().equalsIgnoreCase("127.0.0.1:5081"));
+        assertTrue(retrievedInstance.getWsInterface().equalsIgnoreCase("127.0.0.1:5082"));
+        assertTrue(retrievedInstance.getPublicIpAddress().equalsIgnoreCase(publicIp));
+        
+        logger.info("************ Preparing second instance with the same public ip address");
+        
+        String newRestcommId = "12345-rest";
+        List<String> newAddresses = new ArrayList<String>();
+        newAddresses.add("192.168.1.70:5080:udp");
+        newAddresses.add("192.168.1.70:5080:tcp");
+        newAddresses.add("192.168.1.70:5081:tls");
+        newAddresses.add("192.168.1.70:5082:ws");
+        RestcommInstance updatedRestcomm = new RestcommInstance(newRestcommId, newAddresses, ProvisionProvider.PROVIDER.UNKNOWN, publicIp);
+        
+        instanceDao.addRestcommInstance(updatedRestcomm);
+        RestcommInstance newRetrievedInstance = instanceDao.getInstanceById(newRestcommId);
+        assertTrue(newRetrievedInstance != null);
+        
+        assertTrue(instanceDao.getInstanceByPublicIpAddress(publicIp).getId().equalsIgnoreCase(newRestcommId));
+        
+        assertTrue(newRetrievedInstance.getId().equalsIgnoreCase(newRestcommId));
+        assertTrue(newRetrievedInstance.getUdpInterface().equalsIgnoreCase("192.168.1.70:5080"));
+        assertTrue(newRetrievedInstance.getTcpInterface().equalsIgnoreCase("192.168.1.70:5080"));
+        assertTrue(newRetrievedInstance.getTlsInterface().equalsIgnoreCase("192.168.1.70:5081"));
+        assertTrue(newRetrievedInstance.getWsInterface().equalsIgnoreCase("192.168.1.70:5082"));
+        assertTrue(newRetrievedInstance.getPublicIpAddress().equalsIgnoreCase(publicIp));
+    }
 }

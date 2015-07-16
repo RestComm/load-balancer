@@ -431,7 +431,7 @@ public class TelestaxProxyAlgorithm extends CallIDAffinityBalancerAlgorithm {
             String body = getContent(originalRequest).replaceFirst("apidata=", "");
             VoipInnovationProvisionRequest provisionRequest = (VoipInnovationProvisionRequest) xstream.fromXML(body);
             pong(ctx, e, originalRequest);
-            RestcommInstance restcomm = new RestcommInstance(provisionRequest.getEndpointGroup(), provider, originalRequest.headers().getAll("OutboundIntf"), originalRequest.headers().get("PublicIpAddress"));
+            RestcommInstance restcomm = new RestcommInstance(provisionRequest.getEndpointGroup(), originalRequest.headers().getAll("OutboundIntf"), provider, originalRequest.headers().get("PublicIpAddress"));
             restcommInstanceManager.addRestcommInstance(restcomm);
             logger.info("Received PING request from Restcomm Instance: "+restcomm);
             return;

@@ -54,7 +54,7 @@ public class RestcommInstance {
         this.setProvisionProvider(provisionProvider);
     }
     
-    public RestcommInstance(final String restcommInstanceId, final ProvisionProvider.PROVIDER provisionProvider, final List<String> addresses, final String publicIpAddress) {
+    public RestcommInstance(final String restcommInstanceId, final List<String> addresses, final ProvisionProvider.PROVIDER provisionProvider, final String publicIpAddress) {
         this.publicIpAddress = publicIpAddress;
         this.id = restcommInstanceId;
         this.provisionProvider = provisionProvider;

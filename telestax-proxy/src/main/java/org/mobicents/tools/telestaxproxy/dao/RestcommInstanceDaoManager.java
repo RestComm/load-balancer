@@ -46,10 +46,20 @@ public class RestcommInstanceDaoManager {
             try{
                 RestcommInstanceMapper restcommMapper = session.getMapper(RestcommInstanceMapper.class);
                 RestcommInstance restcomm = (RestcommInstance)restcommMapper.getInstanceById(restcommInstance.getId());
-                if(restcomm == null) {
+                if(restcomm == null && (!restcommInstance.getPublicIpAddress().equals("") || !restcommInstance.getPublicIpAddress().isEmpty())) {
+                    //Issue: https://telestax.atlassian.net/browse/SPP-11
+                    restcomm = (RestcommInstance)restcommMapper.getInstanceByPublicIpAddress(restcommInstance.getPublicIpAddress());
+                }
+                if (restcomm == null) {
                     restcommMapper.addRestcommInstance(restcommInstance);
                 } else {
-                    restcommMapper.updateRestcommInstance(restcommInstance);
+                    if (restcomm.getId().equals(restcommInstance.getId())) {
+                        logger.info("Restcomm instance is not null, will update the instance: "+restcommInstance.toString());
+                        restcommMapper.updateRestcommInstance(restcommInstance);
+                    } else {
+                        restcommMapper.deleteRestcommInstance(restcomm.getId());
+                        restcommMapper.addRestcommInstance(restcommInstance);
+                    }
                 }
                 session.commit(true);
             } catch (Exception e){
@@ -118,5 +128,5 @@ public class RestcommInstanceDaoManager {
             return restcomm;
         }
     }
-    
+
 }

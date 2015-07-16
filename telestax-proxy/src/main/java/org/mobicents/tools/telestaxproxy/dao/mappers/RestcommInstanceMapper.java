@@ -20,6 +20,7 @@
  */
 package org.mobicents.tools.telestaxproxy.dao.mappers;
 
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -43,6 +44,7 @@ public abstract interface RestcommInstanceMapper {
     public static final String SELECT_BY_WS_INTERFACE = "SELECT * FROM restcomm_instances WHERE wsInterface=#{wsInterface}";
     public static final String UPDATE = "UPDATE restcomm_instances SET publicIpAddress=#{publicIpAddress}, udpInterface=#{udpInterface}, tcpInterface=#{tcpInterface}, tlsInterface=#{tlsInterface},"
             + " wsInterface=#{wsInterface}, dateCreated=#{dateCreated}, provisionProvider=#{provisionProvider}  WHERE id=#{id}";
+    public static final String DELETE = "DELETE FROM restcomm_instances WHERE id=#{id}";
 
     @Insert(INSERT)
     public abstract void addRestcommInstance(RestcommInstance restcommInstance);
@@ -67,4 +69,7 @@ public abstract interface RestcommInstanceMapper {
     
     @Update(UPDATE)
     public abstract void updateRestcommInstance(RestcommInstance restcommInstance);
+    
+    @Delete(DELETE)
+    public abstract void deleteRestcommInstance(String id);
 }
