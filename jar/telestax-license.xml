@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <licenseStorage>
+    <customer>[customer name]</customer>
+    <email>[customer email]</email>
     <notification>
+        <enabled>[true|false]</enabled>
         <hostname>smtp.googlemail.com</hostname>
         <smtpPort>465</smtpPort>
         <user>telscale-LI@telestax.com</user>
-        <password>telscale-LI123</password>
+        <password>ufrgwluolrorbtco</password>
         <notifyEmail>telscale-license@telestax.com</notifyEmail>
         <useSSL>true</useSSL>
     </notification>
     <license>
-        <product>TelScale-Load-Balancer</product>
-        <licenseKey></licenseKey>
-        <active>true</active>
+        <type>[offline|online]</type>
+        <product>TelScale Load Balancer</product>
+        <licenseKey>[license key]</licenseKey>
+        <lifetime>[timebased|trial|permanent]</lifetime>
+        <creationDate>[date of creation of license]</creationDate>
+        <expirationDate>[date of expiration of license]</expirationDate>
     </license>
 </licenseStorage>
