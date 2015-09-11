@@ -22,7 +22,7 @@
 		</manifest.implementation.version>
 		<manifest.implementation.vendor>TeleStax, Inc.
 		</manifest.implementation.vendor>
-		<telscale.license.version>2.2.0.Final</telscale.license.version>
+		<telscale.license.version>2.2.3.Final</telscale.license.version>
 	</properties>
 
 	<dependencies>
