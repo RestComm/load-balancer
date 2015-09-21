@@ -52,8 +52,6 @@ import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 
 import com.sun.jdmk.comm.HtmlAdaptorServer;
-import com.telscale.licensing.LicenseEnforcer;
-import com.telscale.licensing.LicenseEnforcerImpl;
 
 /**
  * @author jean.deruelle@gmail.com
@@ -74,8 +72,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String REGISTRY_PORT = "2000";
 	public static final String REMOTE_OBJECT_PORT = "2001";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
-	
-	private static LicenseEnforcer enforcer;
 	
 	ConcurrentHashMap<String, InvocationContext> contexts = new ConcurrentHashMap<String, InvocationContext>();
 	static {
@@ -129,18 +125,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
 			return;
 		}
-		
-//		LicenseEnforcer enforcer = new LicenseEnforcerImpl();
-//      enforcer.validateLicense(true);
-		Thread checkLicense = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				enforcer = new LicenseEnforcerImpl();
-			    enforcer.validateLicense("TelScale-Load-Balancer",true);
-			}
-		});
-
-		checkLicense.start();
 		
 		// Configuration file Location
 		String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());

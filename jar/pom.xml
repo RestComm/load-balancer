@@ -74,11 +74,13 @@
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-api</artifactId>
+			<version>${jain-sip-api.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-ri</artifactId>
+			<version>${jain-sip-ri.version}</version>
 		</dependency>
 	</dependencies>
 
@@ -138,6 +140,8 @@
 					</archive>
 					<descriptors>
 						<descriptor>src/main/assembly/src.xml
+						</descriptor>
+						<descriptor>src/main/assembly/zip.xml
 						</descriptor>
 					</descriptors>
 				</configuration>
