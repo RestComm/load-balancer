@@ -28,7 +28,10 @@ import javax.sip.SipProvider;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
 
 /**
  * The BalancerAlgortihm interface exposes the methods implemented by decision making algorithms
@@ -51,13 +54,28 @@ public interface BalancerAlgorithm {
 	SIPNode processExternalRequest(Request request);
 	SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode);
 	void processInternalRequest(Request request);
-	
+	/**
+	 * Check whether LB should forward request or not
+	 * Useful for blocking outbound calls to specific destinations
+	 * @param request
+	 * @return
+	 */
+	boolean blockInternalRequest(Request request);
 	/**
 	 * Handle HttpRequests here. Use the Netty API for Http request analysis.
 	 * @param request
 	 * @return
 	 */
 	SIPNode processHttpRequest(HttpRequest request);
+
+	void proxyMessage(ChannelHandlerContext ctx, MessageEvent e);
+	
+//	   /**
+//     * Handle HttpResponses here. Use the Netty API for Http response analysis.
+//     * @param response
+//     * @return
+//     */
+//    SIPNode processHttpResponse(HttpResponse response);
 	
 	/**
 	 * Allow algorithms to process responses

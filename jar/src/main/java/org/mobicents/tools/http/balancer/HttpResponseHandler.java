@@ -22,12 +22,21 @@
 
 package org.mobicents.tools.http.balancer;
 
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import org.jboss.netty.handler.codec.http.DefaultHttpChunk;
+import org.jboss.netty.handler.codec.http.HttpChunk;
+import org.jboss.netty.handler.codec.http.HttpHeaders.Names;
+import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 /**
  * @author Vladimir Ralev (vladimir.ralev@jboss.org)
@@ -37,13 +46,81 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 //@ChannelPipelineCoverage("one")
 public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger logger = Logger.getLogger(HttpResponseHandler.class.getCanonicalName());
-    @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-    	Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
-    	if(channel != null) {
-    		channel.write(e.getMessage());
-    	}
-    }
+	private volatile boolean readingChunks;
+	private volatile HttpResponse response;
+	private volatile String wsVersion;
+	private volatile WebsocketModifyServerPipelineFactory websocketModifyServerPipelineFactory;
+
+	@Override
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+		Object msg = e.getMessage();
+		if ((msg instanceof HttpResponse) || (msg instanceof DefaultHttpChunk)) {
+			handleHttpResponse(ctx, e);
+		} else if (msg instanceof WebSocketFrame) {
+			handleWebSocketFrame(ctx, e);
+		}
+	}
+	
+	private void handleWebSocketFrame(ChannelHandlerContext ctx, MessageEvent e) {
+		Object msg = e.getMessage();
+		final String response = ((TextWebSocketFrame) msg).getText();
+		if(logger.isDebugEnabled()) {
+			logger.debug(String.format("Channel %s received WebSocket response %s", ctx.getChannel().getId(), response));
+		}
+				
+		Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+//		channel.getPipeline().remove(HttpResponseDecoder.class);
+		
+		if(channel != null) {
+			channel.write(new TextWebSocketFrame(response));
+		} 
+	}
+
+	private void handleHttpResponse(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
+		if(!readingChunks || !(e.getMessage() instanceof DefaultHttpChunk)){
+			response = (HttpResponse) e.getMessage();
+
+			if(response.isChunked()){
+				readingChunks = true;
+			}
+			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+			if(channel != null) {
+				channel.write(response);
+			}
+
+			Set<String> headers = response.getHeaderNames();
+			if(headers.contains("Sec-WebSocket-Protocol")) {
+				if(response.getHeader("Sec-WebSocket-Protocol").equalsIgnoreCase("sip")){
+					if(logger.isDebugEnabled()) {
+						logger.debug("WebSocket response");
+					}
+					wsVersion = response.getHeader(Names.SEC_WEBSOCKET_VERSION);
+
+					//Modify the Server pipeline
+					ChannelPipeline p = channel.getPipeline();
+					websocketModifyServerPipelineFactory = new WebsocketModifyServerPipelineFactory();
+					websocketModifyServerPipelineFactory.upgradeServerPipelineFactory(p, wsVersion);
+					
+//					ChannelPipeline p = channel.getPipeline();
+//					if (p.get(HttpChunkAggregator.class) != null) {
+//						p.remove(HttpChunkAggregator.class);
+//					}
+//
+//					p.get(HttpRequestDecoder.class).replace("wsdecoder",
+//							new WebSocket13FrameDecoder(true, true, Long.MAX_VALUE));
+//					p.replace(HttpResponseEncoder.class, "wsencoder", new WebSocket13FrameEncoder(false));
+
+				}
+			}
+		} else {
+			HttpChunk chunk = (HttpChunk) e.getMessage();
+			if (chunk.isLast()) {
+				readingChunks = false;
+			}
+			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+			channel.write(chunk);
+		}
+	}
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)

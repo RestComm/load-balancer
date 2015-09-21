@@ -30,9 +30,12 @@ import java.util.Set;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.Cookie;
 import org.jboss.netty.handler.codec.http.CookieDecoder;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
@@ -116,6 +119,14 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				return null;
 			}
 		}
+	}
+	
+	@Override
+	public void proxyMessage(ChannelHandlerContext ctx, MessageEvent e){}
+	
+	@Override
+	public boolean blockInternalRequest(Request request){
+	    return false;
 	}
 	
 	public SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode) {

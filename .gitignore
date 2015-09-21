@@ -51,4 +51,4 @@ PutObjectStoreDirHere
 #ignore autogenerate src doco folder
 docs/sources-mobicents/src/
 docs/sources-telscale/src/
-
+db
