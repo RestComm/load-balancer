@@ -22,7 +22,6 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.message.SIPRequest;
 import gov.nist.javax.sip.stack.MessageChannel;
 import gov.nist.javax.sip.stack.SIPMessageValve;
@@ -33,31 +32,49 @@ import javax.sip.SipProvider;
 import javax.sip.SipStack;
 import javax.sip.message.Response;
 
+import org.apache.log4j.Logger;
+
 public class SIPBalancerValveProcessor implements SIPMessageValve {
+	private static final Logger logger = Logger.getLogger(SIPBalancerValveProcessor.class
+            .getCanonicalName());
 	BalancerRunner balancerRunner;
 	
 	public boolean processRequest(SIPRequest request,
 			MessageChannel messageChannel) {
-		SipProvider p = balancerRunner.balancerContext.externalSipProvider;
-		if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
-			if(balancerRunner.balancerContext.isTwoEntrypoints())
-				p = balancerRunner.balancerContext.internalSipProvider;
+		// https://telestax.atlassian.net/browse/LB-36
+		// catching all exceptions so it doesn't make JAIN SIP to fail
+		try {
+			SipProvider p = balancerRunner.balancerContext.externalSipProvider;
+			if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
+				if(balancerRunner.balancerContext.isTwoEntrypoints())
+					p = balancerRunner.balancerContext.internalSipProvider;
+			}
+			
+			RequestEvent event = new RequestEvent(p, null, null, request);
+			balancerRunner.balancerContext.forwarder.processRequest(event);
+		} catch (Exception e) {
+			logger.error("A Problem happened in the BalancerValve on request " + request, e);
+			return false;
 		}
-		
-		RequestEvent event = new RequestEvent(p, null, null, request);
-		balancerRunner.balancerContext.forwarder.processRequest(event);
 		return false;
 	}
 
 	public boolean processResponse(Response response,
 			MessageChannel messageChannel) {
-		SipProvider p = balancerRunner.balancerContext.externalSipProvider;
-		if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
-			if(balancerRunner.balancerContext.isTwoEntrypoints())
-				p = balancerRunner.balancerContext.internalSipProvider;
+		// https://telestax.atlassian.net/browse/LB-36
+		// catching all exceptions so it doesn't make JAIN SIP to fail
+		try {
+			SipProvider p = balancerRunner.balancerContext.externalSipProvider;
+			if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
+				if(balancerRunner.balancerContext.isTwoEntrypoints())
+					p = balancerRunner.balancerContext.internalSipProvider;
+			}
+			ResponseEvent event = new ResponseEvent(p, null, null, response);
+			balancerRunner.balancerContext.forwarder.processResponse(event);
+		} catch (Exception e) {
+			logger.error("A Problem happened in the BalancerValve on response " + response, e);
+			return false;
 		}
-		ResponseEvent event = new ResponseEvent(p, null, null, response);
-		balancerRunner.balancerContext.forwarder.processResponse(event);
 		return false;
 	}
 
