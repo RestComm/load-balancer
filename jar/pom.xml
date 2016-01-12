@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>org.jboss.cache</groupId>
 			<artifactId>jbosscache-core</artifactId>
-			<version>3.2.1.GA</version>
+			<version>3.2.1.GA</version><!--$NO-MVN-MAN-VER$-->
 		</dependency>
 
 		<dependency>
@@ -82,10 +82,15 @@
 			<artifactId>jain-sip-ri</artifactId>
 			<version>${jain-sip-ri.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.cloudhopper</groupId>
+			<artifactId>ch-smpp</artifactId>
+			<version>5.0.8</version>
+		</dependency>
 	</dependencies>
 
 	<build>
-		<plugins>
+		<plugins>			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
