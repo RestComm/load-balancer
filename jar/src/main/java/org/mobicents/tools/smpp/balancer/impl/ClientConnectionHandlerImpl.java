@@ -1,23 +1,20 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2015-2016, Red Hat, Inc. and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * TeleStax, Open Source Cloud Communications
+ * Copyright 2011-2015, Telestax Inc and individual contributors
+ * by the @authors tag.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
+ * This program is free software: you can redistribute it and/or modify
+ * under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation; either version 3 of
  * the License, or (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 package org.mobicents.tools.smpp.balancer.impl;
@@ -28,6 +25,7 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
+import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 
 import com.cloudhopper.smpp.pdu.Pdu;
 
@@ -38,9 +36,9 @@ import com.cloudhopper.smpp.pdu.Pdu;
 public class ClientConnectionHandlerImpl extends SimpleChannelHandler{	
 	
 	private static final Logger logger = Logger.getLogger(ClientConnectionHandlerImpl.class);
-	private ClientConnectionImpl listener = null;
+	private ClientConnection listener = null;
 	
-	public ClientConnectionHandlerImpl(ClientConnectionImpl listener)
+	public ClientConnectionHandlerImpl(ClientConnection listener)
 	{
 		this.listener = listener;
 	}
@@ -58,7 +56,7 @@ public class ClientConnectionHandlerImpl extends SimpleChannelHandler{
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 	{
-		logger.error(e.getCause().getMessage(),e.getCause());		
+		logger.error(e.getCause().getMessage());		
 	}
 	
 	@Override

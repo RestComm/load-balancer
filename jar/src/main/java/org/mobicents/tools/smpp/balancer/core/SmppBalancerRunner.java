@@ -1,23 +1,20 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2015-2016, Red Hat, Inc. and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * TeleStax, Open Source Cloud Communications
+ * Copyright 2011-2015, Telestax Inc and individual contributors
+ * by the @authors tag.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
+ * This program is free software: you can redistribute it and/or modify
+ * under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation; either version 3 of
  * the License, or (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 package org.mobicents.tools.smpp.balancer.core;
@@ -26,12 +23,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -44,23 +44,43 @@ import com.cloudhopper.smpp.SmppServerConfiguration;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class BalancerRunner {
+public class SmppBalancerRunner {
 
-	private static final Logger logger = Logger.getLogger(BalancerRunner.class);
-
+	private static final Logger logger = Logger.getLogger(SmppBalancerRunner.class);
+	
+	private BalancerDispatcher balancerDispatcher;
+	private ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
+	private ScheduledExecutorService monitorExecutor  = Executors.newScheduledThreadPool(16);
+	private BalancerServer smppLbServer;
+	
 	static {
-		String logLevel = System.getProperty("logLevel", "INFO");
+		String logLevel =  System.getProperty("logLevel", "INFO");
 		String logConfigFile = System.getProperty("logConfigFile");
 
 		if(logConfigFile == null) {
-			Logger.getRootLogger().addAppender(new ConsoleAppender(
-					new PatternLayout("%r (%t) %p [%c{1}%x] %m%n")));
+			@SuppressWarnings("unchecked")
+			Enumeration<Appender> appenders=Logger.getRootLogger().getAllAppenders();
+			Boolean found=false;
+			while(appenders.hasMoreElements())
+			{
+				Appender curr=appenders.nextElement();
+				if(curr instanceof ConsoleAppender)
+				{
+					curr.setLayout(new PatternLayout("%d %p %t - %m%n"));
+					found=true;
+					break;
+				}
+			}
+			if(!found)
+				Logger.getRootLogger().addAppender(new ConsoleAppender(new PatternLayout("%d %p %t - %m%n")));
 			Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
 		} else {
 		    DOMConfigurator.configure(logConfigFile);
 		}
 	}
-	
+	/**
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		
 		if (args.length < 1) {
@@ -74,14 +94,17 @@ public class BalancerRunner {
 		}
 		
 		String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());
-		BalancerRunner lbStarter = new BalancerRunner();
+		SmppBalancerRunner lbStarter = new SmppBalancerRunner();
 		lbStarter.start(configurationFileLocation);
-
 	}
 	
 	Timer timer;
 	long lastupdate = 0;
-	
+	/**
+	 * Start load balancer using configuration file
+	 * and check changes in file for update
+	 * @param configurationFileLocation
+	 */
 	public void start(final String configurationFileLocation){
 		
 		File file = new File(configurationFileLocation);
@@ -105,8 +128,6 @@ public class BalancerRunner {
 				logger.warn("Problem closing file " + e);
 			}
 		}
-        //must reload property file in period 
-        
         timer = new Timer();
 		timer.scheduleAtFixedRate(new TimerTask() {
 			public void run() {
@@ -116,7 +137,6 @@ public class BalancerRunner {
 					logger.info("Configuration file changed, applying changes.");
 					FileInputStream fileInputStream = null;
 					try {
-						
 							fileInputStream = new FileInputStream(conf);
 							properties.load(fileInputStream);
 							logger.info("Changes applied.");
@@ -138,10 +158,12 @@ public class BalancerRunner {
 
         start(properties);
 	}
-	
+	/**
+	 * Start load balancer using properies
+	 * @param properties
+	 */
 	public void start(Properties properties)
 	{
-        ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
         SmppServerConfiguration configuration = new SmppServerConfiguration();
         configuration.setName(properties.getProperty("smppName"));
         configuration.setHost(properties.getProperty("smppHost"));
@@ -149,9 +171,21 @@ public class BalancerRunner {
         configuration.setMaxConnectionSize(Integer.parseInt(properties.getProperty("maxConnectionSize")));
         configuration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(properties.getProperty("nonBlockingSocketsEnabled")));
         configuration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(properties.getProperty("defaultSessionCountersEnabled")));
-		BalancerServer smppLbServer = new BalancerServer(configuration, executor, properties);
+        balancerDispatcher = new BalancerDispatcher(properties,monitorExecutor);
+		smppLbServer = new BalancerServer(configuration, executor, properties, balancerDispatcher, monitorExecutor);
         smppLbServer.start();
 
+	}
+	public void stop()
+	{
+		smppLbServer.stop();
+        executor.shutdown();
+        monitorExecutor.shutdown();
+	}
+
+	public BalancerDispatcher getBalancerDispatcher() 
+	{
+		return balancerDispatcher;
 	}
 
 }

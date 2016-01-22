@@ -17,34 +17,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-package org.mobicents.tools.smpp.balancer.impl;
+package org.mobicents.tools.smpp.balancer;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
-import org.mobicents.tools.smpp.balancer.api.ServerConnection;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import com.cloudhopper.smpp.pdu.Pdu;
+import com.cloudhopper.smpp.SmppConstants;
+import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
+import com.cloudhopper.smpp.pdu.EnquireLinkResp;
+import com.cloudhopper.smpp.pdu.PduRequest;
+import com.cloudhopper.smpp.pdu.PduResponse;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ServerConnectionHandlerImpl extends SimpleChannelHandler{
-
-	private ServerConnection listener;
-	public ServerConnectionHandlerImpl(ServerConnection listener)
-	{
-		this.listener=listener;
+public class DefaultSmppClientHandler extends DefaultSmppSessionHandler 
+{
+	AtomicInteger enqLinkNumber = new AtomicInteger(0);
+    public AtomicInteger getEnqLinkNumber() 
+    {
+		return enqLinkNumber;
 	}
-	
 	@Override
-     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
-	 {		 
-		if (e.getMessage() instanceof Pdu) 
+	public PduResponse firePduRequestReceived(@SuppressWarnings("rawtypes") PduRequest pduRequest) 
+	{
+		if (pduRequest.getCommandId() == SmppConstants.CMD_ID_ENQUIRE_LINK)
 		{
-	            Pdu pdu = (Pdu)e.getMessage();
-	            this.listener.packetReceived(pdu);
- 	    }
-     }
+			enqLinkNumber.incrementAndGet();
+			EnquireLinkResp resp=new EnquireLinkResp();
+			resp.setSequenceNumber(pduRequest.getSequenceNumber());
+			return resp;
+		}
+		else
+		{
+			return null;
+		}
+	}
 }

@@ -17,43 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-package org.mobicents.tools.smpp.balancer.timers;
-
-import java.util.concurrent.ScheduledFuture;
-
-import com.cloudhopper.smpp.pdu.Pdu;
+package org.mobicents.tools.smpp.balancer;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class TimerData {
-	
-	Pdu paket;
-	ScheduledFuture <?> scheduledFuture;
-	CancellableRunnable runnable;
-	
-	public TimerData(Pdu paket,ScheduledFuture <?> scheduledFuture,CancellableRunnable runnable)
-	{
-		this.paket = paket;
-		this.runnable=runnable;
-		this.scheduledFuture = scheduledFuture;
-	}
-
-	public CancellableRunnable getRunnable()
-	{
-		return runnable;
-	}
-	
-	public Pdu getPaket() {
-		return paket;
-	}
-
-	public ScheduledFuture<?> getScheduledFuture() {
-		return scheduledFuture;
-	}
-
-
-	
-
+public interface ClientListener 
+{
+	void clientCompleted();
 }

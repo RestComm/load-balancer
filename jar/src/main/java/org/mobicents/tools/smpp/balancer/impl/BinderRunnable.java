@@ -1,29 +1,28 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2015-2016, Red Hat, Inc. and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * TeleStax, Open Source Cloud Communications
+ * Copyright 2011-2015, Telestax Inc and individual contributors
+ * by the @authors tag.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
+ * This program is free software: you can redistribute it and/or modify
+ * under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation; either version 3 of
  * the License, or (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 package org.mobicents.tools.smpp.balancer.impl;
 
 import java.util.Map;
 
+import org.mobicents.tools.smpp.balancer.api.ClientConnection;
+import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 import org.mobicents.tools.smpp.balancer.impl.ClientConnectionImpl.ClientState;
 
 import com.cloudhopper.smpp.SmppConstants;
@@ -43,18 +42,16 @@ public class BinderRunnable implements Runnable {
 	private Pdu packet;
 	private ClientConnectionImpl client;
 	private RemoteServer[] remoteServers;
-	private Map<Long, ServerConnectionImpl> serverSessions;
-	private Map<Long, ClientConnectionImpl> clientSessions;
+	private Map<Long, ServerConnection> serverSessions;
+	private Map<Long, ClientConnection> clientSessions;
 	private Long sessionId;
 	private int firstServer;
 
-	public BinderRunnable(Long sessionId, Pdu packet,
-			Map<Long, ServerConnectionImpl> serverSessions,
-			Map<Long, ClientConnectionImpl> clientSessions, int serverIndex,
-			RemoteServer[] remoteServers) {
+	public BinderRunnable(Long sessionId, Pdu packet, Map<Long, ServerConnection> serverSessions, Map<Long, ClientConnection> clientSessions, int serverIndex, RemoteServer[] remoteServers)
+	{
 		this.sessionId = sessionId;
 		this.packet = packet;
-		this.client = clientSessions.get(sessionId);
+		this.client = (ClientConnectionImpl) clientSessions.get(sessionId);
 		this.firstServer = serverIndex;
 		this.index = serverIndex;
 		this.remoteServers = remoteServers;
@@ -88,7 +85,8 @@ public class BinderRunnable implements Runnable {
 				BaseBindResp bindResponse = (BaseBindResp) ((BaseBind) packet).createResponse();
 				bindResponse.setCommandStatus(SmppConstants.STATUS_SYSERR);
 				bindResponse.setSystemId(client.getConfig().getSystemId());
-				if (client.getConfig().getInterfaceVersion() >= SmppConstants.VERSION_3_4 && ((BaseBind) packet).getInterfaceVersion() >= SmppConstants.VERSION_3_4) {
+				if (client.getConfig().getInterfaceVersion() >= SmppConstants.VERSION_3_4 && ((BaseBind) packet).getInterfaceVersion() >= SmppConstants.VERSION_3_4) 
+				{
 					Tlv scInterfaceVersion = new Tlv(SmppConstants.TAG_SC_INTERFACE_VERSION, new byte[] { client.getConfig().getInterfaceVersion() });
 					bindResponse.addOptionalParameter(scInterfaceVersion);
 				}

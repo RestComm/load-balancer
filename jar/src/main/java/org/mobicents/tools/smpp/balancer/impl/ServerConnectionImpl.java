@@ -1,23 +1,20 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2015-2016, Red Hat, Inc. and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * TeleStax, Open Source Cloud Communications
+ * Copyright 2011-2015, Telestax Inc and individual contributors
+ * by the @authors tag.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
+ * This program is free software: you can redistribute it and/or modify
+ * under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation; either version 3 of
  * the License, or (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 package org.mobicents.tools.smpp.balancer.impl;
@@ -33,8 +30,8 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
-import org.mobicents.tools.smpp.balancer.api.LbServerListener;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
+import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerConnection;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerConnectionCheck;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerEnquire;
@@ -66,7 +63,7 @@ public class ServerConnectionImpl implements ServerConnection {
 	private static final Logger logger = Logger.getLogger(ServerConnectionImpl.class);
 	
 	private ServerState serverState = ServerState.OPEN;
-	private LbServerListener lbServerListener;
+	private BalancerDispatcher lbServerListener;
 	private Long sessionId;
     private SmppSessionConfiguration config = new SmppSessionConfiguration();
 	private Channel channel;
@@ -93,7 +90,7 @@ public class ServerConnectionImpl implements ServerConnection {
 	private boolean isServerSideOk;
 
     
-    public ServerConnectionImpl(Long sessionId, Channel channel, LbServerListener lbServerListener, Properties properties, ScheduledExecutorService monitorExecutor)
+    public ServerConnectionImpl(Long sessionId, Channel channel, BalancerDispatcher lbServerListener, Properties properties, ScheduledExecutorService monitorExecutor)
     {
     	this.lbServerListener = lbServerListener;
     	this.channel = channel;
@@ -104,7 +101,7 @@ public class ServerConnectionImpl implements ServerConnection {
     	this.timeoutEnquire = Long.parseLong(properties.getProperty("timeoutEnquire"));
     	this.timeoutConnectionCheckClientSide = Long.parseLong(properties.getProperty("timeoutConnectionCheckClientSide"));
     	this.monitorExecutor = monitorExecutor;
-    	connectionRunnable=new ServerTimerConnection(this, sessionId);
+    	this.connectionRunnable=new ServerTimerConnection(this, sessionId);
     	this.connectionTimer =  monitorExecutor.schedule(connectionRunnable,timeoutConnection,TimeUnit.MILLISECONDS);
     }
     
@@ -117,7 +114,6 @@ public class ServerConnectionImpl implements ServerConnection {
     {    	
     	OPEN, BINDING, BOUND, REBINDING, UNBINDING, CLOSED    	
     }
-	
 	@SuppressWarnings("rawtypes")
 	@Override
 	public void packetReceived(Pdu packet) {
@@ -146,10 +142,12 @@ public class ServerConnectionImpl implements ServerConnection {
 
 			if (!correctPacket) 
 			{
-				logger.error("Unable to convert a BaseBind request into SmppSessionConfiguration");
+				logger.error("Unable to convert a BaseBind request");
 				sendGenericNack(packet);
+				channel.close();
 				serverState = ServerState.CLOSED;
-			} else {			
+			} else {
+				logger.debug("We take bind request (" + packet.getName() + ") from client with sessionId : " + sessionId);
 				enquireRunnable=new ServerTimerEnquire(this, sessionId);
 				enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
 				
@@ -182,7 +180,10 @@ public class ServerConnectionImpl implements ServerConnection {
 			correctPacket = false;
 			switch (packet.getCommandId()) {
 			case SmppConstants.CMD_ID_UNBIND:
+				logger.debug("We take unbind request from client with sessionId : " + sessionId);
 				correctPacket = true;
+				enquireRunnable.cancel();
+				enquireTimer.cancel(false);
 				ServerTimerResponse responseTimer=new ServerTimerResponse(this ,packet);
 				packetMap.put(packet.getSequenceNumber(), new TimerData(packet, monitorExecutor.schedule(responseTimer,timeoutResponse,TimeUnit.MILLISECONDS),responseTimer));
 				lbServerListener.unbindRequested(sessionId, packet);
@@ -195,12 +196,14 @@ public class ServerConnectionImpl implements ServerConnection {
 			case SmppConstants.CMD_ID_SUBMIT_SM:
 			case SmppConstants.CMD_ID_SUBMIT_MULTI:
 			case SmppConstants.CMD_ID_GENERIC_NACK:
+				logger.debug("We take SMPP request (" + packet.getName() + ") from client with sessionId : " + sessionId);
 				correctPacket = true;
 				responseTimer=new ServerTimerResponse(this ,packet);
 				packetMap.put(packet.getSequenceNumber(), new TimerData(packet, monitorExecutor.schedule(responseTimer,timeoutResponse,TimeUnit.MILLISECONDS),responseTimer));
 				lbServerListener.smppEntityRequested(sessionId, packet);
 				break;
 			case SmppConstants.CMD_ID_ENQUIRE_LINK:
+				logger.debug("We take enquire_link request from client with sessionId : " + sessionId);
 				correctPacket = true;
 				EnquireLinkResp resp=new EnquireLinkResp();
 				resp.setSequenceNumber(packet.getSequenceNumber());
@@ -208,6 +211,7 @@ public class ServerConnectionImpl implements ServerConnection {
 				break;				
 			case SmppConstants.CMD_ID_DATA_SM_RESP:
 			case SmppConstants.CMD_ID_DELIVER_SM_RESP:
+				logger.debug("We take SMPP response (" + packet.getName() + ") from client with sessionId : " + sessionId);
 				Integer originalSequence=sequenceMap.remove(packet.getSequenceNumber());
 				if(originalSequence!=null)
 				{
@@ -218,6 +222,7 @@ public class ServerConnectionImpl implements ServerConnection {
 				
 				break;				
 			case SmppConstants.CMD_ID_ENQUIRE_LINK_RESP:
+				logger.debug("We take  enquire_link response from client with sessionId : " + sessionId);
 				correctPacket = true;
 				isClientSideOk = true;
 				break;
@@ -229,6 +234,7 @@ public class ServerConnectionImpl implements ServerConnection {
 			break;
 			
 		case REBINDING:
+			logger.debug("We take  packet (" + packet.getName() + ") in REBINDING state from client with sessionId : " + sessionId);
 			PduResponse pduResponse = ((PduRequest<?>) packet).createResponse();
 			pduResponse.setCommandStatus(SmppConstants.STATUS_SYSERR);
 			sendResponse(pduResponse);
@@ -240,8 +246,9 @@ public class ServerConnectionImpl implements ServerConnection {
 				correctPacket = true;
 
 			if (!correctPacket)
-				logger.error("Received invalid packet in unbinding state,packet type:" + packet.getCommandId());
-			else {				
+				logger.error("Received invalid packet in unbinding state,packet type:" + packet.getName());
+			else {
+				logger.debug("We take  unbind response from client with sessionId : " + sessionId);
 				enquireRunnable.cancel();
 				enquireTimer.cancel(false);				
 				Integer originalSequence=sequenceMap.remove(packet.getSequenceNumber());
@@ -261,11 +268,10 @@ public class ServerConnectionImpl implements ServerConnection {
 			logger.error("Server received packet in incorrect state (CLOSED)");
 			break;
 		}
-
 	}
+
 	@Override
 	public void sendBindResponse(Pdu packet){
-		
 		if(packetMap.containsKey(packet.getSequenceNumber()))
 		{
 			TimerData data=packetMap.remove(packet.getSequenceNumber());
@@ -285,11 +291,11 @@ public class ServerConnectionImpl implements ServerConnection {
 		}catch(RecoverablePduException e){
 			logger.error("Encode error: ", e);
 		}
-				channel.write(buffer);
-	
-		    serverState = ServerState.BOUND;
+		serverState = ServerState.BOUND;
+		logger.debug("We send  bind response (" + packet.getName() + ") to client with sessionId : " + sessionId);
+		channel.write(buffer);
 	}
-	
+
 	@Override
 	public void sendUnbindResponse(Pdu packet){
 		enquireRunnable.cancel();		
@@ -313,12 +319,14 @@ public class ServerConnectionImpl implements ServerConnection {
 		}catch(RecoverablePduException e){
 			logger.error("Encode error: ", e);
 		}
-		channel.write(buffer);
 		serverState = ServerState.CLOSED;
-
 		packetMap.clear();
-		sequenceMap.clear();		
+		sequenceMap.clear();
+		logger.debug("We send  unbind response ("+ packet.getName() +") to client with sessionId : " + sessionId);
+		channel.write(buffer);
+		
 	}
+
 	@Override
 	public void sendResponse(Pdu packet){
 		
@@ -340,9 +348,10 @@ public class ServerConnectionImpl implements ServerConnection {
 		}catch(RecoverablePduException e){
 			logger.error("Encode error: ", e);
 		}
+		logger.debug("We SMPP response ("+ packet.getName() +") to client with sessionId : " + sessionId);
 		channel.write(buffer);
 	}
-	
+
 	@Override
     public void sendUnbindRequest(Pdu packet) {
 
@@ -359,11 +368,16 @@ public class ServerConnectionImpl implements ServerConnection {
 		}catch(RecoverablePduException e){
 			logger.error("Encode error: ", e);
 		}
-		
-		channel.write(buffer);
 		serverState = ServerState.UNBINDING;
+		logger.debug("We send unbind request ("+ packet.getName() +") to client with sessionId : " + sessionId);
+		channel.write(buffer);
+		
 	}
-	
+	/**
+	*Send generic_nack to client if unable to convert request
+	*from client
+	*@param packet PDU packet
+	*/
 	private void sendGenericNack(Pdu packet){
 		
 		GenericNack genericNack = new GenericNack();
@@ -379,9 +393,10 @@ public class ServerConnectionImpl implements ServerConnection {
 		}catch(RecoverablePduException e){
 			logger.error("Encode error: ", e);
 		}
+		logger.debug("We send generic_nack response for packet ("+ packet.getName() +") to client with sessionId : " + sessionId);
 		channel.write(buffer);
 	}
-
+	@Override
 	public void sendRequest(Pdu packet) {
 		Integer currSequence=lastSequenceNumberSent.incrementAndGet();
 		sequenceMap.put(currSequence, packet.getSequenceNumber());
@@ -396,10 +411,10 @@ public class ServerConnectionImpl implements ServerConnection {
 		}catch(RecoverablePduException e){
 			logger.error("Encode error: ", e);
 		}
-
+		logger.debug("We send SMPP request ("+ packet.getName() +") to client with sessionId : " + sessionId);
 		channel.write(buffer);
 	}
-	
+	@Override
 	public void reconnectState(boolean isReconnect) {
 		if (isReconnect){
 			serverState = ServerState.REBINDING;
@@ -417,41 +432,45 @@ public class ServerConnectionImpl implements ServerConnection {
 			serverState = ServerState.BOUND;
 		}
 	}
-	
 	@Override
 	public void requestTimeout(Pdu packet) 
 	{
-        	if(!packetMap.containsKey(packet.getSequenceNumber()))
-        		logger.info("(requestTimeout)We take SMPP response from client in time");
-    		else
-    		{
-    			logger.info("(requestTimeout)We did NOT take SMPP response from client in time");
-    			
-    		packetMap.remove(packet.getSequenceNumber());
-        	PduResponse pduResponse = ((PduRequest<?>) packet).createResponse();
+		if (!packetMap.containsKey(packet.getSequenceNumber()))
+		{
+			logger.debug("(requestTimeout)We take SMPP response from server in time for client with sessionId : " + sessionId);	
+		}	
+		else 
+		{
+			logger.debug("(requestTimeout)We did NOT take SMPP response from server in time for client with sessionId : " + sessionId);
+			lbServerListener.getNotRespondedPackets().incrementAndGet();
+			packetMap.remove(packet.getSequenceNumber());
+			PduResponse pduResponse = ((PduRequest<?>) packet).createResponse();
 			pduResponse.setCommandStatus(SmppConstants.STATUS_SYSERR);
 			sendResponse(pduResponse);
-    		}
+		}
 	}
 
 	@Override
-	public void connectionTimeout(Long sessionId) {
-
-			logger.info("(connectionTimeout)Session initialization failed for sessionId: " + sessionId);
-			logger.info("(connectionTimeout)Channel closed for sessionId: " + sessionId);
+	public void connectionTimeout(Long sessionId) 
+	{
+			logger.debug("(connectionTimeout)Session initialization failed for sessionId: " + sessionId);
+			logger.debug("(connectionTimeout)Channel closed for sessionId: " + sessionId);
+			lbServerListener.getNotBindClients().incrementAndGet();
 			channel.close();
 	}
 
 	@Override
-	public void enquireTimeout(Long sessionId) {
-			logger.info("(enquireTimeout)We should check connection for sessionId: "+ sessionId + ". We must generate enquire_link.");
+	public void enquireTimeout(Long sessionId) 
+	{
+			logger.debug("(enquireTimeout)We should check connection for  sessionId: "+ sessionId + ". We must generate enquire_link.");
 			isServerSideOk = false;
 			isClientSideOk = false;			
 			lbServerListener.checkConnection(sessionId);
 			connectionCheckRunnable=new ServerTimerConnectionCheck(this, sessionId);
 			connectionCheckTimer = monitorExecutor.schedule(connectionCheckRunnable, timeoutConnectionCheckClientSide, TimeUnit.MILLISECONDS);
 	}
-
+	
+	@Override
 	public void generateEnquireLink() 
 	{		
 		Pdu packet = new EnquireLink();
@@ -465,8 +484,10 @@ public class ServerConnectionImpl implements ServerConnection {
 		}catch(RecoverablePduException e){
 			logger.error("Encode error: ", e);
 		}
+		logger.debug("We send enquire_link request ("+ packet.getName() +") to client with sessionId : " + sessionId);
 		channel.write(buffer);		
 	}
+
 
 	@Override
 	public void connectionCheck(Long sessionId) 
@@ -474,16 +495,17 @@ public class ServerConnectionImpl implements ServerConnection {
 		connectionCheckRunnable.cancel();
 		connectionCheckTimer.cancel(false);
 		if(isServerSideOk && isClientSideOk)
-			logger.info("Connection is ok.");
+			logger.debug("Connection is ok for client with sessionId: " + sessionId);
 		else 
 		{
-			logger.info("Close connection with sessionId " + sessionId + "  because of did not receive enquire response from client or servers");
+			logger.debug("Close connection with sessionId " + sessionId + "  because of did not receive enquire response from client or servers");
 			enquireRunnable.cancel();
 			enquireTimer.cancel(false);
 			lbServerListener.closeConnection(sessionId);
 		}		
 	}
 
+	@Override
 	public void serverSideOk() {
 		isServerSideOk = true;
 	}
