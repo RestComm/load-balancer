@@ -26,6 +26,9 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
+import org.jboss.netty.handler.stream.ChunkedWriteHandler;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 /**
  * @author The Netty Project (netty-dev@lists.jboss.org)
@@ -37,9 +40,11 @@ import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
  */
 public class HttpClientPipelineFactory implements ChannelPipelineFactory {
     int maxContentLength = 1048576;
-
-    public HttpClientPipelineFactory(int maxContentLength) {
-	this.maxContentLength = maxContentLength;
+    BalancerRunner balancerRunner;
+    
+    public HttpClientPipelineFactory(BalancerRunner balancerRunner, int maxContentLength) {
+        this.balancerRunner = balancerRunner;
+        this.maxContentLength = maxContentLength;
     }
 
     public ChannelPipeline getPipeline() throws Exception {
@@ -47,7 +52,7 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         ChannelPipeline pipeline = pipeline();
         pipeline.addLast("decoder", new HttpResponseDecoder());
         // Remove the following line if you don't want automatic content decompression.
-        //pipeline.addLast("inflater", new HttpContentDecompressor());        
+        //pipeline.addLast("inflater", new HttpContentDecompressor()); 
         pipeline.addLast("encoder", new HttpRequestEncoder());
         // http://code.google.com/p/commscale/issues/detail?id=5 support for HttpChunks, 
         // https://telestax.atlassian.net/browse/LB-8 if commented accessing the RestComm Management console fails, so making the maxContentLength Configurable

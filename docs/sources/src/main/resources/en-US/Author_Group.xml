@@ -3,61 +3,53 @@
 <!ENTITY % BOOK_ENTITIES SYSTEM "SIP_Balancer_User_Guide.ent">
 %BOOK_ENTITIES;
 ]>
-<authorgroup
-	id="sps-Author_Group">
+<authorgroup id="sps-Author_Group">
 	<author>
 		<firstname>Douglas</firstname>
 		<surname>Silas</surname>
-		<!-- 
-		<affiliation>
-			<orgname>Red Hat, Inc.</orgname>
-			<orgdiv>Engineering Content Services</orgdiv>
-		</affiliation>
-		-->
+		<!-- <affiliation> <orgname>Red Hat, Inc.</orgname> <orgdiv>Engineering 
+			Content Services</orgdiv> </affiliation> -->
 		<email>dhensley@redhat.com</email>
 	</author>
 	<author>
 		<firstname>Jean</firstname>
 		<surname>Deruelle</surname>
-		<!-- 
-		<affiliation>
-			<orgname>Red Hat, Inc.</orgname>
-			<orgdiv>${platform.name} ${product.name} Lead</orgdiv>			
-		</affiliation>
-		-->
-		<email>&AUTHOR_EMAIL_JEAN;</email>
+		<!-- <affiliation> <orgname>Red Hat, Inc.</orgname> <orgdiv>${platform.name} 
+			${product.name} Lead</orgdiv> </affiliation> -->
+		<email>&AUTHOR_EMAIL_JEAN;
+		</email>
 	</author>
 	<author>
 		<firstname>Vladimir</firstname>
 		<surname>Ralev</surname>
-		<!-- 
-		<affiliation>
-			<orgname>Red Hat, Inc.</orgname>
-			<orgdiv>${platform.name} ${product.name} Lead</orgdiv>			
-		</affiliation>
-		-->
-		<email>&AUTHOR_EMAIL_VLAD;</email>
+		<!-- <affiliation> <orgname>Red Hat, Inc.</orgname> <orgdiv>${platform.name} 
+			${product.name} Lead</orgdiv> </affiliation> -->
+		<email>&AUTHOR_EMAIL_VLAD;
+		</email>
 	</author>
 	<author>
 		<firstname>Ivelin</firstname>
 		<surname>Ivanov</surname>
-		<!-- 
-		<affiliation>
-			<orgname>Red Hat, Inc.</orgname>
-			<orgdiv>${platform.name} Lead</orgdiv>
-		</affiliation>
-		-->
-		<email>&AUTHOR_EMAIL_IVELIN;</email>
+		<!-- <affiliation> <orgname>Red Hat, Inc.</orgname> <orgdiv>${platform.name} 
+			Lead</orgdiv> </affiliation> -->
+		<email>&AUTHOR_EMAIL_IVELIN;
+		</email>
 	</author>
 	<author>
-        <firstname>Jared</firstname>
-        <surname>Morgan</surname>
-        <!-- 
-        <affiliation>
-             <orgname>Red Hat, Inc.</orgname>
-             <orgdiv>Engineering Content Services</orgdiv>
-         </affiliation>
-         -->
-          <email>jmorgan@redhat.com</email>
-    </author>
+		<firstname>Jared</firstname>
+		<surname>Morgan</surname>
+		<!-- <affiliation> <orgname>Red Hat, Inc.</orgname> <orgdiv>Engineering 
+			Content Services</orgdiv> </affiliation> -->
+		<email>jmorgan@redhat.com</email>
+	</author>
+	<author>
+		<firstname>George</firstname>
+		<surname>Vagenas</surname>
+		<email>gvagenas@telestax.com</email>
+	</author>
+	<author>
+		<firstname>Konstantin</firstname>
+		<surname>Nosach</surname>
+		<email>kostyantyn.nosach@telestax.com</email>
+	</author>
 </authorgroup>

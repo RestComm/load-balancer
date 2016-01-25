@@ -1,0 +1,25 @@
+<assembly>
+  <id>zip</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+  <fileSets>
+  <fileSet>
+    <directory>${basedir}/target</directory>
+    <outputDirectory>/</outputDirectory>
+    <includes>
+      <include>*jar-with-dependencies*.jar</include>
+    </includes>
+  </fileSet>
+  <fileSet>
+    <directory>${basedir}/src/test/resources</directory>
+    <outputDirectory>/</outputDirectory>
+    <includes>
+      <include>lb-configuration.properties</include>
+      <include>lb-log4j.xml</include>
+    </includes>
+  </fileSet>
+
+  </fileSets>
+  <includeBaseDirectory>true</includeBaseDirectory>
+</assembly>

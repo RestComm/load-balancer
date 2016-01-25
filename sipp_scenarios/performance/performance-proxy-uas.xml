@@ -21,7 +21,7 @@
      ]]>
   </send>
 
-  <pause milliseconds="150"/>
+  <pause milliseconds="300"/>
 
   <send retrans="500">
     <![CDATA[
@@ -45,31 +45,35 @@
       a=rtpmap:0 PCMU/8000
     ]]>
   </send>
- 
-  <pause milliseconds="150"/>
 
-  <recv request="ACK" >
+  <recv request="ACK">
     <action>
       <ereg regexp=".*" search_in="hdr" header="From:" check_it="true" assign_to="1" />
       <ereg regexp=".*" search_in="hdr" header="To:" check_it="true" assign_to="2" />
-      <ereg regexp="\&lt;([a-zA-Z0-9@.=;]+)[^&gt;]+" search_in="hdr" header="Contact:" assign_to="3"/>
     </action>
   </recv>
-     
-   <recv request="BYE" timeout="15000"/>
-   <send retrans="1000">
-     <![CDATA[
-       SIP/2.0 200 OK
-       [last_Via:]
-       [last_From:]
-       [last_To:]
-       [last_Call-ID:]
-       [last_CSeq:]
-       [last_Contact:]
-       Max-Forwards: 70
-       Content-Length: 0
-     ]]>
-   </send>
+    
+  <pause milliseconds="60000" /> 
+  
+  <send retrans="1000">
+    <![CDATA[
+      BYE [next_url] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      From: [$2]
+      To: [$1]
+      [last_Call-ID:]
+      [routes]
+      CSeq: 1 BYE
+      Contact: <sip:[local_ip]:[local_port];transport=[transport]>
+      Max-Forwards: 70
+      Subject: Test
+      Content-Length: 0
+    ]]>
+  </send>
 
+  <recv response="200" optional="false"/>
+
+  <!--pause milliseconds="10000" /-->
+  
 </scenario>
 

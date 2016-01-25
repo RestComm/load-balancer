@@ -7,7 +7,7 @@
 
   <send retrans="1000">
     <![CDATA[
-      INVITE sip:perf-receiver@127.0.0.1:5090 SIP/2.0
+      INVITE sip:perf-receiver@sip-servlets.com SIP/2.0
       Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
       From: "Barreiro" <sip:barreiro@sip-servlets.com>;tag=[call_number][pid]
       To: "Receiver" <sip:perf-receiver@sip-servlets.com>
@@ -32,20 +32,17 @@
   <recv response="100" optional="true">
   </recv>
 
-  <recv response="180" optional="true" timeout="300">
+  <recv response="180" optional="true">
   </recv>
 
-  <recv response="200" rtd="true" rrs="true" timeout="300">
-    <action>
-      <ereg regexp="\&lt;([a-zA-Z0-9@.=;]+)[^&gt;]+" search_in="hdr" header="Contact:" assign_to="1"/>
-    </action>
+  <recv response="200" rtd="true" rrs="true">
   </recv>
 
-  <pause milliseconds="150"/>
+  <pause milliseconds="300"/>
 
   <send>
     <![CDATA[
-      ACK [$1] SIP/2.0
+      ACK [next_url] SIP/2.0
       [last_Via:]
       [last_From:]
       [last_To:]
@@ -59,24 +56,24 @@
     ]]>
   </send>
 
-  <pause milliseconds="1000" /> 
-  
-  <send retrans="1000">
-    <![CDATA[
-      BYE [$1] SIP/2.0
+<pause milliseconds="59000" /> 
+ <recv request="BYE" timeout="30000"/>
+<send retrans="2000">
+
+<![CDATA[
+      SIP/2.0 200 OK
       [last_Via:]
       [last_From:]
       [last_To:]
-      Call-ID: [call_id]
-      [routes]
-      CSeq: 2 BYE
-      Contact: sip:barreiro@[local_ip]:[local_port]
+      [last_Call-ID:]
+      [last_CSeq:]
+      [last_Contact:]
       Max-Forwards: 70
-      Subject: Test
       Content-Length: 0
-    ]]>
-  </send>
+ ]]>
 
-  <recv response="200" optional="false"/>
+</send>
+
+  <!--pause milliseconds="30000" /-->
 
 </scenario>

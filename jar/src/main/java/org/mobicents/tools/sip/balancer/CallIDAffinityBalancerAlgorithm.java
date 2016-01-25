@@ -77,8 +77,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			logger.debug("external response node found ? " + found);
 		}
 		if(!found) {
-			String callId = ((SIPHeader) response.getHeader(headerName))
-			.getValue();
+			String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
 			SIPNode node = callIdMap.get(callId);
 			if(node == null || !invocationContext.nodes.contains(node)) {
 				node = selectNewNode(node, callId);
@@ -109,6 +108,8 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 					try {
 						via.setHost(node.getIp());
 						via.setPort(port);
+						via.removeParameter("rport");
+						via.removeParameter("received");
 					} catch (Exception e) {
 						throw new RuntimeException("Error setting new values " + node.getIp() + ":" + port + " on via " + via, e);
 					}

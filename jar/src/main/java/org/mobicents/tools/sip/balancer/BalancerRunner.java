@@ -50,6 +50,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
+import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 
 import com.sun.jdmk.comm.HtmlAdaptorServer;
 
@@ -63,12 +64,14 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	private static final String HEARTBEAT_INTERVAL = "heartbeatInterval";
 	private static final String HOST_PROP = "host";
 	private static final String RMI_REGISTRY_PORT_PROP = "rmiRegistryPort";
+	private static final String RMI_REMOTE_OBJECT_PORT_PROP = "rmiRemoteOjectPort";
 	private static final String JMX_HTML_ADAPTER_PORT_PROP = "jmxHtmlAdapterPort";
 	private static final String ALGORITHM_PROP = "algorithmClass";
 	private static final String DEFAULT_ALGORITHM = CallIDAffinityBalancerAlgorithm.class.getCanonicalName();
 	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
 	public static final String HTML_ADAPTOR_PORT = "8000";
 	public static final String REGISTRY_PORT = "2000";
+	public static final String REMOTE_OBJECT_PORT = "2001";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
 	
 	ConcurrentHashMap<String, InvocationContext> contexts = new ConcurrentHashMap<String, InvocationContext>();
@@ -106,6 +109,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
+	SmppBalancerRunner smppBalancerRunner = new SmppBalancerRunner();
 	public BalancerContext balancerContext = new BalancerContext();
 	
 	public String algorithClassName = null;
@@ -163,6 +167,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			return ; 
 		}
 		
+	      int remoteObjectPort = -1;
+	        portAsString = properties.getProperty(RMI_REMOTE_OBJECT_PORT_PROP,REMOTE_OBJECT_PORT);
+	        try {
+	            remoteObjectPort = Integer.parseInt(portAsString);
+	        } catch(NumberFormatException nfe) {
+	            logger.error("Couldn't convert rmiRemoreObjectPort to a valid integer", nfe);
+	            return ; 
+	        }
+		
 		this.algorithClassName = properties.getProperty(ALGORITHM_PROP, DEFAULT_ALGORITHM);
 		balancerContext.algorithmClassName = this.algorithClassName;
 		
@@ -194,7 +207,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				return ; 
 			}
 			
-			reg.startRegistry(rmiRegistryPort);
+			if(logger.isDebugEnabled()) {
+                logger.debug("About to startRegistry at: "+rmiRegistryPort+" and remoteObjectPort: "+remoteObjectPort);
+            }
+			reg.startRegistry(rmiRegistryPort, remoteObjectPort);
 			if(logger.isDebugEnabled()) {
 				logger.debug("adding shutdown hook");
 			}
@@ -208,7 +224,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			} catch (org.jboss.netty.channel.ChannelException e) {
 				logger.warn("HTTP forwarder could not be restarted.");
 			}
-
 			
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
@@ -228,6 +243,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("An unexpected error occurred while starting the load balancer", e);
 			return;
 		}
+		smppBalancerRunner.start(properties);
 	}
 	Timer timer;
 	long lastupdate = 0;
@@ -297,6 +313,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		sipForwarder.stop();
 		logger.info("Stopping the http forwarder");
 		httpBalancerForwarder.stop();
+		logger.info("Stopping the SMPP balancer");
+		smppBalancerRunner.stop();
 		logger.info("Unregistering the node registry");
 		MBeanServer server = ManagementFactory.getPlatformMBeanServer();		
 		try {
