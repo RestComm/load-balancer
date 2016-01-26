@@ -11,7 +11,7 @@
 	<edition>2.0</edition>
 	<pubsnumber>1</pubsnumber>
 	<abstract>
-		<para>&PLATFORM_NAME; is the first and only open source <acronym>VoIP</acronym> platform certified for <acronym>JAIN SLEE</acronym> 1.1 and <acronym>SIP</acronym> Servlets 1.1 compliance. &PLATFORM_NAME; SIP Load Balancer is a SIP and HTTP Load Balancer to be used in a &PLATFORM_NAME; platform cluster, to increase SIP and HTTP performance, and achieve High Availability and Fault Tolerance on those protocols.</para>
+		<para>&PLATFORM_NAME; is the first and only open source <acronym>VoIP</acronym> platform certified for <acronym>JAIN SLEE</acronym> 1.1 and <acronym>SIP</acronym> Servlets 1.1 compliance. &PLATFORM_NAME; SIP Load Balancer is a SIP, HTTP and SMPP Load Balancer to be used in a &PLATFORM_NAME; platform cluster, to increase SIP, HTTP and SMPP performance, and achieve High Availability and Fault Tolerance on those protocols.</para>
 	</abstract>
 	<corpauthor>
 		<inlinemediaobject>

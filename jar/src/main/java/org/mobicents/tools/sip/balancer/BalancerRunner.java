@@ -50,6 +50,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
+import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 
 import com.sun.jdmk.comm.HtmlAdaptorServer;
 
@@ -108,6 +109,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
+	SmppBalancerRunner smppBalancerRunner = new SmppBalancerRunner();
 	public BalancerContext balancerContext = new BalancerContext();
 	
 	public String algorithClassName = null;
@@ -241,6 +243,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("An unexpected error occurred while starting the load balancer", e);
 			return;
 		}
+		smppBalancerRunner.start(properties);
 	}
 	Timer timer;
 	long lastupdate = 0;
@@ -310,6 +313,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		sipForwarder.stop();
 		logger.info("Stopping the http forwarder");
 		httpBalancerForwarder.stop();
+		logger.info("Stopping the SMPP balancer");
+		smppBalancerRunner.stop();
 		logger.info("Unregistering the node registry");
 		MBeanServer server = ManagementFactory.getPlatformMBeanServer();		
 		try {

@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>org.jboss.cache</groupId>
 			<artifactId>jbosscache-core</artifactId>
-			<version>3.2.1.GA</version>
+			<version>3.2.1.GA</version><!--$NO-MVN-MAN-VER$-->
 		</dependency>
 
 		<dependency>
@@ -66,6 +66,17 @@
 			<artifactId>jmxtools</artifactId>
 			<version>1.2.1</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.5</version>			
+		</dependency>
+	    <dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-log4j12</artifactId> 
+		    <version>1.7.5</version>		    
+	     </dependency>
 
 		<!--dependency> <groupId>com.sun.jdmk</groupId> <artifactId>jmxtools</artifactId> 
 			<version>1.2.1</version> <scope>system</scope> <systemPath>${basedir}/lib/jmxtools-1.2.1.jar 
@@ -82,10 +93,15 @@
 			<artifactId>jain-sip-ri</artifactId>
 			<version>${jain-sip-ri.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.cloudhopper</groupId>
+			<artifactId>ch-smpp</artifactId>
+			<version>5.0.8</version>
+		</dependency>
 	</dependencies>
 
 	<build>
-		<plugins>
+		<plugins>			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
