@@ -16,10 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-
 package org.mobicents.tools.smpp.balancer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -39,13 +39,10 @@ import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
-
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-
-public class RebindTest {
-
+public class SslBalancerNoSslServerTest {
 	private static final Logger logger = LoggerFactory
 			.getLogger(CommonTest.class);
 
@@ -62,19 +59,18 @@ public class RebindTest {
 			});
 
 	private static int clientNumbers = 1;
-	private static int serverNumbers = 3;
+	private static int serverNumbers = 1;
 	private static DefaultSmppServer[] serverArray;
 	private static SmppBalancerRunner loadBalancerSmpp;
+	private static DefaultSmppServerHandler serverHandler;
 
 	@BeforeClass
 	public static void initialization() {
-
 		// start servers
 		serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverArray[i] = new DefaultSmppServer(
-					ConfigInit.getSmppServerConfiguration(i,false),
-					new DefaultSmppServerHandler(), executor, monitorExecutor);
+			serverHandler = new DefaultSmppServerHandler();
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),serverHandler, executor, monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -82,22 +78,33 @@ public class RebindTest {
 				logger.info("SMPP server does not started");
 				e.printStackTrace();
 			}
-
 			logger.info("SMPP server started");
 		}
 
 		// start lb
 		loadBalancerSmpp = new SmppBalancerRunner();
-		loadBalancerSmpp.start(ConfigInit.getLbProperties(false,false));
+		loadBalancerSmpp.start(ConfigInit.getLbProperties(true,false));
 	}
-	//tests situation with dropped connection to server(rebind check)
+	// tests SSL client connection to noSSL server
 	@Test
-	public void testRebind() {
+	public void testSslClient() {
 		Locker locker = new Locker(clientNumbers);
 		// start client
-		new Load(locker).start();
+		new Load(locker,true).start();
 		locker.waitForClients();
-		assertEquals(1, serverArray[1].getBindRequested());
+		assertEquals(1,serverHandler.getSmsNumber().get());
+		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
+		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+		serverHandler.resetCounters();
+	}
+	// tests noSSL client connection to noSSL server
+	@Test
+	public void testNoSslClient() {
+		Locker locker = new Locker(clientNumbers);
+		// start client
+		new Load(locker,false).start();
+		locker.waitForClients();
+		assertEquals(1,serverHandler.getSmsNumber().get());
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
 	}
@@ -118,23 +125,20 @@ public class RebindTest {
 
 	private class Load extends Thread {
 		private ClientListener listener;
+		private boolean isSslClient;
 
-		Load(ClientListener listener) {
+		Load(ClientListener listener, boolean isSslClient) {
 			this.listener = listener;
+			this.isSslClient = isSslClient;
 		}
 
 		public void run() {
 			DefaultSmppClient client = new DefaultSmppClient();
 			SmppSession session = null;
 			try {
-
-				session = client.bind(
-						ConfigInit.getSmppSessionConfiguration(1,false),
-						new DefaultSmppClientHandler());
-				serverArray[0].stop();
-				sleep(2000);
+				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,isSslClient),new DefaultSmppClientHandler());
+				session.submit(ConfigInit.getSubmitSm(), 12000);
 				session.unbind(5000);
-
 			} catch (Exception e) {
 				logger.error("", e);
 			}

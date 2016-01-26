@@ -308,6 +308,16 @@ reconnectPeriod = 1000
 timeoutConnectionCheckClientSide = 1000
 # Connection check server side timer
 timeoutConnectionCheckServerSide = 1000
+# Is SMPP balancer support SSL
+isSslEnabled = true
+# Path to key file for SSL
+sslKeyPath = path/to/keystore
+# Password SSL
+sslPasword = password
+# The port of the load balancer for SSL protocol
+smppSslPort = 2876
+# Is connection to servers use SSL
+isRemoteServerSsl = true
 
 						</programlisting>
           </example>
@@ -602,6 +612,47 @@ timeoutConnectionCheckServerSide = 1000
                 <para>In milliseconds. After sending enquire link to server
                 for checking connection, balancer wait this time and if not
                 receive response close connection.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>isSslEnabled</term>
+
+              <listitem>
+                <para>Turn off/on supporting SSL protocol.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>sslKeyPath</term>
+
+              <listitem>
+                <para>Path to key file for SSL.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>sslPasword</term>
+
+              <listitem>
+                <para>Password for SSL.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>smppSslPort</term>
+
+              <listitem>
+                <para>Port on which the SMPP load balancer will listen for
+                incoming requests from SSL clients.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>isRemoteServerSsl</term>
+
+              <listitem>
+                <para>Is remote servers use SSL.</para>
               </listitem>
             </varlistentry>
           </variablelist>

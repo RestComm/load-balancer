@@ -33,6 +33,7 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.mobicents.tools.smpp.balancer.core.BalancerServer;
 
+import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.channel.SmppChannelConstants;
 import com.cloudhopper.smpp.channel.SmppSessionPduDecoder;
 import com.cloudhopper.smpp.ssl.SslConfiguration;
@@ -51,26 +52,26 @@ public class ServerChannelConnector extends SimpleChannelUpstreamHandler {
     private BalancerDispatcher lbServerListener;
     private Properties properties;
     private ScheduledExecutorService monitorExecutor;
-
-    public ServerChannelConnector(ChannelGroup channels, BalancerServer smppServer, Properties properties, BalancerDispatcher lbServerListener,ScheduledExecutorService monitorExecutor) 
+    private SmppServerConfiguration configuration;
+    
+    public ServerChannelConnector(ChannelGroup channels, BalancerServer smppServer, SmppServerConfiguration configuration, Properties properties, BalancerDispatcher lbServerListener,ScheduledExecutorService monitorExecutor) 
     {
         this.channels = channels;
         this.server = smppServer;
         this.lbServerListener = lbServerListener;
         this.properties = properties;
         this.monitorExecutor = monitorExecutor;
+        this.configuration=configuration;
     }
 
     @Override
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception 
     {
- 
         Channel channel = e.getChannel();
         channels.add(channel);       
-
-        if (server.getConfiguration().isUseSsl()) 
+        if (configuration.isUseSsl()) 
         {
-		    SslConfiguration sslConfig = server.getConfiguration().getSslConfiguration();
+		    SslConfiguration sslConfig = configuration.getSslConfiguration();
 		    if (sslConfig == null) throw new IllegalStateException("sslConfiguration must be set");
 		    SslContextFactory factory = new SslContextFactory(sslConfig);
 		    SSLEngine sslEngine = factory.newSslEngine();

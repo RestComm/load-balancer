@@ -50,33 +50,42 @@ public class BalancerServer{
 
     private final ChannelGroup channels;
     private final ServerChannelConnector serverConnector;
-    private final SmppServerConfiguration configuration;
-	private ExecutorService bossThreadPool;
+    private SmppServerConfiguration regularConfiguration;
+    private ServerBootstrap regularBootstrap;
+    private ServerChannelConnector securedConnector;
+    private SmppServerConfiguration securedConfiguration;
+    private ServerBootstrap securedBootstrap;
+    private ExecutorService bossThreadPool;
     private ChannelFactory channelFactory;
-    private ServerBootstrap serverBootstrap;
     private final AtomicLong sessionIdSequence;
     private DefaultSmppServerCounters counters;
      
-	public BalancerServer (final SmppServerConfiguration configuration,ExecutorService executor, Properties properties, BalancerDispatcher lbServerListener, ScheduledExecutorService monitorExecutor) {
-        this.configuration = configuration;
+	public BalancerServer (SmppServerConfiguration regularConfiguration,SmppServerConfiguration securedConfiguration,ExecutorService executor, Properties properties, BalancerDispatcher lbServerListener, ScheduledExecutorService monitorExecutor) {
+        this.regularConfiguration = regularConfiguration;
+        this.securedConfiguration=securedConfiguration;
         this.channels = new DefaultChannelGroup();
         this.bossThreadPool = Executors.newCachedThreadPool();
-        if (configuration.isNonBlockingSocketsEnabled()) 
-            this.channelFactory = new NioServerSocketChannelFactory(this.bossThreadPool, executor, configuration.getMaxConnectionSize());
+        if (regularConfiguration.isNonBlockingSocketsEnabled()) 
+            this.channelFactory = new NioServerSocketChannelFactory(this.bossThreadPool, executor, regularConfiguration.getMaxConnectionSize());
         else 
             this.channelFactory = new OioServerSocketChannelFactory(this.bossThreadPool, executor);
         
-        this.serverBootstrap = new ServerBootstrap(this.channelFactory);
-        this.serverBootstrap.setOption("reuseAddress", configuration.isReuseAddress());
-        this.serverConnector = new ServerChannelConnector(channels, this, properties, lbServerListener, monitorExecutor);
-        this.serverBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_SERVER_CONNECTOR_NAME, this.serverConnector);
+        this.regularBootstrap = new ServerBootstrap(this.channelFactory);
+        this.regularBootstrap.setOption("reuseAddress", regularConfiguration.isReuseAddress());
+        this.serverConnector = new ServerChannelConnector(channels, this, regularConfiguration, properties, lbServerListener, monitorExecutor);
+        this.regularBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_SERVER_CONNECTOR_NAME, this.serverConnector);
+        
+        if(this.securedConfiguration!=null)
+        {
+        	this.securedBootstrap = new ServerBootstrap(this.channelFactory);
+            this.securedBootstrap.setOption("reuseAddress", securedConfiguration.isReuseAddress());
+            this.securedConnector = new ServerChannelConnector(channels, this, securedConfiguration, properties, lbServerListener, monitorExecutor);
+            this.securedBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_SERVER_CONNECTOR_NAME, this.securedConnector);            
+        }
+        
         this.sessionIdSequence = new AtomicLong(0);        
         this.counters = new DefaultSmppServerCounters();
-    }
-	public SmppServerConfiguration getConfiguration()
-	{
-		return configuration;
-	}
+    }	
 	
 	public DefaultSmppServerCounters getCounters() 
 	{
@@ -89,8 +98,17 @@ public class BalancerServer{
 	{
 	        try 
 	        {
-	            this.serverBootstrap.bind(new InetSocketAddress(configuration.getHost(), configuration.getPort()));	            
-	            logger.info(configuration.getName() + " started at " + configuration.getHost() + " : " + configuration.getPort());
+	            this.regularBootstrap.bind(new InetSocketAddress(regularConfiguration.getHost(), regularConfiguration.getPort()));
+	            if(logger.isInfoEnabled()) {
+	            logger.info(regularConfiguration.getName() + " started at " + regularConfiguration.getHost() + " : " + regularConfiguration.getPort());
+	            }
+	            if(this.securedConfiguration!=null)
+	            {
+	            	this.securedBootstrap.bind(new InetSocketAddress(securedConfiguration.getHost(), securedConfiguration.getPort()));	
+	            	if(logger.isInfoEnabled()) {
+	            	logger.info(securedConfiguration.getName() + " started at " + securedConfiguration.getHost() + " : " +(securedConfiguration.getPort()));
+	            	}
+	            }
 	        } 
 	        catch (ChannelException e) 
 	        {
@@ -105,14 +123,15 @@ public class BalancerServer{
     	this.sessionIdSequence.compareAndSet(Long.MAX_VALUE, 0);
         return this.sessionIdSequence.getAndIncrement();
     }
+    /**
+	*Stop load balancer server
+	*/
 	public void stop() {
 		if (this.channels.size() > 0) 
 		{
-            logger.info(configuration.getName() + " currently has [" + this.channels.size() + "] open child channel(s) that will be closed as part of stop()");
+            logger.info(regularConfiguration.getName() + " currently has [" + this.channels.size() + "] open child channel(s) that will be closed as part of stop()");
         }
         this.channels.close().awaitUninterruptibly();
-        
-        logger.info(configuration.getName() + " stopped at " + configuration.getHost()+" : " + configuration.getPort());
-		
+        logger.info(regularConfiguration.getName() + " stopped at " + regularConfiguration.getHost()+" : " + regularConfiguration.getPort());
 	}
 }

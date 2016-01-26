@@ -39,6 +39,7 @@ import org.mobicents.tools.smpp.balancer.impl.ServerConnectionImpl;
 
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.pdu.Pdu;
+import com.cloudhopper.smpp.ssl.SslConfiguration;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
@@ -99,6 +100,15 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 		SmppSessionConfiguration sessionConfig = serverConnection.getConfig();
 		sessionConfig.setHost(remoteServers[serverIndex].getIP());
 		sessionConfig.setPort(remoteServers[serverIndex].getPort());
+		sessionConfig.setUseSsl(Boolean.parseBoolean(properties.getProperty("isRemoteServerSsl")));
+		if(sessionConfig.isUseSsl())
+		{
+			 SslConfiguration sslConfig = new SslConfiguration();
+		     sslConfig.setTrustAll(true);
+		     sslConfig.setValidateCerts(true);
+		     sslConfig.setValidatePeerCerts(true);
+		     sessionConfig.setSslConfiguration(sslConfig);
+		}
 		clientSessions.put(sessionId, new ClientConnectionImpl(sessionId, sessionConfig, this, monitorExecutor, properties, packet, serverIndex));
 		handlerService.execute(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, serverIndex, remoteServers));
 
@@ -108,7 +118,6 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	public void unbindRequested(Long sessionID, Pdu packet) 
 	{
 		clientSessions.get(sessionID).sendUnbindRequest(packet);
-		
 	}
 
 	@Override

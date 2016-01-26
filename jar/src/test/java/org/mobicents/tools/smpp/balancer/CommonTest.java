@@ -74,7 +74,7 @@ public class CommonTest{
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i), serverHandlerArray[i], executor,monitorExecutor);
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -88,9 +88,10 @@ public class CommonTest{
 
 		//start lb
         loadBalancerSmpp = new SmppBalancerRunner();
-        loadBalancerSmpp.start(ConfigInit.getLbProperties());
+        loadBalancerSmpp.start(ConfigInit.getLbProperties(false,false));
 	}
 
+	//tests round-robin algorithm
 	@Test
     public void testRoundRobin() 
     {   
@@ -112,7 +113,7 @@ public class CommonTest{
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
     }
-	
+	//tests correct packet transfer through load balancer
 	@Test
     public void testPacketTransfer() 
     {
@@ -133,6 +134,7 @@ public class CommonTest{
 	    assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
     }
+	//tests work of enquire link timer
 	@Test
     public void testEnquireLinkTimer() 
     {
@@ -151,13 +153,13 @@ public class CommonTest{
 	    assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
 	  	assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
     }
-	
+	//tests work of session initialization timer
 	@Test
     public void testSessionInitTimer() 
     {
 		ClientConnectOnly dummyClient = new ClientConnectOnly();
 		try {
-			dummyClient.bind(ConfigInit.getSmppSessionConfiguration(0));
+			dummyClient.bind(ConfigInit.getSmppSessionConfiguration(0,false));
 			Thread.sleep(2000);
 		} catch (Exception e) {
 			logger.error("", e);
@@ -208,7 +210,7 @@ public class CommonTest{
 			try
 			{
 			 clientHandlerArray[i] = new  DefaultSmppClientHandler();
-			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i), clientHandlerArray[i]);
+			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i,false), clientHandlerArray[i]);
 			 for(int j = 0; j < smsNumber; j++)
 			 {
 				 session.submit(ConfigInit.getSubmitSm(), 12000); 
