@@ -71,7 +71,7 @@ public class ResponseTimerTest {
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i),new ServerHandlerForResponseTimer(), executor,monitorExecutor);
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),new ServerHandlerForResponseTimer(), executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -85,9 +85,9 @@ public class ResponseTimerTest {
 
 		//start lb
         loadBalancerSmpp = new SmppBalancerRunner();
-        loadBalancerSmpp.start(ConfigInit.getLbProperties());
+        loadBalancerSmpp.start(ConfigInit.getLbProperties(false,false));
 	}
-
+	//tests work of response timer
 	@Test
     public void testResponseTimer() 
     {   
@@ -123,7 +123,7 @@ public class ResponseTimerTest {
 			DefaultSmppClient client = new DefaultSmppClient();
 			SmppSession session = null; 
 			try{
-			 session = client.bind(ConfigInit.getSmppSessionConfiguration(1), new  DefaultSmppClientHandler());
+			 session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false), new  DefaultSmppClientHandler());
 		     session.submit(ConfigInit.getSubmitSm(), 12000);
 		     session.unbind(5000);
 			

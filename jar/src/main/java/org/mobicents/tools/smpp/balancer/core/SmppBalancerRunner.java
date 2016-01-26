@@ -39,6 +39,7 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
 
 import com.cloudhopper.smpp.SmppServerConfiguration;
+import com.cloudhopper.smpp.ssl.SslConfiguration;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
@@ -164,17 +165,38 @@ public class SmppBalancerRunner {
 	 */
 	public void start(Properties properties)
 	{
-        SmppServerConfiguration configuration = new SmppServerConfiguration();
-        configuration.setName(properties.getProperty("smppName"));
-        configuration.setHost(properties.getProperty("smppHost"));
-        configuration.setPort(Integer.parseInt(properties.getProperty("smppPort")));
-        configuration.setMaxConnectionSize(Integer.parseInt(properties.getProperty("maxConnectionSize")));
-        configuration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(properties.getProperty("nonBlockingSocketsEnabled")));
-        configuration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(properties.getProperty("defaultSessionCountersEnabled")));
+        SmppServerConfiguration regularConfiguration = new SmppServerConfiguration();
+        regularConfiguration.setName(properties.getProperty("smppName"));
+        regularConfiguration.setHost(properties.getProperty("smppHost"));
+        regularConfiguration.setPort(Integer.parseInt(properties.getProperty("smppPort")));
+        regularConfiguration.setMaxConnectionSize(Integer.parseInt(properties.getProperty("maxConnectionSize")));
+        regularConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(properties.getProperty("nonBlockingSocketsEnabled")));
+        regularConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(properties.getProperty("defaultSessionCountersEnabled")));
+        regularConfiguration.setUseSsl(false);                
+        
+        SmppServerConfiguration securedConfiguration = null;
+        if(Boolean.parseBoolean(properties.getProperty("isSslEnabled")))
+        {
+        	securedConfiguration = new SmppServerConfiguration();
+        	securedConfiguration.setName(properties.getProperty("smppName"));
+        	securedConfiguration.setHost(properties.getProperty("smppHost"));
+	        securedConfiguration.setPort(Integer.parseInt(properties.getProperty("smppSslPort")));
+	        securedConfiguration.setMaxConnectionSize(Integer.parseInt(properties.getProperty("maxConnectionSize")));
+	        securedConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(properties.getProperty("nonBlockingSocketsEnabled")));
+	        securedConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(properties.getProperty("defaultSessionCountersEnabled")));
+	        securedConfiguration.setUseSsl(true);
+            SslConfiguration sslConfig = new SslConfiguration();
+	        sslConfig.setKeyStorePath(properties.getProperty("sslKeyPath"));
+	        sslConfig.setKeyStorePassword(properties.getProperty("sslPasword"));
+	        sslConfig.setKeyManagerPassword(properties.getProperty("sslPasword"));
+	        sslConfig.setTrustStorePath(properties.getProperty("sslKeyPath"));
+	        sslConfig.setTrustStorePassword(properties.getProperty("sslPasword"));
+	        securedConfiguration.setSslConfiguration(sslConfig);        
+        }
+        
         balancerDispatcher = new BalancerDispatcher(properties,monitorExecutor);
-		smppLbServer = new BalancerServer(configuration, executor, properties, balancerDispatcher, monitorExecutor);
+		smppLbServer = new BalancerServer(regularConfiguration, securedConfiguration, executor, properties, balancerDispatcher, monitorExecutor);
         smppLbServer.start();
-
 	}
 	public void stop()
 	{

@@ -26,6 +26,7 @@ import com.cloudhopper.smpp.SmppBindType;
 import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.pdu.SubmitSm;
+import com.cloudhopper.smpp.ssl.SslConfiguration;
 import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 
@@ -35,7 +36,7 @@ import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 
 public class ConfigInit {
 
-	static SmppServerConfiguration getSmppServerConfiguration(int i)
+	static SmppServerConfiguration getSmppServerConfiguration(int i, boolean isSslServer)
 	{
 		SmppServerConfiguration config = new SmppServerConfiguration();
 		config.setName("SMPP Server "+i);
@@ -48,10 +49,21 @@ public class ConfigInit {
 		config.setDefaultSessionCountersEnabled(true);
 		config.setJmxEnabled(true);
 		config.setPort(10021 + i);
+		if(isSslServer)
+		{
+			SslConfiguration sslConfig = new SslConfiguration();
+	        sslConfig.setKeyStorePath("/home/konstantinnosach/tmp/keystore");
+	        sslConfig.setKeyStorePassword("123456");
+	        sslConfig.setKeyManagerPassword("123456");
+	        sslConfig.setTrustStorePath("/home/konstantinnosach/tmp/keystore");
+	        sslConfig.setTrustStorePassword("123456");
+	        config.setUseSsl(true);
+	        config.setSslConfiguration(sslConfig);
+		}
 		return config;
 	}
 	
-	static Properties getLbProperties()
+	static Properties getLbProperties(boolean isSsl, boolean isRemoteServerSsl)
 	{
 		Properties properties = new Properties();
 		properties.setProperty("smppName","SMPP Load Balancer");
@@ -67,16 +79,25 @@ public class ConfigInit {
 		properties.setProperty("reconnectPeriod","1000");
 		properties.setProperty("timeoutConnectionCheckClientSide","1000");
 		properties.setProperty("timeoutConnectionCheckServerSide","1000");
+		if(isSsl)
+		{
+			properties.setProperty("isSslEnabled","true");
+			properties.setProperty("sslKeyPath","/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("sslPasword","123456");
+			properties.setProperty("smppSslPort","2876");
+			properties.setProperty("isRemoteServerSsl",""+isRemoteServerSsl);
+		}
 		return properties;
 	}
-	static SmppSessionConfiguration getSmppSessionConfiguration(int i)
+	
+	static SmppSessionConfiguration getSmppSessionConfiguration(int i, boolean isSslClient)
 	{
 		SmppSessionConfiguration config  = new SmppSessionConfiguration();
 		config.setWindowSize(1);
 		config.setName("Client " + i);
 		config.setType(SmppBindType.TRANSCEIVER);
 		config.setHost("127.0.0.1");
-		config.setPort(2776);
+		
 		config.setConnectTimeout(10000);
 		config.setSystemId("1"+i);
 		config.setPassword("password");
@@ -85,9 +106,23 @@ public class ConfigInit {
 		config.setRequestExpiryTimeout(30000);
 		config.setWindowMonitorInterval(15000);
 		config.setCountersEnabled(true);
+		if(isSslClient)
+		{
+			config.setPort(2876);
+			SslConfiguration sslConfig = new SslConfiguration();
+	        sslConfig.setTrustAll(true);
+	        sslConfig.setValidateCerts(true);
+	        sslConfig.setValidatePeerCerts(true);
+	        config.setSslConfiguration(sslConfig);
+	        config.setUseSsl(true);
+		}else
+		{
+			config.setPort(2776);
+		}
 		
 		return config;
 	}
+
 	static SubmitSm getSubmitSm() throws SmppInvalidArgumentException
 	{
 		String text160 = "\u20AC Lorem [ipsum] dolor sit amet, consectetur adipiscing elit. Proin feugiat, leo id commodo tincidunt, nibh diam ornare est, vitae accumsan risus lacus sed sem metus.";
