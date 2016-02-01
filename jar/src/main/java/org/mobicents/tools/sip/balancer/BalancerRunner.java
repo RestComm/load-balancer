@@ -109,7 +109,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
-	SmppBalancerRunner smppBalancerRunner = new SmppBalancerRunner();
+	SmppBalancerRunner smppBalancerRunner;
 	public BalancerContext balancerContext = new BalancerContext();
 	
 	public String algorithClassName = null;
@@ -243,7 +243,11 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("An unexpected error occurred while starting the load balancer", e);
 			return;
 		}
-		smppBalancerRunner.start(properties);
+		if(properties.getProperty("smppPort")!=null)
+		{
+			smppBalancerRunner = new SmppBalancerRunner();
+			smppBalancerRunner.start(properties);
+		}	
 	}
 	Timer timer;
 	long lastupdate = 0;
@@ -313,8 +317,11 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		sipForwarder.stop();
 		logger.info("Stopping the http forwarder");
 		httpBalancerForwarder.stop();
+		if(smppBalancerRunner != null)
+		{
 		logger.info("Stopping the SMPP balancer");
 		smppBalancerRunner.stop();
+		}
 		logger.info("Unregistering the node registry");
 		MBeanServer server = ManagementFactory.getPlatformMBeanServer();		
 		try {
