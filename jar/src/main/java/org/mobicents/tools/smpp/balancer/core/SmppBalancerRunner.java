@@ -51,7 +51,7 @@ public class SmppBalancerRunner {
 	
 	private BalancerDispatcher balancerDispatcher;
 	private ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
-	private ScheduledExecutorService monitorExecutor  = Executors.newScheduledThreadPool(16);
+	private ScheduledExecutorService monitorExecutor  = Executors.newScheduledThreadPool(4);
 	private BalancerServer smppLbServer;
 	
 	static {
@@ -78,25 +78,6 @@ public class SmppBalancerRunner {
 		} else {
 		    DOMConfigurator.configure(logConfigFile);
 		}
-	}
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		
-		if (args.length < 1) {
-			logger.error("Please specify mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
-			return;
-		}
-		
-		if(!args[0].startsWith("-mobicents-balancer-config=")) {
-			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument.  Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
-			return;
-		}
-		
-		String configurationFileLocation = args[0].substring("-mobicents-balancer-config=".length());
-		SmppBalancerRunner lbStarter = new SmppBalancerRunner();
-		lbStarter.start(configurationFileLocation);
 	}
 	
 	Timer timer;

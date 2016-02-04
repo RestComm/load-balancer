@@ -22,32 +22,41 @@
 
 package org.mobicents.tools.sip.balancer.algorithms;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Properties;
 
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm;
-import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class HeaderConsistentHashAlgorithmTest extends TestCase {
+public class HeaderConsistentHashAlgorithmTest {
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
 	
+	AppServer ringingAppServer;
+	AppServer okAppServer;	
+	AppServer invite;
+	AppServer bye;
+	AppServer ack;
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-		super.setUp();
+	
+	@Before
+	public void setUp() throws Exception {
 		shootist = new Shootist();
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
@@ -77,20 +86,16 @@ public class HeaderConsistentHashAlgorithmTest extends TestCase {
 		Thread.sleep(5000);
 	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	@After
+	public void tearDown() throws Exception {
 		shootist.stop();
 		for(int q=0;q<servers.length;q++) {
 			servers[q].stop();
 		}
 		balancer.stop();
 	}
-	static AppServer invite;
-	static AppServer bye;
-	static AppServer ack;
+	
+	@Test
 	public void testInviteByeLandOnDifferentNodes() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 
@@ -105,17 +110,11 @@ public class HeaderConsistentHashAlgorithmTest extends TestCase {
 				if(method.equals("ACK")) {
 					ack = source;
 					
-					if(ack != invite) TestCase.fail("INVITE and ACK should have landed on same node");
 					ack.sendCleanShutdownToBalancers();
 			
 				}
-				if(method.equals("BYE")) {
-					bye = source;
-					
-					if(bye == invite) TestCase.fail("INVITE and BYE should have landed on different nodes");
-				}
-
-				
+				if(method.equals("BYE")) 
+					bye = source;																
 			}
 
 			@Override
@@ -139,8 +138,11 @@ public class HeaderConsistentHashAlgorithmTest extends TestCase {
 		Thread.sleep(2000);
 		assertNotNull(invite);
 		assertNotNull(bye);
+		assertEquals(ack,invite);
+		assertNotEquals(bye,invite);		
 	}
 	
+	@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
 			as.sendCleanShutdownToBalancers();
@@ -154,8 +156,7 @@ public class HeaderConsistentHashAlgorithmTest extends TestCase {
 		assertEquals(500, shootist.responses.get(0).getStatusCode());
 	}
 	
-	AppServer ringingAppServer;
-	AppServer okAppServer;
+	@Test
 	public void testOKRingingLandOnDifferentNode() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {

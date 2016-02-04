@@ -404,6 +404,7 @@ public class NodeRegisterImpl  implements NodeRegister {
             }
             // removal done afterwards to avoid ConcurrentModificationException when removing the node while goign through the iterator
             if(nodePresent) {
+            	
                 balancerRunner.balancerContext.aliveNodes.remove(pingNode);
                 ctx.balancerAlgorithm.nodeRemoved(pingNode);
                 if(logger.isInfoEnabled()) {

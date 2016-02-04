@@ -22,6 +22,11 @@
 
 package org.mobicents.tools.sip.balancer.operation;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
 import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.util.Properties;
@@ -31,26 +36,26 @@ import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.UserAgentHeader;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.ProtocolObjects;
 import org.mobicents.tools.sip.balancer.TestSipListener;
 
-import junit.framework.TestCase;
 
-public class InviteTransactionFailover extends TestCase{
+public class InviteTransactionFailover {
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
-	
+	AppServer ringingAppServer;
+	AppServer okAppServer;
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-		super.setUp();
+	@Before
+	public void setUp() throws Exception {
 		shootist = new Shootist();
 		
 		balancer = new BalancerRunner();
@@ -83,11 +88,8 @@ public class InviteTransactionFailover extends TestCase{
 		Thread.sleep(5000);
 	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	@After
+	public void tearDown() throws Exception {
 		for(int q=0;q<servers.length;q++) {
 			servers[q].stop();
 		}
@@ -95,6 +97,7 @@ public class InviteTransactionFailover extends TestCase{
 		balancer.stop();
 	}
 	
+	@Test
 	public void testFailDetection() throws Exception {
 			
 			String[] nodes = balancer.getNodeList();
@@ -105,6 +108,7 @@ public class InviteTransactionFailover extends TestCase{
 			assertEquals(numNodes-1, balancer.getNodeList().length);
 	}
 
+	@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
 			as.sendCleanShutdownToBalancers();
@@ -144,6 +148,7 @@ public class InviteTransactionFailover extends TestCase{
 //		Thread.sleep(20000);
 //	}
 	
+	@Test
 	public void testSimpleShutdown() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 			boolean once = false;
@@ -180,10 +185,11 @@ public class InviteTransactionFailover extends TestCase{
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
 		Thread.sleep(12000);
-		if(balancer.getNodes().size()!=1) fail("Expected one dead node");
+		assertEquals(1,balancer.getNodes().size());
+		//if(balancer.getNodes().size()!=1) fail("Expected one dead node");
 	}
-	AppServer ringingAppServer;
-	AppServer okAppServer;
+
+	@Test
 	public void testASactingAsUAC() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {

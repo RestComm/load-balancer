@@ -33,7 +33,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
+
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -82,18 +82,22 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			uri = (SipURI) request.getRequestURI();
 		}
 		try {
-			//Gvag: new transaction should go to a new node
-			SIPNode newNode = nextAvailableNode();//getNodeA(callId+cseq);
-			if(newNode == null) {
-				for(SIPNode node:invocationContext.nodes) {
-					if(!node.equals(assignedNode)) {
-						newNode = node;
+			SIPNode node;
+			if(!request.getMethod().equals("ACK")) {
+				//Gvag: new transaction should go to a new node
+				SIPNode newNode = nextAvailableNode();//getNodeA(callId+cseq);
+				if(newNode == null) {
+					for(SIPNode currNode:invocationContext.nodes) {
+						if(!currNode.equals(assignedNode)) {
+							newNode = currNode;
+						}
 					}
 				}
+				node = newNode;
 			}
-			SIPNode node = newNode;
-
-
+			else
+				node=assignedNode;
+			
 			uri.setHost(node.getIp());
 			Integer port = (Integer) node.getProperties().get(transport + "Port");
 			uri.setPort(port);
@@ -143,7 +147,6 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	}
 	
 	public void processExternalResponse(Response response) {
-		BalancerContext balancerContext = getBalancerContext();
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
@@ -195,7 +198,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				}
 			}
 		}
-	}
+	}	
 	
 	public SIPNode processExternalRequest(Request request) {
 		String callId = ((SIPHeader) request.getHeader(headerName))
@@ -205,8 +208,6 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		long cseq = cs.getSeqNumber();
 		node = callIdMap.get(callId);
 		callIdTimestamps.put(callId, System.currentTimeMillis());
-
-		BalancerContext balancerContext = getBalancerContext();
 
 		if(node == null) { //
 			node = nextAvailableNode();
@@ -231,6 +232,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				}
 			}
 		}
+		
+		System.out.println("REQUEST:" + request.getMethod() + ",NODE:" + node.toString());
 		setNodeA(callId+cseq,node);
 		callIdMap.put(callId, node);
 		

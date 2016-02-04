@@ -21,6 +21,7 @@ package org.mobicents.tools.smpp.balancer;
 
 import static org.junit.Assert.*;
 
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -68,7 +69,6 @@ public class CommonTest{
 	
 	@BeforeClass
 	public static void initialization() {
-		
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
@@ -101,15 +101,13 @@ public class CommonTest{
 		Locker locker=new Locker(clientNumbers);
 
 		for(int i = 0; i < clientNumbers; i++)
-			{
 			new Load(i, smsNumber, locker).start();
-			}
+			
 		locker.waitForClients();
 
 		for(int i = 0; i < serverNumbers; i++)
-		{
 			 assertEquals(clientNumbers/serverNumbers, serverArray[i].getBindRequested());
-		}
+		
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
     }
@@ -183,11 +181,12 @@ public class CommonTest{
 		for(int i = 0; i < serverNumbers; i++)
 		{
 			logger.info("Stopping SMPP server "+ i +" ...");
-			serverArray[i].stop();
+			serverArray[i].destroy();
 			logger.info("SMPP server "+ i +"stopped");
 		}
 		executor.shutdownNow();
         monitorExecutor.shutdownNow();
+        loadBalancerSmpp.stop();
         logger.info("Done. Exiting");
 
 	}
@@ -215,12 +214,14 @@ public class CommonTest{
 			 {
 				 session.submit(ConfigInit.getSubmitSm(), 12000); 
 			 }
+			 
 			 if(smsNumber == 0)
-			 {
-				 sleep(13000);
-			 }
+			 	 sleep(13000);
+			 
+			 sleep(200);
 		     session.unbind(5000);
-			
+		     sleep(200);
+		     
 		        }catch(Exception e){
 		        	logger.error("", e);
 		        }
@@ -229,11 +230,24 @@ public class CommonTest{
 	            logger.info("Cleaning up session...");
 	            session.destroy();
 	        }
+			
 	        logger.info("Shutting down client bootstrap and executors...");
 	        client.destroy();
 	        listener.clientCompleted();
 		}
-	}
+		
+		public void sleep(int time)
+		{
+			try
+			{
+				Thread.sleep(time);
+			}
+			catch(InterruptedException ex)
+			{
+				
+			}
+		}
+	}	
 	
 	private class Locker implements ClientListener{
     	private Semaphore clientsSemaphore;

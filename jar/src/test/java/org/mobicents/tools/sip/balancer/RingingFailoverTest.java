@@ -22,20 +22,20 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import static org.junit.Assert.assertTrue;
+
 import java.text.ParseException;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.sip.PeerUnavailableException;
 import javax.sip.SipFactory;
 import javax.sip.message.Response;
 
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerContext;
 import org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.SIPNode;
 
-import junit.framework.TestCase;
-
-public class RingingFailoverTest extends TestCase {
+public class RingingFailoverTest {
 	
 	static final String ringing = 	"SIP/2.0 180 Ringing\n" + "To: <sip:LittleGuy@there.com>;tag=5432\n" +
 	"Via: SIP/2.0/UDP 127.0.0.1:1111;branch=z9hG4bK-3530-488ff2840f609639903eff914df9870f202e2zsd,SIP/2.0/UDP 127.0.0.1:2222;branch=z9hG4bK-3530-488ff2840f609639903eff914df9870f202e2,SIP/2.0/UDP 127.0.0.1:5033;branch=z9hG4bK-3530-488ff2840f609639903eff914df9870f\n"+
@@ -45,6 +45,7 @@ public class RingingFailoverTest extends TestCase {
 	"From: <sip:BigGuy@here.com>;tag=12345\n"+
 	"Content-Length: 0\n";
 	
+	@Test
 	public void testViaHeaderRewrite() throws Exception, ParseException {
 		CallIDAffinityBalancerAlgorithm algorithm = new CallIDAffinityBalancerAlgorithm();
 		Response response = SipFactory.getInstance().createMessageFactory().createResponse(ringing);
@@ -60,8 +61,7 @@ public class RingingFailoverTest extends TestCase {
 		algorithm.invocationContext = ctx;
 		algorithm.processExternalResponse(response);
 		
-		if(!response.toString().contains(node+":" + port)) {
-			fail("Expected " + node);
-		}
+		algorithm.stop();
+		assertTrue(response.toString().contains(node+":" + port));			
 	}
 }

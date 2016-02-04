@@ -74,6 +74,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String REMOTE_OBJECT_PORT = "2001";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
 	
+	private SipBalancerShutdownHook shutdownHook=null;
+	
 	ConcurrentHashMap<String, InvocationContext> contexts = new ConcurrentHashMap<String, InvocationContext>();
 	static {
 		String logLevel = System.getProperty("logLevel", "INFO");
@@ -238,7 +240,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	        cs.start();
 	        adapter.start();
 	         
-			Runtime.getRuntime().addShutdownHook(new SipBalancerShutdownHook(this));
+	        shutdownHook=new SipBalancerShutdownHook(this);
+			Runtime.getRuntime().addShutdownHook(shutdownHook);
 		} catch (Exception e) {
 			logger.error("An unexpected error occurred while starting the load balancer", e);
 			return;
@@ -310,42 +313,82 @@ public class BalancerRunner implements BalancerRunnerMBean {
 
 	}
 	
-	public void stop() {
-		if(timer != null) timer.cancel();
-		timer = null;
-		logger.info("Stopping the sip forwarder");
-		sipForwarder.stop();
-		logger.info("Stopping the http forwarder");
-		httpBalancerForwarder.stop();
+	public void stop() 
+	{
+		if(shutdownHook==null)
+			return;
+		
+		Runtime.getRuntime().removeShutdownHook(shutdownHook);
+		shutdownHook=null;
+		
+		if(timer != null)
+		{
+			timer.cancel();
+			timer = null;
+		}
+		
+		if(sipForwarder!=null)
+		{
+			logger.info("Stopping the sip forwarder");		
+			sipForwarder.stop();
+			sipForwarder=null;
+		}
+		
+		if(httpBalancerForwarder!=null)
+		{
+			logger.info("Stopping the http forwarder");
+			httpBalancerForwarder.stop();
+			httpBalancerForwarder=null;
+		}
+		
 		if(smppBalancerRunner != null)
 		{
-		logger.info("Stopping the SMPP balancer");
-		smppBalancerRunner.stop();
+			logger.info("Stopping the SMPP balancer");
+			smppBalancerRunner.stop();
+			smppBalancerRunner=null;
 		}
-		logger.info("Unregistering the node registry");
+					
 		MBeanServer server = ManagementFactory.getPlatformMBeanServer();		
-		try {
-			ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_JMX_NAME);
-			if (server.isRegistered(on)) {
-				server.unregisterMBean(on);
+		try 
+		{
+			if(reg!=null)
+			{
+				ObjectName on = new ObjectName(BalancerRunner.SIP_BALANCER_JMX_NAME);
+				if (server.isRegistered(on)) 
+				{
+					logger.info("Unregistering the node registry");				
+					server.unregisterMBean(on);
+				}
 			}
-			if(server.isRegistered(adapterName)) {
-				server.unregisterMBean(adapterName);
-			}
-		} catch (Exception e) {
+			
+			if(adapter!=null)
+			{
+				if(server.isRegistered(adapterName)) 
+				{
+					logger.info("Unregistering the node adapter");
+					server.unregisterMBean(adapterName);
+				}
+			}		
+		} 
+		catch (Exception e) 
+		{
 			logger.error("An unexpected error occurred while stopping the load balancer", e);
 		}
-		try {
-			if(cs != null) {
-				if(cs.isActive()) {
+		
+		try 
+		{
+			if(cs != null) 
+			{
+				if(cs.isActive()) 
 					cs.stop();
-				}
+				
 				cs = null;
-				for(InvocationContext ctx : contexts.values()) {
+				
+				for(InvocationContext ctx : contexts.values()) 
 					ctx.balancerAlgorithm.stop();
-				}
-				adapter.stop();
+				
 				logger.info("Stopping the node registry");
+				adapter.stop();
 				reg.stopRegistry();
 				reg = null;
 				adapter = null;

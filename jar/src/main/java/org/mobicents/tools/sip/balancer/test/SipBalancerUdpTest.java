@@ -62,11 +62,7 @@ public class SipBalancerUdpTest {
 	int numNodes = 2;
 	BlackholeAppServer server;
 	
-
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
+	public void setUp() throws Exception {
 		
 		
 		balancer = new BalancerRunner();
@@ -192,7 +188,7 @@ public class SipBalancerUdpTest {
 		}
 	}
 	
-	protected void tearDown() throws Exception {
+	public void tearDown() throws Exception {
 		server.stop();
 		balancer.stop();
 	}

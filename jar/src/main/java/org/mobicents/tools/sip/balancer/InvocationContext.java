@@ -44,6 +44,12 @@ public class InvocationContext {
 			throw new RuntimeException("Error loading the algorithm class: " + balancerContext.algorithmClassName, e);
 		}
 	}
+	
+	public void stop()
+	{
+		balancerAlgorithm.stop();
+	}
+	
 	public CopyOnWriteArrayList<SIPNode> nodes = new CopyOnWriteArrayList<SIPNode>();
 	public String version;
 	private ConcurrentHashMap<String, Object> attribs = new ConcurrentHashMap<String, Object>();

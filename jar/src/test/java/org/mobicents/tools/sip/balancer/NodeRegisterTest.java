@@ -38,38 +38,21 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import static org.junit.Assert.assertEquals;
+
 import java.rmi.RemoteException;
 import java.util.Properties;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
  *
  */
-public class NodeRegisterTest extends TestCase {
+public class NodeRegisterTest{
 
-	/**
-	 * @param name
-	 */
-	public NodeRegisterTest(String name) {
-		super(name);
-	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-		super.setUp();
-	}
-
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
-	
+	@Test
 	public void testNodeTimeouts() throws RemoteException, Exception {
 		BalancerRunner balancerRunner = new BalancerRunner();
 		Properties properties = new Properties();
@@ -111,6 +94,7 @@ public class NodeRegisterTest extends TestCase {
 			for(int q=0;q<servers.length;q++) {
 				servers[q].stop();
 			}
+			
 			balancerRunner.stop();
 		}
 

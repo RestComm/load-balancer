@@ -112,15 +112,16 @@ public class SslBalancerSslServerTest {
 	@AfterClass
 	public static void finalization() {
 
-		for (int i = 1; i < serverNumbers; i++) {
+		for (int i = 0; i < serverNumbers; i++) {
 			logger.info("Stopping SMPP server " + i + " ...");
-			serverArray[i].stop();
-			logger.info("SMPP server " + i + "stopped");
+			serverArray[i].destroy();
+			logger.info("SMPP server " + i + " stopped");
 		}
 		executor.shutdownNow();
 		monitorExecutor.shutdownNow();
+		loadBalancerSmpp.stop();
 		logger.info("Done. Exiting");
-
+		
 	}
 
 	private class Load extends Thread {
@@ -139,6 +140,7 @@ public class SslBalancerSslServerTest {
 				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,isSslClient),new DefaultSmppClientHandler());
 				session.submit(ConfigInit.getSubmitSm(), 12000);
 				session.unbind(5000);
+				sleep(10);
 			} catch (Exception e) {
 				logger.error("", e);
 			}

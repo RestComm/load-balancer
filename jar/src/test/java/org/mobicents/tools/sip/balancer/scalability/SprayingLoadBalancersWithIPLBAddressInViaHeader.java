@@ -22,13 +22,16 @@
 
 package org.mobicents.tools.sip.balancer.scalability;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Properties;
 
-import javax.sip.SipException;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
-
-import junit.framework.TestCase;
 
 import org.junit.After;
 import org.junit.Before;
@@ -40,12 +43,15 @@ import org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.UDPPacketForwarder;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
+public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 	int numBalancers = 4;
 	BalancerRunner[] balancers = new BalancerRunner[numBalancers];
 	int numNodes = 10;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
+	AppServer inviteServer,ackServer,byeServer;
+	AppServer ringingAppServer;
+	AppServer okAppServer;
 
 	UDPPacketForwarder externalIpLoadBalancer;
 	UDPPacketForwarder internalIpLoadBalancer;
@@ -82,9 +88,9 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 		balancer.start(properties);
 		return balancer;
 	}
+	
 	@Before
-	protected void setUp() throws Exception {
-		super.setUp();
+	public void setUp() throws Exception {
 		shootist = new Shootist();
 		String balancerString = "";
 		String externalIpLBString = "";
@@ -107,24 +113,21 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 		internalIpLoadBalancer.start();
 		Thread.sleep(5000);
 	}
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
+
 	@After
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	public void tearDown() throws Exception {
+		for(int q=0;q<servers.length;q++) 
+			servers[q].stop();
+		
 		externalIpLoadBalancer.stop();
 		internalIpLoadBalancer.stop();
-		for(int q=0;q<servers.length;q++) {
-			servers[q].stop();
-		}
 		shootist.stop();
+		
 		for(int q=0;q<numBalancers;q++) {
 			balancers[q].stop();
 		}
 	}
 	
-	AppServer inviteServer,ackServer,byeServer;
 	@Test
 	public void testSprayingRoundRobinSIPLBsUASCallConsistentHash() throws Exception {
 		EventListener failureEventListener = new EventListener() {
@@ -173,8 +176,8 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 		assertNotNull(ackServer);	
 		
 	}
-	AppServer ringingAppServer;
-	AppServer okAppServer;
+
+	@Test
 	public void testASactingAsUAC() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {
@@ -238,6 +241,8 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader extends TestCase {
 		assertNotNull(ringingAppServer);
 		assertNotNull(okAppServer);
 	}
+	
+	@Test
 	public void testSprayingMultipleIndialogMessages() throws Exception {
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();

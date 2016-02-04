@@ -30,15 +30,16 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Properties;
 
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.BlackholeAppServer;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 //BlackholeAppServer is causing excesive CPU usage. Disable this test for now.
-public class UdpForwardingPerformanceTest //extends TestCase 
+public class UdpForwardingPerformanceTest
 {
 	static final String inviteRequest = "INVITE sip:joe@company.com SIP/2.0\r\n"+
 	"To: sip:joe@company.com\r\n"+
@@ -72,14 +73,40 @@ public class UdpForwardingPerformanceTest //extends TestCase
 	BlackholeAppServer server;
 	Shootist shootist;
 	
+	static InetAddress localhost;
+	static int callIdByteStart = -1;
+	static {
+		try {
+			localhost = InetAddress.getByName("127.0.0.1");
+			byte[] callid = "0ha0isn".getBytes();
+			for (int q = 0; q < 1000; q++) {
+				int found = -1;
+				for (int w = 0; w < callid.length; w++) {
+					if (callid[w] != inviteRequestBytes[q + w])
+						break;
+					found = w;
+				}
+				if (found > 0) {
+					callIdByteStart = q;
+					break;
+				}
+			}
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+	}
+	private static long n = 0;
+	private static void modCallId() {
+		n++;
+		inviteRequestBytes[callIdByteStart] = (byte) (n&0xff);
+		inviteRequestBytes[callIdByteStart+1] = (byte) ((n>>8)&0xff);
+		inviteRequestBytes[callIdByteStart+2] = (byte) ((n>>16)&0xff);
+	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-//		super.setUp();
+	@Before
+	public void setUp() throws Exception {
+
 		shootist = new Shootist();
-		
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
 		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
@@ -108,45 +135,23 @@ public class UdpForwardingPerformanceTest //extends TestCase
 		Thread.sleep(5000);
 		
 	}
-	static InetAddress localhost;
-	static int callIdByteStart = -1;
-	static {try {
-		localhost = InetAddress.getByName("127.0.0.1");
-		byte[] callid = "0ha0isn".getBytes();
-		for(int q=0;q<1000; q++) {
-			int found = -1;;
-			for(int w=0;w<callid.length;w++) {
-				if(callid[w] != inviteRequestBytes[q+w]) {
-					break;
-				}
-				found = w;
-			}
-			if(found >0) {callIdByteStart = q; break;}
-		}
-	} catch (UnknownHostException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}}
-	private static long n = 0;
-	private static void modCallId() {
-		n++;
-		inviteRequestBytes[callIdByteStart] = (byte) (n&0xff);
-		inviteRequestBytes[callIdByteStart+1] = (byte) ((n>>8)&0xff);
-		inviteRequestBytes[callIdByteStart+2] = (byte) ((n>>16)&0xff);
-	}
 	
+	//@Test
 	public void testInvitePerformanceLong() {
 		testMessagePerformance(1*30*1000, 100000, inviteRequestBytes);
 	}
 	
+	//@Test
 	public void testInvitePerformance10sec() {
 		testMessagePerformance(10*1000, 100, inviteRequestBytes);
 	}
 	
+	//@Test
 	public void testInvitePerformanceDiffCallId10sec() {
 		testDiffCallIdPerformance(10*1000, 100);
 	}
 	
+	//@Test
 	public void testRingingPerformance10sec() {
 		testMessagePerformance(10*1000, 100, ringingBytes);
 	}
@@ -171,7 +176,6 @@ public class UdpForwardingPerformanceTest //extends TestCase
 			}
 			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + server.numUnitsReceived/((double)(timespan)/1000.) + " initial requests per second)");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -197,18 +201,17 @@ public class UdpForwardingPerformanceTest //extends TestCase
 			}
 			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + server.numUnitsReceived/((double)(timespan)/1000.) + " initial requests per second)");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	protected void tearDown() throws Exception {
-//		super.tearDown();
+	@After
+	public void tearDown() throws Exception {
 		server.stop();
 		balancer.stop();
 	}
 	
-	public static void main(String[] args) {
+	/*public static void main(String[] args) {
 		try {
 		UdpForwardingPerformanceTest test = new UdpForwardingPerformanceTest();
 		test.setUp();
@@ -217,5 +220,5 @@ public class UdpForwardingPerformanceTest //extends TestCase
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
+	}*/
 }

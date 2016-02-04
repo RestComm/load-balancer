@@ -131,7 +131,11 @@ public class BalancerServer{
 		{
             logger.info(regularConfiguration.getName() + " currently has [" + this.channels.size() + "] open child channel(s) that will be closed as part of stop()");
         }
-        this.channels.close().awaitUninterruptibly();
+		this.channelFactory.shutdown();
+		this.channels.close().awaitUninterruptibly();
+		this.regularBootstrap.shutdown();
+		if(this.securedBootstrap!=null)
+		this.securedBootstrap.shutdown();
         logger.info(regularConfiguration.getName() + " stopped at " + regularConfiguration.getHost()+" : " + regularConfiguration.getPort());
 	}
 }

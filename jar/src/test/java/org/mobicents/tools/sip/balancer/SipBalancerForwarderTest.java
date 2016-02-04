@@ -38,44 +38,29 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import static org.junit.Assert.fail;
+
 import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.util.Properties;
 
-import junit.framework.TestCase;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
  *
  */
-public class SipBalancerForwarderTest extends TestCase {
+public class SipBalancerForwarderTest{
 	InetAddress balancerAddress = null;
-	private final static int BALANCER_EXTERNAL_PORT = 5060;
-	private final static int BALANCER_INTERNAL_PORT = 5065;
-	/**
-	 * @param name
-	 */
-	public SipBalancerForwarderTest(String name) {
-		super(name);
-	}
-
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-		super.setUp();
+	@Before
+	public void setUp() throws Exception {
 		balancerAddress=InetAddress.getByAddress(new byte[]{127,0,0,1});
 	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
-	
+	@Test
 	public void testStartStop2x() throws RemoteException {
-		NodeRegisterImpl reg=new NodeRegisterImpl(balancerAddress);
+		new NodeRegisterImpl(balancerAddress);
 		Properties properties = new Properties();
 		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
 		properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");

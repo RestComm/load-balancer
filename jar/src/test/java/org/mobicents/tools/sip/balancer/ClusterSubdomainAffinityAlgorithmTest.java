@@ -22,6 +22,10 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.text.ParseException;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -29,10 +33,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.sip.SipFactory;
 import javax.sip.message.Request;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 
-public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
+public class ClusterSubdomainAffinityAlgorithmTest{
 	static final String failoverGroup = 	"(original,partner)";
 	static final String groups2 = 	"(127.0.0.1,4.322.5345.5,234235235435345)    (55345435345,546,345,23,52   63456,546546 ,46345 34,45)(3435345345345345,43543fdg,ffdgdfg.f.f.f.ff.f.f.f..f,f,f,5,gggderf,dfgafa)";
 	static final String groups = 	"(a,b)(c,d,g)";
@@ -52,6 +56,7 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 	"a=rtpmap:31 LPC\r\n\r\n";
 	
 	// Test if groups are parsed correctly
+	@Test
 	public void testGroupsLoad() throws Exception, ParseException {
 		ClusterSubdomainAffinityAlgorithm algorithm = new ClusterSubdomainAffinityAlgorithm();
 		algorithm.loadSubclusters(groups);
@@ -67,6 +72,7 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 	}
 	
 	// Test validation, no duplicate nodes allowed
+	@Test
 	public void testGroupsLoad2() throws Exception, ParseException {
 		ClusterSubdomainAffinityAlgorithm algorithm = new ClusterSubdomainAffinityAlgorithm();
 		try {
@@ -78,6 +84,7 @@ public class ClusterSubdomainAffinityAlgorithmTest extends TestCase {
 	}
 
 	// Test actual failover by adding a lot of noise nodes and only 1 partner for the original
+	@Test
 	public void testPartnerFailover() throws Exception, ParseException {
 		try {
 			

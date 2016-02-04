@@ -109,8 +109,10 @@ public class AppServer {
 	
 	public void stop() {
 		timer.cancel();
+		
 		if(protocolObjects != null)
-		protocolObjects.sipStack.stop();
+			protocolObjects.sipStack.stop();
+		
 		protocolObjects=null;
 		//sendCleanShutdownToBalancers();
 	}

@@ -27,14 +27,15 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Properties;
 
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.BlackholeAppServer;
 
 
 //BlackholeAppServer is causing excesive CPU usage. Disable this test for now.
-public class TcpForwardingPerformanceTest //extends TestCase 
+public class TcpForwardingPerformanceTest
 {
 	static final String inviteRequest = "INVITE sip:joe@company.com;transport=tcp SIP/2.0\r\n"+
 	"To: sip:joe@company.com\r\n"+
@@ -61,13 +62,37 @@ public class TcpForwardingPerformanceTest //extends TestCase
 	int numNodes = 2;
 	BlackholeAppServer server;
 	
-
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-//		super.setUp();
-		
+	static InetAddress localhost;
+	static int callIdByteStart = -1;
+	static {
+		try {
+			localhost = InetAddress.getByName("127.0.0.1");
+			byte[] callid = "0ha0isn".getBytes();
+			for(int q=0;q<1000; q++) {
+				int found = -1;;
+				for(int w=0;w<callid.length;w++) {
+					if(callid[w] != inviteRequestBytes[q+w])
+						break;
+					
+					found = w;
+				}
+				if(found >0) {callIdByteStart = q; break;}
+			}
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private static long n = 0;
+	private static void modCallId() {
+		n++;
+		inviteRequestBytes[callIdByteStart] = (byte) (n&0xff);
+		inviteRequestBytes[callIdByteStart+1] = (byte) ((n>>8)&0xff);
+		inviteRequestBytes[callIdByteStart+2] = (byte) ((n>>16)&0xff);
+	}
+	
+	@Before
+	public void setUp() throws Exception {		
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
 		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
@@ -95,35 +120,9 @@ public class TcpForwardingPerformanceTest //extends TestCase
 		server.start();
 		Thread.sleep(5000);
 		
-	}
-	static InetAddress localhost;
-	static int callIdByteStart = -1;
-	static {try {
-		localhost = InetAddress.getByName("127.0.0.1");
-		byte[] callid = "0ha0isn".getBytes();
-		for(int q=0;q<1000; q++) {
-			int found = -1;;
-			for(int w=0;w<callid.length;w++) {
-				if(callid[w] != inviteRequestBytes[q+w]) {
-					break;
-				}
-				found = w;
-			}
-			if(found >0) {callIdByteStart = q; break;}
-		}
-	} catch (UnknownHostException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}}
-	private static long n = 0;
-	private static void modCallId() {
-		n++;
-		inviteRequestBytes[callIdByteStart] = (byte) (n&0xff);
-		inviteRequestBytes[callIdByteStart+1] = (byte) ((n>>8)&0xff);
-		inviteRequestBytes[callIdByteStart+2] = (byte) ((n>>16)&0xff);
-	}
+	}	
 	
-	
+	//@Test
 	public void testInvitePerformance10sec() {
 		testMessagePerformance(10*1000, 10000);
 	}
@@ -165,13 +164,13 @@ public class TcpForwardingPerformanceTest //extends TestCase
 		}
 	}
 	
-	protected void tearDown() throws Exception {
-//		super.tearDown();
+	@After
+	public void tearDown() throws Exception {
 		server.stop();
 		balancer.stop();
 	}
 	
-	public static void main(String[] args) {
+	/*public static void main(String[] args) {
 		try {
 			TcpForwardingPerformanceTest test = new TcpForwardingPerformanceTest();
 			test.setUp();
@@ -181,5 +180,5 @@ public class TcpForwardingPerformanceTest //extends TestCase
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
+	}*/
 }

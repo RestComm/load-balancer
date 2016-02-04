@@ -22,6 +22,7 @@ package org.mobicents.tools.smpp.balancer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -67,7 +68,6 @@ public class ResponseTimerTest {
 	
 	@BeforeClass
 	public static void initialization() {
-		
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
@@ -103,14 +103,15 @@ public class ResponseTimerTest {
 	@AfterClass
 	public static void finalization() {
 
-		for(int i = 1; i < serverNumbers; i++)
+		for(int i = 0; i < serverNumbers; i++)
 		{
 			logger.info("Stopping SMPP server "+ i +" ...");
-			serverArray[i].stop();
+			serverArray[i].destroy();
 			logger.info("SMPP server "+ i +"stopped");
 		}
 		executor.shutdownNow();
         monitorExecutor.shutdownNow();
+        loadBalancerSmpp.stop();
         logger.info("Done. Exiting");
 
 	}

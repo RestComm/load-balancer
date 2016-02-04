@@ -1183,6 +1183,7 @@ public class TestSipListener implements SipListener {
 			logger.error("Processing aborted");
 			return ;
 		}		
+		
 		Response response = (Response) responseReceivedEvent.getResponse();
 		eventListener.uacAfterResponse(response.getStatusCode(), appServer);
 		if(response.getStatusCode() == 491) numberOf491s++;
@@ -1235,18 +1236,19 @@ public class TestSipListener implements SipListener {
 				setFinalResponse(response);
 			}
 			if (response.getStatusCode() == Response.OK) {
-				logger.info("response = " + response);
 				if (cseq.getMethod().equals(Request.INVITE) && sendAck) {
 					inviteOkResponse = response;
-					Request ackRequest = tid.getDialog().createAck(cseq.getSeqNumber());
+					
+					@SuppressWarnings("deprecation")
+					Request ackRequest=responseReceivedEvent.getClientTransaction().createAck();
+					
 					if (useToURIasRequestUri) {
 						ackRequest.setRequestURI(requestURI);	
 					}			
 					if(timeToWaitBeforeAck > 0) {
 						Thread.sleep(timeToWaitBeforeAck);
 					}
-					logger.info("Sending ACK " + ackRequest);					
-					if(!sendSubsequentRequestsThroughSipProvider) {
+					if(!sendSubsequentRequestsThroughSipProvider && tid.getDialog()!=null) {
 						tid.getDialog().sendAck(ackRequest);
 					} else {
 						sipProvider.sendRequest(ackRequest);
@@ -1830,12 +1832,12 @@ public class TestSipListener implements SipListener {
 		inviteClientTid = sipProvider.getNewClientTransaction(request);
 		// send the request out.
 		inviteClientTid.sendRequest();
-
+		
 		this.transactionCount ++;
 		
 		logger.info("client tx = " + inviteClientTid);
 		if(!Request.MESSAGE.equalsIgnoreCase(method)) {
-			dialog = inviteClientTid.getDialog();
+			dialog = inviteClientTid.getDialog();			
 		}
 		this.dialogCount++;
 		return request;

@@ -22,12 +22,19 @@
 
 package org.mobicents.tools.sip.balancer.algorithms;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Properties;
 
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
@@ -35,18 +42,19 @@ import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class EarlyDialogWorstCaseAffinityTest extends TestCase {
+public class EarlyDialogWorstCaseAffinityTest{
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
-	
+	static AppServer invite;
+	static AppServer ack;
+	static AppServer bye;
+	AppServer ringingAppServer;
+	AppServer okAppServer;
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-		super.setUp();
+	@Before
+	public void setUp() throws Exception {
 		shootist = new Shootist();
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
@@ -71,26 +79,23 @@ public class EarlyDialogWorstCaseAffinityTest extends TestCase {
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q);
-			servers[q].start();
+			servers[q] = new AppServer("node" + q,4060+q);			
+			servers[q].start();		
 		}
+		
 		Thread.sleep(5000);
 	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	@After
+	public void tearDown() throws Exception {
 		shootist.stop();
 		for(int q=0;q<servers.length;q++) {
 			servers[q].stop();
 		}
 		balancer.stop();
 	}
-	static AppServer invite;
-	static AppServer ack;
-	static AppServer bye;
+
+	@Test
 	public void testInviteAckLandOnDifferentNodes() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 
@@ -131,14 +136,13 @@ public class EarlyDialogWorstCaseAffinityTest extends TestCase {
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
 		Thread.sleep(15000);
-		if(invite == null) TestCase.fail("INVITE not seen");
-		if(ack == null) TestCase.fail("BYE not seen");
-		assertNotSame(ack, bye);
-		assertNotSame(ack, invite);
+		assertNotNull(invite);
+		assertNotNull(ack);
+		assertEquals(ack, invite);
+		assertNotSame(ack, bye);		
 	}
 	
-	AppServer ringingAppServer;
-	AppServer okAppServer;
+	@Test
 	public void testOKRingingLandOnDifferentNodes() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {
@@ -163,9 +167,9 @@ public class EarlyDialogWorstCaseAffinityTest extends TestCase {
 
 			@Override
 			public void uacAfterResponse(int statusCode, AppServer source) {
-				if(statusCode == 180) {
+				if(statusCode == 180) {					
 					ringingAppServer = source;	
-				} else {
+				} else if(statusCode == 200){
 					okAppServer = source;
 					
 				}

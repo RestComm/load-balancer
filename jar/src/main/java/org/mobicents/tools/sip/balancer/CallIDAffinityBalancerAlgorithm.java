@@ -32,7 +32,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -57,14 +56,14 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	
 	public void processInternalResponse(Response response) {
 		logger.debug("internal response");
-//		processExternalResponse(response);
+		processExternalResponse(response);
 	}
 	
 	public void processExternalResponse(Response response) {
 		Via via = (Via) response.getHeader(Via.NAME);
+		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
 		Integer port = via.getPort();
-		String transport = via.getTransport().toLowerCase();
 		boolean found = false;
 		for(SIPNode node : invocationContext.nodes) {
 			if(node.getIp().equals(host)) {
@@ -217,6 +216,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		return minUtilNode;
 	}
 
+	public void stop() {
+		this.cacheEvictionTimer.cancel();
+	}
+	
 	public void init() {
 		if(getProperties() != null) {
 			String maxTimeInCacheString = getProperties().getProperty("callIdAffinityMaxTimeInCache");

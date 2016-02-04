@@ -89,18 +89,16 @@ public class HttpBalancerForwarder {
 		serverChannel.close();
 		serverChannel.getCloseFuture().awaitUninterruptibly();
 
-		// http://code.google.com/p/commscale/issues/detail?id=6
-		// Hang the VM on shutdown if HTTP Requests has been handled
-		// so commented out
-		//		nioServerSocketChannelFactory.releaseExternalResources();
-		//		nioClientSocketChannelFactory.releaseExternalResources();
-
-		//		HttpChannelAssociations.serverBootstrap.releaseExternalResources();
-		//		HttpChannelAssociations.inboundBootstrap.releaseExternalResources();		
-
 		executor.shutdownNow();
 		executor = null;
-
+		
+		//cleaning everything
+		balancerRunner.stop();
+		HttpChannelAssociations.serverBootstrap.shutdown();
+		HttpChannelAssociations.inboundBootstrap.shutdown();
+		nioServerSocketChannelFactory.shutdown();
+		nioClientSocketChannelFactory.shutdown();
+		
 		//		System.gc();
 	}
 }

@@ -67,6 +67,7 @@ import javax.sip.address.SipURI;
 import javax.sip.address.URI;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
+import javax.sip.header.ExtensionHeader;
 import javax.sip.header.Header;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
@@ -502,38 +503,7 @@ public class SIPBalancerForwarder implements SipListener {
         }
         //Issue 10: https://telestax.atlassian.net/browse/LB-10
         if (request.getContent() != null || (requestMethod.equals(Request.REGISTER) && sipProvider != balancerRunner.balancerContext.internalSipProvider)) {
-            SIPMessage message = (SIPMessage)request;
-
-            // https://telestax.atlassian.net/browse/LB-25 improve performance by sending back 100 Trying right away to tame retransmissions.
-            if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
-                    requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
-                    requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
-                    requestMethod.equals(Request.UPDATE)) {
-                try {
-                    Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.TRYING, request);
-                    RouteList routeList = ((SIPMessage)request).getRouteHeaders();
-                    if (routeList != null) {
-                        Route route = (Route)routeList.getFirst();
-                        SipUri sipUri = (SipUri)route.getAddress().getURI();
-                        if (sipUri.toString().contains("node_host") || sipUri.toString().contains("node_port")) {
-                            String nodeHost = sipUri.getParameter("node_host");
-                            int nodePort = Integer.parseInt(sipUri.getParameter("node_port"));
-                            ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
-                            viaHeader.setHost(nodeHost);
-                            viaHeader.setPort(nodePort);
-                        }
-                    }
-                    sipProvider.sendResponse(response);
-                } catch (SipException e) {
-                    logger.error("Unexpected exception while sending TRYING", e);
-                } catch (ParseException e) {
-                    logger.error("Unexpected exception while sending TRYING", e);
-                } catch (NumberFormatException e) {
-                    logger.error("Unexpected exception while sending TRYING", e);
-                } catch (InvalidArgumentException e) {
-                    logger.error("Unexpected exception while sending TRYING", e);
-                }
-            }
+            SIPMessage message = (SIPMessage)request;            
 
             String initialRemoteAddr = message.getPeerPacketSourceAddress().getHostAddress();
             String initialRemotePort = String.valueOf(message.getPeerPacketSourcePort());
@@ -743,7 +713,7 @@ public class SIPBalancerForwarder implements SipListener {
                     TransactionUnavailableException {
         if(logger.isDebugEnabled()) {
             logger.debug("got request:\n"+request);
-        }
+        }                
 
         boolean isRequestFromServer = false;
         if(!balancerRunner.balancerContext.isTwoEntrypoints()) {
@@ -780,10 +750,10 @@ public class SIPBalancerForwarder implements SipListener {
                 logger.debug("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);
             }
 
-            SipURI uri = getLoopbackUri(request);
-            if(uri != null) {
-                uri.setHost(hints.serverAssignedNode.getIp());
-                uri.setPort((Integer) hints.serverAssignedNode.getProperties().get(transport + "Port"));
+            SipURI loopbackUri = getLoopbackUri(request);
+            if(loopbackUri != null) {
+            	loopbackUri.setHost(hints.serverAssignedNode.getIp());
+            	loopbackUri.setPort((Integer) hints.serverAssignedNode.getProperties().get(transport + "Port"));
             }
         }
 
@@ -942,6 +912,39 @@ public class SIPBalancerForwarder implements SipListener {
             }
         }
 
+        String requestMethod=request.getMethod();
+        //100 Trying should be sent only if has indent really forwarding request, othewise should send 500 error
+        // https://telestax.atlassian.net/browse/LB-25 improve performance by sending back 100 Trying right away to tame retransmissions.
+        if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
+                requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
+                requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
+                requestMethod.equals(Request.UPDATE)) {
+            try {
+                Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.TRYING, request);
+                RouteList routeList = ((SIPMessage)request).getRouteHeaders();
+                if (routeList != null) {
+                    Route route = (Route)routeList.getFirst();
+                    SipUri sipUri = (SipUri)route.getAddress().getURI();
+                    if (sipUri.toString().contains("node_host") || sipUri.toString().contains("node_port")) {
+                        String nodeHost = sipUri.getParameter("node_host");
+                        int nodePort = Integer.parseInt(sipUri.getParameter("node_port"));
+                        ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+                        viaHeader.setHost(nodeHost);
+                        viaHeader.setPort(nodePort);
+                    }
+                }
+                sipProvider.sendResponse(response);
+            } catch (SipException e) {
+                logger.error("Unexpected exception while sending TRYING", e);
+            } catch (ParseException e) {
+                logger.error("Unexpected exception while sending TRYING", e);
+            } catch (NumberFormatException e) {
+                logger.error("Unexpected exception while sending TRYING", e);
+            } catch (InvalidArgumentException e) {
+                logger.error("Unexpected exception while sending TRYING", e);
+            }
+        }
+        
         hints.serverAssignedNode = nextNode;
         if(!hints.subsequentRequest && dialogCreationMethods.contains(request.getMethod())) {
             addLBRecordRoute(sipProvider, request, hints, version);
@@ -1026,12 +1029,27 @@ public class SIPBalancerForwarder implements SipListener {
             logger.debug("adding Record Router Header :" + first);
         }
 
-        request.addHeader(stampRecordRoute((RecordRouteHeader) first.clone(), hints, transport));
-
+        try
+        {
+        	request.addFirst(stampRecordRoute((RecordRouteHeader) first.clone(), hints, transport));
+        }
+        catch(Exception ex)
+        {
+        	//should not occure
+        }
+        
         if(logger.isDebugEnabled()) {
             logger.debug("adding Record Router Header :" + second);
         }
-        request.addHeader(stampRecordRoute((RecordRouteHeader) second.clone(), hints, transport));
+
+        try
+        {
+        	request.addFirst(stampRecordRoute((RecordRouteHeader) second.clone(), hints, transport));
+        }
+        catch(Exception ex)
+        {
+        	//should not occure
+        }
     }
 
     /**
@@ -1050,13 +1068,13 @@ public class SIPBalancerForwarder implements SipListener {
         if(balancerRunner.balancerContext.isTwoEntrypoints()) { // comes from client
             if(sipProvider.equals(balancerRunner.balancerContext.externalSipProvider)) {
                 addTwoRecordRoutes(request, 
-                        balancerRunner.balancerContext.activeExternalHeader[transportIndex],
-                        balancerRunner.balancerContext.activeInternalHeader[transportIndex],
+                		balancerRunner.balancerContext.activeExternalHeader[transportIndex],
+                		balancerRunner.balancerContext.activeInternalHeader[transportIndex],                                               
                         hints, transport);
             } else { // comes from app server
                 addTwoRecordRoutes(request,
-                        balancerRunner.balancerContext.activeInternalHeader[transportIndex],
-                        balancerRunner.balancerContext.activeExternalHeader[transportIndex],
+                		balancerRunner.balancerContext.activeInternalHeader[transportIndex],
+                		balancerRunner.balancerContext.activeExternalHeader[transportIndex],                                               
                         hints, transport);
                 logger.info("Will patch Request : \""+request.getRequestURI()+"\" to provide public IP address for the RecordRoute header");
                 patchSipMessageForNAT(request);
@@ -1262,6 +1280,7 @@ public class SIPBalancerForwarder implements SipListener {
      * @see javax.sip.SipListener#processResponse(javax.sip.ResponseEvent)
      */
     public void processResponse(ResponseEvent responseEvent) {
+    	
         SipProvider sipProvider = (SipProvider) responseEvent.getSource();
         Response originalResponse = responseEvent.getResponse();
         if(logger.isDebugEnabled()) {
@@ -1271,7 +1290,6 @@ public class SIPBalancerForwarder implements SipListener {
         updateStats(originalResponse);
 
         final Response response = (Response) originalResponse; 
-
         SIPNode senderNode = getSenderNode(response);
         if(senderNode != null) {
             senderNode.updateTimerStamp();
@@ -1291,7 +1309,8 @@ public class SIPBalancerForwarder implements SipListener {
         }
 
         viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
-
+        String transport=viaHeader.getTransport();
+        
         if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
             response.removeFirst(ViaHeader.NAME);
         }
@@ -1313,11 +1332,13 @@ public class SIPBalancerForwarder implements SipListener {
 						balancerRunner.balancerContext.balancerAlgorithm.nodeRemoved(sourceNode);
 					}
 				}
-			}*/
-            if(balancerRunner.balancerContext.publicIP != null && balancerRunner.balancerContext.publicIP.trim().length() > 0) {
-                logger.info("Will add Record-Route header to response with public IP Address: "+balancerRunner.balancerContext.publicIP);
+			}*/  
+        	
+        	if(balancerRunner.balancerContext.publicIP != null && balancerRunner.balancerContext.publicIP.trim().length() > 0) {
+                logger.info("Will add Record-Route header to response with public IP Address: "+balancerRunner.balancerContext.publicIP);                
                 patchSipMessageForNAT(response);
             }
+            
             ctx.balancerAlgorithm.processInternalResponse(response);
             try {	
                 if(logger.isDebugEnabled()) {
@@ -1328,7 +1349,7 @@ public class SIPBalancerForwarder implements SipListener {
                 logger.error("Unexpected exception while forwarding the response \n" + response, ex);
             }
         } else {
-            try {
+        	try {
                 SIPMessage message = (SIPMessage)response;
 
                 String initialRemoteAddr = message.getPeerPacketSourceAddress().getHostAddress();
@@ -1337,8 +1358,9 @@ public class SIPBalancerForwarder implements SipListener {
                 Header remoteAddrHeader = null;
                 Header remotePortHeader = null;
                 try {
-                    remoteAddrHeader = SipFactory.getInstance().createHeaderFactory().createHeader("X-Sip-Balancer-InitialRemoteAddr", initialRemoteAddr);
-                    remotePortHeader = SipFactory.getInstance().createHeaderFactory().createHeader("X-Sip-Balancer-InitialRemotePort", initialRemotePort);
+                	HeaderFactory hf=SipFactory.getInstance().createHeaderFactory();
+                    remoteAddrHeader = hf.createHeader("X-Sip-Balancer-InitialRemoteAddr", initialRemoteAddr);
+                    remotePortHeader = hf.createHeader("X-Sip-Balancer-InitialRemotePort", initialRemotePort);
                 } catch (PeerUnavailableException e) {
                     logger.error("Unexpected exception while creating custom headers for REGISTER message ", e);
                 } catch (ParseException e) {
@@ -1348,14 +1370,20 @@ public class SIPBalancerForwarder implements SipListener {
                     response.addHeader(remoteAddrHeader);
                 if (remotePortHeader != null)
                     response.addHeader(remotePortHeader);
-
-                ctx.balancerAlgorithm.processExternalResponse(response);
-                if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+                                
+               if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+            	    ctx.balancerAlgorithm.processExternalResponse(response);
+                   
                     if(logger.isDebugEnabled()) {
                         logger.debug("two entry points: from external sending response " + response);
                     }
                     balancerRunner.balancerContext.internalSipProvider.sendResponse(response);
                 } else {
+                	if(comesFromInternalNode(response,ctx,initialRemoteAddr,message.getPeerPacketSourcePort(),transport))
+                		ctx.balancerAlgorithm.processExternalResponse(response);
+                	else
+                		ctx.balancerAlgorithm.processInternalResponse(response);
+                	
                     if(logger.isDebugEnabled()) {
                         logger.debug("one entry point: from external sending response " + response);
                     }
@@ -1367,6 +1395,25 @@ public class SIPBalancerForwarder implements SipListener {
         }
     }
 
+    //need to verify that comes from external in case of single leg
+    protected Boolean comesFromInternalNode(Response externalResponse,InvocationContext ctx,String host,Integer port,String transport)
+	{
+		boolean found = false;
+		if(host!=null && port!=null)
+		{
+			for(SIPNode node : ctx.nodes) {
+				if(node.getIp().equals(host)) {
+					if(port.equals(node.getProperties().get(transport+"Port"))) {
+						found = true;
+						break;
+					}
+				}
+			}
+		}
+		
+		return found;
+	}
+    
     /**
      * Patch Response for NAT Environment where the Load Balancer runs on a private IP but UAs need to know the LB public IP to 
      * send back subsequent requests to it.
@@ -1380,47 +1427,29 @@ public class SIPBalancerForwarder implements SipListener {
         if (balancerRunner.balancerContext.publicIP != null && !balancerRunner.balancerContext.publicIP.isEmpty()) {
             int port = balancerRunner.balancerContext.externalPort;
             String privateIp = balancerRunner.balancerContext.host;
-            String recordRouteURI = "sip:"+balancerRunner.balancerContext.publicIP+":"+port+";lr";
-            //        RecordRouteHeader existingRecordRouteHeader = (RecordRouteHeader) response.getHeader("Record-Route");        
-            ListIterator<RecordRouteHeader> recordRouteHeaderList = sipMessage.getHeaders(RecordRouteHeader.NAME);
-            sipMessage.removeHeader(RecordRouteHeader.NAME);
-
+            @SuppressWarnings("unchecked")
+			ListIterator<RecordRouteHeader> recordRouteHeaderList = sipMessage.getHeaders(RecordRouteHeader.NAME);
+            
             try {
                 HeaderFactory headerFactory = SipFactory.getInstance().createHeaderFactory(); 
-                AddressFactory addressFactory = SipFactory.getInstance().createAddressFactory();
                 Header contactHeader = null;
-                RecordRouteHeader recordRouteHeaderToAdd = null;
-
+                
                 if (!recordRouteHeaderList.hasNext()) {
                     logger.info("Record Route header list is empty");
                 }
 
                 while (recordRouteHeaderList.hasNext()) {
                     RecordRouteHeader recordRouteHeader = (RecordRouteHeader) recordRouteHeaderList.next();
+                    
                     logger.info("About to check Record-Route header: "+recordRouteHeader.toString());
                     if (((SipURI)recordRouteHeader.getAddress().getURI()).getHost().equals(privateIp)) { //If this RecordRoute header is from LB
                         if (((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==port) { // And if the port is the external Port 5060
                             SipURI sipURI = (SipURI) recordRouteHeader.getAddress().getURI();
-                            String nodeHost = sipURI.getParameter("node_host");
-                            String nodePort = sipURI.getParameter("node_port");
-                            String nodeVersion = sipURI.getParameter("version");
-                            String transport = sipURI.getParameter("transport");
-                            if ( nodeHost != null && nodePort != null) {
-                                recordRouteURI = recordRouteURI+";transport="+transport+";node_host="+nodeHost+";node_port="+nodePort+";version="+nodeVersion;
-                            } else {
-                                recordRouteURI = recordRouteURI+";transport="+transport;
-                            }
-                            Address externalAddress = addressFactory.createAddress(recordRouteURI);
-                            recordRouteHeaderToAdd = headerFactory.createRecordRouteHeader(externalAddress);
-                            logger.info("Will add last the Record Route header: "+recordRouteHeaderToAdd.toString());
-                            sipMessage.addLast(recordRouteHeaderToAdd);
-                            break;
-                        }
+                            sipURI.setHost(balancerRunner.balancerContext.publicIP);                            
+                        }                        
                     } else {
-                        logger.info("Didn't patched the Record-Route because ip address is not the private one: "+((SipURI)recordRouteHeader.getAddress().getURI()).getHost()); 
+                        logger.info("Didn't patched the Record-Route because ip address is not the private one: "+((SipURI)recordRouteHeader.getAddress().getURI()).getHost());                                                                       
                     }
-                    logger.info("Will add the Record Route header: "+recordRouteHeader.toString());
-                    sipMessage.addHeader(recordRouteHeader);
                 }
 
                 if (sipMessage.getHeader(ContactHeader.NAME) != null) {
@@ -1440,21 +1469,16 @@ public class SIPBalancerForwarder implements SipListener {
                 }
 
                 if (contactHeader != null)
-                    logger.debug("Patched the Contact header with : "+contactHeader.toString());
-                if (recordRouteHeaderToAdd != null)
-                    logger.debug("Added on top : "+recordRouteHeaderToAdd.toString());
-
+                    logger.debug("Patched the Contact header with : "+contactHeader.toString()); 
             } catch (PeerUnavailableException peerUnavailableException) {
                 logger.error("Unexpected exception while forwarding the response \n" + sipMessage, peerUnavailableException);
             } catch (ParseException parseException) {
                 logger.error("Unexpected exception while forwarding the response \n" + sipMessage, parseException);
             } catch (NullPointerException e) {
                 logger.error("Unexpected exception while forwarding the response \n" + sipMessage, e);
-            } catch (SipException e) {
-                logger.error("Unexpected exception while forwarding the response \n" + sipMessage, e);
             }
         }
-    }
+    }        
 
     /*
      * (non-Javadoc)

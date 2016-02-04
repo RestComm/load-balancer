@@ -31,10 +31,12 @@ import java.util.SortedSet;
 import java.util.Timer;
 import java.util.TreeSet;
 import java.util.logging.Level;
+
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
+import javax.sip.header.ExtensionHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Message;
@@ -203,14 +205,12 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 	
 	public void processExternalResponse(Response response, InvocationContext context) {
-		
-		Integer nodeIndex = hashHeader(response);
-		BalancerContext balancerContext = getBalancerContext();
 		Via via = (Via) response.getHeader(Via.NAME);
-		String host = via.getHost();
-		Integer port = via.getPort();
 		String transport = via.getTransport().toLowerCase();
-		boolean found = false;
+		Integer nodeIndex = hashHeader(response);
+		String host = via.getHost();
+		Integer port = via.getPort();		
+		Boolean found = false;
 		for(SIPNode node : context.nodes) {
 			if(node.getIp().equals(host)) {
 				if(port.equals(node.getProperties().get(transport+"Port"))) {

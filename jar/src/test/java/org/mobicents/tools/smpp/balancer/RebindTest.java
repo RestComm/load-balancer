@@ -105,13 +105,14 @@ public class RebindTest {
 	@AfterClass
 	public static void finalization() {
 
-		for (int i = 1; i < serverNumbers; i++) {
+		for (int i = 0; i < serverNumbers; i++) {
 			logger.info("Stopping SMPP server " + i + " ...");
-			serverArray[i].stop();
+			serverArray[i].destroy();
 			logger.info("SMPP server " + i + "stopped");
 		}
 		executor.shutdownNow();
 		monitorExecutor.shutdownNow();
+		loadBalancerSmpp.stop();
 		logger.info("Done. Exiting");
 
 	}

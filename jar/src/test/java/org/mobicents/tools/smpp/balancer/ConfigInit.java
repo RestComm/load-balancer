@@ -51,11 +51,11 @@ public class ConfigInit {
 		config.setPort(10021 + i);
 		if(isSslServer)
 		{
-			SslConfiguration sslConfig = new SslConfiguration();
-	        sslConfig.setKeyStorePath("/home/konstantinnosach/tmp/keystore");
+			SslConfiguration sslConfig = new SslConfiguration();			
+	        sslConfig.setKeyStorePath(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 	        sslConfig.setKeyStorePassword("123456");
 	        sslConfig.setKeyManagerPassword("123456");
-	        sslConfig.setTrustStorePath("/home/konstantinnosach/tmp/keystore");
+	        sslConfig.setTrustStorePath(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 	        sslConfig.setTrustStorePassword("123456");
 	        config.setUseSsl(true);
 	        config.setSslConfiguration(sslConfig);
@@ -73,7 +73,7 @@ public class ConfigInit {
 		properties.setProperty("maxConnectionSize","10");
 		properties.setProperty("nonBlockingSocketsEnabled","true");
 		properties.setProperty("defaultSessionCountersEnabled","true");
-		properties.setProperty("timeoutResponse","1000");
+		properties.setProperty("timeoutResponse","3000");
 		properties.setProperty("timeoutConnection","1000");
 		properties.setProperty("timeoutEnquire","5000");
 		properties.setProperty("reconnectPeriod","1000");
@@ -82,7 +82,7 @@ public class ConfigInit {
 		if(isSsl)
 		{
 			properties.setProperty("isSslEnabled","true");
-			properties.setProperty("sslKeyPath","/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("sslKeyPath",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 			properties.setProperty("sslPasword","123456");
 			properties.setProperty("smppSslPort","2876");
 			properties.setProperty("isRemoteServerSsl",""+isRemoteServerSsl);

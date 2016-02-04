@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.sip.header.ExtensionHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -183,6 +184,5 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
 	public void assignToNode(String id, SIPNode node) {
 		
-	}
-
+	}	
 }

@@ -22,31 +22,30 @@
 
 package org.mobicents.tools.sip.balancer.operation;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.List;
 import java.util.Properties;
 
 import javax.sip.address.SipURI;
-import javax.sip.header.RecordRouteHeader;
-
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.SIPNode;
 
-public class CustomHeartbeatTest extends TestCase{
+public class CustomHeartbeatTest{
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
+	AppServer ringingAppServer;
+	AppServer okAppServer;
 	
-
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-		super.setUp();
+	@Before
+	public void setUp() throws Exception {
 		shootist = new Shootist();
 		
 		balancer = new BalancerRunner();
@@ -77,11 +76,9 @@ public class CustomHeartbeatTest extends TestCase{
 		Thread.sleep(5000);
 	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	@After
+	public void tearDown() throws Exception {
+
 		for(int q=0;q<servers.length;q++) {
 			servers[q].stop();
 		}
@@ -89,8 +86,7 @@ public class CustomHeartbeatTest extends TestCase{
 		balancer.stop();
 	}
 
-	AppServer ringingAppServer;
-	AppServer okAppServer;
+	@Test
 	public void testCustomHeartbeat() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {

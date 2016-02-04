@@ -22,31 +22,40 @@
 
 package org.mobicents.tools.sip.balancer.algorithms;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Properties;
 
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.PureConsistentHashBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class PureConsistentHashNodeDeathTest extends TestCase {
+public class PureConsistentHashNodeDeathTest{
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
-	
+	static AppServer invite;
+	static AppServer register;
+	static AppServer bye;
+	static AppServer ack;
+	AppServer ringingAppServer;
+	AppServer okAppServer;
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	protected void setUp() throws Exception {
-		super.setUp();
+	@Before
+	public void setUp() throws Exception {
 		shootist = new Shootist();
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
@@ -76,21 +85,16 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		Thread.sleep(5000);
 	}
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	@After
+	public void tearDown() throws Exception {
 		shootist.stop();
 		for(int q=0;q<servers.length;q++) {
 			servers[q].stop();
 		}
 		balancer.stop();
 	}
-	static AppServer invite;
-	static AppServer register;
-	static AppServer bye;
-	static AppServer ack;
+	
+	@Test
 	public void testInviteByeLandOnDifferentNodes() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 
@@ -136,13 +140,13 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		Thread.sleep(9000);
 		shootist.sendBye();
 		Thread.sleep(2000);
-		if(ack != invite) TestCase.fail("INVITE and ACK should have landed on same node");
-
-		if(bye == invite) TestCase.fail("INVITE and BYE should have landed on different nodes");
+		assertEquals(ack,invite);
+		assertNotEquals(bye,invite);
 		assertNotNull(invite);
 		assertNotNull(bye);
 	}
 	
+	//@Test
 	public void testRegister() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 
@@ -172,13 +176,13 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		};
 		for(AppServer as:servers) as.setEventListener(failureEventListener);
 
-
 				shootist.sendInitial("REGISTER");
 				Thread.sleep(5000);
 				
 				assertNotNull(register);
 	}
 
+	//@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
 			as.sendCleanShutdownToBalancers();
@@ -193,8 +197,7 @@ public class PureConsistentHashNodeDeathTest extends TestCase {
 		assertEquals(500, shootist.responses.get(0).getStatusCode());
 	}
 
-	AppServer ringingAppServer;
-	AppServer okAppServer;
+	//@Test
 	public void testOKRingingLandOnDifferentNode() throws Exception {
 
 		EventListener failureEventListener = new EventListener() {

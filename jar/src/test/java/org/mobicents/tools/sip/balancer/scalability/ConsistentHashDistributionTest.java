@@ -22,20 +22,22 @@
 
 package org.mobicents.tools.sip.balancer.scalability;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.TreeSet;
 
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.PureConsistentHashBalancerAlgorithm;
 
-import junit.framework.TestCase;
-
-public class ConsistentHashDistributionTest extends TestCase{
+public class ConsistentHashDistributionTest {
 	TreeSet<Integer> set = new TreeSet<Integer>();
+	
+	@Test
 	public void testDistribution() {
 		PureConsistentHashBalancerAlgorithm algo = new PureConsistentHashBalancerAlgorithm();
 		for(Integer i = 0; i<12199; i++ ) {
 			System.out.println(Integer.toString(algo.digest(i.toString()),2));
-			if(!set.add(new Integer(algo.digest(i.toString()))))
-				fail("duplicate for i " + i); // better not have duplicates easily
+			assertTrue(set.add(new Integer(algo.digest(i.toString()))));
 		}
 		boolean bits[] = new boolean[32];
 		for(int q=0;q<31;q++) {
@@ -52,7 +54,7 @@ public class ConsistentHashDistributionTest extends TestCase{
 		}
 		
 		for(int q=0;q<31;q++) {
-			if(!bits[q]) fail("Bit " + q + " is never changing");
+			assertTrue(bits[q]);
 		}
 	}
 	
@@ -83,6 +85,7 @@ for i + "" + i
 100110001001000110101010000001
 
 	 */
+	
 	public void testStringHashDistribution() {
 		for(Integer i = 0; i<10; i++ ) {
 			System.out.println(Integer.toString(("aaaaaaaaaaaaa"+i + "" + i).hashCode(),2));

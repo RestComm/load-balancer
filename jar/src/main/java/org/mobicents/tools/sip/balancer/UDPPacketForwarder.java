@@ -89,8 +89,11 @@ public class UDPPacketForwarder {
 							packet.setPort(Integer.parseInt(port));
 							//packet.setSocketAddress(new InetSocketAddress(host, Integer.parseInt(port)));
 							fromSocket.send(packet);
-						} catch (Exception e) {
-							e.printStackTrace();
+						}						
+						catch (Exception e) {
+							//log only if not stopped yet
+							if(running)
+								e.printStackTrace();
 						}
 					}
 
@@ -105,7 +108,7 @@ public class UDPPacketForwarder {
 	public void stop() {
 		running = false;
 		try {
-			worker.interrupt();
+			worker.interrupt();			
 			fromSocket.close();
 			fromSocket = null;
 		} catch (Exception e) {

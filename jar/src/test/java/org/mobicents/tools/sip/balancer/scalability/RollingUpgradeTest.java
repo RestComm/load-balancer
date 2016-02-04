@@ -22,12 +22,17 @@
 
 package org.mobicents.tools.sip.balancer.scalability;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Properties;
 
-import javax.sip.SipException;
-
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
@@ -35,12 +40,13 @@ import org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm;
 import org.mobicents.tools.sip.balancer.UDPPacketForwarder;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class RollingUpgradeTest extends TestCase {
+public class RollingUpgradeTest{
 	int numBalancers = 2;
 	BalancerRunner[] balancers = new BalancerRunner[numBalancers];
 	int numNodes = 10;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
+	AppServer inviteServer,ackServer,byeServer, oldVersionServer;
 
 	UDPPacketForwarder externalIpLoadBalancer;
 	UDPPacketForwarder internalIpLoadBalancer;
@@ -78,8 +84,9 @@ public class RollingUpgradeTest extends TestCase {
 		return balancer;
 	}
 	
-	protected void setUp() throws Exception {
-		super.setUp();
+	@Before
+	public void setUp() throws Exception {
+
 		shootist = new Shootist();
 		String balancerString = "";
 		String externalIpLBString = "";
@@ -102,24 +109,24 @@ public class RollingUpgradeTest extends TestCase {
 		internalIpLoadBalancer.start();
 		Thread.sleep(5000);
 	}
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#tearDown()
-	 */
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	
+	@After
+	public void tearDown() throws Exception {
+		for(int q=0;q<servers.length;q++) 
+			servers[q].stop();
+		
+		shootist.stop();
+		
 		externalIpLoadBalancer.stop();
 		internalIpLoadBalancer.stop();
-		for(int q=0;q<servers.length;q++) {
-			servers[q].stop();
-		}
-		shootist.stop();
+		
 		for(int q=0;q<numBalancers;q++) {
 			balancers[q].stop();
 		}
+		
 	}
-	
-	AppServer inviteServer,ackServer,byeServer, oldVersionServer;
 
+	@Test
 	public void testFailoverOnlyWithingVersion() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 			
@@ -187,6 +194,7 @@ public class RollingUpgradeTest extends TestCase {
 		assertNotNull(ackServer);
 	}
 	
+	@Test
 	public void testCallDoesntGoBackToOriginalButUpgradedNode() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 			
@@ -254,6 +262,8 @@ public class RollingUpgradeTest extends TestCase {
 		assertNotNull(byeServer);
 		assertNotNull(ackServer);
 	}
+	
+	@Test
 	public void testSprayingMultipleIndialogMessages() throws Exception {
 		Thread.sleep(1000);
 		for(BalancerRunner balancer: balancers){
