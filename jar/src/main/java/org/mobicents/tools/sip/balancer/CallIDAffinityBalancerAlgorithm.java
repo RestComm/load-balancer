@@ -55,8 +55,44 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	public void processInternalResponse(Response response) {
-		logger.debug("internal response");
-		processExternalResponse(response);
+		Via via = (Via) response.getHeader(Via.NAME);
+		String transport = via.getTransport().toLowerCase();
+		String host = via.getHost();
+		Integer port = via.getPort();
+		boolean found = false;
+		for(SIPNode node : invocationContext.nodes) {
+			if(node.getIp().equals(host)) {
+				if(port.equals(node.getProperties().get(transport+"Port"))) {
+					found = true;
+				}
+			}
+		}
+		if(logger.isDebugEnabled()) {
+			logger.debug("external response node found ? " + found);
+		}
+		if(!found) {
+			String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
+			SIPNode node = callIdMap.get(callId);
+			if(node == null || !invocationContext.nodes.contains(node)) {
+				node = selectNewNode(node, callId);
+				String transportProperty = transport + "Port";
+				port = (Integer) node.getProperties().get(transportProperty);
+				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
+				if(logger.isDebugEnabled()) {
+					logger.debug("changing via " + via + "setting new values " + node.getIp() + ":" + port);
+				}
+				try {
+					via.setHost(node.getIp());
+					via.setPort(port);
+				} catch (Exception e) {
+					throw new RuntimeException("Error setting new values " + node.getIp() + ":" + port + " on via " + via, e);
+				}
+				// need to reset the rport for reliable transports
+				if(!ListeningPoint.UDP.equalsIgnoreCase(transport)) {
+					via.setRPort();
+				}				
+			}
+		}
 	}
 	
 	public void processExternalResponse(Response response) {

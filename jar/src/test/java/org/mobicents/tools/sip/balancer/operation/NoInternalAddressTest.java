@@ -103,6 +103,7 @@ public class NoInternalAddressTest{
 			nodes = balancer.getNodeList();
 			assertEquals(numNodes-1, nodes.length);
 	}
+	
 	@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
@@ -141,6 +142,7 @@ public class NoInternalAddressTest{
 //		sender.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 //		Thread.sleep(20000);
 //	}
+	
 	@Test
 	public void testServerActingAsUASKillOneNodeFailoverResponse() throws Exception {
 		EventListener failureEventListener = new EventListener() {
