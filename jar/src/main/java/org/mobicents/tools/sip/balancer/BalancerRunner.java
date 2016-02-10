@@ -107,7 +107,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			.getCanonicalName());
 	protected SIPBalancerForwarder sipForwarder = null;
 	protected NodeRegisterImpl reg = null;
-	HtmlAdaptorServer adapter = new HtmlAdaptorServer();
+	HtmlAdaptorServer adapter;
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
@@ -137,6 +137,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 	
 	public void start(Properties properties) {
+		adapter = new HtmlAdaptorServer();
 		String ipAddress = properties.getProperty(HOST_PROP);
 		if(ipAddress == null) {
 			ipAddress = properties.getProperty("internalHost");
@@ -318,7 +319,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		if(shutdownHook==null)
 			return;
 		
-		Runtime.getRuntime().removeShutdownHook(shutdownHook);
+		try
+		{
+			Runtime.getRuntime().removeShutdownHook(shutdownHook);
+		}
+		catch(IllegalStateException ex)
+		{
+			//may occure due to shutdown already in progress
+		}
+		
 		shutdownHook=null;
 		
 		if(timer != null)

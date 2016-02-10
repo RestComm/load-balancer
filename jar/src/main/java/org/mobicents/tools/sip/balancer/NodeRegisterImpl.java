@@ -121,7 +121,9 @@ public class NodeRegisterImpl  implements NodeRegister {
         if(logger.isInfoEnabled()) {
             logger.info("Node Expiration Task cancelled " + taskCancelled);
         }
-        balancerRunner.balancerContext.allNodesEver.clear();
+        
+        if(balancerRunner.balancerContext.allNodesEver!=null)
+        	balancerRunner.balancerContext.allNodesEver.clear();
         balancerRunner.balancerContext.allNodesEver = null;
         if(logger.isInfoEnabled()) {
             logger.info("Node registry stopped.");
@@ -173,7 +175,7 @@ public class NodeRegisterImpl  implements NodeRegister {
             ServerSocket serverSocket = null;
             try { 
                 serverSocket = new ServerSocket(port, 50, bindingAddress);
-                System.out.println("ServerSocket local port: "+serverSocket.getLocalPort()+" local socket Address "+serverSocket.getLocalSocketAddress());
+                //System.out.println("ServerSocket local port: "+serverSocket.getLocalPort()+" local socket Address "+serverSocket.getLocalSocketAddress());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
