@@ -45,26 +45,27 @@ import com.cloudhopper.smpp.ssl.SslContextFactory;
  */
 public class HttpServerPipelineFactory implements ChannelPipelineFactory {
 	BalancerRunner balancerRunner;
+	boolean isSecure;
 
     int maxContentLength = 1048576;
 
-	public HttpServerPipelineFactory(BalancerRunner balancerRunner, int maxContentLength) {
+	public HttpServerPipelineFactory(BalancerRunner balancerRunner, int maxContentLength, boolean isSecure) {
 		this.balancerRunner = balancerRunner;
 		this.maxContentLength = maxContentLength;
+		this.isSecure = isSecure;
 	}
 
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = pipeline();
         
-        String isSslEnabled = balancerRunner.balancerContext.properties.getProperty("isSslEnabled","false");
-        if(Boolean.parseBoolean(isSslEnabled)){
+        if(isSecure)
+        {
         	SslConfiguration sslConfig = new SslConfiguration();
-	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.properties.getProperty("sslKeyPath"));
-	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("sslPasword"));
-	        sslConfig.setKeyManagerPassword(balancerRunner.balancerContext.properties.getProperty("sslPasword"));
-	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("sslKeyPath"));
-	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("sslPasword"));
+	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStore"));
+	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStorePassword"));
+	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStore"));
+	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStorePassword"));
         	SslContextFactory factory = new SslContextFactory(sslConfig);
     	    SSLEngine sslEngine = factory.newSslEngine();
     	    sslEngine.setUseClientMode(false);

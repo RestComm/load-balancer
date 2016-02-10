@@ -161,64 +161,61 @@
           <example id="sslb-Complete_Sample_lb.properties_File">
             <title>Complete Sample lb.properties File</title>
 
-            <programlisting linenumbering="unnumbered">
-# Mobicents Load Balancer Settings
+            <programlisting linenumbering="unnumbered"># Mobicents Load Balancer Settings
 # For an overview of the Mobicents Load Balancer visit http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm
-# The Load balancer will listen for both TCP and UDP connections
 
-
-
-# The binding address of the load balancer. This also specifies the 
-# default value for both internalHost and externalHost if not specified separately.
-host=127.0.0.1
-
-# The binding address of the load balancer where clients should connect (if the host property is not specified)
-#externalHost=127.0.0.1
-
-# The SIP port from where servers will receive messages
-# delete if you want to use only one port for both inbound and outbound)
-internalPort=5065
-
-# The SIP port used where clients should connect
-externalPort=5060
-
-# The binding address of the load balancer where SIP application servers should connect (if the host property is not specified)
-#internalHost=127.0.0.1
+# The binding address of the load balancer
+host=192.168.1.70
 
 # The RMI port used for heartbeat signals
 rmiRegistryPort=2000
 # The port to be used used for the Remote Object
 rmiRemoteObjectPort=2001
 
-# The HTTP port for HTTP forwarding
+# The SIP port used where client should connect
+externalPort=5060
+# The SIP TLS port used where clients should connect
+externalSecurePort=5061
+ 
+# The SIP port from where servers will receive messages
+# delete if you want to use only one port for both inbound and outbound)
 # if you like to activate the integrated HTTP load balancer, this is the entry point
+internalPort=5065
+# The SIP TLS port from where servers will receive messages
+internalSecurePort=5066
+ 
+# The HTTP port for HTTP forwarding
 httpPort=2080
+# The HTTPS port for HTTPS forwarding
+httpsPort=2081
 #If no nodes are active the LB can redirect the traffic to the unavailableHost specified in this property,
 #otherwise, it will return 503 Service Unavailable
 #unavailableHost=google.com
 
-# If you are using IP load balancer, put the IP address and port here
+#Specify UDP or TCP or TLS (for now both must be the same)
+internalTransport=UDP
+externalTransport=UDP
+
+# If you are using IP load balancer, put the IP address and port here, for TLS put externalSecureIpLoadBalancerPort
 #externalIpLoadBalancerAddress=127.0.0.1
 #externalIpLoadBalancerPort=111
+#externalSecureIpLoadBalancerPort=112
  
 # Requests initited from the App Servers can route to this address (if you are using 2 IP load balancers for bidirectional SIP LB)
+# For TLS put internalSecureIpLoadBalancerPort
 #internalIpLoadBalancerAddress=127.0.0.1
 #internalIpLoadBalancerPort=111
-
-# The addresses in the SIP LB Via headers can be either the real addresses or those specified in the external and internal IP LB addresses
-useIpLoadBalancerAddressInViaHeaders=false
+#internalSecureIpLoadBalancerPort=112
 
 # Designate extra IP addresses as serer nodes
 #extraServerNodes=222.221.21.12:21,45.6.6.7:9003,33.5.6.7,33.9.9.2
 
 # Call-ID affinity algortihm settings. This algorithm is the default. No need to uncomment it.
 #algorithmClass=org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm
+algorithmClass=org.mobicents.tools.telestaxproxy.TelestaxProxyAlgorithm
 # This property specifies how much time to keep an association before being evitcted.
 # It is needed to avoid memory leaks on dead calls. The time is in seconds.
 #callIdAffinityMaxTimeInCache=500
-#The following attribute specified the policy after failover. If set to true all calls from the failed node
-#will go to a new healthy node (all calls to the same node). If set to false the calls will go to random new nodes.
-#callIdAffinityGroupFailover=false
 
 # Uncomment to enable the consistent hash based on Call-ID algorithm.
 #algorithmClass=org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
@@ -260,27 +257,28 @@ useIpLoadBalancerAddressInViaHeaders=false
 #This is the JBoss Cache 3.1 configuration file (with jgroups), if not specified it will use default
 #persistentConsistentHashCacheConfiguration=/home/config.xml
 
-
-#If a node doesnt check in within that time (in ms), it is considered dead
-nodeTimeout=5100
-#The consistency of the above condition is checked every heartbeatInterval milliseconds
-heartbeatInterval=150
-
-
 #JSIP stack configuration.....
 javax.sip.STACK_NAME = SipBalancerForwarder
 javax.sip.AUTOMATIC_DIALOG_SUPPORT = off
 # You need 16 for logging traces. 32 for debug + traces.
 # Your code will limp at 32 but it is best for debugging.
-gov.nist.javax.sip.TRACE_LEVEL = 0
+# LOG4J means the level will be configurable from the JOG4J config file
+gov.nist.javax.sip.TRACE_LEVEL = LOG4J
 
-// Specify if message contents should be logged.
+#Specify if message contents should be logged.
 gov.nist.javax.sip.LOG_MESSAGE_CONTENT=false
 
 gov.nist.javax.sip.DEBUG_LOG = logs/sipbalancerforwarderdebug.txt
 gov.nist.javax.sip.SERVER_LOG = logs/sipbalancerforwarder.xml
 gov.nist.javax.sip.THREAD_POOL_SIZE = 64
 gov.nist.javax.sip.REENTRANT_LISTENER = true
+gov.nist.javax.sip.AGGRESSIVE_CLEANUP=true
+gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY=gov.nist.javax.sip.stack.NioMessageProcessorFactory
+
+#If a node doesnt check in within that time (in ms), it is considered dead.
+nodeTimeout=8400
+#The consistency of the above condition is checked every heartbeatInterval milliseconds
+heartbeatInterval=150
 
 #SMPP Load Balancer Settings
 smppName = SMPP Load Balancer
@@ -288,9 +286,12 @@ smppName = SMPP Load Balancer
 smppHost = 127.0.0.1
 # The port of the load balancer
 smppPort = 2776
+# The port of the load balancer for SSL protocol
+smppSslPort = 2876
 # Remote SMPP servers (use comma between servers and colon between IP and port)
 remoteServers = 127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023
-# SMPP messages are outstanding
+# it is recommended that at any time there were no more than
+#10 (ten) SMPP messages are outstanding
 maxConnectionSize = 10
 # Is NIO enabled 
 nonBlockingSocketsEnabled = true
@@ -301,23 +302,35 @@ timeoutResponse = 10000
 # Session initialization timer
 timeoutConnection = 1000
 # Enquire Link Timer
-timeoutEnquire = 5000
+timeoutEnquire = 50000
 # Time between reconnection
 reconnectPeriod = 1000
 # Connection check timer in load balancer
 timeoutConnectionCheckClientSide = 1000
 # Connection check server side timer
 timeoutConnectionCheckServerSide = 1000
-# Is SMPP balancer support SSL
-isSslEnabled = true
-# Path to key file for SSL
-sslKeyPath = path/to/keystore
-# Password SSL
-sslPasword = password
-# The port of the load balancer for SSL protocol
-smppSslPort = 2876
-# Is connection to servers use SSL
+
+# SSL configuration
+#points to the keystore file we generated before
+javax.net.ssl.keyStore=/home/konstantinnosach/tmp/keystore 
+#provides the password we used when we generated the keystore
+javax.net.ssl.keyStorePassword=123456
+#points to the truststore file we generated before
+javax.net.ssl.trustStore=/home/konstantinnosach/tmp/keystore
+#provides the password we used when we generated the truststore
+javax.net.ssl.trustStorePassword=123456
+#this is important because sipp supports only TLSv1 and so we need to restrict the protocols only to that
+gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS=TLSv1
+#can be : Enabled, Disabled, DisabledAll, Want
+#if Enabled, used to request and require client certificate authentication: the connection will terminate if no suitable client certificate is presented
+#if Want, used to request client certificate authentication, but keep the connection if no authentication is provided
+#if Disabled or DisabledAll does not use authentication
+gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE=Disabled
+#ssl will provide some extra debugging information for the SSL if uncomment it
+#javax.net.debug=ssl 
+# should smpp and http use secured connection towards servers or regular
 isRemoteServerSsl = true
+
 
 						</programlisting>
           </example>
@@ -342,12 +355,31 @@ isRemoteServerSsl = true
             </varlistentry>
 
             <varlistentry>
+              <term>externalSecurePort</term>
+
+              <listitem>
+                <para>TLS port on which the SIP load balancer listens for
+                incoming requests from SIP User Agents.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term>internalPort</term>
 
               <listitem>
                 <para>Port on which the SIP load balancer forwards incoming
                 requests to available, and healthy, SIP Server cluster
                 nodes.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>internalSecurePort</term>
+
+              <listitem>
+                <para>TLS port on which the SIP load balancer forwards
+                incoming requests to available, and healthy, SIP Server
+                cluster nodes.</para>
               </listitem>
             </varlistentry>
 
@@ -378,6 +410,15 @@ isRemoteServerSsl = true
 
               <listitem>
                 <para>Port on which the SIP load balancer will accept HTTP
+                requests to be distributed across the nodes.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>httpsPort</term>
+
+              <listitem>
+                <para>Port on which the SIP load balancer will accept HTTPS
                 requests to be distributed across the nodes.</para>
               </listitem>
             </varlistentry>
@@ -428,6 +469,16 @@ isRemoteServerSsl = true
             </varlistentry>
 
             <varlistentry>
+              <term>externalSecureIpLoadBalancerPort</term>
+
+              <listitem>
+                <para>The TLS port of the external IP load balancer. Any
+                messages arriving at this port should be distributed across
+                the external SIP ports of a set of SIP load balancers.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term>internalIpLoadBalancerAddresst</term>
 
               <listitem>
@@ -447,6 +498,16 @@ isRemoteServerSsl = true
                 <para>The port of the internal IP load balancer. Any messages
                 arriving at this port should be distributed across the
                 internal SIP ports of a set of SIP load balancers.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>internalSecureIpLoadBalancerPort</term>
+
+              <listitem>
+                <para>The TLS port of the internal IP load balancer. Any
+                messages arriving at this port should be distributed across
+                the internal SIP ports of a set of SIP load balancers.</para>
               </listitem>
             </varlistentry>
 
@@ -616,35 +677,68 @@ isRemoteServerSsl = true
             </varlistentry>
 
             <varlistentry>
-              <term>isSslEnabled</term>
+              <term>javax.net.ssl.keyStore</term>
 
               <listitem>
-                <para>Turn off/on supporting SSL protocol.</para>
+                <para>Points to the keystore file we generated before.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term>sslKeyPath</term>
+              <term>javax.net.ssl.keyStorePassword</term>
 
               <listitem>
-                <para>Path to key file for SSL.</para>
+                <para>Provides the password we used when we generated the
+                keystore.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term>sslPasword</term>
+              <term>javax.net.ssl.trustStore</term>
 
               <listitem>
-                <para>Password for SSL.</para>
+                <para>Points to the truststore file we generated
+                before.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term>smppSslPort</term>
+              <term>javax.net.ssl.trustStorePassword</term>
 
               <listitem>
-                <para>Port on which the SMPP load balancer will listen for
-                incoming requests from SSL clients.</para>
+                <para>Provides the password we used when we generated the
+                truststore.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS</term>
+
+              <listitem>
+                <para>This is important because sipp supports only TLSv1 and
+                so we need to restrict the protocols only to that.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE</term>
+
+              <listitem>
+                <para>If Enabled, used to request and require client
+                certificate authentication: the connection will terminate if
+                no suitable client certificate is presented. If Want, used to
+                request client certificate authentication, but keep the
+                connection if no authentication is provided. If Disabled or
+                DisabledAll does not use authentication.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>javax.net.debug</term>
+
+              <listitem>
+                <para>SSL will provide some extra debugging information for
+                the SSL if uncomment it.</para>
               </listitem>
             </varlistentry>
 
@@ -652,7 +746,8 @@ isRemoteServerSsl = true
               <term>isRemoteServerSsl</term>
 
               <listitem>
-                <para>Is remote servers use SSL.</para>
+                <para>Should smpp and http use secured connection towards
+                servers or regular.</para>
               </listitem>
             </varlistentry>
           </variablelist>
@@ -784,38 +879,41 @@ isRemoteServerSsl = true
       <title>Running</title>
 
       <procedure id="sslb-Running_the_SIP_Load_Balancer_and_Servlet_Server_Nodes">
-        <title>Running the SIP Load Balancer and SIP Server Nodes</title>
+        <title>Running the SIP/SMPP Load Balancer and SIP Server Nodes</title>
 
         <step>
-          <title>Start the SIP Load Balancer</title>
+          <title>Start the SIP/SMPP Load Balancer</title>
 
-          <para>Start the SIP load balancer, ensuring the Configuration
+          <para>Start the SIP/SMPP load balancer, ensuring the Configuration
           Properties file ( <filename>lb.properties</filename> in this
           example) is specified. In the Linux terminal, or using the Windows
-          Command Prompt, the SIP Load Balancer is started by issuing a
-          command similar to this one:</para>
+          Command Prompt, the SIP and SMPP Load Balancers are started by
+          issuing a command similar to this one:</para>
 
-          <screen>java -jar sip-balancer-jar-with-dependencies.jar
-						lb-configuration.properties</screen>
+          <screen>java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties</screen>
 
           <para>Executing the SIP load balancer produces output similar to the
           following example:</para>
 
-          <screen>home]$ java -jar sip-balancer-jar-with-dependencies.jar
-						lb-configuration.properties
-						Oct 21, 2008 1:10:58 AM
-						org.mobicents.tools.sip.balancer.SIPBalancerForwarder start
-						INFO: Sip Balancer started on address 127.0.0.1, external port : 5060,
-						port : 5065
-						Oct 21, 2008 1:10:59 AM
-						org.mobicents.tools.sip.balancer.NodeRegisterImpl startServer
-						INFO: Node registry starting...
-						Oct 21, 2008 1:10:59 AM
-						org.mobicents.tools.sip.balancer.NodeRegisterImpl startServer
-						INFO: Node expiration task created
-						Oct 21, 2008 1:10:59 AM
-						org.mobicents.tools.sip.balancer.NodeRegisterImpl startServer
-						INFO: Node registry started</screen>
+          <screen>home]$ java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties
+2016-02-08 15:54:28,036 INFO main - nodeTimeout=8400
+2016-02-08 15:54:28,038 INFO main - heartbeatInterval=150
+2016-02-08 15:54:28,039 INFO main - Node registry starting...
+2016-02-08 15:54:28,103 INFO main - RMI heartbeat listener bound to internalHost, port 2000
+2016-02-08 15:54:28,103 INFO main - Node expiration task created
+2016-02-08 15:54:28,103 INFO main - Node registry started
+2016-02-08 15:54:28,130 INFO main - value -1000 will be used for reliableConnectionKeepAliveTimeout stack property
+2016-02-08 15:54:28,131 INFO main - Setting Stack Thread priority to 10
+2016-02-08 15:54:28,134 INFO main - using Disabled tls auth policy
+2016-02-08 15:54:28,159 WARN main - using default tls security policy
+2016-02-08 15:54:28,162 WARN main - Using default keystore type jks
+2016-02-08 15:54:28,162 WARN main - Using default truststore type jks
+2016-02-08 15:54:28,173 INFO main - the sip stack timer gov.nist.javax.sip.stack.timers.DefaultSipTimer has been started
+2016-02-08 15:54:28,325 INFO main - Sip Balancer started on external address 127.0.0.1, external port : 5060, internalPort : 5065
+2016-02-08 15:54:28,365 INFO main - HTTP LB listening on port 2080
+2016-02-08 15:54:28,377 INFO main - HTTPS LB listening on port 2081
+2016-02-08 15:54:28,432 INFO main - SMPP Load Balancer started at 127.0.0.1 : 2776
+2016-02-08 15:54:28,433 INFO main - SMPP Load Balancer uses port : 2876 for TLS clients.</screen>
 
           <para>The output shows the IP address on which the SIP Load Balancer
           is listening, as well as the external and internal listener
@@ -823,17 +921,17 @@ isRemoteServerSsl = true
         </step>
 
         <step>
-          <title>Configure SIP Server Nodes</title>
+          <title>Configure SIP/SMPP Server Nodes</title>
 
-          <para>The information about configuring your SIP Server, SIP
-          Servlets or JAIN SLEE, is in the respective server User
+          <para>The information about configuring your SIP Server, SMPP
+          Server, SIP Servlets or JAIN SLEE, is in the respective server User
           Guide.</para>
         </step>
 
         <step>
           <title>Start Load Balancer Client Nodes</title>
 
-          <para>Start all SIP load balancer client nodes.</para>
+          <para>Start all SIP and SMPP load balancer client nodes.</para>
 
           <!--Issue #822 Editor Comment - What command would you execute to start 
 						all the client nodes? -->
@@ -930,15 +1028,37 @@ isRemoteServerSsl = true
 
       <para>This should produce similar output to the following:</para>
 
-      <screen>^COct 21, 2008 1:11:57 AM
-				org.mobicents.tools.sip.balancer.SipBalancerShutdownHook run
-				INFO: Stopping the sip forwarder</screen>
+      <screen>^C2016-02-08 16:16:59,788 INFO Thread-142 - Stopping the sip forwarder
+2016-02-08 16:16:59,789 INFO Thread-142 - Removing the following Listening Point gov.nist.javax.sip.ListeningPointImpl@40185808
+2016-02-08 16:16:59,791 INFO NioSelector-TLS-127.0.0.1/5061 - Selector is closed
+2016-02-08 16:16:59,791 INFO Thread-142 - Removing the following Listening Point gov.nist.javax.sip.ListeningPointImpl@a440543
+2016-02-08 16:16:59,796 INFO Thread-142 - Removing the following Listening Point gov.nist.javax.sip.ListeningPointImpl@a0d78e9
+2016-02-08 16:16:59,796 INFO NioSelector-TCP-127.0.0.1/5060 - Selector is closed
+2016-02-08 16:16:59,796 INFO Thread-142 - Removing the sip provider
+2016-02-08 16:16:59,797 INFO Thread-142 - Removing the following Listening Point gov.nist.javax.sip.ListeningPointImpl@1ce21add
+2016-02-08 16:16:59,798 INFO NioSelector-TLS-127.0.0.1/5066 - Selector is closed
+2016-02-08 16:16:59,798 INFO Thread-142 - Removing the following Listening Point gov.nist.javax.sip.ListeningPointImpl@2a859dc9
+2016-02-08 16:16:59,800 INFO Thread-142 - Removing the following Listening Point gov.nist.javax.sip.ListeningPointImpl@63a80928
+2016-02-08 16:16:59,804 INFO NioSelector-TCP-127.0.0.1/5065 - Selector is closed
+2016-02-08 16:16:59,808 INFO Thread-142 - Removing the sip provider
+2016-02-08 16:16:59,808 INFO Thread-142 - the sip stack timer gov.nist.javax.sip.stack.timers.DefaultSipTimer has been stopped
+2016-02-08 16:17:00,809 INFO Thread-142 - the sip stack timer gov.nist.javax.sip.stack.timers.DefaultSipTimer has been stopped
+2016-02-08 16:17:01,839 INFO Thread-142 - Sip forwarder SIP stack stopped
+2016-02-08 16:17:01,839 INFO Thread-142 - Stopping the http forwarder
+2016-02-08 16:17:01,953 INFO Thread-142 - Stopping the SMPP balancer
+2016-02-08 16:17:01,957 INFO Thread-142 - SMPP Load Balancer stopped at 127.0.0.1
+2016-02-08 16:17:01,958 INFO Thread-142 - Unregistering the node registry
+2016-02-08 16:17:01,958 INFO Thread-142 - Unregistering the node adapter
+2016-02-08 16:17:01,962 INFO Thread-142 - Stopping the node registry
+2016-02-08 16:17:01,962 INFO Thread-142 - Stopping node registry...
+2016-02-08 16:17:01,963 INFO Thread-142 - Node Expiration Task cancelled true
+2016-02-08 16:17:01,963 INFO Thread-142 - Node registry stopped.</screen>
     </section>
 
     <section id="sslb-binary-SIP_Load_Balancer-Uninstalling">
       <title>Uninstalling</title>
 
-      <para>To uninstall the SIP and SMPP load balancer, delete the JAR file
+      <para>To uninstall the SIP and SMPP load balancers, delete the JAR file
       you installed.</para>
     </section>
   </section>
@@ -1031,18 +1151,20 @@ isRemoteServerSsl = true
     <title>SMPP Load Balancing Basics</title>
 
     <para>SMPP load balancer is used for balancing load from SMPP clients
-    (ESME) to SMPP servers (MC) based on round-robin algorithm. Because of
+    (ESME) to SMPP servers (SMSC) based on round-robin algorithm. Because of
     SMPP protocol based on an application layer TCP/IP connection between the
-    ESME and MC and is initiated by the ESME, we should use connection
+    ESME and SMSC and is initiated by the ESME, we should use connection
     handling. SMPP load balancer includes three main parts: server part,
     client part and dispatcher. When new clients connect to SMPP load
     balancer, application creates instances of ClientConnectionImpl (client
     part) and ServerConnectionImpl (server part) classes that bind by session
     ID. They are used to establish a connection between client (ESME) and
-    server (MC). Dispatcher is used for logical connection of client and
-    server parts of SMPP load balancer. Each packet that is received by the
-    client part, the dispatcher throws to server part (unless error is
-    detected) and vice versa.</para>
+    server (SMSC). When connection established it can be used in both
+    directions: ESME and SMSC can initiate new messages or send back messages
+    through the SMPP load balancer. Dispatcher is used for logical connection
+    of client and server parts of SMPP load balancer. Each packet that is
+    received by the client part, the dispatcher throws to server part (unless
+    error is detected) and vice versa.</para>
 
     <figure>
       <title>SMPP load balancer diagram</title>
@@ -1055,10 +1177,10 @@ isRemoteServerSsl = true
       </mediaobject>
     </figure>
 
-    <para>Main goal of application is to reduce the load on servers (MC) and
-    simply transfer packets between client (ESME) and server(MC). But also it
-    can inspect the received packets for correct command ID and will not send
-    incorrect packets forward instead turn them back.</para>
+    <para>Main goal of application is to reduce the load on servers (SMSC) and
+    simply transfer packets between client (ESME) and server(SMSC). But also
+    it can inspect the received packets for correct command ID and will not
+    send incorrect packets forward instead turn them back.</para>
 
     <para>When connection to server drops, SMPP load balancer can reconnect
     (rebind) to the next working server. During this process (reconnect) it
@@ -1231,7 +1353,7 @@ isRemoteServerSsl = true
 
       <listitem>
         <para>Enquire link timer with a fixed rate checks the connections with
-        client (ESME) and server (MC).</para>
+        client (ESME) and server (SMSC).</para>
       </listitem>
     </itemizedlist>
 
@@ -1276,13 +1398,13 @@ isRemoteServerSsl = true
       <listitem>
         <para>INITIAL - it can't receive any messages, this is first state of
         life cycle, at this state the client part is trying to connect to the
-        server (MC) and if the connection is successful state changes to
+        server (SMSC) and if the connection is successful state changes to
         OPEN;</para>
       </listitem>
 
       <listitem>
         <para>OPEN - it can't receive any messages, at this state the client
-        part sends a bind request to the server (MC), and changes state to
+        part sends a bind request to the server (SMSC), and changes state to
         binding;</para>
       </listitem>
 
@@ -1293,12 +1415,12 @@ isRemoteServerSsl = true
       </listitem>
 
       <listitem>
-        <para>BOUND - it can receive all packets from server (MC), which can
+        <para>BOUND - it can receive all packets from server (SMSC), which can
         be sent according SMPP protocol, except unbind response;</para>
       </listitem>
 
       <listitem>
-        <para>REBINDING - if connection drops to the server (MC), the client
+        <para>REBINDING - if connection drops to the server (SMSC), the client
         part changes ones state to rebinding until reconnect. If reconnect
         fails, connection is closed;</para>
       </listitem>
@@ -1439,5 +1561,128 @@ ip=127.0.0.1
     <para>If you are desgning a pluggable algorithm using the SIP metadata,
     you can access the properties passed in the SIP message contents using
     <literal>SIPNode.getProperties()</literal></para>
+  </section>
+
+  <section>
+    <title>Enabling TLS for Load Balancers</title>
+
+    <section>
+      <title>Enabling TLS for SIP load balancer</title>
+
+      <para>For enabling TLS support for SIP load balancer, you should
+      correctly specify next property:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>javax.net.ssl.keyStore;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.keyStorePassword;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.trustStore;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.trustStorePassword;</para>
+        </listitem>
+
+        <listitem>
+          <para>gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE</para>
+        </listitem>
+
+        <listitem>
+          <para>gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS;</para>
+        </listitem>
+
+        <listitem>
+          <para>externalSecurePort;</para>
+        </listitem>
+
+        <listitem>
+          <para>internalSecurePort;</para>
+        </listitem>
+
+        <listitem>
+          <para>externalSecureIpLoadBalancerPort (if you are using IP load
+          balancer);</para>
+        </listitem>
+
+        <listitem>
+          <para>internalSecureIpLoadBalancerPort (if you are using IP load
+          balancer).</para>
+        </listitem>
+      </itemizedlist>
+    </section>
+
+    <section>
+      <title>Enabling HTTPS and Secure WebSockets</title>
+
+      <para>For enabling HTTPS and Secure WebSockets support for HTTP load
+      balancer, you should correctly specify next property (httpsPort property
+      enables HTTPS and Secure WebSockets support):</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>httpsPort;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.keyStore;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.keyStorePassword;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.trustStore;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.trustStorePassword;</para>
+        </listitem>
+
+        <listitem>
+          <para>isRemoteServerSsl (if remote HTTP server uses TLS).</para>
+        </listitem>
+      </itemizedlist>
+    </section>
+
+    <section>
+      <title>Enabling TLS for SMPP load balancer</title>
+
+      <para>For enabling TLS support for SMPP load balancer, you should
+      correctly specify next property (smppSslPort property enables TLS
+      suport):</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>smppSslPort;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.keyStore;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.keyStorePassword;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.trustStore;</para>
+        </listitem>
+
+        <listitem>
+          <para>javax.net.ssl.trustStorePassword;</para>
+        </listitem>
+
+        <listitem>
+          <para>isRemoteServerSsl (if remote SMPP server uses TLS).</para>
+        </listitem>
+      </itemizedlist>
+    </section>
   </section>
 </chapter>

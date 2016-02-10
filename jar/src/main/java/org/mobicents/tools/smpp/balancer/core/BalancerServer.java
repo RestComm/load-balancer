@@ -106,7 +106,7 @@ public class BalancerServer{
 	            {
 	            	this.securedBootstrap.bind(new InetSocketAddress(securedConfiguration.getHost(), securedConfiguration.getPort()));	
 	            	if(logger.isInfoEnabled()) {
-	            	logger.info(securedConfiguration.getName() + " started at " + securedConfiguration.getHost() + " : " +(securedConfiguration.getPort()));
+	            	logger.info(securedConfiguration.getName() + " uses port : " + securedConfiguration.getPort() + " for TLS clients.");
 	            	}
 	            }
 	        } 
@@ -136,6 +136,6 @@ public class BalancerServer{
 		this.regularBootstrap.shutdown();
 		if(this.securedBootstrap!=null)
 		this.securedBootstrap.shutdown();
-        logger.info(regularConfiguration.getName() + " stopped at " + regularConfiguration.getHost()+" : " + regularConfiguration.getPort());
+        logger.info(regularConfiguration.getName() + " stopped at " + regularConfiguration.getHost());
 	}
 }

@@ -21,14 +21,20 @@ package org.mobicents.tools.http.balancer;
 
 import static org.jboss.netty.channel.Channels.*;
 
+import javax.net.ssl.SSLEngine;
+
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
+import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+
+import com.cloudhopper.smpp.ssl.SslConfiguration;
+import com.cloudhopper.smpp.ssl.SslContextFactory;
 
 /**
  * @author The Netty Project (netty-dev@lists.jboss.org)
@@ -50,6 +56,19 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = pipeline();
+        String isRemoteServerSsl = balancerRunner.balancerContext.properties.getProperty("isRemoteServerSsl","false");
+        if(Boolean.parseBoolean(isRemoteServerSsl)){
+        	SslConfiguration sslConfig = new SslConfiguration();
+	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStore"));
+	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStorePassword"));
+	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStore"));
+	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStorePassword"));
+        	SslContextFactory factory = new SslContextFactory(sslConfig);
+    	    SSLEngine sslEngine = factory.newSslEngine();
+    	    sslEngine.setUseClientMode(false);
+            pipeline.addLast("ssl", new SslHandler(sslEngine));
+        }
+        
         pipeline.addLast("decoder", new HttpResponseDecoder());
         // Remove the following line if you don't want automatic content decompression.
         //pipeline.addLast("inflater", new HttpContentDecompressor()); 

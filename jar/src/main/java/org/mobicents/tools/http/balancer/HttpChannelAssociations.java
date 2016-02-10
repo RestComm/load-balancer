@@ -34,6 +34,7 @@ public class HttpChannelAssociations {
 	private static final Logger logger = Logger.getLogger(HttpChannelAssociations.class.getCanonicalName());
 	static Executor executor;
     static ServerBootstrap serverBootstrap;
+    static ServerBootstrap serverSecureBootstrap;
     static ClientBootstrap inboundBootstrap;
     static ConcurrentHashMap<Channel, Channel> channels;
 

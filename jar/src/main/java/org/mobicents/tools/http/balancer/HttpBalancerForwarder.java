@@ -47,12 +47,14 @@ public class HttpBalancerForwarder {
 	NioServerSocketChannelFactory nioServerSocketChannelFactory = null;
 	NioClientSocketChannelFactory nioClientSocketChannelFactory = null;
 	Channel serverChannel;
-
+	Channel serverSecureChannel;
+	
 	public void start() {
 		executor = Executors.newCachedThreadPool();
 		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor,	executor);		
 		nioClientSocketChannelFactory = new NioClientSocketChannelFactory(executor, executor);
 		HttpChannelAssociations.serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
+		HttpChannelAssociations.serverSecureBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
 		HttpChannelAssociations.channels = new ConcurrentHashMap<Channel, Channel>();
 
@@ -62,6 +64,7 @@ public class HttpBalancerForwarder {
 			String httpPortString = balancerRunner.balancerContext.properties.getProperty("httpPort", "2080");
 			httpPort = Integer.parseInt(httpPortString);
 		}
+		
 		// Defaulting to 1 MB
 		int maxContentLength = 1048576;
 		if(balancerRunner.balancerContext.properties != null) {
@@ -70,9 +73,17 @@ public class HttpBalancerForwarder {
 		}
 		logger.info("HTTP LB listening on port " + httpPort);
 		logger.debug("HTTP maxContentLength Chunking set to " + maxContentLength);
-		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength));
+		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, false));
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
-		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength));
+		if(balancerRunner.balancerContext.properties.getProperty("httpsPort")!=null)
+		{
+			Integer httpsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("httpsPort", "2085"));
+			logger.info("HTTPS LB listening on port " + httpsPort);
+			HttpChannelAssociations.serverSecureBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, true));
+			serverSecureChannel = HttpChannelAssociations.serverSecureBootstrap.bind(new InetSocketAddress(httpsPort));
+		}
+		
+		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength));		
 	}
 
 	public void stop() {
@@ -85,16 +96,28 @@ public class HttpBalancerForwarder {
 			entry.getValue().close();
 			entry.getValue().getCloseFuture().awaitUninterruptibly();
 		}
+		
 		serverChannel.unbind();
 		serverChannel.close();
 		serverChannel.getCloseFuture().awaitUninterruptibly();
 
+		if(serverSecureChannel!=null)
+		{
+			serverSecureChannel.unbind();
+			serverSecureChannel.close();
+			serverSecureChannel.getCloseFuture().awaitUninterruptibly();
+		}
+		
 		executor.shutdownNow();
 		executor = null;
 		
 		//cleaning everything
 		balancerRunner.stop();
 		HttpChannelAssociations.serverBootstrap.shutdown();
+		
+		if(HttpChannelAssociations.serverSecureBootstrap!=null)
+			HttpChannelAssociations.serverSecureBootstrap.shutdown();
+		
 		HttpChannelAssociations.inboundBootstrap.shutdown();
 		nioServerSocketChannelFactory.shutdown();
 		nioClientSocketChannelFactory.shutdown();

@@ -156,7 +156,7 @@ public class SmppBalancerRunner {
         regularConfiguration.setUseSsl(false);                
         
         SmppServerConfiguration securedConfiguration = null;
-        if(Boolean.parseBoolean(properties.getProperty("isSslEnabled")))
+        if(properties.getProperty("smppSslPort")!=null)
         {
         	securedConfiguration = new SmppServerConfiguration();
         	securedConfiguration.setName(properties.getProperty("smppName"));
@@ -167,13 +167,12 @@ public class SmppBalancerRunner {
 	        securedConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(properties.getProperty("defaultSessionCountersEnabled")));
 	        securedConfiguration.setUseSsl(true);
             SslConfiguration sslConfig = new SslConfiguration();
-	        sslConfig.setKeyStorePath(properties.getProperty("sslKeyPath"));
-	        sslConfig.setKeyStorePassword(properties.getProperty("sslPasword"));
-	        sslConfig.setKeyManagerPassword(properties.getProperty("sslPasword"));
-	        sslConfig.setTrustStorePath(properties.getProperty("sslKeyPath"));
-	        sslConfig.setTrustStorePassword(properties.getProperty("sslPasword"));
+	        sslConfig.setKeyStorePath(properties.getProperty("javax.net.ssl.keyStore"));
+	        sslConfig.setKeyStorePassword(properties.getProperty("javax.net.ssl.keyStorePassword"));
+	        sslConfig.setTrustStorePath(properties.getProperty("javax.net.ssl.trustStore"));
+	        sslConfig.setTrustStorePassword(properties.getProperty("javax.net.ssl.trustStorePassword"));
 	        securedConfiguration.setSslConfiguration(sslConfig);        
-        }
+        } 
         
         balancerDispatcher = new BalancerDispatcher(properties,monitorExecutor);
 		smppLbServer = new BalancerServer(regularConfiguration, securedConfiguration, executor, properties, balancerDispatcher, monitorExecutor);
