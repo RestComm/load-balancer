@@ -45,7 +45,7 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 		// catching all exceptions so it doesn't make JAIN SIP to fail
 		try {
 			SipProvider p = balancerRunner.balancerContext.externalSipProvider;
-			if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort && messageChannel.getPort() != balancerRunner.balancerContext.externalSecurePort) {
+			if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
 				if(balancerRunner.balancerContext.isTwoEntrypoints())
 					p = balancerRunner.balancerContext.internalSipProvider;
 			}
@@ -65,7 +65,7 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 		// catching all exceptions so it doesn't make JAIN SIP to fail
 		try {
 			SipProvider p = balancerRunner.balancerContext.externalSipProvider;
-			if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort && messageChannel.getPort() != balancerRunner.balancerContext.externalSecurePort) {
+			if(messageChannel.getPort() != balancerRunner.balancerContext.externalPort) {
 				if(balancerRunner.balancerContext.isTwoEntrypoints())
 					p = balancerRunner.balancerContext.internalSipProvider;
 			}

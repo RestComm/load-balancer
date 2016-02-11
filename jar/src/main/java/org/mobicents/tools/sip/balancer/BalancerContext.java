@@ -60,29 +60,19 @@ public class BalancerContext {
 	public String host;
 	public String externalHost;
 	public String internalHost;
-	
 	public int externalPort;
 	public int internalPort;
 	
-	public int externalSecurePort;
-	public int internalSecurePort;
-	
 	public String externalViaHost;
 	public String internalViaHost;
-	
 	public int externalViaPort;
-	public int externalSecureViaPort;
-	
 	public int internalViaPort;
-	public int internalSecureViaPort;
 	
 	public String internalIpLoadBalancerAddress;
 	public int internalLoadBalancerPort;
-	public int internalSecureLoadBalancerPort;
 	
 	public String externalIpLoadBalancerAddress;
 	public int externalLoadBalancerPort;
-	public int externalSecureLoadBalancerPort;
 	
 	public boolean useIpLoadBalancerAddressInViaHeaders;
 	
@@ -98,12 +88,12 @@ public class BalancerContext {
 
 	public Properties properties;  
 	
-	public RecordRouteHeader[] externalRecordRouteHeader = new RecordRouteHeader[5];
-	public RecordRouteHeader[] externalIpBalancerRecordRouteHeader = new RecordRouteHeader[5]; 
-	public RecordRouteHeader[] internalRecordRouteHeader = new RecordRouteHeader[5];
-	public RecordRouteHeader[] internalIpBalancerRecordRouteHeader = new RecordRouteHeader[5]; 
-	public RecordRouteHeader[] activeExternalHeader = new RecordRouteHeader[5];
-	public RecordRouteHeader[] activeInternalHeader = new RecordRouteHeader[5];
+	public RecordRouteHeader[] externalRecordRouteHeader = new RecordRouteHeader[2];
+	public RecordRouteHeader[] externalIpBalancerRecordRouteHeader = new RecordRouteHeader[2]; 
+	public RecordRouteHeader[] internalRecordRouteHeader = new RecordRouteHeader[2];
+	public RecordRouteHeader[] internalIpBalancerRecordRouteHeader = new RecordRouteHeader[2]; 
+	public RecordRouteHeader[] activeExternalHeader = new RecordRouteHeader[2];
+	public RecordRouteHeader[] activeInternalHeader = new RecordRouteHeader[2];
     
 	//stats
 	public boolean gatherStatistics = true;
@@ -118,7 +108,7 @@ public class BalancerContext {
 	final Map<String, AtomicLong> responsesProcessedByStatusCode = new ConcurrentHashMap<String, AtomicLong>();
     
     public boolean isTwoEntrypoints() {
-    	return (internalPort>0 || internalSecurePort>0)  && internalHost != null;
+    	return internalPort>0 && internalHost != null;
     }
 
     public BalancerContext() {
