@@ -43,6 +43,8 @@ import static org.junit.Assert.assertEquals;
 import java.rmi.RemoteException;
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
+
 import org.junit.Test;
 
 /**
@@ -78,7 +80,7 @@ public class NodeRegisterTest{
 		AppServer[] servers = new AppServer[numNodes];
 		try {
 			for(int q=0;q<servers.length;q++) {
-				servers[q] = new AppServer("node" + q,15060+q);
+				servers[q] = new AppServer("node" + q,15060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
 				servers[q].start();
 			}
 			

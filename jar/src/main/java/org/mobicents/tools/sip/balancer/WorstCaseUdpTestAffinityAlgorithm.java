@@ -68,8 +68,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
 		CSeqHeader cs = (CSeqHeader) request.getHeader(CSeqHeader.NAME);
 		long cseq = cs.getSeqNumber();
-		if(callIdMap.get(callId) != null) {
-			assignedNode = callIdMap.get(callId);
+		if(callIdMap.get(callId) != null) {			
+			assignedNode = callIdMap.get(callId);			
 		}
 		ViaHeader via = (ViaHeader) request.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
@@ -83,7 +83,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		}
 		try {
 			SIPNode node;
-			if(!request.getMethod().equals("ACK")) {
+			if(!request.getMethod().equalsIgnoreCase("ACK")) {
 				//Gvag: new transaction should go to a new node
 				SIPNode newNode = nextAvailableNode();//getNodeA(callId+cseq);
 				if(newNode == null) {
@@ -117,6 +117,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 					ruri.setHost(node.getIp());
 				}
 			}
+		
 			return node;
 
 
@@ -124,6 +125,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		return assignedNode;
 	}
 
@@ -162,7 +164,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				node = selectNewNode(node, callId);
 				try {
 					via.setHost(node.getIp());
-					String transportProperty = transport + "Port";
+					String transportProperty = transport.toLowerCase() + "Port";
 					Integer port = (Integer) node.getProperties().get(transportProperty);
 					if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 					via.setPort(port);
@@ -186,7 +188,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				}
 				try {
 					via.setHost(node.getIp());
-					String transportProperty = transport + "Port";
+					String transportProperty = transport.toLowerCase() + "Port";
 					Integer port = (Integer) node.getProperties().get(transportProperty);
 					if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 					via.setPort(port);
@@ -233,7 +235,6 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			}
 		}
 		
-		System.out.println("REQUEST:" + request.getMethod() + ",NODE:" + node.toString());
 		setNodeA(callId+cseq,node);
 		callIdMap.put(callId, node);
 		

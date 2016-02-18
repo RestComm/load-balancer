@@ -121,7 +121,9 @@ public class NodeRegisterImpl  implements NodeRegister {
         if(logger.isInfoEnabled()) {
             logger.info("Node Expiration Task cancelled " + taskCancelled);
         }
-        balancerRunner.balancerContext.allNodesEver.clear();
+        
+        if(balancerRunner.balancerContext.allNodesEver!=null)
+        	balancerRunner.balancerContext.allNodesEver.clear();
         balancerRunner.balancerContext.allNodesEver = null;
         if(logger.isInfoEnabled()) {
             logger.info("Node registry stopped.");
@@ -173,7 +175,7 @@ public class NodeRegisterImpl  implements NodeRegister {
             ServerSocket serverSocket = null;
             try { 
                 serverSocket = new ServerSocket(port, 50, bindingAddress);
-                System.out.println("ServerSocket local port: "+serverSocket.getLocalPort()+" local socket Address "+serverSocket.getLocalSocketAddress());
+                //System.out.println("ServerSocket local port: "+serverSocket.getLocalPort()+" local socket Address "+serverSocket.getLocalSocketAddress());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -266,14 +268,14 @@ public class NodeRegisterImpl  implements NodeRegister {
      */
     public SIPNode getNode(String host, int port, String transport, String version)  {		
         for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
-            if(logger.isDebugEnabled()) {
+        	if(logger.isDebugEnabled()) {
                 logger.debug("node to check against " + node);
             }
             // https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address
             if(node != null && node.getIp() != null && node.getIp().equals(host)) {
-                Integer nodePort = (Integer) node.getProperties().get(transport + "Port");
+            	Integer nodePort = (Integer) node.getProperties().get(transport.toLowerCase() + "Port");
                 if(nodePort != null) {
-                    if(nodePort == port) {
+                	if(nodePort == port) {
                         if(version == null) {
                             return node;
                         } else {

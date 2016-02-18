@@ -29,6 +29,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,7 +93,7 @@ public class SprayingLoadBalancersWithNoInternalPortTest {
 			internalIpLBString += "127.0.0.1:"+5+q+"65,";
 		}
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q);
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
 			servers[q].start();
 			servers[q].setBalancers(balancerString);
 		}
@@ -164,7 +166,7 @@ public class SprayingLoadBalancersWithNoInternalPortTest {
 		assertNotNull(ackServer);
 	}
 	
-	//@Test
+	@Test
 	public void testSprayingMultipleIndialogMessages() throws Exception {
 		Thread.sleep(1000);
 		for(BalancerRunner balancer: balancers){

@@ -195,7 +195,8 @@ httpsPort=2081
 #Specify UDP or TCP or TLS (for now both must be the same)
 internalTransport=UDP
 externalTransport=UDP
-
+#Enables ws/wss transport
+#isTransportWs = false
 # If you are using IP load balancer, put the IP address and port here, for TLS put externalSecureIpLoadBalancerPort
 #externalIpLoadBalancerAddress=127.0.0.1
 #externalIpLoadBalancerPort=111
@@ -748,6 +749,14 @@ isRemoteServerSsl = true
               <listitem>
                 <para>Should smpp and http use secured connection towards
                 servers or regular.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>isTransportWs</term>
+
+              <listitem>
+                <para>Enables ws/wss transport in SIP load balancer.</para>
               </listitem>
             </varlistentry>
           </variablelist>
@@ -1564,10 +1573,10 @@ ip=127.0.0.1
   </section>
 
   <section>
-    <title>Enabling TLS for Load Balancers</title>
+    <title>Enabling TLS/WSS for Load Balancers</title>
 
     <section>
-      <title>Enabling TLS for SIP load balancer</title>
+      <title>Enabling TLS/WSS for SIP load balancer</title>
 
       <para>For enabling TLS support for SIP load balancer, you should
       correctly specify next property:</para>
@@ -1612,17 +1621,21 @@ ip=127.0.0.1
 
         <listitem>
           <para>internalSecureIpLoadBalancerPort (if you are using IP load
-          balancer).</para>
+          balancer)</para>
+        </listitem>
+
+        <listitem>
+          <para>isTransportWs(enables WSS/WS instead of TLS/TCP).</para>
         </listitem>
       </itemizedlist>
     </section>
 
     <section>
-      <title>Enabling HTTPS and Secure WebSockets</title>
+      <title>Enabling HTTPS</title>
 
       <para>For enabling HTTPS and Secure WebSockets support for HTTP load
       balancer, you should correctly specify next property (httpsPort property
-      enables HTTPS and Secure WebSockets support):</para>
+      enables HTTPS support):</para>
 
       <itemizedlist>
         <listitem>

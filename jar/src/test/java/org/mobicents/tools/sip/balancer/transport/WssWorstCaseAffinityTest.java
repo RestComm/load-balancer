@@ -20,17 +20,17 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.mobicents.tools.sip.balancer.algorithms;
+package org.mobicents.tools.sip.balancer.transport;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import gov.nist.javax.sip.ListeningPointExt;
+import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
 
 import java.util.Properties;
 
-import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 
@@ -43,22 +43,20 @@ import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-public class WorstCaseAffinityTest
-{
-	
+public class WssWorstCaseAffinityTest{
 	BalancerRunner balancer;
 	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
 	Shootist shootist;
 	static AppServer invite;
-	static AppServer bye;
 	static AppServer ack;
+	static AppServer bye;
 	AppServer ringingAppServer;
 	AppServer okAppServer;
 
 	@Before
 	public void setUp() throws Exception {
-		shootist = new Shootist();
+		shootist = new Shootist(ListeningPointExt.WSS,5061);
 		balancer = new BalancerRunner();
 		Properties properties = new Properties();
 		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
@@ -74,16 +72,31 @@ public class WorstCaseAffinityTest
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		properties.setProperty("algorithmClass", WorstCaseUdpTestAffinityAlgorithm.class.getName());
+		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
+		
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("internalPort", "5065");
 		properties.setProperty("externalPort", "5060");
+		properties.setProperty("internalSecurePort", "5066");
+		properties.setProperty("externalSecurePort", "5061");
+		properties.setProperty("earlyDialogWorstCase", "true");
+		properties.setProperty("javax.net.ssl.keyStore", "/home/konstantinnosach/tmp/keystore");
+		properties.setProperty("javax.net.ssl.keyStorePassword", "123456");
+		properties.setProperty("javax.net.ssl.trustStore", "/home/konstantinnosach/tmp/keystore");
+		properties.setProperty("javax.net.ssl.trustStorePassword", "123456");
+		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS", "TLSv1");
+		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE", "Disabled");
+		properties.setProperty("isTransportWs", "true");
+		
+				
 		balancer.start(properties);
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
-			servers[q].start();
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5061, 5066, "0", ListeningPointExt.WSS);			
+			servers[q].start();		
 		}
+		
 		Thread.sleep(5000);
 	}
 
@@ -97,7 +110,7 @@ public class WorstCaseAffinityTest
 	}
 
 	@Test
-	public void testInviteByeLandOnDifferentNodes() throws Exception {
+	public void testInviteAckLandOnDifferentNodes() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 
 			@Override
@@ -108,10 +121,16 @@ public class WorstCaseAffinityTest
 			@Override
 			public void uasAfterRequestReceived(String method, AppServer source) {
 				if(method.equals("INVITE")) invite = source;
-				if(method.equals("ACK")) 
-					ack = source;									
-				if(method.equals("BYE")) 
-					bye = source;							
+				if(method.equals("ACK")) {
+					ack = source;
+				
+					}
+				if(method.equals("BYE")) {
+					bye = source;
+
+				}
+
+				
 			}
 
 			@Override
@@ -130,17 +149,15 @@ public class WorstCaseAffinityTest
 		
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
-		Thread.sleep(9000);
-		shootist.sendBye();
-		Thread.sleep(2000);
+		Thread.sleep(15000);
 		assertNotNull(invite);
-		assertNotNull(bye);
-		assertEquals(ack,invite);
-		assertNotEquals(bye,invite);			
+		assertNotNull(ack);
+		assertNotSame(invite, bye);
+		assertEquals(ack, invite);			
 	}
 	
 	@Test
-	public void testOKRingingLandOnSameNode() throws Exception {
+	public void testOKRingingLandOnDifferentNodes() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {
 			
@@ -163,10 +180,10 @@ public class WorstCaseAffinityTest
 			}
 
 			@Override
-			public void uacAfterResponse(int statusCode, AppServer source) {
-				if(statusCode == 180) {
+			public void uacAfterResponse(int statusCode, AppServer source) {				
+				if(statusCode == 180) {					
 					ringingAppServer = source;	
-				} else {
+				} else if(statusCode == 200){
 					okAppServer = source;
 					
 				}
@@ -189,18 +206,18 @@ public class WorstCaseAffinityTest
 				"usera", "127.0.0.1:5033");
 		ruri.setLrParam();
 		SipURI route = servers[0].protocolObjects.addressFactory.createSipURI(
-				"lbint", "127.0.0.1:5065");
+				"lbint", "127.0.0.1:5066");
 		route.setParameter("node_host", "127.0.0.1");
 		route.setParameter("node_port", "4060");
-		route.setTransportParam(ListeningPoint.UDP);
+		route.setTransportParam(ListeningPointExt.WSS);
 		route.setLrParam();
 		shootist.start();
 		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
 		Thread.sleep(16000);
 		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
-		assertSame(ringingAppServer, okAppServer);
 		assertNotNull(ringingAppServer);
 		assertNotNull(okAppServer);
+		assertNotSame(ringingAppServer, okAppServer);		
 	}
 }

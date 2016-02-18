@@ -27,7 +27,9 @@ import static org.junit.Assert.assertEquals;
 import java.util.List;
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +72,7 @@ public class CustomHeartbeatTest{
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5060, "0");
+			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5060, "0", ListeningPoint.UDP);
 			servers[q].start();
 		}
 		Thread.sleep(5000);

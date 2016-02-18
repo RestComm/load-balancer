@@ -27,6 +27,7 @@ import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sip.SipProvider;
 
@@ -42,11 +43,13 @@ public class AppServer {
 	int lbRMIport;
 	int lbSIPext;
 	int lbSIPint;
+	String transport;
 	protected String balancers;
 	public SipProvider sipProvider;
 	public String version;
-
-	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version) {
+	AtomicBoolean stopFlag = new AtomicBoolean(false);
+	
+	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) {
 		this.port = port;
 		this.name = appServer;
 		this.lbAddress = lbAddress;
@@ -54,30 +57,22 @@ public class AppServer {
 		this.lbSIPext = lbSIPext;
 		this.lbSIPint = lbSIPint;
 		this.version = version;
+		this.transport=transport;
 	}
-	
-	public AppServer(String appServer, int port) {
-		this(appServer, port, "127.0.0.1");
-
-	} 
 	
 	public void setBalancers(String balancers) {
 		this.balancers = balancers;
 	}
 	
-	public AppServer(String appServer, int port, String address) {
-		this(appServer, port, address, 2000, 5060, 5065, "0");
-
-	} 
-	
+		
 	public void setEventListener(EventListener listener) {
 		sipListener.eventListener = listener;
 	}
 
 	public void start() {
 		timer = new Timer();
-		protocolObjects = new ProtocolObjects(name,
-				"gov.nist", "UDP", false, null);
+		
+		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, null);		
 		sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
 		sipListener.appServer = this;
 		try {
@@ -88,9 +83,10 @@ public class AppServer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		appServerNode = new SIPNode(name, "127.0.0.1");
-		appServerNode.getProperties().put("udpPort", port);
+		appServerNode = new SIPNode(name, "127.0.0.1");		
+		appServerNode.getProperties().put(transport.toLowerCase() + "Port", port);		
 		appServerNode.getProperties().put("version", version);
+		
 		timer.schedule(new TimerTask() {
 			
 			@Override
@@ -99,6 +95,7 @@ public class AppServer {
 					ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
 					nodes.add(appServerNode);
 					appServerNode.getProperties().put("version", version);
+					if(!stopFlag.get())
 					sendKeepAliveToBalancers(nodes);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -108,6 +105,7 @@ public class AppServer {
 	}
 	
 	public void stop() {
+		stopFlag.getAndSet(true);
 		timer.cancel();
 		
 		if(protocolObjects != null)

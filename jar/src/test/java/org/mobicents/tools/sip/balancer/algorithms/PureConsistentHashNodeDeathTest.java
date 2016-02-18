@@ -30,6 +30,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 
@@ -79,7 +80,7 @@ public class PureConsistentHashNodeDeathTest{
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q);
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
 			servers[q].start();
 		}
 		Thread.sleep(5000);
@@ -146,7 +147,7 @@ public class PureConsistentHashNodeDeathTest{
 		assertNotNull(bye);
 	}
 	
-	//@Test
+	@Test
 	public void testRegister() throws Exception {
 		EventListener failureEventListener = new EventListener() {
 
@@ -182,7 +183,7 @@ public class PureConsistentHashNodeDeathTest{
 				assertNotNull(register);
 	}
 
-	//@Test
+	@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
 			as.sendCleanShutdownToBalancers();
@@ -197,7 +198,7 @@ public class PureConsistentHashNodeDeathTest{
 		assertEquals(500, shootist.responses.get(0).getStatusCode());
 	}
 
-	//@Test
+	@Test
 	public void testOKRingingLandOnDifferentNode() throws Exception {
 
 		EventListener failureEventListener = new EventListener() {

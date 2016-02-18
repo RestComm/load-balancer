@@ -31,6 +31,7 @@ import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
 import javax.sip.SipProvider;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
@@ -82,7 +83,7 @@ public class InviteTransactionFailover {
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q);
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
 			servers[q].start();
 		}
 		Thread.sleep(5000);

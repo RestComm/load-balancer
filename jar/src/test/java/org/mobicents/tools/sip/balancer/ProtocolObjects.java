@@ -38,9 +38,14 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.ListeningPointExt;
+import gov.nist.javax.sip.SipStackImpl;
+import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
+
 import java.util.HashSet;
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
 import javax.sip.ObjectInUseException;
 import javax.sip.SipException;
 import javax.sip.SipFactory;
@@ -82,7 +87,8 @@ public class ProtocolObjects {
 		sipFactory.setPathName(pathname);
 		Properties properties = new Properties();
 		properties.setProperty("javax.sip.STACK_NAME", stackname);
-
+		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
+		
 		if(outboundProxy != null) {
 			properties.setProperty("javax.sip.OUTBOUND_PROXY", outboundProxy + "/"
 				+ transport);
@@ -107,6 +113,16 @@ public class ProtocolObjects {
 
 		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "4");
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
+		{
+			properties.setProperty("javax.net.ssl.keyStore", "/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("javax.net.ssl.keyStorePassword", "123456");
+			properties.setProperty("javax.net.ssl.trustStore", "/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("javax.net.ssl.trustStorePassword", "123456");
+			properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS", "TLSv1");
+			properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE", "Disabled");
+		}
 		
 
 		// Set to 0 in your production code for max speed.

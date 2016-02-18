@@ -144,7 +144,8 @@ public class TcpForwardingPerformanceTest
 				}
 				try {
 					if(diffNotTooBig) {
-						clientSocket.getOutputStream().write(inviteRequestBytes);modCallId();
+						clientSocket.getOutputStream().write(inviteRequestBytes);
+						modCallId();
 						sentUnits+=inviteRequestBytes.length;
 					} else {
 						Thread.sleep(1);

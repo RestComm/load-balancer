@@ -30,6 +30,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 
@@ -76,7 +77,7 @@ public class NoInternalAddressTest{
 		
 		for(int q=0;q<servers.length;q++) 
 		{
-			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5060, "0");
+			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
 			servers[q].start();
 		}
 		

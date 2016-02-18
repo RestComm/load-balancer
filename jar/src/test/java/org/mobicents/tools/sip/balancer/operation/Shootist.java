@@ -22,6 +22,15 @@
 
 package org.mobicents.tools.sip.balancer.operation;
 
+import gov.nist.javax.sip.ClientTransactionExt;
+import gov.nist.javax.sip.ListeningPointExt;
+import gov.nist.javax.sip.SipStackImpl;
+import gov.nist.javax.sip.TlsSecurityPolicy;
+import gov.nist.javax.sip.message.SIPRequest;
+import gov.nist.javax.sip.stack.MessageChannel;
+import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
+import gov.nist.javax.sip.stack.SIPMessageValve;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -64,6 +73,7 @@ import javax.sip.header.ViaHeader;
 import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
+
 import junit.framework.TestCase;
 import static junit.framework.TestCase.fail;
 
@@ -80,7 +90,7 @@ public class Shootist implements SipListener {
 
     private ContactHeader contactHeader;
 
-    private ListeningPoint udpListeningPoint;
+    private ListeningPoint listeningPoint;
 
     private ClientTransaction inviteTid;
 
@@ -100,6 +110,18 @@ public class Shootist implements SipListener {
     public LinkedList<Request> requests = new LinkedList<Request>();
     public LinkedList<Response> responses = new LinkedList<Response>();
 
+    public Shootist()
+    {
+    	
+    }
+    
+    public Shootist(String transport,int port)
+    {
+    	this.transport=transport;
+    	this.peerHostPort = "127.0.0.1:" + port;
+    	
+    }
+    
     class ByeTask  extends TimerTask {
         Dialog dialog;
         public ByeTask(Dialog dialog)  {
@@ -300,11 +322,19 @@ public class Shootist implements SipListener {
         sipFactory = SipFactory.getInstance();
         sipFactory.setPathName("gov.nist");
         Properties properties = new Properties();
-        properties.setProperty("javax.sip.OUTBOUND_PROXY", peerHostPort + "/"
+        properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
+		properties.setProperty("javax.sip.OUTBOUND_PROXY", peerHostPort + "/"
                 + transport);
         // If you want to use UDP then uncomment this.
         properties.setProperty("javax.sip.STACK_NAME", "shootist");
         properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
+        if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
+		{
+        	properties.setProperty("javax.net.ssl.keyStore", "/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("javax.net.ssl.keyStorePassword", "123456");
+			properties.setProperty("javax.net.ssl.trustStore", "/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("javax.net.ssl.trustStorePassword", "123456");
+		}
 
         // The following properties are specific to nist-sip
         // and are not necessarily part of any other jain-sip
@@ -312,9 +342,9 @@ public class Shootist implements SipListener {
         // You can set a max message size for tcp transport to
         // guard against denial of service attack.
         properties.setProperty("gov.nist.javax.sip.DEBUG_LOG",
-                "shootistdebug.txt");
+                "logs/shootistdebug.txt");
         properties.setProperty("gov.nist.javax.sip.SERVER_LOG",
-                "shootistlog.txt");
+                "logs/shootistlog.txt");
 
         // Drop the client connection after we are done with the transaction.
         properties.setProperty("gov.nist.javax.sip.CACHE_CLIENT_CONNECTIONS",
@@ -323,6 +353,7 @@ public class Shootist implements SipListener {
         // You need 16 (or TRACE) for logging traces. 32 (or DEBUG) for debug + traces.
         // Your code will limp at 32 but it is best for debugging.
         properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "DEBUG");
+        
 
         try {
             // Create SipStack object
@@ -344,10 +375,10 @@ public class Shootist implements SipListener {
             headerFactory = sipFactory.createHeaderFactory();
             addressFactory = sipFactory.createAddressFactory();
             messageFactory = sipFactory.createMessageFactory();
-            udpListeningPoint = sipStack.createListeningPoint("127.0.0.1", 5033, transport);
-            sipProvider = sipStack.createSipProvider(udpListeningPoint);
+            listeningPoint = sipStack.createListeningPoint("127.0.0.1", 5033, transport);
+            sipProvider = sipStack.createSipProvider(listeningPoint);
             Shootist listener = this;
-            sipProvider.addSipListener(listener);
+            sipProvider.addSipListener(listener);            
             sipStack.start();
         } catch(Exception e) {
         	e.printStackTrace();
@@ -393,7 +424,7 @@ public class Shootist implements SipListener {
             // Create ViaHeaders
 
             ArrayList viaHeaders = new ArrayList();
-            String ipAddress = udpListeningPoint.getIPAddress();
+            String ipAddress = listeningPoint.getIPAddress();
             ViaHeader viaHeader = headerFactory.createViaHeader(ipAddress,
                     sipProvider.getListeningPoint(transport).getPort(),
                     transport, null);
@@ -424,7 +455,7 @@ public class Shootist implements SipListener {
             String host = "127.0.0.1";
 
             SipURI contactUrl = addressFactory.createSipURI(fromName, host);
-            contactUrl.setPort(udpListeningPoint.getPort());
+            contactUrl.setPort(listeningPoint.getPort());
             contactUrl.setLrParam();
 
             // Create the contact name address.
@@ -520,5 +551,5 @@ public class Shootist implements SipListener {
     	if(sipStack != null)
         this.sipStack.stop();
     	started = false;
-    }
+    }	
 }

@@ -38,6 +38,8 @@
  */
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.ListeningPointExt;
+import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.address.SipUri;
 import gov.nist.javax.sip.header.HeaderFactoryExt;
 import gov.nist.javax.sip.header.SIPETag;
@@ -1179,12 +1181,14 @@ public class TestSipListener implements SipListener {
 		}
 	}
 	public void processResponse(ResponseEvent responseReceivedEvent) {
+		
 		if(abortProcessing) {
 			logger.error("Processing aborted");
 			return ;
 		}		
 		
 		Response response = (Response) responseReceivedEvent.getResponse();
+		System.out.println("Process response : " + response);
 		eventListener.uacAfterResponse(response.getStatusCode(), appServer);
 		if(response.getStatusCode() == 491) numberOf491s++;
 		RecordRouteHeader recordRouteHeader = (RecordRouteHeader)response.getHeader(RecordRouteHeader.NAME);
@@ -1561,8 +1565,8 @@ public class TestSipListener implements SipListener {
 				"127.0.0.1", myPort, protocolObjects.transport);
 		this.sipProvider = protocolObjects.sipStack
 				.createSipProvider(listeningPoint);
+		
 		return sipProvider;
-
 	}
 	
 	public void addListeningPoint(String ipAddress, int port, String transport) throws Exception {

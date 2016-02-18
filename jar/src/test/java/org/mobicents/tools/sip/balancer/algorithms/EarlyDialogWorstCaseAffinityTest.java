@@ -26,16 +26,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
 
 import java.util.Properties;
 
+import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
@@ -71,6 +72,8 @@ public class EarlyDialogWorstCaseAffinityTest{
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		properties.setProperty("algorithmClass", WorstCaseUdpTestAffinityAlgorithm.class.getName());
+		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
+		
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("internalPort", "5065");
 		properties.setProperty("externalPort", "5060");
@@ -79,7 +82,7 @@ public class EarlyDialogWorstCaseAffinityTest{
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q);			
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);			
 			servers[q].start();		
 		}
 		
@@ -200,9 +203,10 @@ public class EarlyDialogWorstCaseAffinityTest{
 		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
 		Thread.sleep(16000);
-		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
-		assertNotSame(ringingAppServer, okAppServer);
 		assertNotNull(ringingAppServer);
 		assertNotNull(okAppServer);
+		assertNotSame(ringingAppServer, okAppServer);
+		System.out.println(shootist.inviteRequest.toString());
+		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));		
 	}
 }
