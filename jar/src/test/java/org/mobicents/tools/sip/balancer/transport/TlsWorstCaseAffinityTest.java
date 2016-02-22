@@ -42,6 +42,7 @@ import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
+import org.mobicents.tools.smpp.balancer.ConfigInit;
 
 public class TlsWorstCaseAffinityTest{
 	BalancerRunner balancer;
@@ -80,9 +81,9 @@ public class TlsWorstCaseAffinityTest{
 		properties.setProperty("internalSecurePort", "5066");
 		properties.setProperty("externalSecurePort", "5061");
 		properties.setProperty("earlyDialogWorstCase", "true");
-		properties.setProperty("javax.net.ssl.keyStore", "/home/konstantinnosach/tmp/keystore");
+		properties.setProperty("javax.net.ssl.keyStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.keyStorePassword", "123456");
-		properties.setProperty("javax.net.ssl.trustStore", "/home/konstantinnosach/tmp/keystore");
+		properties.setProperty("javax.net.ssl.trustStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.trustStorePassword", "123456");
 		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS", "TLSv1");
 		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE", "Disabled");
