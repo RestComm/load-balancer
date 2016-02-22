@@ -1147,19 +1147,31 @@ public class SIPBalancerForwarder implements SipListener {
                         routeSipUri.setLrParam();
 
                         SipURI uri = (SipURI) request.getRequestURI();
-                        final RouteHeader route = balancerRunner.balancerContext.headerFactory.createRouteHeader(
-                                balancerRunner.balancerContext.addressFactory.createAddress(routeSipUri));
-                        request.addFirst(route);
+                        RouteHeader header = (RouteHeader) request.getHeader(RouteHeader.NAME);
 
-                        // For http://code.google.com/p/mobicents/issues/detail?id=2132
-                        if(originalRouteHeaderUri != null && request.getRequestURI().isSipURI()) {
-                            // we will just compare by hostport id
-                            String rurihostid = uri.getHost() + uri.getPort();
-                            String originalhostid = originalRouteHeaderUri.getHost() + originalRouteHeaderUri.getPort();
-                            if(rurihostid.equals(originalhostid)) {
-                                uri.setPort(routeSipUri.getPort());
-                                uri.setHost(routeSipUri.getHost());
-                            }
+                        if (isRouteHeaderExternal(uri.getHost(), uri.getPort()) || header != null)
+                        {
+	                        final RouteHeader route = balancerRunner.balancerContext.headerFactory.createRouteHeader(
+	                                balancerRunner.balancerContext.addressFactory.createAddress(routeSipUri));
+	                        request.addFirst(route);
+	
+	                        // If the request is meant for the AS it must recognize itself in the ruri, so update it too
+	                        // For http://code.google.com/p/mobicents/issues/detail?id=2132
+	                        if(originalRouteHeaderUri != null && request.getRequestURI().isSipURI()) {
+	                            // we will just compare by hostport id
+	                            String rurihostid = uri.getHost() + uri.getPort();
+	                            String originalhostid = originalRouteHeaderUri.getHost() + originalRouteHeaderUri.getPort();
+	                            if(rurihostid.equals(originalhostid)) {
+	                                uri.setPort(routeSipUri.getPort());
+	                                uri.setHost(routeSipUri.getHost());
+	                            }
+	                        }
+                        }
+                        else
+                        {
+                            //should not add any routes , packet is destinated to lb
+                            uri.setPort(routeSipUri.getPort());
+                            uri.setHost(routeSipUri.getHost());
                         }
 
                     } catch (Exception e) {

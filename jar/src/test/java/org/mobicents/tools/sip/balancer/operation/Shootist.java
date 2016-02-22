@@ -35,6 +35,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -68,21 +69,24 @@ import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
+import javax.sip.header.RouteHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import org.mobicents.tools.smpp.balancer.ConfigInit;
+
 import junit.framework.TestCase;
 import static junit.framework.TestCase.fail;
 
 public class Shootist implements SipListener {
-    private static AddressFactory addressFactory;
+    public AddressFactory addressFactory;
 
-    private static MessageFactory messageFactory;
+    private MessageFactory messageFactory;
 
-    private static HeaderFactory headerFactory;
+    public HeaderFactory headerFactory;
 
     private  SipProvider sipProvider;
 
@@ -110,16 +114,28 @@ public class Shootist implements SipListener {
     public LinkedList<Request> requests = new LinkedList<Request>();
     public LinkedList<Response> responses = new LinkedList<Response>();
 
+    private int localPort=5033;
+    private int randomizer;
+    
     public Shootist()
     {
-    	
+    	randomizer=(new Random()).nextInt(Integer.MAX_VALUE)+1;
     }
     
     public Shootist(String transport,int port)
     {
+    	this();
     	this.transport=transport;
     	this.peerHostPort = "127.0.0.1:" + port;
     	
+    }
+    
+    public Shootist(String transport,int port,int localPort)
+    {
+    	this();
+    	this.transport=transport;
+    	this.peerHostPort = "127.0.0.1:" + port;
+    	this.localPort=localPort;
     }
     
     class ByeTask  extends TimerTask {
@@ -144,7 +160,7 @@ public class Shootist implements SipListener {
     	try {
     		inviteRequest = request;
     		Response response = messageFactory.createResponse(180, request);
-    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:5033"));
+    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:" + localPort));
     		response.addHeader(contactHeader);
     		dialog = stx.getDialog();
     		stx.sendResponse(response );
@@ -155,7 +171,7 @@ public class Shootist implements SipListener {
 				e.printStackTrace();
 			}
     		response = messageFactory.createResponse(200, request);
-    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:5033"));
+    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:" + localPort));
     		response.addHeader(contactHeader);
     		dialog = stx.getDialog();
     		stx.sendResponse(response );
@@ -320,9 +336,10 @@ public class Shootist implements SipListener {
         SipFactory sipFactory = null;
         sipStack = null;
         sipFactory = SipFactory.getInstance();
-        sipFactory.setPathName("gov.nist");
+        sipFactory.resetFactory();		
         Properties properties = new Properties();
-        properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
+        properties.setProperty("javax.sip.STACK_NAME", "shootist " + randomizer);
+		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
 		properties.setProperty("javax.sip.OUTBOUND_PROXY", peerHostPort + "/"
                 + transport);
         // If you want to use UDP then uncomment this.
@@ -330,9 +347,9 @@ public class Shootist implements SipListener {
         properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
         if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
 		{
-        	properties.setProperty("javax.net.ssl.keyStore", "/home/konstantinnosach/tmp/keystore");
+        	properties.setProperty("javax.net.ssl.keyStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 			properties.setProperty("javax.net.ssl.keyStorePassword", "123456");
-			properties.setProperty("javax.net.ssl.trustStore", "/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("javax.net.ssl.trustStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 			properties.setProperty("javax.net.ssl.trustStorePassword", "123456");
 		}
 
@@ -375,7 +392,7 @@ public class Shootist implements SipListener {
             headerFactory = sipFactory.createHeaderFactory();
             addressFactory = sipFactory.createAddressFactory();
             messageFactory = sipFactory.createMessageFactory();
-            listeningPoint = sipStack.createListeningPoint("127.0.0.1", 5033, transport);
+            listeningPoint = sipStack.createListeningPoint("127.0.0.1", localPort, transport);
             sipProvider = sipStack.createSipProvider(listeningPoint);
             Shootist listener = this;
             sipProvider.addSipListener(listener);            
@@ -387,9 +404,14 @@ public class Shootist implements SipListener {
     }
 
     public void sendInitialInvite(){
-    	sendInitial("INVITE");
+    	sendInitial("INVITE",null);
     }
+    
     public void sendInitial(String method) {
+    	sendInitial(method,null);
+    }
+    
+    public void sendInitial(String method,RouteHeader route) {
     	try{
     		if(!started) start();
     		String fromName = "BigGuy";
@@ -478,6 +500,9 @@ public class Shootist implements SipListener {
                     "my header value");
             request.addHeader(extensionHeader);
 
+            if(route!=null)
+            	request.addHeader(route);
+            
             String sdpData = "v=0\r\n"
                     + "o=4855 13760799956958020 13760799956958020"
                     + " IN IP4  129.6.55.78\r\n" + "s=mysession session\r\n"

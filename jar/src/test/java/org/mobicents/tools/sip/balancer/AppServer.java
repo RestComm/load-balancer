@@ -72,7 +72,7 @@ public class AppServer {
 	public void start() {
 		timer = new Timer();
 		
-		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, null);		
+		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, false, true);		
 		sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
 		sipListener.appServer = this;
 		try {

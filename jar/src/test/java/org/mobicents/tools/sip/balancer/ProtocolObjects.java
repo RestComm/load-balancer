@@ -55,6 +55,8 @@ import javax.sip.address.AddressFactory;
 import javax.sip.header.HeaderFactory;
 import javax.sip.message.MessageFactory;
 
+import org.mobicents.tools.smpp.balancer.ConfigInit;
+
 
 
 /**
@@ -79,7 +81,7 @@ public class ProtocolObjects {
 	private boolean isStarted;
 
 	public ProtocolObjects(String stackname, String pathname, String transport,
-			boolean autoDialog, String outboundProxy) {
+			boolean autoDialog, boolean isBackToBackUserAgent, boolean isReentrant) {
 
 		this.transport = transport;
 		SipFactory sipFactory = SipFactory.getInstance();
@@ -89,10 +91,6 @@ public class ProtocolObjects {
 		properties.setProperty("javax.sip.STACK_NAME", stackname);
 		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
 		
-		if(outboundProxy != null) {
-			properties.setProperty("javax.sip.OUTBOUND_PROXY", outboundProxy + "/"
-				+ transport);
-		}
 		// The following properties are specific to nist-sip
 		// and are not necessarily part of any other jain-sip
 		// implementation.
@@ -112,13 +110,14 @@ public class ProtocolObjects {
 //		properties.setProperty("javax.sip.USE_ROUTER_FOR_ALL_URIS", "false");
 
 		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "4");
-		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
-		
+		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "" + isReentrant);
+		properties.setProperty("gov.nist.javax.sip.IS_BACK_TO_BACK_USER_AGENT", Boolean.toString(isBackToBackUserAgent));
+        
 		if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
 		{
-			properties.setProperty("javax.net.ssl.keyStore", "/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("javax.net.ssl.keyStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 			properties.setProperty("javax.net.ssl.keyStorePassword", "123456");
-			properties.setProperty("javax.net.ssl.trustStore", "/home/konstantinnosach/tmp/keystore");
+			properties.setProperty("javax.net.ssl.trustStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 			properties.setProperty("javax.net.ssl.trustStorePassword", "123456");
 			properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS", "TLSv1");
 			properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE", "Disabled");
