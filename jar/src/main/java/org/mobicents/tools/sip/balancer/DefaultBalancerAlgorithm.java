@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.sip.header.ExtensionHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -36,7 +35,6 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.Cookie;
 import org.jboss.netty.handler.codec.http.CookieDecoder;
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;

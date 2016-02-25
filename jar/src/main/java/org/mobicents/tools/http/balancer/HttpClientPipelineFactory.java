@@ -28,9 +28,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
-import org.jboss.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
 import org.jboss.netty.handler.ssl.SslHandler;
-import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 import com.cloudhopper.smpp.ssl.SslConfiguration;
@@ -57,18 +55,6 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = pipeline();
         String isRemoteServerSsl = balancerRunner.balancerContext.properties.getProperty("isRemoteServerSsl","false");
-        if(Boolean.parseBoolean(isRemoteServerSsl)){
-        	SslConfiguration sslConfig = new SslConfiguration();
-	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStore"));
-	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStorePassword"));
-	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStore"));
-	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStorePassword"));
-        	SslContextFactory factory = new SslContextFactory(sslConfig);
-    	    SSLEngine sslEngine = factory.newSslEngine();
-    	    sslEngine.setUseClientMode(false);
-            pipeline.addLast("ssl", new SslHandler(sslEngine));
-        }
-        
         pipeline.addLast("decoder", new HttpResponseDecoder());
         // Remove the following line if you don't want automatic content decompression.
         //pipeline.addLast("inflater", new HttpContentDecompressor()); 
@@ -77,6 +63,18 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         // https://telestax.atlassian.net/browse/LB-8 if commented accessing the RestComm Management console fails, so making the maxContentLength Configurable
         pipeline.addLast("aggregator", new HttpChunkAggregator(maxContentLength));
         pipeline.addLast("handler", new HttpResponseHandler());
+        
+        if(Boolean.parseBoolean(isRemoteServerSsl)){
+        	SslConfiguration sslConfig = new SslConfiguration();
+   	     	sslConfig.setTrustAll(true);
+   	     	sslConfig.setValidateCerts(true);
+   	     	sslConfig.setValidatePeerCerts(true);
+        	SslContextFactory factory = new SslContextFactory(sslConfig);
+    	    SSLEngine sslEngine = factory.newSslEngine();
+    	    sslEngine.setUseClientMode(true);
+            pipeline.addFirst("ssl", new SslHandler(sslEngine));
+        }
+        
         return pipeline;
     }
 

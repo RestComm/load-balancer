@@ -22,7 +22,6 @@ package org.mobicents.tools.http.balancer;
 import java.net.InetSocketAddress;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.log4j.Logger;
@@ -30,10 +29,8 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.mobicents.tools.sip.balancer.BalancerContext;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 /**

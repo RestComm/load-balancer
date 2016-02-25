@@ -179,7 +179,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                     if(logger.isDebugEnabled()) {
                         logger.debug("Dispatching HTTP request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("httpPort"));
                     }
-                    future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("httpPort")));
+                    future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), Integer.parseInt((String) node.getProperties().get("httpPort"))));
                 }
 
                 future.addListener(new ChannelFutureListener() {
