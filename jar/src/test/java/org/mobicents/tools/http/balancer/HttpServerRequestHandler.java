@@ -71,6 +71,8 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+		
+		Thread.sleep(2000);
 		Object msg = e.getMessage();
 		if ((msg instanceof HttpRequest) || (msg instanceof DefaultHttpChunk)) {
 			handle(ctx, e);

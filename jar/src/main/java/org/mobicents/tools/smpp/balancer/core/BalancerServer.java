@@ -34,6 +34,7 @@ import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.oio.OioServerSocketChannelFactory;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.impl.ServerChannelConnector;
 
 import com.cloudhopper.smpp.SmppServerConfiguration;
@@ -60,7 +61,7 @@ public class BalancerServer{
     private final AtomicLong sessionIdSequence;
     private DefaultSmppServerCounters counters;
      
-	public BalancerServer (SmppServerConfiguration regularConfiguration,SmppServerConfiguration securedConfiguration,ExecutorService executor, Properties properties, BalancerDispatcher lbServerListener, ScheduledExecutorService monitorExecutor) {
+	public BalancerServer (SmppServerConfiguration regularConfiguration,SmppServerConfiguration securedConfiguration,ExecutorService executor, BalancerRunner balancerRunner, BalancerDispatcher lbServerListener, ScheduledExecutorService monitorExecutor) {
         this.regularConfiguration = regularConfiguration;
         this.securedConfiguration=securedConfiguration;
         this.channels = new DefaultChannelGroup();
@@ -72,14 +73,14 @@ public class BalancerServer{
         
         this.regularBootstrap = new ServerBootstrap(this.channelFactory);
         this.regularBootstrap.setOption("reuseAddress", regularConfiguration.isReuseAddress());
-        this.serverConnector = new ServerChannelConnector(channels, this, regularConfiguration, properties, lbServerListener, monitorExecutor);
+        this.serverConnector = new ServerChannelConnector(channels, this, regularConfiguration, balancerRunner, lbServerListener, monitorExecutor);
         this.regularBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_SERVER_CONNECTOR_NAME, this.serverConnector);
         
         if(this.securedConfiguration!=null)
         {
         	this.securedBootstrap = new ServerBootstrap(this.channelFactory);
             this.securedBootstrap.setOption("reuseAddress", securedConfiguration.isReuseAddress());
-            this.securedConnector = new ServerChannelConnector(channels, this, securedConfiguration, properties, lbServerListener, monitorExecutor);
+            this.securedConnector = new ServerChannelConnector(channels, this, securedConfiguration, balancerRunner, lbServerListener, monitorExecutor);
             this.securedBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_SERVER_CONNECTOR_NAME, this.securedConnector);            
         }
         

@@ -22,6 +22,8 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.stack.StatsRetreiver;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -249,8 +251,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		}
 		if(properties.getProperty("smppPort")!=null)
 		{
-			smppBalancerRunner = new SmppBalancerRunner();
-			smppBalancerRunner.start(properties);
+			smppBalancerRunner = new SmppBalancerRunner(this);
+			smppBalancerRunner.start();
 		}	
 	}
 	Timer timer;
@@ -411,6 +413,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 
 	//JMX 
+	//SIP Balancer
 	public long getNodeExpiration() {		
 		return reg.getNodeExpiration();
 	}
@@ -425,6 +428,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 
 	public long getNumberOfResponsesProcessed() {
 		return sipForwarder.getNumberOfResponsesProcessed();
+	}
+	public long getNumberOfBytesTransferred()
+	{
+		return sipForwarder.getNumberOfBytesTransferred();	
 	}
 
 	public Map<String, AtomicLong> getNumberOfRequestsProcessedByMethod() {
@@ -442,6 +449,82 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public long getResponsesProcessedByStatusCode(String statusCode) {
 		return sipForwarder.getResponsesProcessedByStatusCode(statusCode);
 	}
+	
+	public int getNumberOfActiveSipConnections()
+	{
+		return StatsRetreiver.getOpenConnections(balancerContext.sipStack);
+	}
+	
+	//HTTP balancer
+	
+	public long getNumberOfHttpRequests() 
+	{
+		return httpBalancerForwarder.getNumberOfHttpRequests();
+	}
+	
+	public long getNumberOfHttpBytesToServer() 
+	{
+		return httpBalancerForwarder.getNumberOfHttpBytesToServer();
+	}
+	
+	public long getNumberOfHttpBytesToClient() 
+	{
+		return httpBalancerForwarder.getNumberOfHttpBytesToClient();
+	}
+	
+	public long getHttpRequestsProcessedByMethod(String method) 
+	{
+		return httpBalancerForwarder.getHttpRequestsProcessedByMethod(method);
+	}
+	
+	public long getHttpResponseProcessedByCode(String code) 
+	{
+		return httpBalancerForwarder.getHttpResponseProcessedByCode(code);
+	}
+	
+	public int getNumberOfActiveHttpConnections()
+	{
+		return httpBalancerForwarder.getNumberOfActiveHttpConnections();
+	}
+	
+	//SMPP balancer
+	public long getNumberOfSmppRequestsToServer() 
+	{
+		return smppBalancerRunner.getNumberOfSmppRequestsToServer();
+	}
+	
+	public long getNumberOfSmppRequestsToClient() 
+	{
+		return smppBalancerRunner.getNumberOfSmppRequestsToClient();
+	}
+	
+	public long getNumberOfSmppBytesToServer() 
+	{
+		return smppBalancerRunner.getNumberOfSmppBytesToServer();
+	}
+	
+	public long getNumberOfSmppBytesToClient() 
+	{
+		return smppBalancerRunner.getNumberOfSmppBytesToClient();
+	}
+	
+	public long getSmppRequestsProcessedById(Integer id) 
+	{
+		return smppBalancerRunner.getSmppRequestsProcessedById(id);
+	}
+	
+	public long getSmppResponsesProcessedById(Integer id) 
+	{
+		return smppBalancerRunner.getSmppResponsesProcessedById(id);
+	}
+	
+	public int getNumberOfActiveSmppConnections()
+	{
+		return smppBalancerRunner.getNumberOfActiveSmppConnections();
+	}
+	
+	
+	
 	
 	public void setNodeExpiration(long value) {
 		reg.setNodeExpiration(value);
@@ -479,6 +562,18 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		for(InvocationContext ctx : contexts.values()) {
 			ctx.balancerAlgorithm.configurationChanged();
 		}
+	}
+	
+	@Override
+	public double getJvmCpuUsage() 
+	{
+		return ((com.sun.management.OperatingSystemMXBean)ManagementFactory.getOperatingSystemMXBean()).getProcessCpuLoad();
+	}
+	
+	@Override
+	public long getJvmHeapSize() 
+	{
+		return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();
 	}
 }
 

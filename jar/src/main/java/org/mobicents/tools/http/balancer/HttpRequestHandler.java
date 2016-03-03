@@ -84,7 +84,10 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
         Object msg = e.getMessage();
         if (msg instanceof HttpRequest) {
+        	balancerRunner.balancerContext.httpRequests.incrementAndGet();
             request = (HttpRequest)e.getMessage();
+            balancerRunner.balancerContext.httpRequestsProcessedByMethod.get(request.getMethod().getName()).incrementAndGet();
+            balancerRunner.balancerContext.httpBytesToServer.addAndGet(request.getContent().capacity());
             String telestaxHeader = request.headers().get("TelestaxProxy"); 
             if (telestaxHeader != null && telestaxHeader.equalsIgnoreCase("true")) {
                 balancerRunner.getLatestInvocationContext().balancerAlgorithm.proxyMessage(ctx, e);

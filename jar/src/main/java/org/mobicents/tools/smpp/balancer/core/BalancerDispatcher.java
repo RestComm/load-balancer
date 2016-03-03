@@ -20,14 +20,13 @@
 package org.mobicents.tools.smpp.balancer.core;
 
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.LbClientListener;
 import org.mobicents.tools.smpp.balancer.api.LbServerListener;
@@ -46,6 +45,7 @@ import com.cloudhopper.smpp.ssl.SslConfiguration;
  */
 
 public class BalancerDispatcher implements LbClientListener, LbServerListener {
+	
 
 	private Map<Long, ServerConnection> serverSessions = new ConcurrentHashMap<Long, ServerConnection>();
 	private Map<Long, ClientConnection> clientSessions = new ConcurrentHashMap<Long, ClientConnection>();
@@ -53,17 +53,17 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	private AtomicInteger notRespondedPackets = new AtomicInteger(0);
 	private RemoteServer [] remoteServers;
 	private AtomicInteger i = new AtomicInteger(0);
-	private Properties properties;
 	private ScheduledExecutorService monitorExecutor; 
 	private ExecutorService handlerService = Executors.newCachedThreadPool();
 	private long reconnectPeriod;
-	
-	public BalancerDispatcher(Properties properties, ScheduledExecutorService monitorExecutor)
+	private BalancerRunner balancerRunner;
+
+	public BalancerDispatcher(BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor)
 	{
-		this.reconnectPeriod = Long.parseLong(properties.getProperty("reconnectPeriod"));
-		this.properties = properties;
+		this.balancerRunner = balancerRunner;
+		this.reconnectPeriod = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("reconnectPeriod"));
 		this.monitorExecutor = monitorExecutor;
-		String [] s = properties.getProperty("remoteServers").split(",");
+		String [] s = balancerRunner.balancerContext.properties.getProperty("remoteServers").split(",");
 		this.remoteServers = new RemoteServer[s.length];
 		String [] sTmp = new String[2];
 		for(int i = 0; i < s.length; i++)
@@ -95,12 +95,16 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	@Override
 	public void bindRequested(Long sessionId, ServerConnectionImpl serverConnection, Pdu packet)  
 	{
+		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
+		
  		int serverIndex = i.getAndIncrement() % remoteServers.length;
 		serverSessions.put(sessionId,serverConnection);
 		SmppSessionConfiguration sessionConfig = serverConnection.getConfig();
 		sessionConfig.setHost(remoteServers[serverIndex].getIP());
 		sessionConfig.setPort(remoteServers[serverIndex].getPort());
-		sessionConfig.setUseSsl(Boolean.parseBoolean(properties.getProperty("isRemoteServerSsl")));
+		sessionConfig.setUseSsl(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isRemoteServerSsl")));
 		if(sessionConfig.isUseSsl())
 		{
 			 SslConfiguration sslConfig = new SslConfiguration();
@@ -109,7 +113,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 		     sslConfig.setValidatePeerCerts(true);
 		     sessionConfig.setSslConfiguration(sslConfig);
 		}
-		clientSessions.put(sessionId, new ClientConnectionImpl(sessionId, sessionConfig, this, monitorExecutor, properties, packet, serverIndex));
+		clientSessions.put(sessionId, new ClientConnectionImpl(sessionId, sessionConfig, this, monitorExecutor, balancerRunner , packet, serverIndex));
 		handlerService.execute(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, serverIndex, remoteServers));
 
 	}
@@ -117,18 +121,28 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	@Override
 	public void unbindRequested(Long sessionID, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
+		
 		clientSessions.get(sessionID).sendUnbindRequest(packet);
 	}
 
 	@Override
 	public void bindSuccesfull(long sessionID, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppResponsesProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
+		
 		serverSessions.get(sessionID).sendBindResponse(packet);
 	}
 	
 	@Override
 	public void unbindSuccesfull(long sessionID, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppResponsesProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
+		
 		serverSessions.get(sessionID).sendUnbindResponse(packet);
 		clientSessions.remove(sessionID);
 		serverSessions.remove(sessionID);
@@ -137,6 +151,9 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	@Override
 	public void bindFailed(long sessionID, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppResponsesProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
+		
 		serverSessions.get(sessionID).sendBindResponse(packet);
 		clientSessions.remove(sessionID);
 		serverSessions.remove(sessionID);
@@ -145,26 +162,38 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	@Override
 	public void smppEntityRequested(Long sessionID, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
+		
 		clientSessions.get(sessionID).sendSmppRequest(packet);
-
 	}
 
 	@Override
 	public void smppEntityResponse(Long sessionID, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppResponsesProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
+		
 		serverSessions.get(sessionID).sendResponse(packet);
-
 	}
 
 	@Override
 	public void smppEntityRequestFromServer(Long sessionId, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppRequestsToClient.getAndIncrement();
+		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
+		
 		serverSessions.get(sessionId).sendRequest(packet);
 	}
 	
 	@Override
 	public void smppEntityResponseFromClient(Long sessionId, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppResponsesProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
+		
 		clientSessions.get(sessionId).sendSmppResponse(packet);
 	}
 	
@@ -205,12 +234,19 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	@Override
 	public void unbindRequestedFromServer(Long sessionId, Pdu packet) 
 	{
+		balancerRunner.balancerContext.smppRequestsToClient.getAndIncrement();
+		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
+		
 		serverSessions.get(sessionId).sendUnbindRequest(packet);
 	}
 	
 	@Override
 	public void unbindSuccesfullFromServer(Long sessionId, Pdu packet)
 	{
+		balancerRunner.balancerContext.smppResponsesProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
+		
 		if(clientSessions.get(sessionId)!=null)
 		{
 			clientSessions.get(sessionId).sendUnbindResponse(packet);

@@ -62,7 +62,7 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         // http://code.google.com/p/commscale/issues/detail?id=5 support for HttpChunks, 
         // https://telestax.atlassian.net/browse/LB-8 if commented accessing the RestComm Management console fails, so making the maxContentLength Configurable
         pipeline.addLast("aggregator", new HttpChunkAggregator(maxContentLength));
-        pipeline.addLast("handler", new HttpResponseHandler());
+        pipeline.addLast("handler", new HttpResponseHandler(balancerRunner));
         
         if(Boolean.parseBoolean(isRemoteServerSsl)){
         	SslConfiguration sslConfig = new SslConfiguration();

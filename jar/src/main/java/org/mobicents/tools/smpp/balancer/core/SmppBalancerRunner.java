@@ -19,24 +19,12 @@
 
 package org.mobicents.tools.smpp.balancer.core;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Enumeration;
-import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.Appender;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.xml.DOMConfigurator;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.ssl.SslConfiguration;
@@ -46,136 +34,53 @@ import com.cloudhopper.smpp.ssl.SslConfiguration;
  */
 
 public class SmppBalancerRunner {
-
-	private static final Logger logger = Logger.getLogger(SmppBalancerRunner.class);
 	
 	private BalancerDispatcher balancerDispatcher;
 	private ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 	private ScheduledExecutorService monitorExecutor  = Executors.newScheduledThreadPool(4);
 	private BalancerServer smppLbServer;
-	
-	static {
-		String logLevel =  System.getProperty("logLevel", "INFO");
-		String logConfigFile = System.getProperty("logConfigFile");
+	private BalancerRunner balancerRunner;
 
-		if(logConfigFile == null) {
-			@SuppressWarnings("unchecked")
-			Enumeration<Appender> appenders=Logger.getRootLogger().getAllAppenders();
-			Boolean found=false;
-			while(appenders.hasMoreElements())
-			{
-				Appender curr=appenders.nextElement();
-				if(curr instanceof ConsoleAppender)
-				{
-					curr.setLayout(new PatternLayout("%d %p %t - %m%n"));
-					found=true;
-					break;
-				}
-			}
-			if(!found)
-				Logger.getRootLogger().addAppender(new ConsoleAppender(new PatternLayout("%d %p %t - %m%n")));
-			Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
-		} else {
-		    DOMConfigurator.configure(logConfigFile);
-		}
-	}
-	
-	Timer timer;
-	long lastupdate = 0;
 	/**
-	 * Start load balancer using configuration file
-	 * and check changes in file for update
-	 * @param configurationFileLocation
+	 * Start load balancer
+	 * @param balancerRunner
 	 */
-	public void start(final String configurationFileLocation){
-		
-		File file = new File(configurationFileLocation);
-		lastupdate = file.lastModified();
-        FileInputStream fileInputStream = null;
-        try {
-        	fileInputStream = new FileInputStream(file);
-		} catch (FileNotFoundException e) {
-			throw new IllegalArgumentException("the configuration file location " + configurationFileLocation + " does not exists !");
-		}
-        
-        final Properties properties = new Properties(System.getProperties());
-        try {
-			properties.load(fileInputStream);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
-		} finally {
-			try {
-				fileInputStream.close();
-			} catch (IOException e) {
-				logger.warn("Problem closing file " + e);
-			}
-		}
-        timer = new Timer();
-		timer.scheduleAtFixedRate(new TimerTask() {
-			public void run() {
-				File conf = new File(configurationFileLocation);
-				if(lastupdate < conf.lastModified()) {
-					lastupdate = conf.lastModified();
-					logger.info("Configuration file changed, applying changes.");
-					FileInputStream fileInputStream = null;
-					try {
-							fileInputStream = new FileInputStream(conf);
-							properties.load(fileInputStream);
-							logger.info("Changes applied.");
-						
-					} catch (Exception e) {
-						logger.warn("Problem reloading configuration " + e);
-					} finally {
-						if(fileInputStream != null) {
-							try {
-								fileInputStream.close();
-							} catch (Exception e) {
-								logger.error("Problem closing stream " + e);
-							}
-						}
-					}
-				}
-			}
-		}, 3000, 2000);
-
-        start(properties);
+	public SmppBalancerRunner(BalancerRunner balancerRunner)
+	{
+		this.balancerRunner = balancerRunner;
 	}
-	/**
-	 * Start load balancer using properies
-	 * @param properties
-	 */
-	public void start(Properties properties)
+	public void start()
 	{
         SmppServerConfiguration regularConfiguration = new SmppServerConfiguration();
-        regularConfiguration.setName(properties.getProperty("smppName"));
-        regularConfiguration.setHost(properties.getProperty("smppHost"));
-        regularConfiguration.setPort(Integer.parseInt(properties.getProperty("smppPort")));
-        regularConfiguration.setMaxConnectionSize(Integer.parseInt(properties.getProperty("maxConnectionSize")));
-        regularConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(properties.getProperty("nonBlockingSocketsEnabled")));
-        regularConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(properties.getProperty("defaultSessionCountersEnabled")));
+        regularConfiguration.setName(balancerRunner.balancerContext.properties.getProperty("smppName"));
+        regularConfiguration.setHost(balancerRunner.balancerContext.properties.getProperty("smppHost"));
+        regularConfiguration.setPort(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("smppPort")));
+        regularConfiguration.setMaxConnectionSize(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("maxConnectionSize")));
+        regularConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("nonBlockingSocketsEnabled")));
+        regularConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("defaultSessionCountersEnabled")));
         regularConfiguration.setUseSsl(false);                
         
         SmppServerConfiguration securedConfiguration = null;
-        if(properties.getProperty("smppSslPort")!=null)
+        if(balancerRunner.balancerContext.properties.getProperty("smppSslPort")!=null)
         {
         	securedConfiguration = new SmppServerConfiguration();
-        	securedConfiguration.setName(properties.getProperty("smppName"));
-        	securedConfiguration.setHost(properties.getProperty("smppHost"));
-	        securedConfiguration.setPort(Integer.parseInt(properties.getProperty("smppSslPort")));
-	        securedConfiguration.setMaxConnectionSize(Integer.parseInt(properties.getProperty("maxConnectionSize")));
-	        securedConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(properties.getProperty("nonBlockingSocketsEnabled")));
-	        securedConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(properties.getProperty("defaultSessionCountersEnabled")));
+        	securedConfiguration.setName(balancerRunner.balancerContext.properties.getProperty("smppName"));
+        	securedConfiguration.setHost(balancerRunner.balancerContext.properties.getProperty("smppHost"));
+	        securedConfiguration.setPort(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("smppSslPort")));
+	        securedConfiguration.setMaxConnectionSize(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("maxConnectionSize")));
+	        securedConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("nonBlockingSocketsEnabled")));
+	        securedConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("defaultSessionCountersEnabled")));
 	        securedConfiguration.setUseSsl(true);
             SslConfiguration sslConfig = new SslConfiguration();
-	        sslConfig.setKeyStorePath(properties.getProperty("javax.net.ssl.keyStore"));
-	        sslConfig.setKeyStorePassword(properties.getProperty("javax.net.ssl.keyStorePassword"));
-	        sslConfig.setTrustStorePath(properties.getProperty("javax.net.ssl.trustStore"));
-	        sslConfig.setTrustStorePassword(properties.getProperty("javax.net.ssl.trustStorePassword"));
+	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStore"));
+	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStorePassword"));
+	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStore"));
+	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStorePassword"));
 	        securedConfiguration.setSslConfiguration(sslConfig);        
         } 
         
-        balancerDispatcher = new BalancerDispatcher(properties,monitorExecutor);
-		smppLbServer = new BalancerServer(regularConfiguration, securedConfiguration, executor, properties, balancerDispatcher, monitorExecutor);
+        balancerDispatcher = new BalancerDispatcher(balancerRunner,monitorExecutor);
+		smppLbServer = new BalancerServer(regularConfiguration, securedConfiguration, executor, balancerRunner, balancerDispatcher, monitorExecutor);
         smppLbServer.start();
 	}
 	public void stop()
@@ -188,6 +93,69 @@ public class SmppBalancerRunner {
 	public BalancerDispatcher getBalancerDispatcher() 
 	{
 		return balancerDispatcher;
+	}
+	//Statistic
+	/**
+     * @return the smppRequestsToServer
+     */
+	public long getNumberOfSmppRequestsToServer() 
+	{
+		return balancerRunner.balancerContext.smppRequestsToServer.get();
+	}
+	/**
+     * @return the smppRequestsToClient
+     */
+	public long getNumberOfSmppRequestsToClient()
+	{
+		return balancerRunner.balancerContext.smppRequestsToClient.get();
+	}
+	
+	/**
+     * @return the smppBytesToServer
+     */
+	public long getNumberOfSmppBytesToServer()
+	{
+		return balancerRunner.balancerContext.smppBytesToServer.get();
+	}
+	
+	/**
+     * @return the smppBytesToClient
+     */
+	public long getNumberOfSmppBytesToClient()
+	{
+		return balancerRunner.balancerContext.smppBytesToClient.get();
+	}
+	
+	/**
+     * @return the smppRequestsProcessedById
+     */
+	public long getSmppRequestsProcessedById(Integer id) 
+	{
+	        AtomicLong smppRequestsProcessed = balancerRunner.balancerContext.smppRequestsProcessedById.get(id);
+	        if(smppRequestsProcessed != null) {
+	            return smppRequestsProcessed.get();
+	        }
+	        return 0;
+	}
+	
+	/**
+     * @return the smppResponsesProcessedById
+     */
+	public long getSmppResponsesProcessedById(Integer id) 
+	{
+	        AtomicLong smppResponsesProcessed = balancerRunner.balancerContext.smppResponsesProcessedById.get(id);
+	        if(smppResponsesProcessed != null) {
+	            return smppResponsesProcessed.get();
+	        }
+	        return 0;
+	}
+	
+	/**
+     * @return the NumberOfActiveSmppConnections
+     */
+	public int getNumberOfActiveSmppConnections()
+	{
+		return balancerDispatcher.getClientSessions().size() + balancerDispatcher.getServerSessions().size();
 	}
 
 }

@@ -31,6 +31,7 @@ import gov.nist.javax.sip.header.RouteList;
 import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.SIPMessage;
 import gov.nist.javax.sip.message.SIPResponse;
+import gov.nist.javax.sip.stack.LoadBalancerNioMessageProcessorFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.Serializable;
@@ -244,12 +245,14 @@ public class SIPBalancerForwarder implements SipListener {
             // Create SipStack object
             sipFactory = SipFactory.getInstance();
             sipFactory.setPathName("gov.nist");
+            
+            balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", LoadBalancerNioMessageProcessorFactory.class.getName());    		
             balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", SIPBalancerValveProcessor.class.getName());
             if(balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE") == null) {
                 balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE", "100");
             }
 
-            balancerRunner.balancerContext.sipStack = sipFactory.createSipStack(balancerRunner.balancerContext.properties);
+            balancerRunner.balancerContext.sipStack = (SipStackImpl) sipFactory.createSipStack(balancerRunner.balancerContext.properties);
 
         } catch (PeerUnavailableException pue) {
             // could not find
@@ -667,8 +670,7 @@ public class SIPBalancerForwarder implements SipListener {
 					Arrays.asList(blockedValues.split(",")));
 
 			balancerRunner.balancerContext.sipStack.start();
-			SipStackImpl stackImpl = (SipStackImpl) balancerRunner.balancerContext.sipStack;
-			SIPBalancerValveProcessor valve = (SIPBalancerValveProcessor) stackImpl.sipMessageValve;
+			SIPBalancerValveProcessor valve = (SIPBalancerValveProcessor) balancerRunner.balancerContext.sipStack.sipMessageValve;
 			valve.balancerRunner = balancerRunner;
         } catch (Exception ex) {
             throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
@@ -683,10 +685,11 @@ public class SIPBalancerForwarder implements SipListener {
 
     public void stop() {
         if(balancerRunner.balancerContext.sipStack == null) return;// already stopped
-        Iterator<SipProvider> sipProviderIterator = balancerRunner.balancerContext.sipStack.getSipProviders();
+        @SuppressWarnings("rawtypes")
+		Iterator sipProviderIterator = balancerRunner.balancerContext.sipStack.getSipProviders();
         try{
             while (sipProviderIterator.hasNext()) {
-                SipProvider sipProvider = sipProviderIterator.next();
+                SipProvider sipProvider = (SipProvider)sipProviderIterator.next();
                 sipProvider.removeSipListener(this);
                 ListeningPoint[] listeningPoints = sipProvider.getListeningPoints();
                 balancerRunner.balancerContext.sipStack.deleteSipProvider(sipProvider);	
@@ -804,6 +807,7 @@ public class SIPBalancerForwarder implements SipListener {
     private void updateStats(Message message) {
         if(balancerRunner.balancerContext.gatherStatistics) {
             if(message instanceof Request) {
+            	balancerRunner.balancerContext.bytesTransferred.addAndGet(((Request) message).getContentLength().getContentLength());
                 balancerRunner.balancerContext.requestsProcessed.incrementAndGet();
                 final String method = ((Request) message).getMethod();
                 final AtomicLong requestsProcessed = balancerRunner.balancerContext.requestsProcessedByMethod.get(method);
@@ -814,6 +818,7 @@ public class SIPBalancerForwarder implements SipListener {
                 }
             } else {
                 balancerRunner.balancerContext.responsesProcessed.incrementAndGet();
+                balancerRunner.balancerContext.bytesTransferred.addAndGet(((Response) message).getContentLength().getContentLength());
                 final int statusCode = ((Response)message).getStatusCode();				
                 int statusCodeDiv = statusCode / 100;
                 switch (statusCodeDiv) {
@@ -1864,14 +1869,22 @@ public class SIPBalancerForwarder implements SipListener {
     }
 
     /**
-     * @return the requestsProcessed
+     * @return the responsesProcessed
      */
     public long getNumberOfResponsesProcessed() {
         return balancerRunner.balancerContext.responsesProcessed.get();
     }
+    
+    /**
+     * @return the bytesTransfered
+     */
+    public long getNumberOfBytesTransferred()
+    {
+    	return balancerRunner.balancerContext.bytesTransferred.get();
+    }
 
     /**
-     * @return the requestsProcessed
+     * @return the requestsProcessedByMethod
      */
     public long getRequestsProcessedByMethod(String method) {
         AtomicLong requestsProcessed = balancerRunner.balancerContext.requestsProcessedByMethod.get(method);
@@ -1881,6 +1894,9 @@ public class SIPBalancerForwarder implements SipListener {
         return 0;
     }
 
+    /**
+     * @return the responsesProcessedByStatusCode
+     */
     public long getResponsesProcessedByStatusCode(String statusCode) {
         AtomicLong responsesProcessed = balancerRunner.balancerContext.responsesProcessedByStatusCode.get(statusCode);
         if(responsesProcessed != null) {

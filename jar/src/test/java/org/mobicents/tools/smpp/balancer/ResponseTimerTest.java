@@ -22,7 +22,6 @@ package org.mobicents.tools.smpp.balancer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -84,8 +83,8 @@ public class ResponseTimerTest {
 		}
 
 		//start lb
-        loadBalancerSmpp = new SmppBalancerRunner();
-        loadBalancerSmpp.start(ConfigInit.getLbProperties(false,false));
+        loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,false));
+        loadBalancerSmpp.start();
 	}
 	//tests work of response timer
 	@Test

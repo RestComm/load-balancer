@@ -30,6 +30,7 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.handler.ssl.SslHandler;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.mobicents.tools.smpp.balancer.core.BalancerServer;
 
@@ -50,16 +51,16 @@ public class ServerChannelConnector extends SimpleChannelUpstreamHandler {
     private ChannelGroup channels;
     private BalancerServer server;
     private BalancerDispatcher lbServerListener;
-    private Properties properties;
+    private BalancerRunner balancerRunner;
     private ScheduledExecutorService monitorExecutor;
     private SmppServerConfiguration configuration;
     
-    public ServerChannelConnector(ChannelGroup channels, BalancerServer smppServer, SmppServerConfiguration configuration, Properties properties, BalancerDispatcher lbServerListener,ScheduledExecutorService monitorExecutor) 
+    public ServerChannelConnector(ChannelGroup channels, BalancerServer smppServer, SmppServerConfiguration configuration, BalancerRunner balancerRunner, BalancerDispatcher lbServerListener,ScheduledExecutorService monitorExecutor) 
     {
         this.channels = channels;
         this.server = smppServer;
         this.lbServerListener = lbServerListener;
-        this.properties = properties;
+        this.balancerRunner = balancerRunner;
         this.monitorExecutor = monitorExecutor;
         this.configuration=configuration;
     }
@@ -80,7 +81,7 @@ public class ServerChannelConnector extends SimpleChannelUpstreamHandler {
         }
 
         channel.getPipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_PDU_DECODER_NAME, new SmppSessionPduDecoder(new DefaultPduTranscoder(new DefaultPduTranscoderContext())));
-        ServerConnectionImpl serverConnectionImpl = new ServerConnectionImpl(server.nextSessionId(),channel,lbServerListener, properties, monitorExecutor);
+        ServerConnectionImpl serverConnectionImpl = new ServerConnectionImpl(server.nextSessionId(),channel,lbServerListener, balancerRunner, monitorExecutor);
         channel.getPipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_WRAPPER_NAME, new ServerConnectionHandlerImpl(serverConnectionImpl));
       }
 

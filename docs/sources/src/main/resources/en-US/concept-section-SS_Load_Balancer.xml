@@ -274,7 +274,9 @@ gov.nist.javax.sip.SERVER_LOG = logs/sipbalancerforwarder.xml
 gov.nist.javax.sip.THREAD_POOL_SIZE = 64
 gov.nist.javax.sip.REENTRANT_LISTENER = true
 gov.nist.javax.sip.AGGRESSIVE_CLEANUP=true
-gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY=gov.nist.javax.sip.stack.NioMessageProcessorFactory
+#this property we set statically "gov.nist.javax.sip.stack.LoadBalancerNioMessageProcessorFactory" 
+#for statistic correct working
+#gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY=gov.nist.javax.sip.stack.NioMessageProcessorFactory
 
 #If a node doesnt check in within that time (in ms), it is considered dead.
 nodeTimeout=8400
@@ -1697,5 +1699,124 @@ ip=127.0.0.1
         </listitem>
       </itemizedlist>
     </section>
+  </section>
+
+  <section>
+    <title>Getting statistic</title>
+
+    <para>Load balancers provide some statistic by Java Management
+    Extensions:</para>
+
+    <orderedlist>
+      <listitem>
+        <para>SIP balancer statistic:</para>
+
+        <orderedlist numeration="loweralpha">
+          <listitem>
+            <para>Number of processed requests;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of processed responses;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of transferred bytes;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of requests processed by method;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of responses processed by status code;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of active connections(if transport is UDP we can't
+            get this value);</para>
+          </listitem>
+        </orderedlist>
+      </listitem>
+
+      <listitem>
+        <para>HTTP balancer statistic:</para>
+
+        <orderedlist numeration="loweralpha">
+          <listitem>
+            <para>Number of HTTP request;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of bytes transferred to server;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of bytes transferred to client;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of requests processed by HTTP method;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of responses processed by HTTP code;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of active connections;</para>
+          </listitem>
+        </orderedlist>
+      </listitem>
+
+      <listitem>
+        <para>SMPP balancer statistic:</para>
+
+        <orderedlist numeration="loweralpha">
+          <listitem>
+            <para>Number of requests to server;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of requests to client;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of bytes transferred to server;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of bytes transferred to client;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of requests processed by SMPP Command ID;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of responses processed by SMPP Command ID;</para>
+          </listitem>
+
+          <listitem>
+            <para>Number of active connections;</para>
+          </listitem>
+        </orderedlist>
+      </listitem>
+
+      <listitem>
+        <para>Other data:</para>
+
+        <orderedlist numeration="loweralpha">
+          <listitem>
+            <para>Recent CPU usage for the Java Virtual Machine
+            process;</para>
+          </listitem>
+
+          <listitem>
+            <para>Amount of used memory of the heap in bytes.</para>
+          </listitem>
+        </orderedlist>
+      </listitem>
+    </orderedlist>
   </section>
 </chapter>

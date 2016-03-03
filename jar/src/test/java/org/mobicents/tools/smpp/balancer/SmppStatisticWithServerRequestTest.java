@@ -36,18 +36,21 @@ import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.impl.DefaultSmppServer;
+import com.cloudhopper.smpp.pdu.BaseSm;
+import com.cloudhopper.smpp.pdu.DataSm;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class CommonTest{
+public class SmppStatisticWithServerRequestTest{
 	
-	private static final Logger logger = LoggerFactory.getLogger(CommonTest.class);
+	
+	private static final Logger logger = LoggerFactory.getLogger(SmppStatisticWithServerRequestTest.class);
 	
 	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 
@@ -60,8 +63,8 @@ public class CommonTest{
          }
      }); 
     
-    private static int serverNumbers = 3;
-    private static DefaultSmppServer [] serverArray;
+    private static int serverNumbers = 1;
+    private static TestSmppServer [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
     private static SmppBalancerRunner loadBalancerSmpp;
@@ -69,11 +72,11 @@ public class CommonTest{
 	@BeforeClass
 	public static void initialization() {
 		//start servers
-        serverArray = new DefaultSmppServer[serverNumbers];
+        serverArray = new TestSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
+			serverArray[i] = new TestSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -90,76 +93,22 @@ public class CommonTest{
         loadBalancerSmpp.start();
 	}
 
-	//tests round-robin algorithm
+	//tests statistic of SMPP load balancer
 	@Test
-    public void testRoundRobin() 
+    public void testStatisticVariable() 
     {   
-		int clientNumbers = 33;
-		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int smsNumber = 1;
-		Locker locker=new Locker(clientNumbers);
-
-		for(int i = 0; i < clientNumbers; i++)
-			new Load(i, smsNumber, locker).start();
-			
-		locker.waitForClients();
-
-		for(int i = 0; i < serverNumbers; i++)
-			 assertEquals(clientNumbers/serverNumbers, serverArray[i].getBindRequested());
-		
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
-    }
-	//tests correct packet transfer through load balancer
-	@Test
-    public void testPacketTransfer() 
-    {
-		int clientNumbers = 12;
-		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int smsNumberFromClient = 10;
-		int smsNumberPerServer = clientNumbers/serverNumbers*smsNumberFromClient;
-		Locker locker=new Locker(clientNumbers);
-		for(int i = 0; i < clientNumbers; i++)
-		{
-		new Load(i, smsNumberFromClient,locker).start();
-		}
-	    locker.waitForClients();
-	    for(int i = 0; i < serverNumbers; i++)
-	    	assertEquals(smsNumberPerServer,serverHandlerArray[i].getSmsNumber().get());
-	    assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
-    }
-	//tests work of enquire link timer
-	@Test
-    public void testEnquireLinkTimer() 
-    {
 		int clientNumbers = 1;
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int smsNumberFromClient = 0;
 		Locker locker=new Locker(clientNumbers);
+
 		for(int i = 0; i < clientNumbers; i++)
-			new Load(i, smsNumberFromClient,locker).start();
+			new Load(i, locker).start();
 
 		locker.waitForClients();
+		assertEquals(1, loadBalancerSmpp.getNumberOfSmppRequestsToClient());
 		
-		assertEquals(2,serverHandlerArray[0].getEnqLinkNumber().get());
-		assertEquals(2,clientHandlerArray[0].getEnqLinkNumber().get());
-	    assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-	  	assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
     }
-	//tests work of session initialization timer
-	@Test
-    public void testSessionInitTimer() 
-    {
-		ClientConnectOnly dummyClient = new ClientConnectOnly();
-		try {
-			dummyClient.bind(ConfigInit.getSmppSessionConfiguration(0,false));
-			Thread.sleep(2000);
-		} catch (Exception e) {
-			logger.error("", e);
-		} 
-		assertEquals(1,loadBalancerSmpp.getBalancerDispatcher().getNotBindClients().get());
-    }
+	
 	@After
 	public void resetCounters()
 	{
@@ -190,12 +139,11 @@ public class CommonTest{
 	private class Load extends Thread{
 		private int i;
 		private ClientListener listener;
-		private int smsNumber;
-		Load (int i, int smsNumber, ClientListener listener)
+		Load (int i, ClientListener listener)
 		{
-			this.i =i;
+			this.i = i;
 			this.listener = listener;
-			this.smsNumber = smsNumber;
+
 		}
 		
 		public void run()
@@ -206,18 +154,15 @@ public class CommonTest{
 			{
 			 clientHandlerArray[i] = new  DefaultSmppClientHandler();
 			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i,false), clientHandlerArray[i]);
-			 for(int j = 0; j < smsNumber; j++)
-			 {
-				 session.submit(ConfigInit.getSubmitSm(), 12000); 
-			 }
-			 
-			 if(smsNumber == 0)
-			 	 sleep(13000);
-			 
-			 sleep(200);
+			 @SuppressWarnings("rawtypes")
+			 BaseSm packet = new DataSm();
+			 String text160 = "\u20AC Lorem [ipsum] dolor sit amet, consectetur adipiscing elit. Proin feugiat, leo id commodo tincidunt, nibh diam ornare est, vitae accumsan risus lacus sed sem metus.";
+		     byte[] textBytes = CharsetUtil.encode(text160, CharsetUtil.CHARSET_GSM);
+			 packet.setShortMessage(textBytes);
+			 packet.setSequenceNumber(1);
+			 serverArray[0].sendData(packet);
+			 sleep(1000);
 		     session.unbind(5000);
-		     sleep(200);
-		     
 		        }catch(Exception e){
 		        	logger.error("", e);
 		        }
@@ -230,18 +175,6 @@ public class CommonTest{
 	        logger.info("Shutting down client bootstrap and executors...");
 	        client.destroy();
 	        listener.clientCompleted();
-		}
-		
-		public void sleep(int time)
-		{
-			try
-			{
-				Thread.sleep(time);
-			}
-			catch(InterruptedException ex)
-			{
-				
-			}
 		}
 	}	
 	

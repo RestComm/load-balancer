@@ -54,6 +54,7 @@ public interface BalancerRunnerMBean {
 	
 	long getNumberOfRequestsProcessed();
 	long getNumberOfResponsesProcessed();
+	long getNumberOfBytesTransferred();
 	
 	Map<String, AtomicLong> getNumberOfRequestsProcessedByMethod();
 	Map<String, AtomicLong> getNumberOfResponsesProcessedByStatusCode();
@@ -61,10 +62,41 @@ public interface BalancerRunnerMBean {
 	long getRequestsProcessedByMethod(String method);
 	long getResponsesProcessedByStatusCode(String statusCode);
 	
+	int getNumberOfActiveSipConnections();
+	
 	List<SIPNode> getNodes();
 	String[] getNodeList();
 	
 	String getProperty(String key);
 	void setProperty(String key, String value);
 	Properties getProperties();
+
+	//HTTP balancer
+	long getNumberOfHttpRequests();
+	long getNumberOfHttpBytesToServer();
+	long getNumberOfHttpBytesToClient();
+	long getHttpRequestsProcessedByMethod(String method);
+	long getHttpResponseProcessedByCode(String code);
+	
+	int getNumberOfActiveHttpConnections();
+		
+	//SMPP balancer
+	long getNumberOfSmppRequestsToServer();
+	long getNumberOfSmppRequestsToClient();
+	long getNumberOfSmppBytesToServer();
+	long getNumberOfSmppBytesToClient();
+	long getSmppRequestsProcessedById(Integer id);
+	long getSmppResponsesProcessedById(Integer id);
+	
+	int getNumberOfActiveSmppConnections();
+	
+	//hw usage
+	/**
+	* @return Returns the "recent cpu usage" for the Java Virtual Machine process.
+	*/
+	double getJvmCpuUsage();
+	/**
+	* @return Returns the  amount of used memory of the heap in bytes.
+	*/
+	long getJvmHeapSize();
 }

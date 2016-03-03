@@ -82,8 +82,8 @@ public class SslBalancerSslServerTest {
 		}
 
 		// start lb
-		loadBalancerSmpp = new SmppBalancerRunner();
-		loadBalancerSmpp.start(ConfigInit.getLbProperties(true,true));
+		loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(true,true));
+		loadBalancerSmpp.start();
 	}
 	// tests SSL client connection to SSL server
 	@Test

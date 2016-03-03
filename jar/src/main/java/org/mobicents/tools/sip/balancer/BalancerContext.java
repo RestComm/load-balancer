@@ -22,6 +22,8 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.SipStackImpl;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,6 +38,10 @@ import javax.sip.address.AddressFactory;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.message.MessageFactory;
+
+import org.jboss.netty.handler.codec.http.HttpMethod;
+
+import com.cloudhopper.smpp.SmppConstants;
 
 public class BalancerContext {
 	
@@ -94,7 +100,7 @@ public class BalancerContext {
 	public HeaderFactory headerFactory;
 	public MessageFactory messageFactory;
 
-	public SipStack sipStack;
+	public SipStackImpl sipStack;	
 
 	public Properties properties;  
 	
@@ -105,10 +111,11 @@ public class BalancerContext {
 	public RecordRouteHeader[] activeExternalHeader = new RecordRouteHeader[5];
 	public RecordRouteHeader[] activeInternalHeader = new RecordRouteHeader[5];
     
-	//stats
+	//SIP balancer variables for monitoring
 	public boolean gatherStatistics = true;
 	public AtomicLong requestsProcessed = new AtomicLong(0);
     public AtomicLong responsesProcessed = new AtomicLong(0);
+    public AtomicLong bytesTransferred = new AtomicLong(0);
     private static final String[] METHODS_SUPPORTED = 
 		{"REGISTER", "INVITE", "ACK", "BYE", "CANCEL", "MESSAGE", "INFO", "SUBSCRIBE", "NOTIFY", "UPDATE", "PUBLISH", "REFER", "PRACK", "OPTIONS"};
 	private static final String[] RESPONSES_PER_CLASS_OF_SC = 
@@ -122,11 +129,82 @@ public class BalancerContext {
     }
 
     public BalancerContext() {
-    	for (String method : METHODS_SUPPORTED) {
+    	for (String method : METHODS_SUPPORTED)
 			requestsProcessedByMethod.put(method, new AtomicLong(0));
-		}
-    	for (String classOfSc : RESPONSES_PER_CLASS_OF_SC) {
+
+    	for (String classOfSc : RESPONSES_PER_CLASS_OF_SC)
 			responsesProcessedByStatusCode.put(classOfSc, new AtomicLong(0));
-		}
+    	
+    	for(String method : HTTP_METHODS)
+    		httpRequestsProcessedByMethod.put(method, new AtomicLong(0));
+    	
+    	for(String statusCode: HTTP_CODE_RESPONSE)
+    		httpResponseProcessedByCode.put(statusCode, new AtomicLong(0));
+
+    	for(Integer id : SMPP_REQUEST_IDS)
+    		smppRequestsProcessedById.put(id, new AtomicLong(0));
+    	
+    	for(Integer id : SMPP_RESPONSE_IDS)
+    		smppResponsesProcessedById.put(id, new AtomicLong(0));
 	}
+	//HTTP balancer variables for monitoring
+    public AtomicLong httpRequests = new AtomicLong(0);
+    public AtomicLong httpBytesToServer = new AtomicLong(0);
+    public AtomicLong httpBytesToClient = new AtomicLong(0);
+    
+    public Map<String, AtomicLong> httpRequestsProcessedByMethod = new ConcurrentHashMap<String, AtomicLong>();
+    public Map<String, AtomicLong> httpResponseProcessedByCode = new ConcurrentHashMap<String, AtomicLong>();
+    private static final String[] HTTP_METHODS  = {
+    	HttpMethod.CONNECT.getName(),
+    	HttpMethod.DELETE.getName(),
+    	HttpMethod.GET.getName(),
+    	HttpMethod.HEAD.getName(),
+    	HttpMethod.OPTIONS.getName(),
+    	HttpMethod.PATCH.getName(),
+    	HttpMethod.POST.getName(),
+    	HttpMethod.PUT.getName(),
+    	HttpMethod.TRACE.getName()
+    };
+    private static final String [] HTTP_CODE_RESPONSE  = 
+    	{"1XX", "2XX", "3XX", "4XX", "5XX"};
+    
+    //SMPP balancer variables for monitoring
+    public AtomicLong smppRequestsToServer = new AtomicLong(0);
+    public AtomicLong smppRequestsToClient = new AtomicLong(0);
+    public AtomicLong smppBytesToServer = new AtomicLong(0);
+    public AtomicLong smppBytesToClient = new AtomicLong(0);
+    public Map<Integer, AtomicLong> smppRequestsProcessedById = new ConcurrentHashMap<Integer, AtomicLong>();
+    public Map<Integer, AtomicLong> smppResponsesProcessedById = new ConcurrentHashMap<Integer, AtomicLong>();
+	private static final Integer[] SMPP_REQUEST_IDS  = 
+		{
+		SmppConstants.CMD_ID_BIND_RECEIVER,
+		SmppConstants.CMD_ID_BIND_TRANSMITTER,
+		SmppConstants.CMD_ID_QUERY_SM,
+		SmppConstants.CMD_ID_SUBMIT_SM,
+		SmppConstants.CMD_ID_DELIVER_SM,
+		SmppConstants.CMD_ID_UNBIND,
+		SmppConstants.CMD_ID_REPLACE_SM,
+		SmppConstants.CMD_ID_CANCEL_SM,
+		SmppConstants.CMD_ID_BIND_TRANSCEIVER,
+		SmppConstants.CMD_ID_OUTBIND,
+		SmppConstants.CMD_ID_ENQUIRE_LINK,
+		SmppConstants.CMD_ID_SUBMIT_MULTI,
+		SmppConstants.CMD_ID_DATA_SM
+		};
+	private static final Integer[] SMPP_RESPONSE_IDS  = 
+		{
+		SmppConstants.CMD_ID_GENERIC_NACK,
+		SmppConstants.CMD_ID_BIND_RECEIVER_RESP,
+		SmppConstants.CMD_ID_BIND_TRANSMITTER_RESP,
+		SmppConstants.CMD_ID_QUERY_SM_RESP,
+		SmppConstants.CMD_ID_SUBMIT_SM_RESP,
+		SmppConstants.CMD_ID_DELIVER_SM_RESP,
+		SmppConstants.CMD_ID_UNBIND_RESP,
+		SmppConstants.CMD_ID_REPLACE_SM_RESP,
+		SmppConstants.CMD_ID_CANCEL_SM_RESP,
+		SmppConstants.CMD_ID_BIND_TRANSCEIVER_RESP,
+		SmppConstants.CMD_ID_ENQUIRE_LINK_RESP,
+		SmppConstants.CMD_ID_SUBMIT_MULTI_RESP,
+		SmppConstants.CMD_ID_DATA_SM_RESP
+		};
 }

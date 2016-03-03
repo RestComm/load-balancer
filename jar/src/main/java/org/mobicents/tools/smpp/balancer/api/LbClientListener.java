@@ -47,9 +47,9 @@ public interface LbClientListener {
 	*/
 	void unbindSuccesfull(long sessionID, Pdu packet);
 	/**
-	*Send PDU response packet to server
+	*Send PDU response packet to client
 	*@param sessionId session (client) id
-	*@param packet PDU packet received from client
+	*@param packet PDU packet received from server
 	*/
 	void smppEntityResponse(Long sessionId, Pdu packet);
 	/**

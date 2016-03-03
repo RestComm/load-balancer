@@ -21,7 +21,6 @@ package org.mobicents.tools.smpp.balancer.impl;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +36,7 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.mobicents.tools.smpp.balancer.timers.ClientTimerResponse;
@@ -118,13 +118,13 @@ public class ClientConnectionImpl implements ClientConnection{
     }
     
 	public  ClientConnectionImpl(Long sessionId,SmppSessionConfiguration config, BalancerDispatcher clientListener, ScheduledExecutorService monitorExecutor, 
-			Properties properties, Pdu bindPacket, int serverIndex) 
+			BalancerRunner balancerRunner, Pdu bindPacket, int serverIndex) 
 	{
 
 		  this.serverIndex = serverIndex;
 		  this.bindPacket = bindPacket;
-		  this.timeoutResponse = Long.parseLong(properties.getProperty("timeoutResponse"));
-		  this.timeoutConnectionCheckServerSide = Long.parseLong(properties.getProperty("timeoutConnectionCheckServerSide"));
+		  this.timeoutResponse = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutResponse"));
+		  this.timeoutConnectionCheckServerSide = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnectionCheckServerSide"));
 		  this.monitorExecutor = monitorExecutor;
 		  this.sessionId = sessionId;
 		  this.config = config;

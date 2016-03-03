@@ -37,6 +37,7 @@ import org.jboss.netty.handler.codec.http.HttpHeaders.Names;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 /**
  * @author Vladimir Ralev (vladimir.ralev@jboss.org)
@@ -50,6 +51,12 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	private volatile HttpResponse response;
 	private volatile String wsVersion;
 	private volatile WebsocketModifyServerPipelineFactory websocketModifyServerPipelineFactory;
+	private BalancerRunner balancerRunner;
+	
+	public HttpResponseHandler (BalancerRunner balancerRunner)
+	{
+		this.balancerRunner = balancerRunner;
+	}
 
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
@@ -79,6 +86,8 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	private void handleHttpResponse(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
 		if(!readingChunks || !(e.getMessage() instanceof DefaultHttpChunk)){
 			response = (HttpResponse) e.getMessage();
+			updateStatistic(response);
+			balancerRunner.balancerContext.httpBytesToClient.addAndGet(response.getContent().capacity());
 
 			if(response.isChunked()){
 				readingChunks = true;
@@ -113,7 +122,9 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 				}
 			}
 		} else {
+			
 			HttpChunk chunk = (HttpChunk) e.getMessage();
+			balancerRunner.balancerContext.httpBytesToClient.addAndGet(chunk.getContent().capacity());
 			if (chunk.isLast()) {
 				readingChunks = false;
 			}
@@ -126,6 +137,29 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 			throws Exception {
 		logger.error("Error", e.getCause());
+	}
+	
+	private void updateStatistic(HttpResponse response)
+	{
+		int statusCode = response.getStatus().getCode();
+		 int statusCodeDiv = statusCode / 100;
+        switch (statusCodeDiv) {
+            case 1:
+                balancerRunner.balancerContext.httpResponseProcessedByCode.get("1XX").incrementAndGet();
+                break;
+            case 2:
+                balancerRunner.balancerContext.httpResponseProcessedByCode.get("2XX").incrementAndGet();
+                break;
+            case 3:
+                balancerRunner.balancerContext.httpResponseProcessedByCode.get("3XX").incrementAndGet();
+                break;
+            case 4:
+                balancerRunner.balancerContext.httpResponseProcessedByCode.get("4XX").incrementAndGet();
+                break;
+            case 5:
+                balancerRunner.balancerContext.httpResponseProcessedByCode.get("5XX").incrementAndGet();
+                break;
+        }
 	}
 
 }

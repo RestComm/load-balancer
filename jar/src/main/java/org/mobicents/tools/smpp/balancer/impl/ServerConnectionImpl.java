@@ -20,7 +20,6 @@
 package org.mobicents.tools.smpp.balancer.impl;
 
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +29,7 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerConnection;
@@ -90,16 +90,16 @@ public class ServerConnectionImpl implements ServerConnection {
 	private boolean isServerSideOk;
 
     
-    public ServerConnectionImpl(Long sessionId, Channel channel, BalancerDispatcher lbServerListener, Properties properties, ScheduledExecutorService monitorExecutor)
+    public ServerConnectionImpl(Long sessionId, Channel channel, BalancerDispatcher lbServerListener, BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor)
     {
     	this.lbServerListener = lbServerListener;
     	this.channel = channel;
     	this.sessionId = sessionId;
     	this.transcoder = new DefaultPduTranscoder(new DefaultPduTranscoderContext());
-    	this.timeoutResponse = Long.parseLong(properties.getProperty("timeoutResponse"));
-    	this.timeoutConnection = Long.parseLong(properties.getProperty("timeoutConnection"));
-    	this.timeoutEnquire = Long.parseLong(properties.getProperty("timeoutEnquire"));
-    	this.timeoutConnectionCheckClientSide = Long.parseLong(properties.getProperty("timeoutConnectionCheckClientSide"));
+    	this.timeoutResponse = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutResponse"));
+    	this.timeoutConnection = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnection"));
+    	this.timeoutEnquire = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutEnquire"));
+    	this.timeoutConnectionCheckClientSide = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnectionCheckClientSide"));
     	this.monitorExecutor = monitorExecutor;
     	this.connectionRunnable=new ServerTimerConnection(this, sessionId);
     	this.connectionTimer =  monitorExecutor.schedule(connectionRunnable,timeoutConnection,TimeUnit.MILLISECONDS);

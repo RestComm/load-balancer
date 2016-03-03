@@ -24,8 +24,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.apache.log4j.Logger;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
@@ -120,5 +121,61 @@ public class HttpBalancerForwarder {
 		nioClientSocketChannelFactory.shutdown();
 		
 		//		System.gc();
+	}
+	
+	//Statistic
+	/**
+     * @return the httpRequestCount
+     */
+	public long getNumberOfHttpRequests() 
+	{
+		return balancerRunner.balancerContext.httpRequests.get();
+	}
+	
+	/**
+     * @return the httpBytesToServer
+     */
+	public long getNumberOfHttpBytesToServer() 
+	{
+		return balancerRunner.balancerContext.httpBytesToServer.get();
+	}
+	
+	/**
+     * @return the httpBytesToClient
+     */
+	public long getNumberOfHttpBytesToClient() 
+	{
+		return balancerRunner.balancerContext.httpBytesToClient.get();
+	}
+	
+	/**
+     * @return the httpRequestsProcessedByMethod
+     */
+	public long getHttpRequestsProcessedByMethod(String method) 
+	{
+	        AtomicLong httpRequestsProcessed = balancerRunner.balancerContext.httpRequestsProcessedByMethod.get(method);
+	        if(httpRequestsProcessed != null) {
+	            return httpRequestsProcessed.get();
+	        }
+	        return 0;
+	}
+	
+	/**
+     * @return the httpResponseProcessedByCode
+     */
+	public long getHttpResponseProcessedByCode(String code) 
+	{
+	        AtomicLong httpRequestsProcessed = balancerRunner.balancerContext.httpResponseProcessedByCode.get(code);
+	        if(httpRequestsProcessed != null) {
+	            return httpRequestsProcessed.get();
+	        }
+	        return 0;
+	}
+	/**
+     * @return the NumberOfActiveHttpConnections
+     */
+	public int getNumberOfActiveHttpConnections()
+	{
+		return HttpChannelAssociations.channels.size();
 	}
 }

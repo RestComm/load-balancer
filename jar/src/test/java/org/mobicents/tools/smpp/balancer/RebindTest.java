@@ -87,8 +87,8 @@ public class RebindTest {
 		}
 
 		// start lb
-		loadBalancerSmpp = new SmppBalancerRunner();
-		loadBalancerSmpp.start(ConfigInit.getLbProperties(false,false));
+		loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,false));
+		loadBalancerSmpp.start();
 	}
 	//tests situation with dropped connection to server(rebind check)
 	@Test
