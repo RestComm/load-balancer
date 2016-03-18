@@ -334,7 +334,9 @@ gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE=Disabled
 # should smpp and http use secured connection towards servers or regular
 isRemoteServerSsl = true
 
-
+#Statistic
+#port for statistic
+statisticPort=2006
 						</programlisting>
           </example>
 
@@ -759,6 +761,14 @@ isRemoteServerSsl = true
 
               <listitem>
                 <para>Enables ws/wss transport in SIP load balancer.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>statisticPort</term>
+
+              <listitem>
+                <para>Port for statistic</para>
               </listitem>
             </varlistentry>
           </variablelist>
@@ -1704,8 +1714,9 @@ ip=127.0.0.1
   <section>
     <title>Getting statistic</title>
 
-    <para>Load balancers provide some statistic by Java Management
-    Extensions:</para>
+    <para>Load balancers provide some statistic by Java Management Extensions
+    and JSON. You should use url http://host:statisticPort/lbstat for getting
+    JSON statistic data from load balancer. You can get next data:</para>
 
     <orderedlist>
       <listitem>

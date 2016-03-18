@@ -22,9 +22,13 @@
 
 package org.mobicents.tools.http.balancer;
 
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.Set;
@@ -56,6 +60,12 @@ import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.SIPNode;
+import org.mobicents.tools.sip.balancer.StatisticObject;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 /**
  * @author Vladimir Ralev (vladimir.ralev@jboss.org)
@@ -84,8 +94,32 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
         Object msg = e.getMessage();
         if (msg instanceof HttpRequest) {
-        	balancerRunner.balancerContext.httpRequests.incrementAndGet();
             request = (HttpRequest)e.getMessage();
+            if(balancerRunner.getProperty("statisticPort")!=null)
+            {
+				try 
+				{
+					URI uri = new URI(request.getUri());
+					if (((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort() == Integer.parseInt(balancerRunner.getProperty("statisticPort"))) {
+						if (uri.getPath().equalsIgnoreCase("/lbstat")) {
+							writeStatisticResponse(e);
+							return;
+						} 
+						else 
+						{
+							writeResponse(e,
+									HttpResponseStatus.INTERNAL_SERVER_ERROR,
+									"Server error");
+							return;
+						}
+					}
+				} catch (URISyntaxException e1) 
+				{
+					//ignore exception
+				}
+			}
+
+            balancerRunner.balancerContext.httpRequests.incrementAndGet();
             balancerRunner.balancerContext.httpRequestsProcessedByMethod.get(request.getMethod().getName()).incrementAndGet();
             balancerRunner.balancerContext.httpBytesToServer.addAndGet(request.getContent().capacity());
             String telestaxHeader = request.headers().get("TelestaxProxy"); 
@@ -309,4 +343,19 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         logger.error("Error", e.getCause());
         e.getChannel().close();
     }
+    private void writeStatisticResponse(MessageEvent e)
+    {
+     	GsonBuilder builder = new GsonBuilder();
+		Gson gson = builder.setPrettyPrinting().create();
+		JsonElement je = gson.toJsonTree(new StatisticObject(balancerRunner));
+		JsonObject jo = new JsonObject();
+		jo.add("Metrics", je);
+		String output=jo.toString();
+    	HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK);
+    	response.setHeader(HttpHeaders.Names.CONTENT_TYPE, APPLICATION_JSON);
+    	ChannelBuffer buf = ChannelBuffers.copiedBuffer(output, Charset.forName("UTF-8"));
+    	response.setContent(buf);
+    	ChannelFuture future = e.getChannel().write(response);
+    	future.addListener(ChannelFutureListener.CLOSE);
+    }        
 }

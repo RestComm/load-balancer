@@ -35,6 +35,7 @@ public class HttpChannelAssociations {
 	static Executor executor;
     static ServerBootstrap serverBootstrap;
     static ServerBootstrap serverSecureBootstrap;
+    static ServerBootstrap serverStatisticBootstrap;
     static ClientBootstrap inboundBootstrap;
     static ConcurrentHashMap<Channel, Channel> channels;
 

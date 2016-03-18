@@ -46,6 +46,7 @@ public class HttpBalancerForwarder {
 	NioClientSocketChannelFactory nioClientSocketChannelFactory = null;
 	Channel serverChannel;
 	Channel serverSecureChannel;
+	Channel serverStatisticChannel;
 	
 	public void start() {
 		executor = Executors.newCachedThreadPool();
@@ -53,6 +54,7 @@ public class HttpBalancerForwarder {
 		nioClientSocketChannelFactory = new NioClientSocketChannelFactory(executor, executor);
 		HttpChannelAssociations.serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		HttpChannelAssociations.serverSecureBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
+		HttpChannelAssociations.serverStatisticBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
 		HttpChannelAssociations.channels = new ConcurrentHashMap<Channel, Channel>();
 
@@ -80,6 +82,13 @@ public class HttpBalancerForwarder {
 			HttpChannelAssociations.serverSecureBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, true));
 			serverSecureChannel = HttpChannelAssociations.serverSecureBootstrap.bind(new InetSocketAddress(httpsPort));
 		}
+		if(balancerRunner.balancerContext.properties.getProperty("statisticPort")!=null)
+		{
+			Integer statisticPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("statisticPort"));
+			logger.info("Load balancer statistic on port : " + statisticPort);
+			HttpChannelAssociations.serverStatisticBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, false));
+			serverStatisticChannel = HttpChannelAssociations.serverStatisticBootstrap.bind(new InetSocketAddress(statisticPort));
+		}
 		
 		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength));		
 	}
@@ -105,6 +114,12 @@ public class HttpBalancerForwarder {
 			serverSecureChannel.close();
 			serverSecureChannel.getCloseFuture().awaitUninterruptibly();
 		}
+		if(serverStatisticChannel!=null)
+		{
+			serverStatisticChannel.unbind();
+			serverStatisticChannel.close();
+			serverStatisticChannel.getCloseFuture().awaitUninterruptibly();
+		}
 		
 		executor.shutdownNow();
 		executor = null;
@@ -115,6 +130,9 @@ public class HttpBalancerForwarder {
 		
 		if(HttpChannelAssociations.serverSecureBootstrap!=null)
 			HttpChannelAssociations.serverSecureBootstrap.shutdown();
+		
+		if(HttpChannelAssociations.serverStatisticBootstrap!=null)
+			HttpChannelAssociations.serverStatisticBootstrap.shutdown();
 		
 		HttpChannelAssociations.inboundBootstrap.shutdown();
 		nioServerSocketChannelFactory.shutdown();
