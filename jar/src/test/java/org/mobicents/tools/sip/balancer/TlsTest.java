@@ -39,8 +39,8 @@ public class TlsTest {
 		@Before
 		public void setUp() throws Exception {
 			
-			shootist1 = new Shootist(ListeningPoint.TCP,5034, 5033);
-			shootist2 = new Shootist(ListeningPoint.TCP,5033, 5034);
+			shootist1 = new Shootist(ListeningPoint.TLS,5034, 5033);
+			shootist2 = new Shootist(ListeningPoint.TLS,5033, 5034);
 			
 			Thread.sleep(5000);
 		}
