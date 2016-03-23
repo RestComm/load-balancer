@@ -1,4 +1,4 @@
-= SIP Load Balancer User Guide
+= Restcomm Load Balancer User Guide
 :doctype: book
 :sectnums:
 :toc: left
