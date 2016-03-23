@@ -9,12 +9,12 @@
 
 	<artifactId>sip-balancer-jar</artifactId>
 
-	<name>Mobicents Converged Load Balancer Jar</name>
-	<description>Mobicents Converged Load Balancer Jar</description>
-	<url>https://github.com/Mobicents/load-balancer</url>
+	<name>Restcomm Converged Load Balancer Jar</name>
+	<description>Restcomm Converged Load Balancer Jar</description>
+	<url>https://github.com/Restcomm/load-balancer</url>
 
 	<properties>
-		<manifest.url>https://github.com/Mobicents/load-balancer
+		<manifest.url>https://github.com/Restcomm/load-balancer
 		</manifest.url>
 		<manifest.implementation.title>${project.groupId}:${project.artifactId}
 		</manifest.implementation.title>
