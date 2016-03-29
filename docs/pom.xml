@@ -11,12 +11,12 @@
 	<artifactId>sip-balancer-docs</artifactId>	
 	<packaging>pom</packaging>
 
-	<name>Mobicents Converged Load Balancer Docs</name>
-	<description>Mobicents Converged Load Balancer Docs</description>
+	<name>Restcomm Converged Load Balancer Docs</name>
+	<description>Restcomm Converged Load Balancer Docs</description>
 	<url>https://github.com/Mobicents/load-balancer</url>
 	
 	<modules>
-		<module>sources</module>
+		<module>sources-asciidoc</module>
 	</modules>
 
 	<profiles>
@@ -26,13 +26,14 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<modules>
-				<module>sources-mobicents</module>
+				<module>sources-asciidoc</module>
+				<!--module>sources-mobicents</module>
 				<module>sources-telscale</module>
 				<module>jdocbook-mobicents</module>
-				<module>jdocbook-telscale</module>
+				<module>jdocbook-telscale</module-->
 			</modules>
 		</profile>
-		<profile>
+		<!--profile>
 			<id>mobicents</id>			
 			<modules>
 				<module>sources-mobicents</module>
@@ -45,7 +46,7 @@
 				<module>sources-telscale</module>
 				<module>jdocbook-telscale</module>
 			</modules>
-		</profile>
+		</profile-->
 	</profiles>
 
 </project>
