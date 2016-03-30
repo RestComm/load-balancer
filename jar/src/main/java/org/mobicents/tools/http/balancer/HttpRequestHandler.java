@@ -204,7 +204,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                     if(request.getHeader("Sec-WebSocket-Protocol").equalsIgnoreCase("sip")){
                         if(logger.isDebugEnabled()) {
                             logger.debug("New SIP over WebSocket request. WebSocket uri: "+request.getUri());
-                            logger.debug("Dispatching WebSocket request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("wsPort"));
+                            logger.debug("Dispatching WebSocket request to node: "+ node.getIp()+" port: "+ node.getProperties().get("wsPort"));
                         }
                         wsrequest = true;
                         wsVersion = request.getHeader(Names.SEC_WEBSOCKET_VERSION);
@@ -214,7 +214,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                     }
                 } else {
                     if(logger.isDebugEnabled()) {
-                        logger.debug("Dispatching HTTP request to node: "+ node.getIp()+" port: "+(Integer)node.getProperties().get("httpPort"));
+                        logger.debug("Dispatching HTTP request to node: "+ node.getIp()+" port: "+ node.getProperties().get("httpPort"));
                     }
                     future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), Integer.parseInt((String) node.getProperties().get("httpPort"))));
                 }
