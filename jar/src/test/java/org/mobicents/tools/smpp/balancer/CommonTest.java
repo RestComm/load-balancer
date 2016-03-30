@@ -21,6 +21,7 @@ package org.mobicents.tools.smpp.balancer;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -99,8 +100,12 @@ public class CommonTest{
 		int smsNumber = 1;
 		Locker locker=new Locker(clientNumbers);
 
+		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
 		for(int i = 0; i < clientNumbers; i++)
-			new Load(i, smsNumber, locker).start();
+			processors.add(new Load(i, smsNumber, locker));
+		
+		for(int i = 0; i < clientNumbers; i++)
+			processors.get(i).start();
 			
 		locker.waitForClients();
 
@@ -119,10 +124,14 @@ public class CommonTest{
 		int smsNumberFromClient = 10;
 		int smsNumberPerServer = clientNumbers/serverNumbers*smsNumberFromClient;
 		Locker locker=new Locker(clientNumbers);
+		
+		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
 		for(int i = 0; i < clientNumbers; i++)
-		{
-		new Load(i, smsNumberFromClient,locker).start();
-		}
+			processors.add(new Load(i, smsNumberFromClient, locker));
+		
+		for(int i = 0; i < clientNumbers; i++)
+			processors.get(i).start();
+		
 	    locker.waitForClients();
 	    for(int i = 0; i < serverNumbers; i++)
 	    	assertEquals(smsNumberPerServer,serverHandlerArray[i].getSmsNumber().get());
@@ -137,13 +146,17 @@ public class CommonTest{
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
 		int smsNumberFromClient = 0;
 		Locker locker=new Locker(clientNumbers);
+		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
 		for(int i = 0; i < clientNumbers; i++)
-			new Load(i, smsNumberFromClient,locker).start();
-
-		locker.waitForClients();
+			processors.add(new Load(i, smsNumberFromClient, locker));
 		
-		assertEquals(2,serverHandlerArray[0].getEnqLinkNumber().get());
-		assertEquals(2,clientHandlerArray[0].getEnqLinkNumber().get());
+		for(int i = 0; i < clientNumbers; i++)
+			processors.get(i).start();
+		
+	    locker.waitForClients();
+		
+		assertEquals(3,serverHandlerArray[0].getEnqLinkNumber().get());
+		assertEquals(3,clientHandlerArray[0].getEnqLinkNumber().get());
 	    assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
 	  	assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
     }
@@ -214,7 +227,7 @@ public class CommonTest{
 			 if(smsNumber == 0)
 			 	 sleep(13000);
 			 
-			 sleep(200);
+			 sleep(2000);
 		     session.unbind(5000);
 		     sleep(200);
 		     
