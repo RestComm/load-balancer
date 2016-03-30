@@ -95,7 +95,7 @@ public class CommonTest{
 	@Test
     public void testRoundRobin() 
     {   
-		int clientNumbers = 33;
+		int clientNumbers = 9;
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
 		int smsNumber = 1;
 		Locker locker=new Locker(clientNumbers);
