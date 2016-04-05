@@ -104,8 +104,10 @@ public class ProtocolObjects {
 
 		// For the forked subscribe notify test
 		properties.setProperty("javax.sip.FORKABLE_EVENTS", "foo");
-
 		
+		if(transport.equals(ListeningPointExt.WS)||transport.equals(ListeningPointExt.WSS))
+			properties.setProperty("gov.nist.javax.sip.PATCH_SIP_WEBSOCKETS_HEADERS", "false");
+
 		// Dont use the router for all requests.
 //		properties.setProperty("javax.sip.USE_ROUTER_FOR_ALL_URIS", "false");
 

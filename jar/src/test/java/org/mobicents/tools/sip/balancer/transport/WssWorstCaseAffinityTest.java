@@ -74,6 +74,7 @@ public class WssWorstCaseAffinityTest{
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		properties.setProperty("algorithmClass", WorstCaseUdpTestAffinityAlgorithm.class.getName());
 		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
+		properties.setProperty("gov.nist.javax.sip.PATCH_SIP_WEBSOCKETS_HEADERS", "false");
 		
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("internalPort", "5065");

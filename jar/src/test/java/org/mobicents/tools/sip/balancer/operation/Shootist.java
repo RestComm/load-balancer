@@ -345,6 +345,10 @@ public class Shootist implements SipListener {
         // If you want to use UDP then uncomment this.
         properties.setProperty("javax.sip.STACK_NAME", "shootist");
         properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
+        
+        if(transport.equals(ListeningPointExt.WS)||transport.equals(ListeningPointExt.WSS))
+			properties.setProperty("gov.nist.javax.sip.PATCH_SIP_WEBSOCKETS_HEADERS", "false");
+        
         if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
 		{
         	properties.setProperty("javax.net.ssl.keyStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
