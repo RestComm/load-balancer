@@ -72,7 +72,7 @@ public class HttpServer
 		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor,	executor);		
 		serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		serverBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(isSecure, requestCount));
-		serverChannel = serverBootstrap.bind(new InetSocketAddress(httpPort));
+		serverChannel = serverBootstrap.bind(new InetSocketAddress("127.0.0.1", httpPort));
 		//ping
 		 timer = new Timer();
 		    appServerNode = new SIPNode("HttpServer", "127.0.0.1");		
