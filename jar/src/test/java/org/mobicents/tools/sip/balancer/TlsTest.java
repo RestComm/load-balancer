@@ -20,19 +20,6 @@ import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 public class TlsTest {
 	
-	static {
-		String logLevel = System.getProperty("logLevel", "DEBUG");
-		String logConfigFile = System.getProperty("logConfigFile");
-
-		if(logConfigFile == null) {
-			Logger.getRootLogger().addAppender(new ConsoleAppender(
-					new PatternLayout("%r (%t) %p [%c{1}%x] %m%n")));
-			Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
-		} else {
-		    DOMConfigurator.configure(logConfigFile);
-		}
-	}
-
 		Shootist shootist1, shootist2;
 		static AppServer appServer;
 
