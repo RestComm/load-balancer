@@ -155,7 +155,7 @@ public class SprayingLoadBalancersWithNoInternalPortTest {
 		shootist.callerSendsBye=true;
 		shootist.sendInitialInvite();
 		//servers[0].sendHeartbeat = false;
-		Thread.sleep(16000);
+		Thread.sleep(10000);
 		shootist.sendBye();
 		Thread.sleep(2200);
 
