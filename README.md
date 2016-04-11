@@ -6,7 +6,7 @@ RestComm Converged (SIP/HTTP/WebSockets/SMPP) Load Balancer.
 Reference Documentation
 ================
 
-To get started with RestComm Load Balancer please check the [Restcomm Load Balancer User Guide](https://mobicents.ci.cloudbees.com/job/Restcomm-LoadBalancer/lastSuccessfulBuild/artifact/documentation/html_single/index.html)
+To get started with RestComm Load Balancer please check the [Restcomm Load Balancer User Guide](https://mobicents.ci.cloudbees.com/job/Restcomm-LoadBalancer/lastSuccessfulBuild/artifact/documentation/html-book/Load_Balancer_User_Guide.html)
 
 [Javadoc style reference documentation](https://mobicents.ci.cloudbees.com/job/Restcomm-LoadBalancer/lastSuccessfulBuild/artifact/documentation/apidocs/index.html)
 
