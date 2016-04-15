@@ -112,6 +112,7 @@ public class SIPBalancerForwarder implements SipListener {
     public static final int WS = 3;
     public static final int WSS = 4;
     private boolean isTransportWs;
+    private boolean isSendTrying;
     
     BalancerRunner balancerRunner;
 
@@ -138,6 +139,7 @@ public class SIPBalancerForwarder implements SipListener {
     public void start() {
     	
     	isTransportWs = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isTransportWs","false"));
+    	isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
 
         SipFactory sipFactory = null;
         balancerRunner.balancerContext.sipStack = null;
@@ -1208,35 +1210,36 @@ public class SIPBalancerForwarder implements SipListener {
         String requestMethod=request.getMethod();
         //100 Trying should be sent only if has indent really forwarding request, othewise should send 500 error
         // https://telestax.atlassian.net/browse/LB-25 improve performance by sending back 100 Trying right away to tame retransmissions.
-        if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
-                requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
-                requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
-                requestMethod.equals(Request.UPDATE)) {
-            try {
-                Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.TRYING, request);
-                RouteList routeList = ((SIPMessage)request).getRouteHeaders();
-                if (routeList != null) {
-                    Route route = (Route)routeList.getFirst();
-                    SipUri sipUri = (SipUri)route.getAddress().getURI();
-                    if (sipUri.toString().contains("node_host") || sipUri.toString().contains("node_port")) {
-                        String nodeHost = sipUri.getParameter("node_host");
-                        int nodePort = Integer.parseInt(sipUri.getParameter("node_port"));
-                        ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
-                        viaHeader.setHost(nodeHost);
-                        viaHeader.setPort(nodePort);
-                    }
-                }
-                sipProvider.sendResponse(response);
-            } catch (SipException e) {
-                logger.error("Unexpected exception while sending TRYING", e);
-            } catch (ParseException e) {
-                logger.error("Unexpected exception while sending TRYING", e);
-            } catch (NumberFormatException e) {
-                logger.error("Unexpected exception while sending TRYING", e);
-            } catch (InvalidArgumentException e) {
-                logger.error("Unexpected exception while sending TRYING", e);
-            }
-        }
+        if(isSendTrying)
+        	if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
+        			requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
+        			requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
+        			requestMethod.equals(Request.UPDATE)) {
+        		try {
+        			Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.TRYING, request);
+        			RouteList routeList = ((SIPMessage)request).getRouteHeaders();
+        			if (routeList != null) {
+        				Route route = (Route)routeList.getFirst();
+        				SipUri sipUri = (SipUri)route.getAddress().getURI();
+        				if (sipUri.toString().contains("node_host") || sipUri.toString().contains("node_port")) {
+        					String nodeHost = sipUri.getParameter("node_host");
+        					int nodePort = Integer.parseInt(sipUri.getParameter("node_port"));
+        					ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+        					viaHeader.setHost(nodeHost);
+        					viaHeader.setPort(nodePort);
+        				}
+        			}
+        			sipProvider.sendResponse(response);
+        		} catch (SipException e) {
+        			logger.error("Unexpected exception while sending TRYING", e);
+        		} catch (ParseException e) {
+        			logger.error("Unexpected exception while sending TRYING", e);
+        		} catch (NumberFormatException e) {
+        			logger.error("Unexpected exception while sending TRYING", e);
+        		} catch (InvalidArgumentException e) {
+        			logger.error("Unexpected exception while sending TRYING", e);
+        		}
+        	}
         
         hints.serverAssignedNode = nextNode;
         if(!hints.subsequentRequest && dialogCreationMethods.contains(request.getMethod())) {
