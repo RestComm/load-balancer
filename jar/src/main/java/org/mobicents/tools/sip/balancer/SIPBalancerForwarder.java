@@ -1211,6 +1211,8 @@ public class SIPBalancerForwarder implements SipListener {
         //100 Trying should be sent only if has indent really forwarding request, othewise should send 500 error
         // https://telestax.atlassian.net/browse/LB-25 improve performance by sending back 100 Trying right away to tame retransmissions.
         if(isSendTrying)
+        {
+        	logger.debug("Load balancer sends 100 TRYING");
         	if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
         			requestMethod.equals(Request.NOTIFY) || requestMethod.equals(Request.MESSAGE) || 
         			requestMethod.equals(Request.REFER) || requestMethod.equals(Request.PUBLISH) || 
@@ -1240,6 +1242,11 @@ public class SIPBalancerForwarder implements SipListener {
         			logger.error("Unexpected exception while sending TRYING", e);
         		}
         	}
+        	}
+        else
+        {
+        	logger.debug("Load balancer do not send 100 TRYING, this option is disabled");
+        }
         
         hints.serverAssignedNode = nextNode;
         if(!hints.subsequentRequest && dialogCreationMethods.contains(request.getMethod())) {
@@ -1287,6 +1294,7 @@ public class SIPBalancerForwarder implements SipListener {
             if(viaHeaderExternal != null) request.addHeader(viaHeaderExternal); 
             balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
         }
+   
     }
 
     /**
