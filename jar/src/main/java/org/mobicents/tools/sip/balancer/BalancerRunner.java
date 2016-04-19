@@ -66,7 +66,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	private static final String HEARTBEAT_INTERVAL = "heartbeatInterval";
 	private static final String HOST_PROP = "host";
 	private static final String RMI_REGISTRY_PORT_PROP = "rmiRegistryPort";
-	private static final String RMI_REMOTE_OBJECT_PORT_PROP = "rmiRemoteOjectPort";
+	private static final String RMI_REMOTE_OBJECT_PORT_PROP = "rmiRemoteObjectPort";
 	private static final String JMX_HTML_ADAPTER_PORT_PROP = "jmxHtmlAdapterPort";
 	private static final String ALGORITHM_PROP = "algorithmClass";
 	private static final String DEFAULT_ALGORITHM = CallIDAffinityBalancerAlgorithm.class.getCanonicalName();
