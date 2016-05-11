@@ -112,10 +112,10 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	
 	protected Integer hashHeader(Message message) {
 		String headerValue = null;
-		if(sipHeaderAffinityKey.equals("from.user")) {
+		if(sipHeaderAffinityKey.equals("From")) {
 			headerValue = ((SipURI)((FromHeader) message.getHeader(FromHeader.NAME))
 					.getAddress().getURI()).getUser();
-		} else if(sipHeaderAffinityKey.equals("to.user")) {
+		} else if(sipHeaderAffinityKey.equals("To")) {
 			headerValue = ((SipURI)((ToHeader) message.getHeader(ToHeader.NAME))
 			.getAddress().getURI()).getUser();
 		} else {

@@ -64,10 +64,12 @@ import javax.sip.TransactionTerminatedEvent;
 import javax.sip.TransactionUnavailableException;
 import javax.sip.address.Address;
 import javax.sip.address.SipURI;
+import javax.sip.address.TelURL;
 import javax.sip.address.URI;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.Header;
+import javax.sip.header.HeaderAddress;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RecordRouteHeader;
@@ -140,6 +142,7 @@ public class SIPBalancerForwarder implements SipListener {
     	
     	isTransportWs = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isTransportWs","false"));
     	isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
+    	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.properties.getProperty("sipHeaderAffinityKey","Call-ID");
 
         SipFactory sipFactory = null;
         balancerRunner.balancerContext.sipStack = null;
@@ -1027,8 +1030,20 @@ public class SIPBalancerForwarder implements SipListener {
         String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 
         if(hints.serverAssignedNode !=null) {
-            String callId = ((SIPHeader) request.getHeader("Call-ID")).getValue();
-            ctx.balancerAlgorithm.assignToNode(callId, hints.serverAssignedNode);
+        	String headerKey = null;
+        	if(balancerRunner.balancerContext.sipHeaderAffinityKey=="To")
+        	{
+        		URI currURI=((HeaderAddress)request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityKey)).getAddress().getURI();
+        		if(currURI.isSipURI())
+        			headerKey = ((SipURI)currURI).getUser();
+        		else
+        			headerKey = ((TelURL)currURI).getPhoneNumber();
+        	}
+        	else
+        	{
+        		headerKey = ((SIPHeader) request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityKey)).getValue();
+        	}
+        	ctx.balancerAlgorithm.assignToNode(headerKey, hints.serverAssignedNode);
             if(logger.isDebugEnabled()) {
                 logger.debug("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);
             }

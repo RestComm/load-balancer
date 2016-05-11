@@ -119,7 +119,7 @@ algorithmClass=org.mobicents.tools.telestaxproxy.TelestaxProxyAlgorithm
 
 # Uncomment to enable the consistent hash based on Call-ID algorithm.
 #algorithmClass=org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
-# This property is not required, it defaults to Call-ID if not set, cna be "from.user" or "to.user" when you want the SIP URI username
+# This property is not required, it defaults to Call-ID if not set, can be "From" or "To" when you want the SIP URI username
 #sipHeaderAffinityKey=Call-ID
 #specify the GET HTTP parameter to be used as hash key
 #httpAffinityKey=appsession
@@ -142,7 +142,7 @@ algorithmClass=org.mobicents.tools.telestaxproxy.TelestaxProxyAlgorithm
 
 # Uncomment to enable the consistent hash based on Call-ID algorithm.
 #algorithmClass=org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
-# This property is not required, it defaults to Call-ID if not set, cna be "from.user" or "to.user" when you want the SIP URI username
+# This property is not required, it defaults to Call-ID if not set, can be "From" or "To" when you want the SIP URI username
 #sipHeaderAffinityKey=Call-ID
 #specify the GET HTTP parameter to be used as hash key
 #httpAffinityKey=appsession
@@ -646,6 +646,14 @@ org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm::
   It keeps a map with `Call-ID ->
               nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
   For HTTP it behaves like apache.
+
+  org.mobicents.tools.sip.balancer.UserBasedAlgorithm::
+    This algorithm algorithm tie all calls for a given DID/Number to the same node.
+    All participants for a given conference will be on the same node.
+    It selects nodes randomly to serve a give To header extracted from the requests and responses.
+    It keeps a map with `To ->
+                nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
+    For HTTP it behaves like apache.
 
 org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm::
   This algorithm is distributable and can be used in distributed load balancer configurations.

@@ -91,6 +91,7 @@ public class BalancerContext {
 	public int externalSecureLoadBalancerPort;
 	
 	public boolean useIpLoadBalancerAddressInViaHeaders;
+	public String sipHeaderAffinityKey;
 	
 	public String publicIP;
 	
