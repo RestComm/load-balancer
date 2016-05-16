@@ -72,16 +72,19 @@ rmiRegistryPort=2000
 rmiRemoteObjectPort=2001
 
 # The SIP port used where client should connect
-externalPort=5060
-# The SIP TLS port used where clients should connect
-externalSecurePort=5061
+externalUdpPort=5060
+#externalTcpPort=5061
+#externalTlsPort=5062
+#externalWsPort=5063
+#externalWssPort=5064
 
 # The SIP port from where servers will receive messages
 # delete if you want to use only one port for both inbound and outbound)
-# if you like to activate the integrated HTTP load balancer, this is the entry point
-internalPort=5065
-# The SIP TLS port from where servers will receive messages
-internalSecurePort=5066
+internalUdpPort=5065
+#internalTcpPort=5066
+#internalTlsPort=5067
+#internalWsPort=5068
+#internalWssPort=5069
 
 # The HTTP port for HTTP forwarding
 httpPort=2080
@@ -91,21 +94,21 @@ httpsPort=2081
 #otherwise, it will return 503 Service Unavailable
 #unavailableHost=google.com
 
-#Specify UDP or TCP or TLS (for now both must be the same)
-internalTransport=UDP
-externalTransport=UDP
-#Enables ws/wss transport
-#isTransportWs = false
-# If you are using IP load balancer, put the IP address and port here, for TLS put externalSecureIpLoadBalancerPort
+# If you are using IP load balancer, put the IP address and port here
 #externalIpLoadBalancerAddress=127.0.0.1
-#externalIpLoadBalancerPort=111
-#externalSecureIpLoadBalancerPort=112
+#externalIpLoadBalancerUdpPort=111
+#externalIpLoadBalancerTcpPort=112
+#externalIpLoadBalancerTlsPort=113
+#externalIpLoadBalancerWsPort=114
+#externalIpLoadBalancerWssPort=115
 
 # Requests initited from the App Servers can route to this address (if you are using 2 IP load balancers for bidirectional SIP LB)
-# For TLS put internalSecureIpLoadBalancerPort
 #internalIpLoadBalancerAddress=127.0.0.1
-#internalIpLoadBalancerPort=111
-#internalSecureIpLoadBalancerPort=112
+#internalIpLoadBalancerUdpPort=116
+#internalIpLoadBalancerTcpPort=117
+#internalIpLoadBalancerTlsPort=118
+#internalIpLoadBalancerWsPort=119
+#internalIpLoadBalancerWssPort=120
 
 # Designate extra IP addresses as serer nodes
 #extraServerNodes=222.221.21.12:21,45.6.6.7:9003,33.5.6.7,33.9.9.2
@@ -243,17 +246,11 @@ statisticPort=2006
 host::
   Local IP address, or interface, on which the Restcomm Load Balancer will listen for incoming requests.
 
-externalPort::
+externalUdpPort::
   Port on which the Restcomm Load Balancer listens for incoming requests from SIP User Agents.
 
-externalSecurePort::
-  TLS port on which the Restcomm Load Balancer listens for incoming requests from SIP User Agents.
-
-internalPort::
+internalUdpPort::
   Port on which the Restcomm Load Balancer forwards incoming requests to available, and healthy, SIP Server cluster nodes.
-
-internalSecurePort::
-  TLS port on which the Restcomm Load Balancer forwards incoming requests to available, and healthy, SIP Server cluster nodes.
 
 rmiRegistryPort::
   Port on which the Restcomm Load Balancer will establish the RMI heartbeat connection to the application servers.
@@ -268,36 +265,20 @@ httpPort::
 httpsPort::
   Port on which the Restcomm Load Balancer will accept HTTPS requests to be distributed across the nodes.
 
-internalTransport::
-  Transport protocol for the internal SIP connections associated with the internal SIP port of the load balancer.
-  Possible choices are `UDP` , `TCP` and `TLS` .
-
-externalTransport::
-  Transport protocol for the external SIP connections associated with the external SIP port of the load balancer.
-  Possible choices are `UDP` , `TCP` and `TLS` . It must match the transport of the internal port.
-
 externalIpLoadBalancerAddress::
   Address of the IP load balancer (if any) used for incoming requests to be distributed in the direction of the application server nodes.
   This address may be used by the Restcomm Load Balancer to be put in SIP headers where the external address of the Restcomm Load Balancer is needed.
 
-externalIpLoadBalancerPort::
+externalIpLoadBalancerUdpPort::
   The port of the external IP load balancer.
-  Any messages arriving at this port should be distributed across the external SIP ports of a set of Restcomm Load Balancers.
-
-externalSecureIpLoadBalancerPort::
-  The TLS port of the external IP load balancer.
   Any messages arriving at this port should be distributed across the external SIP ports of a set of Restcomm Load Balancers.
 
 internalIpLoadBalancerAddresst::
   Address of the IP load balancer (if any) used for outgoing requests (requests initiated from the servers) to be distributed in the direction of the clients.
   This address may be used by the Restcomm Load Balancer to be put in SIP headers where the internal address of the Restcomm Load Balancer is needed.
 
-internalIpLoadBalancerPort::
+internalIpLoadBalancerUdpPort::
   The port of the internal IP load balancer.
-  Any messages arriving at this port should be distributed across the internal SIP ports of a set of Restcomm Load Balancers.
-
-internalSecureIpLoadBalancerPort::
-  The TLS port of the internal IP load balancer.
   Any messages arriving at this port should be distributed across the internal SIP ports of a set of Restcomm Load Balancers.
 
 extraServerNodes::
@@ -395,8 +376,6 @@ javax.net.debug::
 isRemoteServerSsl::
   Should smpp and http use secured connection towards servers or regular.
 
-isTransportWs::
-  Enables ws/wss transport in Restcomm Load Balancer.
 
 statisticPort::
   Port for statistic
@@ -806,7 +785,7 @@ If you are desgning a pluggable algorithm using the SIP metadata, you can access
 
 === Enabling TLS/WSS for Restcomm Load Balancer
 
-For enabling TLS support for Restcomm Load Balancer, you should correctly specify next property:
+For enabling TLS/WSS support for Restcomm Load Balancer, you should correctly specify next property:
 
 * javax.net.ssl.keyStore;
 * javax.net.ssl.keyStorePassword;
@@ -814,11 +793,10 @@ For enabling TLS support for Restcomm Load Balancer, you should correctly specif
 * javax.net.ssl.trustStorePassword;
 * gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE
 * gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS;
-* externalSecurePort;
-* internalSecurePort;
-* externalSecureIpLoadBalancerPort (if you are using IP load balancer);
-* internalSecureIpLoadBalancerPort (if you are using IP load balancer)
-* isTransportWs(enables WSS/WS instead of TLS/TCP).
+* externalTlsPort or(and) externalWssPort;
+* internalTlsPort or(and) internalWssPort;
+* externalIpLoadBalancerTlsPort or(and) externalIpLoadBalancerWssPort (if you are using IP load balancer);
+* internalIpLoadBalancerTlsPort or(and) internalIpLoadBalancerWssPort (if you are using IP load balancer)
 
 === Enabling HTTPS
 
@@ -1112,14 +1090,11 @@ Where <x.x.xx> is the release version number
 . Modify lb-configuration.properties file for correct work. Comment #host= line, and uncomment end set up next lines:
 
   externalHost=172.21.0.104
-  externalPort=5090
+  externalWsPort=5090
+  externalWssPort=5091
   internalHost=127.0.0.4
-  internalPort=5082
-
-. If you need the transport UDP,TCP,TLS the property isTransportWs must be "false", if UDP, WS, WSS this propery must be "true" and set up next lines:
-
-  externalSecurePort=5091
-  internalSecurePort=5083
+  internalWsPort=5082
+  internalWssPort=5083
 
 .Step 14: Use Olympus with Restcomm for WS and WSS
 
@@ -1132,9 +1107,9 @@ and confirm certificate.
 For WS:
 
 Login to Restcomm server http://127.0.0.2:8080/olympus/
-Fill in form: Load Balancer's ip adress (externalHost) 172.21.0.104 and port(externalPort) 5090
+Fill in form: Load Balancer's ip adress (externalHost) 172.21.0.104 and port(externalWsPort) 5090
 
 For WSS:
 
 Login to Restcomm server https://127.0.0.2:8443/olympus/
-Fill in form: Load Balancer's ip adress (externalHost) 172.21.0.104 and port (externalSecurePort) 5091
+Fill in form: Load Balancer's ip adress (externalHost) 172.21.0.104 and port (externalWssPort) 5091
