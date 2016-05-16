@@ -113,7 +113,6 @@ public class SIPBalancerForwarder implements SipListener {
     public static final int TLS = 2;
     public static final int WS = 3;
     public static final int WSS = 4;
-    private boolean isTransportWs;
     private boolean isSendTrying;
     
     BalancerRunner balancerRunner;
@@ -140,7 +139,6 @@ public class SIPBalancerForwarder implements SipListener {
 
     public void start() {
     	
-    	isTransportWs = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isTransportWs","false"));
     	isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
     	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.properties.getProperty("sipHeaderAffinityKey","Call-ID");
 
@@ -149,71 +147,112 @@ public class SIPBalancerForwarder implements SipListener {
 
         balancerRunner.balancerContext.host = balancerRunner.balancerContext.properties.getProperty("host");   
         balancerRunner.balancerContext.internalHost = balancerRunner.balancerContext.properties.getProperty("internalHost",balancerRunner.balancerContext.host); 
-        balancerRunner.balancerContext.externalHost = balancerRunner.balancerContext.properties.getProperty("externalHost",balancerRunner.balancerContext.host); 
-        balancerRunner.balancerContext.externalPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("internalPort") != null) {
-            balancerRunner.balancerContext.internalPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalPort"));
-        }
+        balancerRunner.balancerContext.externalHost = balancerRunner.balancerContext.properties.getProperty("externalHost",balancerRunner.balancerContext.host);
         
-        if(balancerRunner.balancerContext.properties.getProperty("internalSecurePort") != null) {
-            balancerRunner.balancerContext.internalSecurePort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalSecurePort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("externalSecurePort") != null) {
-            balancerRunner.balancerContext.externalSecurePort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalSecurePort"));
-        }
+        if(balancerRunner.balancerContext.properties.getProperty("externalUdpPort") != null)
+        	balancerRunner.balancerContext.externalUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalUdpPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("externalTcpPort") != null)
+        	balancerRunner.balancerContext.externalTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalTcpPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("externalTlsPort") != null)
+        	balancerRunner.balancerContext.externalTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalTlsPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("externalWsPort") != null)
+        	balancerRunner.balancerContext.externalWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalWsPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("externalWssPort") != null)
+        	balancerRunner.balancerContext.externalWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalWssPort"));
+        
+        if(balancerRunner.balancerContext.properties.getProperty("internalUdpPort") != null) 
+            balancerRunner.balancerContext.internalUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalUdpPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalTcpPort") != null) 
+            balancerRunner.balancerContext.internalTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalTcpPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalTlsPort") != null) 
+            balancerRunner.balancerContext.internalTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalTlsPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalWsPort") != null) 
+            balancerRunner.balancerContext.internalWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalWsPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalWssPort") != null) 
+            balancerRunner.balancerContext.internalWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalWssPort"));
+        
         
         balancerRunner.balancerContext.externalIpLoadBalancerAddress = balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
         balancerRunner.balancerContext.internalIpLoadBalancerAddress = balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerAddress");
 
-        if(balancerRunner.balancerContext.properties.getProperty("externalLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.externalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalLoadBalancerPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerUdpPort") != null) {
+          balancerRunner.balancerContext.externalLoadBalancerUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerUdpPort"));
+          }
+        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTcpPort") != null) {
+            balancerRunner.balancerContext.externalLoadBalancerTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTcpPort"));
+          }
+        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTlsPort") != null) {
+            balancerRunner.balancerContext.externalLoadBalancerTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTlsPort"));
+          }
+        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWsPort") != null) {
+            balancerRunner.balancerContext.externalLoadBalancerWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWsPort"));
+          }
+        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWssPort") != null) {
+            balancerRunner.balancerContext.externalLoadBalancerWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWssPort"));
+          }
+        
+        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerUdpPort") != null) {
+            balancerRunner.balancerContext.internalLoadBalancerUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerUdpPort"));
         }
-        if(balancerRunner.balancerContext.properties.getProperty("externalSecureLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.externalSecureLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalSecureLoadBalancerPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTcpPort") != null) {
+            balancerRunner.balancerContext.internalLoadBalancerTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTcpPort"));
         }
-        if(balancerRunner.balancerContext.properties.getProperty("internalLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalLoadBalancerPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTlsPort") != null) {
+            balancerRunner.balancerContext.internalLoadBalancerTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTlsPort"));
         }
-        if(balancerRunner.balancerContext.properties.getProperty("internalSecureLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.internalSecureLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalSecureLoadBalancerPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWsPort") != null) {
+            balancerRunner.balancerContext.internalLoadBalancerWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWsPort"));
         }
-
-        // We ended up with two duplicate set of properties for interna and external IP LB ports, just keep then for back-compatibility
-        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.externalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerPort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("externalSecureIpLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.externalSecureLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalSecureIpLoadBalancerPort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerPort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("internalSecureIpLoadBalancerPort") != null) {
-            balancerRunner.balancerContext.internalSecureLoadBalancerPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalSecureIpLoadBalancerPort"));
+        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWssPort") != null) {
+            balancerRunner.balancerContext.internalLoadBalancerWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerUdpWssPort"));
         }
 
         if(balancerRunner.balancerContext.isTwoEntrypoints()) {
-            if(balancerRunner.balancerContext.externalLoadBalancerPort > 0) {
-                if(balancerRunner.balancerContext.internalLoadBalancerPort <=0) {
-                    throw new RuntimeException("External IP load balancer specified, but not internal load balancer");
+            if(balancerRunner.balancerContext.externalLoadBalancerUdpPort > 0) {
+                if(balancerRunner.balancerContext.internalLoadBalancerUdpPort <=0) {
+                    throw new RuntimeException("External IP load balancer specified UDP port, but not internal load balancer UDP port");
                 }                
             }
-            
-            if(balancerRunner.balancerContext.externalSecureLoadBalancerPort > 0) {
-                if(balancerRunner.balancerContext.internalSecureLoadBalancerPort <=0) {
-                    throw new RuntimeException("External Secure IP load balancer specified, but not internal load balancer");
+            if(balancerRunner.balancerContext.externalLoadBalancerTcpPort > 0) {
+                if(balancerRunner.balancerContext.internalLoadBalancerTcpPort <=0) {
+                    throw new RuntimeException("External IP load balancer specified TCP port, but not internal load balancer TCP port");
+                }                
+            }
+            if(balancerRunner.balancerContext.externalLoadBalancerTlsPort > 0) {
+                if(balancerRunner.balancerContext.internalLoadBalancerTlsPort <=0) {
+                    throw new RuntimeException("External IP load balancer specified TLS port, but not internal load balancer TLS port");
+                }                
+            }
+            if(balancerRunner.balancerContext.externalLoadBalancerWsPort > 0) {
+                if(balancerRunner.balancerContext.internalLoadBalancerWsPort <=0) {
+                    throw new RuntimeException("External IP load balancer specified WS port, but not internal load balancer WS port");
+                }                
+            }
+            if(balancerRunner.balancerContext.externalLoadBalancerWssPort > 0) {
+                if(balancerRunner.balancerContext.internalLoadBalancerWssPort <=0) {
+                    throw new RuntimeException("External IP load balancer specified WSS port, but not internal load balancer WSS port");
                 }                
             }
         }
+        
         if(balancerRunner.balancerContext.externalIpLoadBalancerAddress != null) {
-            if(balancerRunner.balancerContext.externalLoadBalancerPort<=0) {
-                throw new RuntimeException("External load balancer address specified, but not externalLoadBalancerPort");
+            if(balancerRunner.balancerContext.externalLoadBalancerUdpPort<=0&&
+            		balancerRunner.balancerContext.externalLoadBalancerTcpPort<=0&&
+            		balancerRunner.balancerContext.externalLoadBalancerTlsPort<=0&&
+            		balancerRunner.balancerContext.externalLoadBalancerWsPort<=0&&
+            		balancerRunner.balancerContext.externalLoadBalancerWssPort<=0
+            		) {
+                throw new RuntimeException("External load balancer address is specified, but none externalIpLoadBalancerPort ");
             }
         }
 
         if(balancerRunner.balancerContext.internalIpLoadBalancerAddress != null) {
-            if(balancerRunner.balancerContext.internalLoadBalancerPort<=0) {
-                throw new RuntimeException("Internal load balancer address specified, but not internalLoadBalancerPort");
+            if(balancerRunner.balancerContext.internalLoadBalancerUdpPort<=0&&
+            		balancerRunner.balancerContext.internalLoadBalancerTcpPort<=0&&
+            		balancerRunner.balancerContext.internalLoadBalancerTlsPort<=0&&
+            		balancerRunner.balancerContext.internalLoadBalancerWsPort<=0&&
+            		balancerRunner.balancerContext.internalLoadBalancerWssPort<=0) {
+                throw new RuntimeException("Internal load balancer address is specified, but none internalIpLoadBalancerPort");
             }
         }
 
@@ -265,7 +304,7 @@ public class SIPBalancerForwarder implements SipListener {
             // in the classpath
             throw new IllegalStateException("Cant create stack due to["+pue.getMessage()+"]", pue);
         }
-
+    
         try {
             balancerRunner.balancerContext.headerFactory = sipFactory.createHeaderFactory();
             boolean usePrettyEncoding = Boolean.valueOf(balancerRunner.balancerContext.properties.getProperty("usePrettyEncoding", "false"));
@@ -275,70 +314,91 @@ public class SIPBalancerForwarder implements SipListener {
             balancerRunner.balancerContext.addressFactory = sipFactory.createAddressFactory();
             balancerRunner.balancerContext.messageFactory = sipFactory.createMessageFactory();
 
-            ListeningPoint externalLp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalPort, ListeningPoint.UDP);
-            ListeningPoint externalLpTcp=null;
-            if(isTransportWs)
-            	externalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalPort, ListeningPointExt.WS);            	
-            else
-            	externalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalPort, ListeningPoint.TCP);
+            ListeningPoint externalLpUdp=null,externalLpTcp=null,externalLpTls=null,externalLpWs=null,externalLpWss=null;
+            ArrayList <ListeningPoint> lpsExt = new ArrayList<ListeningPoint>();
+            
+            if(balancerRunner.balancerContext.externalUdpPort != 0)
+            {
+            	externalLpUdp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalUdpPort, ListeningPoint.UDP);
+            	lpsExt.add(externalLpUdp);
+            }
+            if(balancerRunner.balancerContext.externalTcpPort != 0)
+            {
+            	externalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalTcpPort, ListeningPoint.TCP);
+            	lpsExt.add(externalLpTcp);
+            }
+            if(balancerRunner.balancerContext.externalTlsPort != 0)
+            {
+            	externalLpTls = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalTlsPort, ListeningPoint.TLS);
+            	lpsExt.add(externalLpTls);
+            }
+            if(balancerRunner.balancerContext.externalWsPort != 0)
+            {
+            	externalLpWs = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalWsPort, ListeningPointExt.WS);
+            	lpsExt.add(externalLpWs);
+            }
+            if(balancerRunner.balancerContext.externalWssPort != 0)
+            {
+            	externalLpWss = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalWssPort, ListeningPointExt.WSS);
+            	lpsExt.add(externalLpWss);
+            }
            
-            balancerRunner.balancerContext.externalSipProvider = balancerRunner.balancerContext.sipStack.createSipProvider(externalLp);
-            balancerRunner.balancerContext.externalSipProvider.addListeningPoint(externalLpTcp);
+            balancerRunner.balancerContext.externalSipProvider = balancerRunner.balancerContext.sipStack.createSipProvider(lpsExt.remove(0));
+            for (ListeningPoint temp : lpsExt)
+            	balancerRunner.balancerContext.externalSipProvider.addListeningPoint(temp);
+            
             balancerRunner.balancerContext.externalSipProvider.addSipListener(this);
             
-            ListeningPoint externalLpTls = null;
-            if(balancerRunner.balancerContext.externalSecurePort!=0)
-            {
-            	 if(isTransportWs)
-            	 {
-            		 externalLpTls = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalSecurePort, ListeningPointExt.WSS);
-                     balancerRunner.balancerContext.externalSipProvider.addListeningPoint(externalLpTls);                
-            	 }
-            	 else
-            	 {
-            		 externalLpTls = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalSecurePort, ListeningPoint.TLS);
-                     balancerRunner.balancerContext.externalSipProvider.addListeningPoint(externalLpTls);
-            	 }
-            }
-
-            ListeningPoint internalLp = null,internalLpTcp=null,internalLpTls=null;
+  
+            ListeningPoint internalLpUdp = null,internalLpTcp=null,internalLpTls=null,internalLpWs=null,internalLpWss=null;
             if(balancerRunner.balancerContext.isTwoEntrypoints()) {
-                internalLp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalPort, ListeningPoint.UDP);
-                if(isTransportWs)
-                	internalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalPort, ListeningPointExt.WS);
-                else
-                	internalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalPort, ListeningPoint.TCP);
+            	
+            	ArrayList <ListeningPoint> lpsInt = new ArrayList<ListeningPoint>();
+            	if(balancerRunner.balancerContext.internalUdpPort != 0)
+            	{
+            		internalLpUdp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalUdpPort, ListeningPoint.UDP);
+            		lpsInt.add(internalLpUdp);
+            	}
+            	if(balancerRunner.balancerContext.internalTcpPort != 0)
+            	{
+            		internalLpTcp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalTcpPort, ListeningPoint.TCP);
+            		lpsInt.add(internalLpTcp);
+            	}
+            	if(balancerRunner.balancerContext.internalTlsPort != 0)
+            	{
+            		internalLpTls = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalTlsPort, ListeningPoint.TLS);
+            		lpsInt.add(internalLpTls);
+            	}
+            	if(balancerRunner.balancerContext.internalWsPort != 0)
+            	{
+            		internalLpWs = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalWsPort, ListeningPointExt.WS);
+            		lpsInt.add(internalLpWs);
+            	}
+            	if(balancerRunner.balancerContext.internalWssPort != 0)
+            	{
+            		internalLpWss = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalWssPort, ListeningPointExt.WSS);
+            		lpsInt.add(internalLpWss);
+            	}
 
-                balancerRunner.balancerContext.internalSipProvider = balancerRunner.balancerContext.sipStack.createSipProvider(internalLp);
-                balancerRunner.balancerContext.internalSipProvider.addListeningPoint(internalLpTcp);
+                balancerRunner.balancerContext.internalSipProvider = balancerRunner.balancerContext.sipStack.createSipProvider(lpsInt.remove(0));
+                for (ListeningPoint temp : lpsInt)
+                	balancerRunner.balancerContext.internalSipProvider.addListeningPoint(temp);
+
                 balancerRunner.balancerContext.internalSipProvider.addSipListener(this);
+            }
                 
-                if(balancerRunner.balancerContext.internalSecurePort!=0)
-                {
-                 if(isTransportWs)
-               	 {
-                	 internalLpTls = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalSecurePort, ListeningPointExt.WSS);
-                     balancerRunner.balancerContext.internalSipProvider.addListeningPoint(internalLpTls);
-					} 
-                 	else 
-					{
-                		internalLpTls = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.internalHost, balancerRunner.balancerContext.internalSecurePort, ListeningPoint.TLS);
-                        balancerRunner.balancerContext.internalSipProvider.addListeningPoint(internalLpTls);	
-					}
-				}
-			}
-
-
+ 
             //Creating the Record Route headers on startup since they can't be changed at runtime and this will avoid the overhead of creating them
             //for each request
 
             //We need to use double record (better option than record route rewriting) routing otherwise it is impossible :
             //a) to forward BYE from the callee side to the caller
-            //b) to support different transports		
+            //b) to support different transports	
+            if(externalLpUdp!=null)
             {
                 SipURI externalLocalUri = balancerRunner.balancerContext.addressFactory
-                        .createSipURI(null, externalLp.getIPAddress());
-                externalLocalUri.setPort(externalLp.getPort());
+                        .createSipURI(null, externalLpUdp.getIPAddress());
+                externalLocalUri.setPort(externalLpUdp.getPort());
                 externalLocalUri.setTransportParam(ListeningPoint.UDP);
                 //See RFC 3261 19.1.1 for lr parameter
                 externalLocalUri.setLrParam();
@@ -351,10 +411,11 @@ public class SIPBalancerForwarder implements SipListener {
                 balancerRunner.balancerContext.externalRecordRouteHeader[UDP] = balancerRunner.balancerContext.headerFactory
                         .createRecordRouteHeader(externalLocalAddress);    
             }
+            if(externalLpTcp!=null)
             {
                 SipURI externalLocalUri = balancerRunner.balancerContext.addressFactory
-                        .createSipURI(null, externalLp.getIPAddress());
-                externalLocalUri.setPort(externalLp.getPort());
+                        .createSipURI(null, externalLpTcp.getIPAddress());
+                externalLocalUri.setPort(externalLpTcp.getPort());
                 externalLocalUri.setTransportParam(ListeningPoint.TCP);
                 //See RFC 3261 19.1.1 for lr parameter
                 externalLocalUri.setLrParam();
@@ -367,10 +428,11 @@ public class SIPBalancerForwarder implements SipListener {
                 balancerRunner.balancerContext.externalRecordRouteHeader[TCP] = balancerRunner.balancerContext.headerFactory
                         .createRecordRouteHeader(externalLocalAddress);    
             }
+            if(externalLpWs!=null)
             {
                 SipURI externalLocalUri = balancerRunner.balancerContext.addressFactory
-                        .createSipURI(null, externalLp.getIPAddress());
-                externalLocalUri.setPort(externalLp.getPort());
+                        .createSipURI(null, externalLpWs.getIPAddress());
+                externalLocalUri.setPort(externalLpWs.getPort());
                 externalLocalUri.setTransportParam(ListeningPointExt.WS);
                 //See RFC 3261 19.1.1 for lr parameter
                 externalLocalUri.setLrParam();
@@ -383,7 +445,6 @@ public class SIPBalancerForwarder implements SipListener {
                 balancerRunner.balancerContext.externalRecordRouteHeader[WS] = balancerRunner.balancerContext.headerFactory
                         .createRecordRouteHeader(externalLocalAddress);    
             }
-            
             if(externalLpTls!=null)
             {
                 SipURI externalLocalUri = balancerRunner.balancerContext.addressFactory
@@ -400,14 +461,16 @@ public class SIPBalancerForwarder implements SipListener {
                 }                    
                 balancerRunner.balancerContext.externalRecordRouteHeader[TLS] = balancerRunner.balancerContext.headerFactory
                         .createRecordRouteHeader(externalLocalAddress);    
-                
-                externalLocalUri = balancerRunner.balancerContext.addressFactory
-                        .createSipURI(null, externalLpTls.getIPAddress());
-                externalLocalUri.setPort(externalLpTls.getPort());
+            }
+            if(externalLpWss!=null)
+            {
+            	SipURI externalLocalUri = balancerRunner.balancerContext.addressFactory
+                        .createSipURI(null, externalLpWss.getIPAddress());
+                externalLocalUri.setPort(externalLpWss.getPort());
                 externalLocalUri.setTransportParam(ListeningPointExt.WSS);
                 //See RFC 3261 19.1.1 for lr parameter
                 externalLocalUri.setLrParam();
-                externalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(externalLocalUri);
+                Address externalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(externalLocalUri);
                 externalLocalAddress.setURI(externalLocalUri);
 
                 if(logger.isDebugEnabled()) {
@@ -418,10 +481,11 @@ public class SIPBalancerForwarder implements SipListener {
             }
 
             if(balancerRunner.balancerContext.isTwoEntrypoints()) {
+            	if(internalLpUdp!=null)
                 {
                     SipURI internalLocalUri = balancerRunner.balancerContext.addressFactory
-                            .createSipURI(null, internalLp.getIPAddress());
-                    internalLocalUri.setPort(internalLp.getPort());
+                            .createSipURI(null, internalLpUdp.getIPAddress());
+                    internalLocalUri.setPort(internalLpUdp.getPort());
                     internalLocalUri.setTransportParam(ListeningPoint.UDP);
                     //See RFC 3261 19.1.1 for lr parameter
                     internalLocalUri.setLrParam();
@@ -433,10 +497,11 @@ public class SIPBalancerForwarder implements SipListener {
                     balancerRunner.balancerContext.internalRecordRouteHeader[UDP] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(internalLocalAddress);  
                 }
+            	if(internalLpTcp!=null)
                 {
                     SipURI internalLocalUri = balancerRunner.balancerContext.addressFactory
-                            .createSipURI(null, internalLp.getIPAddress());
-                    internalLocalUri.setPort(internalLp.getPort());
+                            .createSipURI(null, internalLpTcp.getIPAddress());
+                    internalLocalUri.setPort(internalLpTcp.getPort());
                     internalLocalUri.setTransportParam(ListeningPoint.TCP);
                     //See RFC 3261 19.1.1 for lr parameter
                     internalLocalUri.setLrParam();
@@ -448,10 +513,11 @@ public class SIPBalancerForwarder implements SipListener {
                     balancerRunner.balancerContext.internalRecordRouteHeader[TCP] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(internalLocalAddress);  
                 }
+            	if(internalLpWs!=null)
                 {
                     SipURI internalLocalUri = balancerRunner.balancerContext.addressFactory
-                            .createSipURI(null, internalLp.getIPAddress());
-                    internalLocalUri.setPort(internalLp.getPort());
+                            .createSipURI(null, internalLpWs.getIPAddress());
+                    internalLocalUri.setPort(internalLpWs.getPort());
                     internalLocalUri.setTransportParam(ListeningPointExt.WS);
                     //See RFC 3261 19.1.1 for lr parameter
                     internalLocalUri.setLrParam();
@@ -463,7 +529,7 @@ public class SIPBalancerForwarder implements SipListener {
                     balancerRunner.balancerContext.internalRecordRouteHeader[WS] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(internalLocalAddress);  
                 }
-                if(internalLpTls!=null)
+            	if(internalLpTls!=null)
                 {
                     SipURI internalLocalUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, internalLpTls.getIPAddress());
@@ -478,14 +544,16 @@ public class SIPBalancerForwarder implements SipListener {
                     }                    
                     balancerRunner.balancerContext.internalRecordRouteHeader[TLS] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(internalLocalAddress);  
-                    
-                    internalLocalUri = balancerRunner.balancerContext.addressFactory
-                            .createSipURI(null, internalLpTls.getIPAddress());
-                    internalLocalUri.setPort(internalLpTls.getPort());
+                }
+            	if(internalLpWss!=null)
+                {
+                	SipURI internalLocalUri = balancerRunner.balancerContext.addressFactory
+                            .createSipURI(null, internalLpWss.getIPAddress());
+                    internalLocalUri.setPort(internalLpWss.getPort());
                     internalLocalUri.setTransportParam(ListeningPointExt.WSS);
                     //See RFC 3261 19.1.1 for lr parameter
                     internalLocalUri.setLrParam();
-                    internalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(internalLocalUri);
+                    Address internalLocalAddress = balancerRunner.balancerContext.addressFactory.createAddress(internalLocalUri);
                     internalLocalAddress.setURI(internalLocalUri);
                     if(logger.isDebugEnabled()) {
                         logger.debug("adding Record Router Header :"+internalLocalAddress);
@@ -497,10 +565,11 @@ public class SIPBalancerForwarder implements SipListener {
 
             if(balancerRunner.balancerContext.externalIpLoadBalancerAddress != null) {
                 //UDP RR
+            	if(balancerRunner.balancerContext.externalLoadBalancerUdpPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.externalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerUdpPort);
                     ipLbSipUri.setTransportParam(ListeningPoint.UDP);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
@@ -509,10 +578,11 @@ public class SIPBalancerForwarder implements SipListener {
                             .createRecordRouteHeader(ipLbAdress);
                 }
                 //TCP RR
+            	if(balancerRunner.balancerContext.externalLoadBalancerTcpPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.externalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerTcpPort);
                     ipLbSipUri.setTransportParam(ListeningPoint.TCP);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
@@ -521,10 +591,11 @@ public class SIPBalancerForwarder implements SipListener {
                             .createRecordRouteHeader(ipLbAdress);
                 }
                 //WS RR
+            	if(balancerRunner.balancerContext.externalLoadBalancerWsPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.externalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerWsPort);
                     ipLbSipUri.setTransportParam(ListeningPointExt.WS);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
@@ -533,24 +604,27 @@ public class SIPBalancerForwarder implements SipListener {
                             .createRecordRouteHeader(ipLbAdress);
                 }
                 //TLS RR
-                if(externalLpTls!=null)
+            	if(balancerRunner.balancerContext.externalLoadBalancerTlsPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.externalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalSecureLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerTlsPort);
                     ipLbSipUri.setTransportParam(ListeningPoint.TLS);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
                     ipLbAdress.setURI(ipLbSipUri);
                     balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[TLS] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(ipLbAdress);
-                    
-                    ipLbSipUri = balancerRunner.balancerContext.addressFactory
+                }
+                //WSS RR
+            	if(balancerRunner.balancerContext.externalLoadBalancerWssPort!=0)
+                {
+                	SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.externalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalSecureLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.externalLoadBalancerWssPort);
                     ipLbSipUri.setTransportParam(ListeningPointExt.WSS);
                     ipLbSipUri.setLrParam();
-                    ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
+                    Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
                     ipLbAdress.setURI(ipLbSipUri);
                     balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[WSS] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(ipLbAdress);
@@ -558,10 +632,11 @@ public class SIPBalancerForwarder implements SipListener {
             }
 
             if(balancerRunner.balancerContext.internalIpLoadBalancerAddress != null) {
+            	if(balancerRunner.balancerContext.internalLoadBalancerUdpPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.internalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerUdpPort);
                     ipLbSipUri.setTransportParam(ListeningPoint.UDP);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
@@ -569,10 +644,11 @@ public class SIPBalancerForwarder implements SipListener {
                     balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[UDP] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(ipLbAdress);
                 }
+            	if(balancerRunner.balancerContext.internalLoadBalancerTcpPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.internalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerTcpPort);
                     ipLbSipUri.setTransportParam(ListeningPoint.TCP);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
@@ -580,10 +656,11 @@ public class SIPBalancerForwarder implements SipListener {
                     balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[TCP] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(ipLbAdress);
                 }
+            	if(balancerRunner.balancerContext.internalLoadBalancerWsPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.internalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerWsPort);
                     ipLbSipUri.setTransportParam(ListeningPointExt.WS);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
@@ -591,29 +668,32 @@ public class SIPBalancerForwarder implements SipListener {
                     balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[WS] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(ipLbAdress);
                 }
-                if(internalLpTls!=null)
+            	if(balancerRunner.balancerContext.internalLoadBalancerTlsPort!=0)
                 {
                     SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.internalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalSecureLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerTlsPort);
                     ipLbSipUri.setTransportParam(ListeningPoint.TLS);
                     ipLbSipUri.setLrParam();
                     Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
                     ipLbAdress.setURI(ipLbSipUri);
                     balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[TLS] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(ipLbAdress);
-                    
-                    ipLbSipUri = balancerRunner.balancerContext.addressFactory
+                }
+            	if(balancerRunner.balancerContext.internalLoadBalancerWssPort!=0)
+                {
+                    SipURI ipLbSipUri = balancerRunner.balancerContext.addressFactory
                             .createSipURI(null, balancerRunner.balancerContext.internalIpLoadBalancerAddress);
-                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalSecureLoadBalancerPort);
+                    ipLbSipUri.setPort(balancerRunner.balancerContext.internalLoadBalancerWssPort);
                     ipLbSipUri.setTransportParam(ListeningPointExt.WSS);
                     ipLbSipUri.setLrParam();
-                    ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
+                    Address ipLbAdress = balancerRunner.balancerContext.addressFactory.createAddress(ipLbSipUri);
                     ipLbAdress.setURI(ipLbSipUri);
                     balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[WSS] = balancerRunner.balancerContext.headerFactory
                             .createRecordRouteHeader(ipLbAdress);
                 }
             }
+            
             balancerRunner.balancerContext.activeExternalHeader[UDP] = balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[UDP] != null ?
             		balancerRunner.balancerContext.externalIpBalancerRecordRouteHeader[UDP] : balancerRunner.balancerContext.externalRecordRouteHeader[UDP];
             balancerRunner.balancerContext.activeInternalHeader[UDP] = balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[UDP] != null ?
@@ -649,19 +729,36 @@ public class SIPBalancerForwarder implements SipListener {
 			{
 				balancerRunner.balancerContext.externalViaHost = balancerRunner.balancerContext.externalIpLoadBalancerAddress;
 				balancerRunner.balancerContext.internalViaHost = balancerRunner.balancerContext.internalIpLoadBalancerAddress;
-				balancerRunner.balancerContext.externalViaPort = balancerRunner.balancerContext.externalLoadBalancerPort;
-				balancerRunner.balancerContext.externalSecureViaPort = balancerRunner.balancerContext.externalSecureLoadBalancerPort;
-				balancerRunner.balancerContext.internalViaPort = balancerRunner.balancerContext.internalLoadBalancerPort;
-				balancerRunner.balancerContext.internalSecureViaPort = balancerRunner.balancerContext.internalSecureLoadBalancerPort;
+				
+				balancerRunner.balancerContext.externalViaUdpPort = balancerRunner.balancerContext.externalLoadBalancerUdpPort;
+				balancerRunner.balancerContext.externalViaTcpPort = balancerRunner.balancerContext.externalLoadBalancerTcpPort;
+				balancerRunner.balancerContext.externalViaTlsPort = balancerRunner.balancerContext.externalLoadBalancerTlsPort;
+				balancerRunner.balancerContext.externalViaWsPort = balancerRunner.balancerContext.externalLoadBalancerWsPort;
+				balancerRunner.balancerContext.externalViaWssPort = balancerRunner.balancerContext.externalLoadBalancerWssPort;
+				
+				balancerRunner.balancerContext.internalViaUdpPort = balancerRunner.balancerContext.internalLoadBalancerUdpPort;
+				balancerRunner.balancerContext.internalViaTcpPort = balancerRunner.balancerContext.internalLoadBalancerTcpPort;
+				balancerRunner.balancerContext.internalViaTlsPort = balancerRunner.balancerContext.internalLoadBalancerTlsPort;
+				balancerRunner.balancerContext.internalViaWsPort = balancerRunner.balancerContext.internalLoadBalancerWsPort;
+				balancerRunner.balancerContext.internalViaWssPort = balancerRunner.balancerContext.internalLoadBalancerWssPort;
+
 			} 
 			else 
 			{
 				balancerRunner.balancerContext.externalViaHost = balancerRunner.balancerContext.externalHost;
 				balancerRunner.balancerContext.internalViaHost = balancerRunner.balancerContext.internalHost;
-				balancerRunner.balancerContext.externalViaPort = balancerRunner.balancerContext.externalPort;
-				balancerRunner.balancerContext.externalSecureViaPort = balancerRunner.balancerContext.externalSecurePort;
-				balancerRunner.balancerContext.internalViaPort = balancerRunner.balancerContext.internalPort;
-				balancerRunner.balancerContext.internalSecureViaPort = balancerRunner.balancerContext.internalSecurePort;
+				
+				balancerRunner.balancerContext.externalViaUdpPort = balancerRunner.balancerContext.externalUdpPort;
+				balancerRunner.balancerContext.externalViaTcpPort = balancerRunner.balancerContext.externalTcpPort;
+				balancerRunner.balancerContext.externalViaTlsPort = balancerRunner.balancerContext.externalTlsPort;
+				balancerRunner.balancerContext.externalViaWsPort = balancerRunner.balancerContext.externalWsPort;
+				balancerRunner.balancerContext.externalViaWssPort = balancerRunner.balancerContext.externalWssPort;
+
+				balancerRunner.balancerContext.internalViaUdpPort = balancerRunner.balancerContext.internalUdpPort;
+				balancerRunner.balancerContext.internalViaTcpPort = balancerRunner.balancerContext.internalTcpPort;
+				balancerRunner.balancerContext.internalViaTlsPort = balancerRunner.balancerContext.internalTlsPort;
+				balancerRunner.balancerContext.internalViaWsPort = balancerRunner.balancerContext.internalWsPort;
+				balancerRunner.balancerContext.internalViaWssPort = balancerRunner.balancerContext.internalWssPort;
 			}
 
 			balancerRunner.balancerContext.publicIP = balancerRunner.balancerContext.properties
@@ -681,10 +778,17 @@ public class SIPBalancerForwarder implements SipListener {
             throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }
         if(logger.isInfoEnabled()) {
-            logger.info("Sip Balancer started on external address " + 
-                    balancerRunner.balancerContext.externalHost + ", external port : " + 
-                    balancerRunner.balancerContext.externalPort + ", internalPort : " + 
-                    balancerRunner.balancerContext.internalPort);
+            logger.info("Sip Balancer started on external address " + balancerRunner.balancerContext.externalHost + 
+            		", external UDP port : " + balancerRunner.balancerContext.externalUdpPort +
+            		", external TCP port : " + balancerRunner.balancerContext.externalTcpPort +
+            		", external TLS port : " + balancerRunner.balancerContext.externalTlsPort +
+            		", external WS port : " + balancerRunner.balancerContext.externalWsPort +
+            		", external WSS port : " + balancerRunner.balancerContext.externalWssPort +
+            		", internal UDP Port : " + balancerRunner.balancerContext.internalUdpPort +
+            		", internal TCP Port : " + balancerRunner.balancerContext.internalTcpPort +
+            		", internal TLS Port : " + balancerRunner.balancerContext.internalTlsPort +
+            		", internal WS Port : " + balancerRunner.balancerContext.internalWsPort +
+            		", internal WSS Port : " + balancerRunner.balancerContext.internalWssPort);
         }              
     }
 
@@ -964,23 +1068,26 @@ public class SIPBalancerForwarder implements SipListener {
         {
             if(uri.getHost().equals(balancerRunner.balancerContext.externalHost) || uri.getHost().equals(balancerRunner.balancerContext.publicIP))
             {
-            	if(uri.getPort() == balancerRunner.balancerContext.externalPort)
-            		return uri;
-            	
-            	if(balancerRunner.balancerContext.externalSecurePort!=0 && uri.getPort() == balancerRunner.balancerContext.externalSecurePort)
-            		return uri;
+				int port = uri.getPort();
+				if (port == balancerRunner.balancerContext.externalUdpPort
+						|| port == balancerRunner.balancerContext.externalTcpPort
+						|| port == balancerRunner.balancerContext.externalTlsPort
+						|| port == balancerRunner.balancerContext.externalWsPort
+						|| port == balancerRunner.balancerContext.externalWssPort)
+					return uri;
             }
                 
             if(uri.getHost().equals(balancerRunner.balancerContext.internalHost) || uri.getHost().equals(balancerRunner.balancerContext.publicIP))
             {
-            	if(uri.getPort() == balancerRunner.balancerContext.internalPort)
-            		return uri;
-            	
-            	if(balancerRunner.balancerContext.internalSecurePort!=0 && uri.getPort() == balancerRunner.balancerContext.internalSecurePort)
-            		return uri;                            
+				int port = uri.getPort();
+				if (port == balancerRunner.balancerContext.internalUdpPort
+						|| port == balancerRunner.balancerContext.internalTcpPort
+						|| port == balancerRunner.balancerContext.internalTlsPort
+						|| port == balancerRunner.balancerContext.internalWsPort
+						|| port == balancerRunner.balancerContext.internalWssPort)
+					return uri;
             }
         }
-        
         return null;
     }
 
@@ -1170,8 +1277,7 @@ public class SIPBalancerForwarder implements SipListener {
 
                         SipURI uri = (SipURI) request.getRequestURI();
                         RouteHeader header = (RouteHeader) request.getHeader(RouteHeader.NAME);
-
-                        if (isRouteHeaderExternal(uri.getHost(), uri.getPort()) || header != null)
+                        if (isRouteHeaderExternal(uri.getHost(), uri.getPort(), ((ViaHeader)request.getHeader("Via")).getTransport()) || header != null)
                         {
 	                        final RouteHeader route = balancerRunner.balancerContext.headerFactory.createRouteHeader(
 	                                balancerRunner.balancerContext.addressFactory.createAddress(routeSipUri));
@@ -1273,23 +1379,13 @@ public class SIPBalancerForwarder implements SipListener {
         final ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
         String newBranch = via.getBranch() + callID.substring(0, Math.min(callID.length(), 5));
         // Add the via header to the top of the header list.
-        ViaHeader viaHeaderExternal = null;
+        ViaHeader viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+        		balancerRunner.balancerContext.externalViaHost, balancerRunner.balancerContext.getExternalViaPortByTransport(transport), transport, newBranch+ "_" + version);
         ViaHeader viaHeaderInternal = null;
-
-        if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
-        	viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-                    balancerRunner.balancerContext.externalViaHost, balancerRunner.balancerContext.externalSecureViaPort, transport, newBranch+ "_" + version);
-        else
-        	viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-                balancerRunner.balancerContext.externalViaHost, balancerRunner.balancerContext.externalViaPort, transport, newBranch+ "_" + version);
-
+  
         if(balancerRunner.balancerContext.isTwoEntrypoints()) {
-        	if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
-        		viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-                        balancerRunner.balancerContext.internalViaHost, balancerRunner.balancerContext.internalSecureViaPort, transport, newBranch + "zsd" + "_" + version);
-        	else
             viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-                    balancerRunner.balancerContext.internalViaHost, balancerRunner.balancerContext.internalViaPort, transport, newBranch + "zsd" + "_" + version);
+                    balancerRunner.balancerContext.internalViaHost, balancerRunner.balancerContext.getInternalViaPortByTransport(transport), transport, newBranch + "zsd" + "_" + version);
         }
         if(logger.isDebugEnabled()) {
             logger.debug("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
@@ -1477,8 +1573,7 @@ public class SIPBalancerForwarder implements SipListener {
             SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
             callVersion = routeUri.getParameter(ROUTE_PARAM_NODE_VERSION);
 
-            //FIXME check against a list of host we may have too
-            if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
+            if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort(), ((ViaHeader)request.getHeader("Via")).getTransport())) {
                 if(logger.isDebugEnabled()) {
                     logger.debug("this route header is for the LB removing it " + routeUri);
                 }
@@ -1493,8 +1588,7 @@ public class SIPBalancerForwarder implements SipListener {
                 if(routeHeader != null) {
 
                     routeUri = (SipURI)routeHeader.getAddress().getURI();
-                    //FIXME check against a list of host we may have too
-                    if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort())) {
+                   if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort(), ((ViaHeader)request.getHeader("Via")).getTransport())) {
                         if(logger.isDebugEnabled()) {
                             logger.debug("this route header is for the LB removing it " + routeUri);
                         }
@@ -1513,7 +1607,7 @@ public class SIPBalancerForwarder implements SipListener {
                             RouteHeader extraHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
                             if(extraHeader != null) {
                                 SipURI u = (SipURI)extraHeader.getAddress().getURI();
-                                if(!isRouteHeaderExternal(u.getHost(), u.getPort())) {
+                                if(!isRouteHeaderExternal(u.getHost(), u.getPort(), ((ViaHeader)request.getHeader("Via")).getTransport())) {
                                     numberOfRemovedRouteHeaders ++;
                                     request.removeFirst(RouteHeader.NAME);
                                 } else {
@@ -1558,37 +1652,61 @@ public class SIPBalancerForwarder implements SipListener {
      * @param sipUri sip Uri to check 
      * @return
      */
-    private boolean isRouteHeaderExternal(String host, int port) {
-        //FIXME check against a list of host we may have too and add transport
-        if((host.equalsIgnoreCase(balancerRunner.balancerContext.externalHost) || 
-        		host.equalsIgnoreCase(balancerRunner.balancerContext.internalHost) || 
-        		host.equalsIgnoreCase(balancerRunner.balancerContext.publicIP)))
-        		{
-        			if(port == balancerRunner.balancerContext.externalPort || port == balancerRunner.balancerContext.internalPort)
-        				return false;
-        			
-        			if(balancerRunner.balancerContext.externalSecurePort!=0 && port == balancerRunner.balancerContext.externalSecurePort)
-        				return false;
-        			
-        			if(balancerRunner.balancerContext.internalSecurePort!=0 && port == balancerRunner.balancerContext.internalSecurePort)
-        				return false;
-        		}                
-        
-        if(host.equalsIgnoreCase(balancerRunner.balancerContext.externalIpLoadBalancerAddress) && port == balancerRunner.balancerContext.externalLoadBalancerPort)
-            return false;
-        
-        if(balancerRunner.balancerContext.externalSecureLoadBalancerPort!=0 && host.equalsIgnoreCase(balancerRunner.balancerContext.externalIpLoadBalancerAddress) && 
-        		port == balancerRunner.balancerContext.externalLoadBalancerPort)
-        	return false;
-        
-        if(host.equalsIgnoreCase(balancerRunner.balancerContext.internalIpLoadBalancerAddress) && port == balancerRunner.balancerContext.internalLoadBalancerPort)
-            return false;        
-        
-        if(balancerRunner.balancerContext.internalSecureLoadBalancerPort!=0 && host.equalsIgnoreCase(balancerRunner.balancerContext.internalIpLoadBalancerAddress) && 
-        		port == balancerRunner.balancerContext.internalSecureLoadBalancerPort)
-            return false;        
-        
-        return true;
+    private boolean isRouteHeaderExternal(String host, int port,String transport) 
+    {  
+
+		if (host.equalsIgnoreCase(balancerRunner.balancerContext.externalHost))
+		{
+			if(balancerRunner.balancerContext.getExternalPortByTransport(transport)==port)
+				return false;
+			
+			if(balancerRunner.balancerContext.getExternalLoadBalancerPortByTransport(transport)==port)
+				return false;
+		}
+
+		if(host.equalsIgnoreCase(balancerRunner.balancerContext.internalHost))
+		{
+			if(balancerRunner.balancerContext.getInternalPortByTransport(transport)==port)
+				return false;
+			
+			if(balancerRunner.balancerContext.getInternalLoadBalancerPortByTransport(transport)==port)
+				return false;
+		}
+		
+		if(host.equalsIgnoreCase(balancerRunner.balancerContext.externalIpLoadBalancerAddress))
+		{
+			if(balancerRunner.balancerContext.getExternalPortByTransport(transport)==port)
+				return false;
+			
+			if(balancerRunner.balancerContext.getExternalLoadBalancerPortByTransport(transport)==port)
+				return false;
+		}
+		
+		if(host.equalsIgnoreCase(balancerRunner.balancerContext.internalIpLoadBalancerAddress))
+		{
+			if(balancerRunner.balancerContext.getInternalPortByTransport(transport)==port)
+				return false;
+			
+			if(balancerRunner.balancerContext.getInternalLoadBalancerPortByTransport(transport)==port)
+				return false;
+		}
+		
+		if(host.equalsIgnoreCase(balancerRunner.balancerContext.publicIP))
+		{
+			if(balancerRunner.balancerContext.getExternalPortByTransport(transport)==port)
+				return false;
+			
+			if(balancerRunner.balancerContext.getExternalLoadBalancerPortByTransport(transport)==port)
+				return false;
+			
+			if(balancerRunner.balancerContext.getInternalPortByTransport(transport)==port)
+				return false;
+			
+			if(balancerRunner.balancerContext.getInternalLoadBalancerPortByTransport(transport)==port)
+				return false;
+		}
+
+		return true;		
     }
 
     /**
@@ -1658,17 +1776,17 @@ public class SIPBalancerForwarder implements SipListener {
 
         InvocationContext ctx = balancerRunner.getInvocationContext(version);
 
-        if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
+        if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort(), viaHeader.getTransport())) {
             response.removeFirst(ViaHeader.NAME);
         }
-
+        
         viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
         String transport=viaHeader.getTransport();
         
-        if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort())) {
+        if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort(), viaHeader.getTransport())) {
             response.removeFirst(ViaHeader.NAME);
         }
-
+        
         boolean fromServer = false;
         if(balancerRunner.balancerContext.isTwoEntrypoints()) {
             fromServer = sipProvider.equals(balancerRunner.balancerContext.internalSipProvider);
@@ -1779,8 +1897,11 @@ public class SIPBalancerForwarder implements SipListener {
         //Need to patch the response so the subsequent requests are directly correctly at the public IP Address of the LB
         // Useful for NAT environment such as Amazon EC2
         if (balancerRunner.balancerContext.publicIP != null && !balancerRunner.balancerContext.publicIP.isEmpty()) {
-            int port = balancerRunner.balancerContext.externalPort;
-            int securePort = balancerRunner.balancerContext.externalSecurePort;
+            int udpPort = balancerRunner.balancerContext.externalUdpPort;
+            int tcpPort = balancerRunner.balancerContext.externalTcpPort;
+            int tlsPort = balancerRunner.balancerContext.externalTlsPort;
+            int wsPort = balancerRunner.balancerContext.externalWsPort;
+            int wssPort = balancerRunner.balancerContext.externalWssPort;
             
             String transport = ((ViaHeader)sipMessage.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 
@@ -1801,7 +1922,11 @@ public class SIPBalancerForwarder implements SipListener {
                     
                     logger.info("About to check Record-Route header: "+recordRouteHeader.toString());
                     if (((SipURI)recordRouteHeader.getAddress().getURI()).getHost().equals(privateIp)) { //If this RecordRoute header is from LB
-                        if (((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==port || (securePort!=0 && ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==securePort)) { // And if the port is the external Port 5060
+                        if (((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==udpPort 
+                        		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==tcpPort
+                        		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==tlsPort
+                        		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==wsPort
+                        		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==wssPort) { // And if the port is the external Port 5060
                             SipURI sipURI = (SipURI) recordRouteHeader.getAddress().getURI();
                             sipURI.setHost(balancerRunner.balancerContext.publicIP);                            
                         }                        
@@ -1812,9 +1937,8 @@ public class SIPBalancerForwarder implements SipListener {
 
                 if (sipMessage.getHeader(ContactHeader.NAME) != null) {                	
                     final String displayedName = ((ContactHeader)sipMessage.getHeader("Contact")).getAddress().getDisplayName();
-                    int currPort=port;
-                    if(transport.equalsIgnoreCase(ListeningPoint.TLS) || transport.equalsIgnoreCase(ListeningPointExt.WSS))
-                    	currPort=securePort;
+                    
+                    int currPort=balancerRunner.balancerContext.getExternalPortByTransport(transport);
                     
                     if (displayedName != null && !displayedName.isEmpty()) {
                         final String contactURI = "sip:"+displayedName+"@"+balancerRunner.balancerContext.publicIP+":"+currPort;

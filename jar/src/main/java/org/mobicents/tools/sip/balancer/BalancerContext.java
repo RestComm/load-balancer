@@ -22,6 +22,7 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.ListeningPointExt;
 import gov.nist.javax.sip.SipStackImpl;
 
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.sip.ListeningPoint;
 import javax.sip.SipProvider;
 import javax.sip.SipStack;
 import javax.sip.address.AddressFactory;
@@ -67,28 +69,49 @@ public class BalancerContext {
 	public String externalHost;
 	public String internalHost;
 	
-	public int externalPort;
-	public int internalPort;
+	public int externalUdpPort;
+	public int externalTcpPort;
+	public int externalTlsPort;
+	public int externalWsPort;
+	public int externalWssPort;
 	
-	public int externalSecurePort;
-	public int internalSecurePort;
+	public int internalUdpPort;
+	public int internalTcpPort;
+	public int internalTlsPort;
+	public int internalWsPort;
+	public int internalWssPort;
+
 	
 	public String externalViaHost;
 	public String internalViaHost;
 	
-	public int externalViaPort;
-	public int externalSecureViaPort;
+	public int externalViaUdpPort;
+	public int externalViaTcpPort;
+	public int externalViaTlsPort;
+	public int externalViaWsPort;
+	public int externalViaWssPort;
 	
-	public int internalViaPort;
-	public int internalSecureViaPort;
+	public int internalViaUdpPort;
+	public int internalViaTcpPort;
+	public int internalViaTlsPort;
+	public int internalViaWsPort;
+	public int internalViaWssPort;
+
 	
 	public String internalIpLoadBalancerAddress;
-	public int internalLoadBalancerPort;
-	public int internalSecureLoadBalancerPort;
+	public int internalLoadBalancerUdpPort;
+	public int internalLoadBalancerTcpPort;
+	public int internalLoadBalancerTlsPort;
+	public int internalLoadBalancerWsPort;
+	public int internalLoadBalancerWssPort;
+	
 	
 	public String externalIpLoadBalancerAddress;
-	public int externalLoadBalancerPort;
-	public int externalSecureLoadBalancerPort;
+	public int externalLoadBalancerUdpPort;
+	public int externalLoadBalancerTcpPort;
+	public int externalLoadBalancerTlsPort;
+	public int externalLoadBalancerWsPort;
+	public int externalLoadBalancerWssPort;
 	
 	public boolean useIpLoadBalancerAddressInViaHeaders;
 	public String sipHeaderAffinityKey;
@@ -126,7 +149,11 @@ public class BalancerContext {
 	final Map<String, AtomicLong> responsesProcessedByStatusCode = new ConcurrentHashMap<String, AtomicLong>();
     
     public boolean isTwoEntrypoints() {
-    	return (internalPort>0 || internalSecurePort>0)  && internalHost != null;
+    	return (internalUdpPort>0 
+    			|| internalTcpPort>0
+    			|| internalTlsPort>0
+    			|| internalWsPort>0
+    			|| internalWssPort>0)  && internalHost != null;
     }
 
     public BalancerContext() {
@@ -208,4 +235,106 @@ public class BalancerContext {
 		SmppConstants.CMD_ID_SUBMIT_MULTI_RESP,
 		SmppConstants.CMD_ID_DATA_SM_RESP
 		};
+	
+	public int getExternalPortByTransport(String transport)
+	{
+		if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
+			return externalWssPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPointExt.WS))
+			return externalWsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+			return externalTlsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TCP))
+			return externalTcpPort;
+		
+		return externalUdpPort;
+	}
+	
+	public int getExternalViaPortByTransport(String transport)
+	{
+		if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
+			return externalViaWssPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPointExt.WS))
+			return externalViaWsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+			return externalViaTlsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TCP))
+			return externalViaTcpPort;
+		
+		return externalViaUdpPort;
+	}
+	
+	public int getExternalLoadBalancerPortByTransport(String transport)
+	{
+		if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
+			return externalLoadBalancerWssPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPointExt.WS))
+			return externalLoadBalancerWsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+			return externalLoadBalancerTlsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TCP))
+			return externalLoadBalancerTcpPort;
+		
+		return externalLoadBalancerUdpPort;
+	}
+	
+	public int getInternalPortByTransport(String transport)
+	{
+		if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
+			return internalWssPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPointExt.WS))
+			return internalWsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+			return internalTlsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TCP))
+			return internalTcpPort;
+		
+		return internalUdpPort;
+	}
+	
+	public int getInternalViaPortByTransport(String transport)
+	{
+		if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
+			return internalViaWssPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPointExt.WS))
+			return internalViaWsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+			return internalViaTlsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TCP))
+			return internalViaTcpPort;
+		
+		return internalViaUdpPort;
+	}
+	
+	public int getInternalLoadBalancerPortByTransport(String transport)
+	{
+		if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
+			return internalLoadBalancerWssPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPointExt.WS))
+			return internalLoadBalancerWsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+			return internalLoadBalancerTlsPort;
+		
+		if(transport.equalsIgnoreCase(ListeningPoint.TCP))
+			return internalLoadBalancerTcpPort;
+		
+		return internalLoadBalancerUdpPort;
+	}
 }

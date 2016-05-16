@@ -80,7 +80,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 	
 	private void dumpNodes() {
-		String nodes = "I am " + getBalancerContext().externalHost + ":" + getBalancerContext().externalPort + ". I see the following nodes are in cache right now (" + nodesArray.length + "):\n";
+		String nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + nodesArray.length + "):\n";
 		
 		for(Object object : nodesArray) {
 			SIPNode node = (SIPNode) object;
