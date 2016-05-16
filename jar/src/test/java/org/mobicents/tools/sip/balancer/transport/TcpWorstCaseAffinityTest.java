@@ -26,8 +26,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
-
 import java.util.Properties;
 
 import javax.sip.ListeningPoint;
@@ -73,8 +71,8 @@ public class TcpWorstCaseAffinityTest{
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		properties.setProperty("algorithmClass", WorstCaseUdpTestAffinityAlgorithm.class.getName());		
 		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
+		properties.setProperty("internalTcpPort", "5065");
+		properties.setProperty("externalTcpPort", "5060");
 		properties.setProperty("earlyDialogWorstCase", "true");						
 		balancer.start(properties);
 		

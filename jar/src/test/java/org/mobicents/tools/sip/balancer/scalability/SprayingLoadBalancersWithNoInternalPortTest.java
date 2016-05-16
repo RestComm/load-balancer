@@ -69,13 +69,13 @@ public class SprayingLoadBalancersWithNoInternalPortTest {
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		
 		properties.setProperty("externalHost", "127.0.0.1");
-		properties.setProperty("externalPort", "5"+id+"60");
+		properties.setProperty("externalUdpPort", "5"+id+"60");
 		properties.setProperty("rmiRegistryPort", "2" + id +"00");
 		properties.setProperty("httpPort", "2" + id +"80");
 		properties.setProperty("jmxHtmlAdapterPort", "8" + id +"00");
 		properties.setProperty("algorithmClass", HeaderConsistentHashBalancerAlgorithm.class.getName());
 		properties.setProperty("externalIpLoadBalancerAddress", "127.0.0.1");
-		properties.setProperty("externalIpLoadBalancerPort", "9988");
+		properties.setProperty("externalIpLoadBalancerUdpPort", "9988");
 		balancer.start(properties);
 		return balancer;
 	}

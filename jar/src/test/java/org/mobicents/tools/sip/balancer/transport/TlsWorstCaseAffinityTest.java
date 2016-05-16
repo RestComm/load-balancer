@@ -76,10 +76,8 @@ public class TlsWorstCaseAffinityTest{
 		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
 		
 		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
-		properties.setProperty("internalSecurePort", "5066");
-		properties.setProperty("externalSecurePort", "5061");
+		properties.setProperty("internalTlsPort", "5066");
+		properties.setProperty("externalTlsPort", "5061");
 		properties.setProperty("earlyDialogWorstCase", "true");
 		properties.setProperty("javax.net.ssl.keyStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.keyStorePassword", "123456");

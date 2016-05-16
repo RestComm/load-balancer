@@ -76,10 +76,9 @@ public class WsWorstCaseAffinityTest{
 		properties.setProperty("gov.nist.javax.sip.PATCH_SIP_WEBSOCKETS_HEADERS", "false");
 		
 		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
+		properties.setProperty("internalWsPort", "5065");
+		properties.setProperty("externalWsPort", "5060");
 		properties.setProperty("earlyDialogWorstCase", "true");
-		properties.setProperty("isTransportWs", "true");	
 		balancer.start(properties);
 		
 		

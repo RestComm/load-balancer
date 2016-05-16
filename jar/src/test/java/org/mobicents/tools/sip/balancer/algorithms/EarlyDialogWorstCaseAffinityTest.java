@@ -75,8 +75,8 @@ public class EarlyDialogWorstCaseAffinityTest{
 		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
 		
 		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
+		properties.setProperty("internalUdpPort", "5065");
+		properties.setProperty("externalUdpPort", "5060");
 		properties.setProperty("earlyDialogWorstCase", "true");
 		balancer.start(properties);
 		

@@ -73,8 +73,8 @@ public class HttpsBalancerWithHttpServerTest
 		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
 		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
+		properties.setProperty("internalUdpPort", "5065");
+		properties.setProperty("externalUdpPort", "5060");
 		properties.setProperty("httpPort", "2080");
 		properties.setProperty("httpsPort", "2085");
 		properties.setProperty("maxContentLength", "1048576");

@@ -71,16 +71,16 @@ public class SprayTwoPureConsistentHashTest{
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("externalHost", "127.0.0.1");
 		properties.setProperty("internalHost", "127.0.0.1");
-		properties.setProperty("internalPort", "5"+id+"65");
-		properties.setProperty("externalPort", "5"+id+"60");
+		properties.setProperty("internalUdpPort", "5"+id+"65");
+		properties.setProperty("externalUdpPort", "5"+id+"60");
 		properties.setProperty("rmiRegistryPort", "2" + id +"00");
 		properties.setProperty("httpPort", "2" + id +"80");
 		properties.setProperty("jmxHtmlAdapterPort", "8" + id +"00");
 		properties.setProperty("algorithmClass", PureConsistentHashBalancerAlgorithm.class.getName());
 		properties.setProperty("externalIpLoadBalancerAddress", "127.0.0.1");
-		properties.setProperty("externalIpLoadBalancerPort", "9988");
+		properties.setProperty("externalIpLoadBalancerUdpPort", "9988");
 		properties.setProperty("internalIpLoadBalancerAddress", "127.0.0.1");
-		properties.setProperty("internalIpLoadBalancerPort", "9922");
+		properties.setProperty("internalIpLoadBalancerUdpPort", "9922");
 		balancer.start(properties);
 		return balancer;
 	}

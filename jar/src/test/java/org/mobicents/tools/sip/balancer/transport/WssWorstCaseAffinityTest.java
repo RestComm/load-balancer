@@ -77,10 +77,8 @@ public class WssWorstCaseAffinityTest{
 		properties.setProperty("gov.nist.javax.sip.PATCH_SIP_WEBSOCKETS_HEADERS", "false");
 		
 		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
-		properties.setProperty("internalSecurePort", "5066");
-		properties.setProperty("externalSecurePort", "5061");
+		properties.setProperty("internalWssPort", "5066");
+		properties.setProperty("externalWssPort", "5061");
 		properties.setProperty("earlyDialogWorstCase", "true");
 		properties.setProperty("javax.net.ssl.keyStore", ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.keyStorePassword", "123456");
@@ -88,8 +86,6 @@ public class WssWorstCaseAffinityTest{
 		properties.setProperty("javax.net.ssl.trustStorePassword", "123456");
 		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS", "TLSv1");
 		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE", "Disabled");
-		properties.setProperty("isTransportWs", "true");
-		
 				
 		balancer.start(properties);
 		

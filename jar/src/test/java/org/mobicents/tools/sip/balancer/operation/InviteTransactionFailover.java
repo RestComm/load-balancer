@@ -77,8 +77,8 @@ public class InviteTransactionFailover {
 		properties.setProperty("host", "127.0.0.1");
 		properties.setProperty("externalHost", "127.0.0.1");
 		properties.setProperty("internalHost", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
+		properties.setProperty("internalUdpPort", "5065");
+		properties.setProperty("externalUdpPort", "5060");
 		balancer.start(properties);
 		
 		

@@ -64,8 +64,8 @@ public class SipStatisticTest{
 		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", LoadBalancerNioMessageProcessorFactory.class.getName());
 		properties.setProperty("algorithmClass", CallIDAffinityBalancerAlgorithm.class.getName());
 		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalPort", "5065");
-		properties.setProperty("externalPort", "5060");
+		properties.setProperty("internalTcpPort", "5065");
+		properties.setProperty("externalTcpPort", "5060");
 		balancer.start(properties);
 		
 		for(int q=0;q<servers.length;q++) {
@@ -101,7 +101,7 @@ public class SipStatisticTest{
 		assertEquals(5, balancer.getNumberOfResponsesProcessed());
 		assertEquals(1 , balancer.getRequestsProcessedByMethod("INVITE"));
 		assertEquals(2 , balancer.getResponsesProcessedByStatusCode("2XX"));
-		assertEquals(1*4, activeConnections);		
+		assertEquals(1*2, activeConnections);		
 	}
 
 }
