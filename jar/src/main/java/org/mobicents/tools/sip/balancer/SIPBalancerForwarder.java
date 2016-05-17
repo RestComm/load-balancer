@@ -204,7 +204,7 @@ public class SIPBalancerForwarder implements SipListener {
             balancerRunner.balancerContext.internalLoadBalancerWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWsPort"));
         }
         if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWssPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerUdpWssPort"));
+            balancerRunner.balancerContext.internalLoadBalancerWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWssPort"));
         }
 
         if(balancerRunner.balancerContext.isTwoEntrypoints()) {
