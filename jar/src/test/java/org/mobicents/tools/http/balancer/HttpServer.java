@@ -77,7 +77,7 @@ public class HttpServer
 		 timer = new Timer();
 		    appServerNode = new SIPNode("HttpServer", "127.0.0.1");		
 			appServerNode.getProperties().put("version", "0");
-			appServerNode.getProperties().put("httpPort", ""+httpPort);
+			appServerNode.getProperties().put("httpPort", httpPort);
 			
 			timer.schedule(new TimerTask() {
 				
