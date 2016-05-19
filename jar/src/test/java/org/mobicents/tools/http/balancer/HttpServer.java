@@ -48,9 +48,10 @@ public class HttpServer
 	private NioServerSocketChannelFactory nioServerSocketChannelFactory = null;
 	private Channel serverChannel;
 	private Channel serverSecureChannel;
-	private Boolean isSecure;
 	private ServerBootstrap serverBootstrap;
+	private ServerBootstrap serverSecureBootstrap;
 	private int httpPort;
+	private int sslPort;
 	private AtomicInteger requestCount = new AtomicInteger(0);
 	private boolean sendHeartbeat = true;
 	private String balancers;
@@ -60,24 +61,31 @@ public class HttpServer
 	private String lbAddress = "127.0.0.1";
 	private int lbRMIport = 2000;
 	
-	public HttpServer(Boolean isSecure, int httpPort)
+	public HttpServer(int httpPort, int sslPort)
 	{
-		this.isSecure = isSecure;
 		this.httpPort = httpPort;
+		this.sslPort = sslPort;
 	}
 	
 	public void start() 
 	{
 		executor = Executors.newCachedThreadPool();
-		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor,	executor);		
+		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor,	executor);	
+		
 		serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
-		serverBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(isSecure, requestCount));
+		serverBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(false, requestCount));
 		serverChannel = serverBootstrap.bind(new InetSocketAddress("127.0.0.1", httpPort));
+		
+		serverSecureBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
+		serverSecureBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(true, requestCount));
+		serverSecureChannel = serverSecureBootstrap.bind(new InetSocketAddress("127.0.0.1", sslPort));
+		
 		//ping
 		 timer = new Timer();
 		    appServerNode = new SIPNode("HttpServer", "127.0.0.1");		
 			appServerNode.getProperties().put("version", "0");
 			appServerNode.getProperties().put("httpPort", httpPort);
+			appServerNode.getProperties().put("sslPort", sslPort);
 			
 			timer.schedule(new TimerTask() {
 				
@@ -112,21 +120,20 @@ public class HttpServer
 		}
 		
 		serverChannel.unbind();
+		serverSecureChannel.unbind();
 		serverChannel.close();
+		serverSecureChannel.close();
 		serverChannel.getCloseFuture().awaitUninterruptibly();
+		serverSecureChannel.getCloseFuture().awaitUninterruptibly();
 
-		if(serverSecureChannel!=null)
-		{
-			serverSecureChannel.unbind();
-			serverSecureChannel.close();
-			serverSecureChannel.getCloseFuture().awaitUninterruptibly();
-		}
+		
 		
 		executor.shutdownNow();
 		executor = null;
 		
 		//cleaning everything
 		serverBootstrap.shutdown();
+		serverSecureBootstrap.shutdown();
 		nioServerSocketChannelFactory.shutdown();
 		logger.info("HTTP load balancer stoped.");
 	}

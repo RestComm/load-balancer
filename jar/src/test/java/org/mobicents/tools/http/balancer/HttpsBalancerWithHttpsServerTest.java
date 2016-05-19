@@ -56,7 +56,7 @@ public class HttpsBalancerWithHttpsServerTest
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < serverArray.length; i++)
 		{
-			serverArray[i] = new HttpServer(true, 4060+i);
+			serverArray[i] = new HttpServer(8080+i, 4444+i);
 			serverArray[i].start();	
 		}
 		
@@ -77,10 +77,9 @@ public class HttpsBalancerWithHttpsServerTest
 		properties.setProperty("internalUdpPort", "5065");
 		properties.setProperty("externalUdpPort", "5060");
 		properties.setProperty("httpPort", "2080");
-		properties.setProperty("httpsPort", "2085");
+		properties.setProperty("httpsPort", "2081");
 		properties.setProperty("maxContentLength", "1048576");
 		//SSL properties
-		properties.setProperty("httpsPort", "2085");
 		properties.setProperty("isRemoteServerSsl", "true");
 		properties.setProperty("javax.net.ssl.keyStore",HttpsBalancerWithHttpsServerTest.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.keyStorePassword","123456");
@@ -153,8 +152,8 @@ public class HttpsBalancerWithHttpsServerTest
 			try 
 			{ 
 				WebConversation conversation = new WebConversation();
-				WebRequest request = new GetMethodWebRequest(new String("https://127.0.0.1:2085/app?fName=Konstantin&lName=Nosach"));
-				request.setParameter("jsessionid", ""+jsessionid);
+				WebRequest request = new GetMethodWebRequest(new String("https://127.0.0.1:2081/app?fName=Konstantin&lName=Nosach"));
+				//request.setParameter("jsessionid", ""+jsessionid);
 				WebResponse response = conversation.getResponse(request);
 				codeResponse = response.getResponseCode();
 				listener.clientCompleted();

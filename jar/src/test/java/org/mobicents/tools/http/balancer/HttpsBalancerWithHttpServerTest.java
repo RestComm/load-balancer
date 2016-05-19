@@ -55,7 +55,7 @@ public class HttpsBalancerWithHttpServerTest
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < serverArray.length; i++)
 		{
-			serverArray[i] = new HttpServer(false, 4060+i);
+			serverArray[i] = new HttpServer(8080+i, 4444+i);
 			serverArray[i].start();	
 		}
 		
@@ -79,7 +79,6 @@ public class HttpsBalancerWithHttpServerTest
 		properties.setProperty("httpsPort", "2085");
 		properties.setProperty("maxContentLength", "1048576");
 		//SSL properties
-		properties.setProperty("httpsPort", "2085");
 		properties.setProperty("isRemoteServerSsl", "false");
 		properties.setProperty("javax.net.ssl.keyStore",HttpsBalancerWithHttpServerTest.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.keyStorePassword","123456");

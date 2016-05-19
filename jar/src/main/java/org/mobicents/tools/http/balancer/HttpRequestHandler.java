@@ -83,11 +83,13 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     private String wsVersion;
     private WebsocketModifyClientPipelineFactory websocketServerPipelineFactory;
     private volatile SIPNode node;
+    private boolean isSecured;
 
     private BalancerRunner balancerRunner;
 
-    public HttpRequestHandler(BalancerRunner balancerRunner) {
+    public HttpRequestHandler(BalancerRunner balancerRunner, boolean isSecured) {
         this.balancerRunner = balancerRunner;
+        this.isSecured = isSecured;
     }
 
     @Override
@@ -213,10 +215,20 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
                     }
                 } else {
+                	if(!isSecured)
+                	{
                     if(logger.isDebugEnabled()) {
                         logger.debug("Dispatching HTTP request to node: "+ node.getIp()+" port: "+ node.getProperties().get("httpPort"));
                     }
                     future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer) node.getProperties().get("httpPort")));
+                	}
+                	else
+                	{
+                		if(logger.isDebugEnabled()) {
+                            logger.debug("Dispatching HTTPS request to node: "+ node.getIp()+" port: "+ node.getProperties().get("sslPort"));
+                        }
+                        future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer) node.getProperties().get("sslPort")));
+                	}
                 }
 
                 future.addListener(new ChannelFutureListener() {

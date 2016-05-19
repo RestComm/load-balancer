@@ -57,7 +57,7 @@ public class HttpStatisticTest
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < numberNodes; i++)
 		{
-			serverArray[i] = new HttpServer(false, 8080+i);
+			serverArray[i] = new HttpServer(8080+i, 4444+i);
 			serverArray[i].start();	
 		}
 		
