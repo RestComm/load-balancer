@@ -64,7 +64,7 @@ The lines beginning with the pound sign are comments.
 # For an overview of the Mobicents Load Balancer visit http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm
 
 # The binding address of the load balancer
-host=192.168.1.70
+host=127.0.0.1
 
 # The RMI port used for heartbeat signals
 rmiRegistryPort=2000
@@ -115,7 +115,6 @@ httpsPort=2081
 
 # Call-ID affinity algortihm settings. This algorithm is the default. No need to uncomment it.
 #algorithmClass=org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm
-algorithmClass=org.mobicents.tools.telestaxproxy.TelestaxProxyAlgorithm
 # This property specifies how much time to keep an association before being evitcted.
 # It is needed to avoid memory leaks on dead calls. The time is in seconds.
 #callIdAffinityMaxTimeInCache=500
