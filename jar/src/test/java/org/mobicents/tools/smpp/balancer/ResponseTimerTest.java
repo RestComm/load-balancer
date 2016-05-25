@@ -83,7 +83,7 @@ public class ResponseTimerTest {
 		}
 
 		//start lb
-        loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,false));
+        loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,true));
         loadBalancerSmpp.start();
 	}
 	//tests work of response timer

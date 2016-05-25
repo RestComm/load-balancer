@@ -82,7 +82,7 @@ public class SslBalancerNoSslServerTest {
 		}
 
 		// start lb
-		loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(true,false));
+		loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(true,true));
 		loadBalancerSmpp.start();
 	}
 	// tests SSL client connection to noSSL server
@@ -102,7 +102,7 @@ public class SslBalancerNoSslServerTest {
 	public void testNoSslClient() {
 		Locker locker = new Locker(clientNumbers);
 		// start client
-		new Load(locker,false).start();
+		new Load(locker,true).start();
 		locker.waitForClients();
 		assertEquals(1,serverHandler.getSmsNumber().get());
 		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());

@@ -41,19 +41,19 @@ import com.cloudhopper.smpp.ssl.SslContextFactory;
 public class TestHttpServerPipelineFactory implements ChannelPipelineFactory 
 {
 	private int maxContentLength = 1048576;
-    private Boolean isRemoteServerSsl;
+    private Boolean terminateTLSTraffic;
     private AtomicInteger requestCount;
     
-    public TestHttpServerPipelineFactory(Boolean isRemoteServerSsl, AtomicInteger requestCount) 
+    public TestHttpServerPipelineFactory(Boolean terminateTLSTraffic, AtomicInteger requestCount) 
     {
-        this.isRemoteServerSsl = isRemoteServerSsl;
+        this.terminateTLSTraffic = terminateTLSTraffic;
         this.requestCount = requestCount;
     }
 
     public ChannelPipeline getPipeline() throws Exception 
     {
     	ChannelPipeline pipeline = pipeline();
-        if(isRemoteServerSsl)
+        if(!terminateTLSTraffic)
         {
         	SslConfiguration sslConfig = new SslConfiguration();
 	        sslConfig.setKeyStorePath(TestHttpServerPipelineFactory.class.getClassLoader().getResource("keystore").getFile());

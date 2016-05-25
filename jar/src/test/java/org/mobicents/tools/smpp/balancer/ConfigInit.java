@@ -64,7 +64,7 @@ public class ConfigInit {
 		return config;
 	}
 	
-	static BalancerRunner getLbProperties(boolean isSsl, boolean isRemoteServerSsl)
+	static BalancerRunner getLbProperties(boolean isSsl, boolean terminateTLSTraffic)
 	{
 		BalancerRunner balancerRunner = new BalancerRunner();
 		balancerRunner.balancerContext.properties = new Properties();
@@ -88,8 +88,9 @@ public class ConfigInit {
 			balancerRunner.balancerContext.properties.setProperty("javax.net.ssl.trustStore",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
 			balancerRunner.balancerContext.properties.setProperty("javax.net.ssl.trustStorePassword","123456");
 			balancerRunner.balancerContext.properties.setProperty("smppSslPort","2876");
-			balancerRunner.balancerContext.properties.setProperty("isRemoteServerSsl",""+isRemoteServerSsl);
+			balancerRunner.balancerContext.properties.setProperty("terminateTLSTraffic",""+terminateTLSTraffic);
 		}
+		balancerRunner.balancerContext.terminateTLSTraffic = terminateTLSTraffic;
 		return balancerRunner;
 	}
 	

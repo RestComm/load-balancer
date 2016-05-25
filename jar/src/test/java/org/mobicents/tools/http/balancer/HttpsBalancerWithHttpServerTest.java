@@ -79,7 +79,7 @@ public class HttpsBalancerWithHttpServerTest
 		properties.setProperty("httpsPort", "2085");
 		properties.setProperty("maxContentLength", "1048576");
 		//SSL properties
-		properties.setProperty("isRemoteServerSsl", "false");
+		properties.setProperty("terminateTLSTraffic", "true");
 		properties.setProperty("javax.net.ssl.keyStore",HttpsBalancerWithHttpServerTest.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.keyStorePassword","123456");
 		properties.setProperty("javax.net.ssl.trustStore",HttpsBalancerWithHttpServerTest.class.getClassLoader().getResource("keystore").getFile());
