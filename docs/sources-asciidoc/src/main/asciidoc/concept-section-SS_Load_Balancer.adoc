@@ -232,8 +232,8 @@ gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS=TLSv1
 gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE=Disabled
 #ssl will provide some extra debugging information for the SSL if uncomment it
 #javax.net.debug=ssl
-# should smpp and http use secured connection towards servers or regular
-isRemoteServerSsl = true
+#Terminate all secure traffic coming from the outside world HTTPs, SIP TLS, WSS will be terminated at LB side
+terminateTLSTraffic = true
 
 #Statistic
 #port for statistic
@@ -372,8 +372,8 @@ gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE::
 javax.net.debug::
   SSL will provide some extra debugging information for the SSL if uncomment it.
 
-isRemoteServerSsl::
-  Should smpp and http use secured connection towards servers or regular.
+terminateTLSTraffic::
+  Terminate all secure traffic coming from the outside world HTTPs, SIP TLS, WSS will be terminated at LB side.
 
 
 statisticPort::
@@ -805,8 +805,7 @@ For enabling HTTPS and Secure WebSockets support for HTTP load balancer, you sho
 * javax.net.ssl.keyStore;
 * javax.net.ssl.keyStorePassword;
 * javax.net.ssl.trustStore;
-* javax.net.ssl.trustStorePassword;
-* isRemoteServerSsl (if remote HTTP server uses TLS).
+* javax.net.ssl.trustStorePassword.
 
 === Enabling TLS for SMPP load balancer
 
@@ -816,8 +815,7 @@ For enabling TLS support for SMPP load balancer, you should correctly specify ne
 * javax.net.ssl.keyStore;
 * javax.net.ssl.keyStorePassword;
 * javax.net.ssl.trustStore;
-* javax.net.ssl.trustStorePassword;
-* isRemoteServerSsl (if remote SMPP server uses TLS).
+* javax.net.ssl.trustStorePassword.
 
 == Getting statistic
 
