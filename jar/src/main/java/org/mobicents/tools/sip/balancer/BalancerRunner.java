@@ -183,6 +183,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		
 		this.algorithClassName = properties.getProperty(ALGORITHM_PROP, DEFAULT_ALGORITHM);
 		balancerContext.algorithmClassName = this.algorithClassName;
+		balancerContext.terminateTLSTraffic = Boolean.parseBoolean(properties.getProperty("terminateTLSTraffic","false"));
 		
 		
 		

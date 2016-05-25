@@ -54,7 +54,6 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
     public ChannelPipeline getPipeline() throws Exception {
         // Create a default pipeline implementation.
         ChannelPipeline pipeline = pipeline();
-        String isRemoteServerSsl = balancerRunner.balancerContext.properties.getProperty("isRemoteServerSsl","false");
         pipeline.addLast("decoder", new HttpResponseDecoder());
         // Remove the following line if you don't want automatic content decompression.
         //pipeline.addLast("inflater", new HttpContentDecompressor()); 
@@ -63,8 +62,7 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         // https://telestax.atlassian.net/browse/LB-8 if commented accessing the RestComm Management console fails, so making the maxContentLength Configurable
         pipeline.addLast("aggregator", new HttpChunkAggregator(maxContentLength));
         pipeline.addLast("handler", new HttpResponseHandler(balancerRunner));
-        
-        if(Boolean.parseBoolean(isRemoteServerSsl)){
+        if(!balancerRunner.balancerContext.terminateTLSTraffic){
         	SslConfiguration sslConfig = new SslConfiguration();
    	     	sslConfig.setTrustAll(true);
    	     	sslConfig.setValidateCerts(true);

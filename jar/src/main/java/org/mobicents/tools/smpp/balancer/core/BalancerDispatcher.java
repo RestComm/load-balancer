@@ -104,7 +104,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 		SmppSessionConfiguration sessionConfig = serverConnection.getConfig();
 		sessionConfig.setHost(remoteServers[serverIndex].getIP());
 		sessionConfig.setPort(remoteServers[serverIndex].getPort());
-		sessionConfig.setUseSsl(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isRemoteServerSsl")));
+		sessionConfig.setUseSsl(!balancerRunner.balancerContext.terminateTLSTraffic);
 		if(sessionConfig.isUseSsl())
 		{
 			 SslConfiguration sslConfig = new SslConfiguration();

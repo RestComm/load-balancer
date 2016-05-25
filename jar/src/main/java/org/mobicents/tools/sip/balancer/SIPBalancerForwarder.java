@@ -113,8 +113,7 @@ public class SIPBalancerForwarder implements SipListener {
     public static final int TLS = 2;
     public static final int WS = 3;
     public static final int WSS = 4;
-    private boolean isSendTrying;
-    
+
     BalancerRunner balancerRunner;
 
     protected static final HashSet<String> dialogCreationMethods=new HashSet<String>(2);
@@ -139,7 +138,7 @@ public class SIPBalancerForwarder implements SipListener {
 
     public void start() {
     	
-    	isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
+		balancerRunner.balancerContext.isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
     	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.properties.getProperty("sipHeaderAffinityKey","Call-ID");
 
         SipFactory sipFactory = null;
@@ -991,6 +990,13 @@ public class SIPBalancerForwarder implements SipListener {
         ViaHeader viaHeader = ((ViaHeader)request.getHeader(ViaHeader.NAME));
         String host = viaHeader.getHost();
         String transport = viaHeader.getTransport();
+		if(balancerRunner.balancerContext.terminateTLSTraffic)
+		{
+			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+				transport = ListeningPoint.TCP;
+			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
+				transport = ListeningPointExt.WS;
+		}
         if(transport == null) transport = ListeningPoint.UDP;
         int port = viaHeader.getPort();
         if(extraServerAddresses != null) {
@@ -1032,8 +1038,18 @@ public class SIPBalancerForwarder implements SipListener {
         String host = resp.getRemoteAddress().getHostAddress();
         
         ViaHeader viaHeader = ((ViaHeader)response.getHeader(ViaHeader.NAME));
-        String transport = viaHeader.getTransport();
-        
+		String currentTransport = viaHeader.getTransport();
+		String transport = null;
+		if (!balancerRunner.balancerContext.terminateTLSTraffic) {
+			transport = currentTransport;
+		} else {
+			if (currentTransport.equalsIgnoreCase(ListeningPoint.TLS))
+				transport = ListeningPoint.TCP;
+			else if (currentTransport.equalsIgnoreCase(ListeningPointExt.WSS))
+				transport = ListeningPointExt.WS;
+			else
+				transport = currentTransport;
+		}
         if(transport == null) transport = ListeningPoint.UDP;
         int port = resp.getRemotePort();
         if(extraServerAddresses != null) {
@@ -1121,6 +1137,27 @@ public class SIPBalancerForwarder implements SipListener {
             decreaseMaxForwardsHeader(sipProvider, request);
         }
 
+		String outerTransport = ((ViaHeader) request.getHeader(ViaHeader.NAME))
+				.getTransport().toLowerCase();
+		if (isRequestFromServer) {
+			Boolean hasTransport = false;
+			if (request.getRequestURI().isSipURI()) {
+				if (((SipUri) request.getRequestURI()).getTransportParam() != null) {
+					outerTransport = ((SipUri) request.getRequestURI())
+							.getTransportParam();
+					hasTransport = true;
+				}
+			}
+
+			if (!hasTransport) {
+				outerTransport = getRouteHeadersMeantForLB(request);
+				if (outerTransport == null)
+					outerTransport = ((ViaHeader) request
+							.getHeader(ViaHeader.NAME)).getTransport()
+							.toLowerCase();
+			}
+		}
+
         RouteHeaderHints hints = removeRouteHeadersMeantForLB(request);
 
         String version = hints.version;
@@ -1134,7 +1171,26 @@ public class SIPBalancerForwarder implements SipListener {
 
         final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 
-        String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
+		String transport = null;
+		if (!balancerRunner.balancerContext.terminateTLSTraffic)
+			transport = ((ViaHeader) request.getHeader(ViaHeader.NAME))
+					.getTransport().toLowerCase();
+		else {
+			switch (((ViaHeader) request.getHeader(ViaHeader.NAME))
+					.getTransport()) {
+			case ListeningPoint.TLS:
+				transport = ListeningPoint.TCP.toLowerCase();
+				break;
+			case ListeningPointExt.WSS:
+				transport = ListeningPointExt.WS.toLowerCase();
+				break;
+			case ListeningPointExt.WS:
+			case ListeningPointExt.TCP:
+			case ListeningPointExt.UDP:
+				transport = ((ViaHeader) request.getHeader(ViaHeader.NAME))
+						.getTransport().toLowerCase();
+			}
+		}
 
         if(hints.serverAssignedNode !=null) {
         	String headerKey = null;
@@ -1331,7 +1387,7 @@ public class SIPBalancerForwarder implements SipListener {
         String requestMethod=request.getMethod();
         //100 Trying should be sent only if has indent really forwarding request, othewise should send 500 error
         // https://telestax.atlassian.net/browse/LB-25 improve performance by sending back 100 Trying right away to tame retransmissions.
-        if(isSendTrying)
+        if(balancerRunner.balancerContext.isSendTrying)
         {
         	logger.debug("Load balancer sends 100 TRYING");
         	if(requestMethod.equals(Request.INVITE) || requestMethod.equals(Request.SUBSCRIBE) || 
@@ -1379,14 +1435,38 @@ public class SIPBalancerForwarder implements SipListener {
         final ViaHeader via = (ViaHeader) request.getHeader(ViaHeader.NAME);
         String newBranch = via.getBranch() + callID.substring(0, Math.min(callID.length(), 5));
         // Add the via header to the top of the header list.
-        ViaHeader viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-        		balancerRunner.balancerContext.externalViaHost, balancerRunner.balancerContext.getExternalViaPortByTransport(transport), transport, newBranch+ "_" + version);
-        ViaHeader viaHeaderInternal = null;
-  
-        if(balancerRunner.balancerContext.isTwoEntrypoints()) {
-            viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-                    balancerRunner.balancerContext.internalViaHost, balancerRunner.balancerContext.getInternalViaPortByTransport(transport), transport, newBranch + "zsd" + "_" + version);
-        }
+		ViaHeader viaHeaderExternal = null;
+		ViaHeader viaHeaderInternal = null;
+
+		if (!isRequestFromServer) {
+			viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+			balancerRunner.balancerContext.externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(transport),transport, newBranch + "_" + version);
+			String innerTransport = transport;
+			if (balancerRunner.balancerContext.terminateTLSTraffic) {
+				if (innerTransport.equalsIgnoreCase(ListeningPoint.TLS))
+					innerTransport = ListeningPoint.TCP;
+				else if (innerTransport.equalsIgnoreCase(ListeningPointExt.WSS))
+					innerTransport = ListeningPointExt.WS;
+			}
+
+			if (balancerRunner.balancerContext.isTwoEntrypoints())
+				viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+								balancerRunner.balancerContext.internalViaHost,balancerRunner.balancerContext.getInternalViaPortByTransport(innerTransport),innerTransport, newBranch + "zsd" + "_"	+ version);
+			else
+				viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+								balancerRunner.balancerContext.externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(innerTransport),innerTransport, newBranch + "zsd" + "_" + version);
+		} else {
+			if (balancerRunner.balancerContext.isTwoEntrypoints())
+				viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+								balancerRunner.balancerContext.internalViaHost,balancerRunner.balancerContext.getInternalViaPortByTransport(transport),transport, newBranch + "zsd" + "_" + version);
+			else
+				viaHeaderInternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+								balancerRunner.balancerContext.externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(transport),transport, newBranch + "zsd" + "_" + version);
+
+			viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
+							balancerRunner.balancerContext.externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(outerTransport),outerTransport, newBranch + "zsd" + "_" + version);
+		}
+
         if(logger.isDebugEnabled()) {
             logger.debug("ViaHeaders will be added " + viaHeaderExternal + " and " + viaHeaderInternal);
             logger.debug("Sending the request:\n" + request + "\n on the other side");
@@ -1395,10 +1475,16 @@ public class SIPBalancerForwarder implements SipListener {
             logger.warn("Drop. Cannot forward to loopback the following request: " + request);
             return;
         }
-        if(!isRequestFromServer && balancerRunner.balancerContext.isTwoEntrypoints()) {
-            request.addHeader(viaHeaderExternal); 
-            if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
-            balancerRunner.balancerContext.internalSipProvider.sendRequest(request);
+
+		if (!isRequestFromServer) {
+			request.addHeader(viaHeaderExternal);
+			if (viaHeaderInternal != null)
+				request.addHeader(viaHeaderInternal);
+
+			if (balancerRunner.balancerContext.isTwoEntrypoints())
+				balancerRunner.balancerContext.internalSipProvider.sendRequest(request);
+			else
+				balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
         } else {
             // Check if the next hop is actually the load balancer again
             if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
@@ -1447,7 +1533,7 @@ public class SIPBalancerForwarder implements SipListener {
         return rrh;
     }
 
-    private void addTwoRecordRoutes(Request request, RecordRouteHeader first, RecordRouteHeader second, RouteHeaderHints hints, String transport) {
+    private void addTwoRecordRoutes(Request request, RecordRouteHeader first,RecordRouteHeader second, RouteHeaderHints hints, String transport) {
         if(logger.isDebugEnabled()) {
             logger.debug("adding Record Router Header :" + first);
         }
@@ -1488,42 +1574,73 @@ public class SIPBalancerForwarder implements SipListener {
             logger.debug("adding Record Router Header :" + balancerRunner.balancerContext.activeExternalHeader);
         }
                 
-        String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
-        int transportIndex = TLS;
-        if(transport.equalsIgnoreCase(ListeningPoint.UDP))
-        	transportIndex=UDP;
-        else if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-        	transportIndex=TCP;
-        else if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-        	transportIndex=WS;
-        else if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-        	transportIndex=WSS;
-        
-        if(balancerRunner.balancerContext.isTwoEntrypoints()) { // comes from client
-        	if(sipProvider.equals(balancerRunner.balancerContext.externalSipProvider)) {
-            	addTwoRecordRoutes(request, 
-                		balancerRunner.balancerContext.activeExternalHeader[transportIndex],
-                		balancerRunner.balancerContext.activeInternalHeader[transportIndex],                                               
-                        hints, transport);
-            } else { // comes from app server
-            	addTwoRecordRoutes(request,
-                		balancerRunner.balancerContext.activeInternalHeader[transportIndex],
-                		balancerRunner.balancerContext.activeExternalHeader[transportIndex],                                               
-                        hints, transport);
-                logger.info("Will patch Request : \""+request.getRequestURI()+"\" to provide public IP address for the RecordRoute header");
-                patchSipMessageForNAT(request);
-            }	
-        } else {
-            RecordRouteHeader recordRouteHeader = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
-            if(hints.serverAssignedNode != null) {
-                recordRouteHeader = (RecordRouteHeader) recordRouteHeader.clone();
-                SipURI sipuri = (SipURI) recordRouteHeader.getAddress().getURI();
+		String transport = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 
-                sipuri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
-                sipuri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
-                sipuri.setParameter(ROUTE_PARAM_NODE_VERSION, version);
-            }
-            request.addHeader(recordRouteHeader);
+		if (sipProvider.equals(balancerRunner.balancerContext.externalSipProvider)) {
+			int transportIndex = TLS;
+			int internalTransportIndex = TLS;
+			if (balancerRunner.balancerContext.terminateTLSTraffic) {
+				internalTransportIndex = TCP;
+			}
+
+			if (transport.equalsIgnoreCase(ListeningPoint.UDP)) {
+				transportIndex = UDP;
+				internalTransportIndex = UDP;
+			} else if (transport.equalsIgnoreCase(ListeningPoint.TCP)) {
+				transportIndex = TCP;
+				internalTransportIndex = TCP;
+			} else if (transport.equalsIgnoreCase(ListeningPointExt.WS)) {
+				transportIndex = WS;
+				internalTransportIndex = WS;
+			} else if (transport.equalsIgnoreCase(ListeningPointExt.WSS)) {
+				transportIndex = WSS;
+				if (balancerRunner.balancerContext.terminateTLSTraffic) {
+					internalTransportIndex = WS;
+				} else {
+					internalTransportIndex = WSS;
+				}
+			}
+
+			// comes from client
+			addTwoRecordRoutes(request,
+			balancerRunner.balancerContext.activeExternalHeader[transportIndex],
+			balancerRunner.balancerContext.activeInternalHeader[internalTransportIndex],
+			hints, transport);
+		} else {
+			int transportIndex = TLS;
+			int externalTransportIndex = TLS;
+			String externalTransport = transport;
+			URI requestURI = ((Request) request).getRequestURI();
+			if (requestURI.isSipURI()) {
+				if (((SipUri) requestURI).getTransportParam() != null)
+					externalTransport = ((SipUri) requestURI).getTransportParam();
+			}
+
+			if (transport.equalsIgnoreCase(ListeningPoint.UDP))
+				transportIndex = UDP;
+			else if (transport.equalsIgnoreCase(ListeningPoint.TCP))
+				transportIndex = TCP;
+			else if (transport.equalsIgnoreCase(ListeningPointExt.WS))
+				transportIndex = WS;
+			else if (transport.equalsIgnoreCase(ListeningPointExt.WSS))
+				transportIndex = WSS;
+
+			if (externalTransport.equalsIgnoreCase(ListeningPoint.UDP))
+				externalTransportIndex = UDP;
+			else if (externalTransport.equalsIgnoreCase(ListeningPoint.TCP))
+				externalTransportIndex = TCP;
+			else if (externalTransport.equalsIgnoreCase(ListeningPointExt.WS))
+				externalTransportIndex = WS;
+			else if (externalTransport.equalsIgnoreCase(ListeningPointExt.WSS))
+				externalTransportIndex = WSS;
+
+			// comes from app server
+			addTwoRecordRoutes(	request,
+					balancerRunner.balancerContext.activeInternalHeader[transportIndex],
+					balancerRunner.balancerContext.activeExternalHeader[externalTransportIndex],
+					hints, transport);
+			logger.info("Will patch Request : \"" + request.getRequestURI()	+ "\" to provide public IP address for the RecordRoute header");
+			patchSipMessageForNAT(request);
         }
     }
 
@@ -1546,6 +1663,46 @@ public class SIPBalancerForwarder implements SipListener {
         }
         return node;
     }
+
+	private String getRouteHeadersMeantForLB(Request request) {
+		@SuppressWarnings("unchecked")
+		ListIterator<RouteHeader> headers = request
+				.getHeaders(RouteHeader.NAME);
+		RouteHeader routeHeader = null;
+		if (headers.hasNext())
+			routeHeader = headers.next();
+
+		if (routeHeader != null) {
+			SipURI routeUri = (SipURI) routeHeader.getAddress().getURI();
+			String transport = ((ViaHeader) request.getHeader("Via"))
+					.getTransport();
+			if (routeUri.getTransportParam() != null)
+				transport = routeUri.getTransportParam();
+
+			if (!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort(),
+					transport)) {
+				routeHeader = null;
+				if (headers.hasNext())
+					routeHeader = headers.next();
+
+				if (routeHeader != null) {
+					routeUri = (SipURI) routeHeader.getAddress().getURI();
+					transport = ((ViaHeader) request.getHeader("Via"))
+							.getTransport();
+					if (routeUri.getTransportParam() != null)
+						transport = routeUri.getTransportParam();
+
+					if (!isRouteHeaderExternal(routeUri.getHost(),
+							routeUri.getPort(), transport)) {
+						return transport;
+					}
+				}
+				return transport;
+			}
+		}
+
+		return null;
+	}
 
     /**
      * Remove the different route headers that are meant for the Load balancer. 
@@ -1573,10 +1730,14 @@ public class SIPBalancerForwarder implements SipListener {
             SipURI routeUri = (SipURI)routeHeader.getAddress().getURI();
             callVersion = routeUri.getParameter(ROUTE_PARAM_NODE_VERSION);
 
-            if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort(), ((ViaHeader)request.getHeader("Via")).getTransport())) {
-                if(logger.isDebugEnabled()) {
-                    logger.debug("this route header is for the LB removing it " + routeUri);
-                }
+			String transport = ((ViaHeader) request.getHeader("Via")).getTransport();
+			if (routeUri.getTransportParam() != null)
+				transport = routeUri.getTransportParam();
+
+			if (!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort(),	transport)) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("this route header is for the LB removing it "	+ routeUri);
+				}
 
                 numberOfRemovedRouteHeaders ++;
 
@@ -1588,10 +1749,14 @@ public class SIPBalancerForwarder implements SipListener {
                 if(routeHeader != null) {
 
                     routeUri = (SipURI)routeHeader.getAddress().getURI();
-                   if(!isRouteHeaderExternal(routeUri.getHost(), routeUri.getPort(), ((ViaHeader)request.getHeader("Via")).getTransport())) {
-                        if(logger.isDebugEnabled()) {
-                            logger.debug("this route header is for the LB removing it " + routeUri);
-                        }
+					transport = ((ViaHeader) request.getHeader("Via")).getTransport();
+					if (routeUri.getTransportParam() != null)
+						transport = routeUri.getTransportParam();
+						
+					if (!isRouteHeaderExternal(routeUri.getHost(),routeUri.getPort(), transport)) {
+						if (logger.isDebugEnabled()) {
+							logger.debug("this route header is for the LB removing it "	+ routeUri);
+						}
 
                         numberOfRemovedRouteHeaders ++;
 
@@ -1607,7 +1772,13 @@ public class SIPBalancerForwarder implements SipListener {
                             RouteHeader extraHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
                             if(extraHeader != null) {
                                 SipURI u = (SipURI)extraHeader.getAddress().getURI();
-                                if(!isRouteHeaderExternal(u.getHost(), u.getPort(), ((ViaHeader)request.getHeader("Via")).getTransport())) {
+
+								transport = ((ViaHeader) request.getHeader("Via")).getTransport();
+								if (u.getTransportParam() != null)
+									transport = u.getTransportParam();
+
+								if (!isRouteHeaderExternal(u.getHost(),
+										u.getPort(), transport)) {
                                     numberOfRemovedRouteHeaders ++;
                                     request.removeFirst(RouteHeader.NAME);
                                 } else {
@@ -1902,8 +2073,18 @@ public class SIPBalancerForwarder implements SipListener {
             int tlsPort = balancerRunner.balancerContext.externalTlsPort;
             int wsPort = balancerRunner.balancerContext.externalWsPort;
             int wssPort = balancerRunner.balancerContext.externalWssPort;
-            
-            String transport = ((ViaHeader)sipMessage.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
+
+			String transport = null;
+			if (sipMessage instanceof Response)
+				transport = ((ViaHeader) sipMessage.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
+			else {
+				URI requestURI = ((Request) sipMessage).getRequestURI();
+				transport = ((ViaHeader) sipMessage.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
+				if (requestURI.isSipURI()) {
+					if (((SipUri) requestURI).getTransportParam() != null)
+						transport = ((SipUri) requestURI).getTransportParam();
+				}
+			}
 
             String privateIp = balancerRunner.balancerContext.host;
             @SuppressWarnings("unchecked")
@@ -1926,7 +2107,7 @@ public class SIPBalancerForwarder implements SipListener {
                         		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==tcpPort
                         		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==tlsPort
                         		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==wsPort
-                        		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==wssPort) { // And if the port is the external Port 5060
+                        		|| ((SipURI)recordRouteHeader.getAddress().getURI()).getPort()==wssPort) { // And if the port is the external Port
                             SipURI sipURI = (SipURI) recordRouteHeader.getAddress().getURI();
                             sipURI.setHost(balancerRunner.balancerContext.publicIP);                            
                         }                        

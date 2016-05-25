@@ -58,6 +58,9 @@ public class BalancerContext {
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	public String algorithmClassName;
 	
+	public boolean terminateTLSTraffic;
+	public boolean isSendTrying;
+	
 	public Object parameters;
 	
 	SIPBalancerForwarder forwarder;
