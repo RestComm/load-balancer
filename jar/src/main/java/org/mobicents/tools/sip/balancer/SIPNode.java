@@ -56,6 +56,7 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	private HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
 
 
+	public SIPNode(){}
 	public SIPNode(String hostName, String ip) {
 		super();
 		this.hostName = hostName;

@@ -19,6 +19,7 @@
 
 package org.mobicents.tools.smpp.balancer.api;
 
+import org.mobicents.tools.sip.balancer.SIPNode;
 import com.cloudhopper.smpp.pdu.Pdu;
 
 /**
@@ -65,7 +66,7 @@ public interface LbClientListener {
 	 *@param packet bind packet received from client
 	 *@param serverIndex index of server to which client was connected 
 	 */
-	void connectionLost(Long sessionId, Pdu packet, int serverIndex);
+	void connectionLost(Long sessionId, Pdu packet, SIPNode node);
 	/**
 	 *Change state of server implementation(BOUND)
 	 *@param sessionId session (client) id

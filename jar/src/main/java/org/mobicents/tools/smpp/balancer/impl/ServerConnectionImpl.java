@@ -90,11 +90,12 @@ public class ServerConnectionImpl implements ServerConnection {
 	private boolean isServerSideOk;
 
     
-    public ServerConnectionImpl(Long sessionId, Channel channel, BalancerDispatcher lbServerListener, BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor)
+    public ServerConnectionImpl(Long sessionId, Channel channel, BalancerDispatcher lbServerListener, BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor, boolean useSsl)
     {
     	this.lbServerListener = lbServerListener;
     	this.channel = channel;
     	this.sessionId = sessionId;
+    	this.config.setUseSsl(useSsl);
     	this.transcoder = new DefaultPduTranscoder(new DefaultPduTranscoderContext());
     	this.timeoutResponse = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutResponse"));
     	this.timeoutConnection = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnection"));

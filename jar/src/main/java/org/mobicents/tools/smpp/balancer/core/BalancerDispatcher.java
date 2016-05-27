@@ -27,13 +27,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.InvocationContext;
+import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.LbClientListener;
 import org.mobicents.tools.smpp.balancer.api.LbServerListener;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 import org.mobicents.tools.smpp.balancer.impl.BinderRunnable;
 import org.mobicents.tools.smpp.balancer.impl.ClientConnectionImpl;
-import org.mobicents.tools.smpp.balancer.impl.RemoteServer;
 import org.mobicents.tools.smpp.balancer.impl.ServerConnectionImpl;
 
 import com.cloudhopper.smpp.SmppSessionConfiguration;
@@ -51,26 +52,18 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	private Map<Long, ClientConnection> clientSessions = new ConcurrentHashMap<Long, ClientConnection>();
 	private AtomicInteger notBindClients = new AtomicInteger(0);
 	private AtomicInteger notRespondedPackets = new AtomicInteger(0);
-	private RemoteServer [] remoteServers;
-	private AtomicInteger i = new AtomicInteger(0);
 	private ScheduledExecutorService monitorExecutor; 
 	private ExecutorService handlerService = Executors.newCachedThreadPool();
 	private long reconnectPeriod;
 	private BalancerRunner balancerRunner;
+	private SIPNode node = new SIPNode();
+	private AtomicInteger counterConnections = new AtomicInteger(0);
 
 	public BalancerDispatcher(BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor)
 	{
 		this.balancerRunner = balancerRunner;
 		this.reconnectPeriod = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("reconnectPeriod"));
 		this.monitorExecutor = monitorExecutor;
-		String [] s = balancerRunner.balancerContext.properties.getProperty("remoteServers").split(",");
-		this.remoteServers = new RemoteServer[s.length];
-		String [] sTmp = new String[2];
-		for(int i = 0; i < s.length; i++)
-		{
-			sTmp = s[i].split(":");
-			this.remoteServers[i] = new RemoteServer(sTmp[0].trim(),Integer.parseInt(sTmp[1].trim()));
-		}
 	}
 	
 	public AtomicInteger getNotBindClients() 
@@ -91,30 +84,39 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	{
 		return clientSessions;
 	}
+	public AtomicInteger getCounterConnections() 
+	{
+		return counterConnections;
+	}
 
 	@Override
 	public void bindRequested(Long sessionId, ServerConnectionImpl serverConnection, Pdu packet)  
 	{
+		InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
+		
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
-		
- 		int serverIndex = i.getAndIncrement() % remoteServers.length;
 		serverSessions.put(sessionId,serverConnection);
+		
 		SmppSessionConfiguration sessionConfig = serverConnection.getConfig();
-		sessionConfig.setHost(remoteServers[serverIndex].getIP());
-		sessionConfig.setPort(remoteServers[serverIndex].getPort());
-		sessionConfig.setUseSsl(!balancerRunner.balancerContext.terminateTLSTraffic);
-		if(sessionConfig.isUseSsl())
+		if(!serverConnection.getConfig().isUseSsl())
+			sessionConfig.setUseSsl(false);
+		else
+			sessionConfig.setUseSsl(!balancerRunner.balancerContext.terminateTLSTraffic);
+		
+		counterConnections.compareAndSet(Integer.MAX_VALUE, 0);
+		synchronized (node) 
 		{
-			 SslConfiguration sslConfig = new SslConfiguration();
-		     sslConfig.setTrustAll(true);
-		     sslConfig.setValidateCerts(true);
-		     sslConfig.setValidatePeerCerts(true);
-		     sessionConfig.setSslConfiguration(sslConfig);
+			node = invocationContext.nodes.get(counterConnections.getAndIncrement() % invocationContext.nodes.size());
+			sessionConfig.setHost(node.getIp());
+			if(!sessionConfig.isUseSsl())
+				sessionConfig.setPort((Integer) node.getProperties().get("smppPort"));
+			else
+				sessionConfig.setPort((Integer) node.getProperties().get("smppSslPort"));
 		}
-		clientSessions.put(sessionId, new ClientConnectionImpl(sessionId, sessionConfig, this, monitorExecutor, balancerRunner , packet, serverIndex));
-		handlerService.execute(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, serverIndex, remoteServers));
+		clientSessions.put(sessionId, new ClientConnectionImpl(sessionId, sessionConfig, this, monitorExecutor, balancerRunner , packet, node));
+		handlerService.execute(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, node, balancerRunner));
 
 	}
 
@@ -198,10 +200,10 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	}
 	
 	@Override
-	public void connectionLost(Long sessionId, Pdu packet, int serverIndex) 
+	public void connectionLost(Long sessionId, Pdu packet, SIPNode node) 
 	{
 		serverSessions.get(sessionId).reconnectState(true);
-		monitorExecutor.schedule(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, serverIndex, remoteServers), reconnectPeriod, TimeUnit.MILLISECONDS);
+		monitorExecutor.schedule(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, node, balancerRunner), reconnectPeriod, TimeUnit.MILLISECONDS);
 	}
 	
 	@Override

@@ -113,7 +113,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	ObjectName adapterName = null;
 	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
-	SmppBalancerRunner smppBalancerRunner;
+	public SmppBalancerRunner smppBalancerRunner;
 	public BalancerContext balancerContext = new BalancerContext();
 	
 	public String algorithClassName = null;

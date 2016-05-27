@@ -20,7 +20,6 @@
 package org.mobicents.tools.smpp.balancer.core;
 
 import java.net.InetSocketAddress;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

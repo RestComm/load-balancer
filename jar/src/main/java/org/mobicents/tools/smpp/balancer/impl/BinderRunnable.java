@@ -20,7 +20,9 @@
 package org.mobicents.tools.smpp.balancer.impl;
 
 import java.util.Map;
-
+import java.util.concurrent.CopyOnWriteArrayList;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 import org.mobicents.tools.smpp.balancer.impl.ClientConnectionImpl.ClientState;
@@ -41,20 +43,20 @@ public class BinderRunnable implements Runnable {
 	private int index;
 	private Pdu packet;
 	private ClientConnectionImpl client;
-	private RemoteServer[] remoteServers;
 	private Map<Long, ServerConnection> serverSessions;
 	private Map<Long, ClientConnection> clientSessions;
 	private Long sessionId;
-	private int firstServer;
+	private SIPNode firstNode;
+	private CopyOnWriteArrayList<SIPNode> nodes;
 
-	public BinderRunnable(Long sessionId, Pdu packet, Map<Long, ServerConnection> serverSessions, Map<Long, ClientConnection> clientSessions, int serverIndex, RemoteServer[] remoteServers)
+	public BinderRunnable(Long sessionId, Pdu packet, Map<Long, ServerConnection> serverSessions, Map<Long, ClientConnection> clientSessions, SIPNode node, BalancerRunner balancerRunner)
 	{
 		this.sessionId = sessionId;
 		this.packet = packet;
 		this.client = (ClientConnectionImpl) clientSessions.get(sessionId);
-		this.firstServer = serverIndex;
-		this.index = serverIndex;
-		this.remoteServers = remoteServers;
+		this.firstNode = node;
+		this.nodes = balancerRunner.getLatestInvocationContext().nodes;
+		this.index = this.nodes.indexOf(node);
 		this.serverSessions = serverSessions;
 		this.clientSessions = clientSessions;
 	}
@@ -65,14 +67,17 @@ public class BinderRunnable implements Runnable {
 		boolean connectSuccesful = true;
 		while (!client.connect()) {
 			index ++;
-			if (index == remoteServers.length)	index = 0;
-			if (index == firstServer) {
+			if (index == nodes.size())	index = 0;
+			if (index == nodes.indexOf(firstNode)) {
 				connectSuccesful = false;
 				break;
 			}
 
-			client.getConfig().setHost(remoteServers[index].getIP());
-			client.getConfig().setPort(remoteServers[index].getPort());
+			client.getConfig().setHost(nodes.get(index).getIp());
+			if(!client.getConfig().isUseSsl())
+				client.getConfig().setPort((Integer) nodes.get(index).getProperties().get("smppPort"));
+			else
+				client.getConfig().setPort((Integer) nodes.get(index).getProperties().get("smppSslPort"));
 		}
 		
 		if (connectSuccesful) 

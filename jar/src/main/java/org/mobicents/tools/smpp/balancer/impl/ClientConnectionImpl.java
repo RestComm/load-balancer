@@ -37,6 +37,7 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.mobicents.tools.smpp.balancer.timers.ClientTimerResponse;
@@ -87,8 +88,8 @@ public class ClientConnectionImpl implements ClientConnection{
  	private Map<Integer, TimerData> packetMap =  new ConcurrentHashMap <Integer, TimerData>();
  	private Map<Integer, Integer> sequenceMap =  new ConcurrentHashMap <Integer, Integer>();
     private ScheduledExecutorService monitorExecutor;
+    private SIPNode node;
     private long timeoutResponse;
-    private int serverIndex;
     private boolean isEnquireLinkSent;
     
     private ScheduledFuture<?> connectionCheckServerSideTimer;    
@@ -118,10 +119,10 @@ public class ClientConnectionImpl implements ClientConnection{
     }
     
 	public  ClientConnectionImpl(Long sessionId,SmppSessionConfiguration config, BalancerDispatcher clientListener, ScheduledExecutorService monitorExecutor, 
-			BalancerRunner balancerRunner, Pdu bindPacket, int serverIndex) 
+			BalancerRunner balancerRunner, Pdu bindPacket, SIPNode node) 
 	{
 
-		  this.serverIndex = serverIndex;
+		  this.node = node;
 		  this.bindPacket = bindPacket;
 		  this.timeoutResponse = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutResponse"));
 		  this.timeoutConnectionCheckServerSide = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnectionCheckServerSide"));
@@ -495,7 +496,7 @@ public class ClientConnectionImpl implements ClientConnection{
 			logger.debug("We try to rebind to server for client with sessionId : " + sessionId);
 		
 		clientState = ClientState.REBINDING;		
-		this.lbClientListener.connectionLost(sessionId, bindPacket, serverIndex);
+		this.lbClientListener.connectionLost(sessionId, bindPacket, node);
 		
 	}
 
