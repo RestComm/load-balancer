@@ -31,13 +31,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
@@ -60,17 +59,23 @@ public class SslBalancerNoSslServerTest {
 
 	private static int clientNumbers = 1;
 	private static int serverNumbers = 1;
-	private static DefaultSmppServer[] serverArray;
-	private static SmppBalancerRunner loadBalancerSmpp;
+	private static SmppServerWithKeepAlive[] serverArray;
+	private static BalancerRunner balancer;
 	private static DefaultSmppServerHandler serverHandler;
 
 	@BeforeClass
 	public static void initialization() {
+		
+		boolean enableSslLbPort = true;
+		boolean terminateTLSTraffic = true;
+		//start lb
+		balancer = new BalancerRunner();
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
 		// start servers
-		serverArray = new DefaultSmppServer[serverNumbers];
+		serverArray = new SmppServerWithKeepAlive[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandler = new DefaultSmppServerHandler();
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),serverHandler, executor, monitorExecutor);
+			serverArray[i] = new SmppServerWithKeepAlive(ConfigInit.getSmppServerConfiguration(i,false),serverHandler, executor, monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -80,10 +85,12 @@ public class SslBalancerNoSslServerTest {
 			}
 			logger.info("SMPP server started");
 		}
-
-		// start lb
-		loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(true,true));
-		loadBalancerSmpp.start();
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	// tests SSL client connection to noSSL server
 	@Test
@@ -93,8 +100,8 @@ public class SslBalancerNoSslServerTest {
 		new Load(locker,true).start();
 		locker.waitForClients();
 		assertEquals(1,serverHandler.getSmsNumber().get());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
 		serverHandler.resetCounters();
 	}
 	// tests noSSL client connection to noSSL server
@@ -105,8 +112,8 @@ public class SslBalancerNoSslServerTest {
 		new Load(locker,true).start();
 		locker.waitForClients();
 		assertEquals(1,serverHandler.getSmsNumber().get());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
 	}
 
 	@AfterClass
@@ -119,7 +126,7 @@ public class SslBalancerNoSslServerTest {
 		}
 		executor.shutdownNow();
 		monitorExecutor.shutdownNow();
-		loadBalancerSmpp.stop();
+		balancer.stop();
 		logger.info("Done. Exiting");
 
 	}

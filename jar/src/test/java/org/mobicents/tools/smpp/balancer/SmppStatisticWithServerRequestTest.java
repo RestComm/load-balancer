@@ -32,7 +32,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,19 +64,25 @@ public class SmppStatisticWithServerRequestTest{
      }); 
     
     private static int serverNumbers = 1;
-    private static TestSmppServer [] serverArray;
+    private static SmppServerWithKeepAlive [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
-    private static SmppBalancerRunner loadBalancerSmpp;
+    private static BalancerRunner balancer;
 	
 	@BeforeClass
 	public static void initialization() {
+		
+		boolean enableSslLbPort = false;
+		boolean terminateTLSTraffic = true;
+		//start lb
+		balancer = new BalancerRunner();
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
 		//start servers
-        serverArray = new TestSmppServer[serverNumbers];
+        serverArray = new SmppServerWithKeepAlive[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new TestSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
+			serverArray[i] = new SmppServerWithKeepAlive(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -87,10 +93,12 @@ public class SmppStatisticWithServerRequestTest{
 
 			logger.info("SMPP server started");
 		}
-
-		//start lb
-        loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,true));
-        loadBalancerSmpp.start();
+        try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	//tests statistic of SMPP load balancer
@@ -105,7 +113,7 @@ public class SmppStatisticWithServerRequestTest{
 			new Load(i, locker).start();
 
 		locker.waitForClients();
-		assertEquals(1, loadBalancerSmpp.getNumberOfSmppRequestsToClient());
+		assertEquals(1, balancer.smppBalancerRunner.getNumberOfSmppRequestsToClient());
 		
     }
 	
@@ -131,7 +139,7 @@ public class SmppStatisticWithServerRequestTest{
 		}
 		executor.shutdownNow();
         monitorExecutor.shutdownNow();
-        loadBalancerSmpp.stop();
+        balancer.stop();
         logger.info("Done. Exiting");
 
 	}

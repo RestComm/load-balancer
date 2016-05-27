@@ -33,13 +33,12 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
 /**
@@ -60,21 +59,26 @@ public class CommonTest{
              return t;
          }
      }); 
-    
+    private static BalancerRunner balancer;
     private static int serverNumbers = 3;
-    private static DefaultSmppServer [] serverArray;
+    private static SmppServerWithKeepAlive [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
-    private static SmppBalancerRunner loadBalancerSmpp;
+
 	
 	@BeforeClass
 	public static void initialization() {
+		boolean enableSslLbPort = false;
+		boolean terminateTLSTraffic = true;
+		//start lb
+		balancer = new BalancerRunner();
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
 		//start servers
-        serverArray = new DefaultSmppServer[serverNumbers];
+        serverArray = new SmppServerWithKeepAlive[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
+			serverArray[i] = new SmppServerWithKeepAlive(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -85,10 +89,12 @@ public class CommonTest{
 
 			logger.info("SMPP server started");
 		}
-
-		//start lb
-        loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,true));
-        loadBalancerSmpp.start();
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	//tests round-robin algorithm
@@ -110,10 +116,10 @@ public class CommonTest{
 		locker.waitForClients();
 
 		for(int i = 0; i < serverNumbers; i++)
-			 assertEquals(clientNumbers/serverNumbers, serverArray[i].getBindRequested());
+			assertEquals(clientNumbers/serverNumbers, serverArray[i].getBindRequested());
 		
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
     }
 	//tests correct packet transfer through load balancer
 	@Test
@@ -135,8 +141,8 @@ public class CommonTest{
 	    locker.waitForClients();
 	    for(int i = 0; i < serverNumbers; i++)
 	    	assertEquals(smsNumberPerServer,serverHandlerArray[i].getSmsNumber().get());
-	    assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+	    assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
     }
 	//tests work of enquire link timer
 	@Test
@@ -154,11 +160,10 @@ public class CommonTest{
 			processors.get(i).start();
 		
 	    locker.waitForClients();
-		
-		assertEquals(3,serverHandlerArray[0].getEnqLinkNumber().get());
+   		assertEquals(3,serverHandlerArray[0].getEnqLinkNumber().get());
 		assertEquals(3,clientHandlerArray[0].getEnqLinkNumber().get());
-	    assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-	  	assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+	    assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
+	  	assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
     }
 	//tests work of session initialization timer
 	@Test
@@ -171,7 +176,7 @@ public class CommonTest{
 		} catch (Exception e) {
 			logger.error("", e);
 		} 
-		assertEquals(1,loadBalancerSmpp.getBalancerDispatcher().getNotBindClients().get());
+		assertEquals(1,balancer.smppBalancerRunner.getBalancerDispatcher().getNotBindClients().get());
     }
 	@After
 	public void resetCounters()
@@ -181,6 +186,7 @@ public class CommonTest{
 		    	serverArray[i].resetCounters();
 		    	serverHandlerArray[i].resetCounters();
 		    }
+		  balancer.smppBalancerRunner.getBalancerDispatcher().getCounterConnections().set(0);
 	}
 
 	@AfterClass
@@ -195,7 +201,7 @@ public class CommonTest{
 		}
 		executor.shutdownNow();
         monitorExecutor.shutdownNow();
-        loadBalancerSmpp.stop();
+        balancer.stop();
         logger.info("Done. Exiting");
 
 	}

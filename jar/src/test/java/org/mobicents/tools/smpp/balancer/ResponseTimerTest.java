@@ -32,13 +32,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
 /**
@@ -62,15 +61,23 @@ public class ResponseTimerTest {
     
     private static int clientNumbers = 1;
     private static int serverNumbers = 1;
-    private static DefaultSmppServer [] serverArray;
-    private static SmppBalancerRunner loadBalancerSmpp;
+    private static SmppServerWithKeepAlive [] serverArray;
+    private static BalancerRunner balancer;
+
 	
 	@BeforeClass
 	public static void initialization() {
+
+		//start lb
+		boolean enableSslLbPort = false;
+		boolean terminateTLSTraffic = true;
+		balancer = new BalancerRunner();
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        
 		//start servers
-        serverArray = new DefaultSmppServer[serverNumbers];
+        serverArray = new SmppServerWithKeepAlive[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),new ServerHandlerForResponseTimer(), executor,monitorExecutor);
+			serverArray[i] = new SmppServerWithKeepAlive(ConfigInit.getSmppServerConfiguration(i,false),new ServerHandlerForResponseTimer(), executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -81,10 +88,12 @@ public class ResponseTimerTest {
 
 			logger.info("SMPP server started");
 		}
-
-		//start lb
-        loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,true));
-        loadBalancerSmpp.start();
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	//tests work of response timer
 	@Test
@@ -94,9 +103,9 @@ public class ResponseTimerTest {
 		//start client
 		new Load(locker).start();
 		locker.waitForClients();
-		assertEquals(1,loadBalancerSmpp.getBalancerDispatcher().getNotRespondedPackets().get());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+		assertEquals(1,balancer.smppBalancerRunner.getBalancerDispatcher().getNotRespondedPackets().get());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
     }
 
 	@AfterClass
@@ -110,7 +119,7 @@ public class ResponseTimerTest {
 		}
 		executor.shutdownNow();
         monitorExecutor.shutdownNow();
-        loadBalancerSmpp.stop();
+        balancer.stop();
         logger.info("Done. Exiting");
 
 	}

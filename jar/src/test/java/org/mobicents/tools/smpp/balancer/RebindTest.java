@@ -31,13 +31,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
 /**
@@ -61,18 +60,24 @@ public class RebindTest {
 				}
 			});
 
+	private static BalancerRunner balancer;
 	private static int clientNumbers = 1;
 	private static int serverNumbers = 3;
-	private static DefaultSmppServer[] serverArray;
-	private static SmppBalancerRunner loadBalancerSmpp;
+	private static SmppServerWithKeepAlive[] serverArray;
 
 	@BeforeClass
 	public static void initialization() {
 
+		boolean enableSslLbPort = false;
+		boolean terminateTLSTraffic = true;
+		//start lb
+		balancer = new BalancerRunner();
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        
 		// start servers
-		serverArray = new DefaultSmppServer[serverNumbers];
+		serverArray = new SmppServerWithKeepAlive[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverArray[i] = new DefaultSmppServer(
+			serverArray[i] = new SmppServerWithKeepAlive(
 					ConfigInit.getSmppServerConfiguration(i,false),
 					new DefaultSmppServerHandler(), executor, monitorExecutor);
 			logger.info("Starting SMPP server...");
@@ -85,10 +90,12 @@ public class RebindTest {
 
 			logger.info("SMPP server started");
 		}
-
-		// start lb
-		loadBalancerSmpp = new SmppBalancerRunner(ConfigInit.getLbProperties(false,true));
-		loadBalancerSmpp.start();
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	//tests situation with dropped connection to server(rebind check)
 	@Test
@@ -98,8 +105,8 @@ public class RebindTest {
 		new Load(locker).start();
 		locker.waitForClients();
 		assertEquals(1, serverArray[1].getBindRequested());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(loadBalancerSmpp.getBalancerDispatcher().getServerSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
 	}
 
 	@AfterClass
@@ -112,7 +119,7 @@ public class RebindTest {
 		}
 		executor.shutdownNow();
 		monitorExecutor.shutdownNow();
-		loadBalancerSmpp.stop();
+		balancer.stop();
 		logger.info("Done. Exiting");
 
 	}

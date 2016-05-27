@@ -21,8 +21,6 @@ package org.mobicents.tools.smpp.balancer;
 
 import java.util.Properties;
 
-import org.mobicents.tools.sip.balancer.BalancerRunner;
-
 import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.smpp.SmppBindType;
 import com.cloudhopper.smpp.SmppServerConfiguration;
@@ -64,34 +62,39 @@ public class ConfigInit {
 		return config;
 	}
 	
-	static BalancerRunner getLbProperties(boolean isSsl, boolean terminateTLSTraffic)
+	static Properties getLbProperties(boolean isSsl, boolean terminateTLSTraffic)
 	{
-		BalancerRunner balancerRunner = new BalancerRunner();
-		balancerRunner.balancerContext.properties = new Properties();
-		balancerRunner.balancerContext.properties.setProperty("smppName","SMPP Load Balancer");
-		balancerRunner.balancerContext.properties.setProperty("smppHost","127.0.0.1");
-		balancerRunner.balancerContext.properties.setProperty("smppPort","2776");
-		balancerRunner.balancerContext.properties.setProperty("remoteServers","127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023");
-		balancerRunner.balancerContext.properties.setProperty("maxConnectionSize","10");
-		balancerRunner.balancerContext.properties.setProperty("nonBlockingSocketsEnabled","true");
-		balancerRunner.balancerContext.properties.setProperty("defaultSessionCountersEnabled","true");
-		balancerRunner.balancerContext.properties.setProperty("timeoutResponse","3000");
-		balancerRunner.balancerContext.properties.setProperty("timeoutConnection","1000");
-		balancerRunner.balancerContext.properties.setProperty("timeoutEnquire","5000");
-		balancerRunner.balancerContext.properties.setProperty("reconnectPeriod","1000");
-		balancerRunner.balancerContext.properties.setProperty("timeoutConnectionCheckClientSide","1000");
-		balancerRunner.balancerContext.properties.setProperty("timeoutConnectionCheckServerSide","1000");
+		Properties properties = new Properties();
+		properties.setProperty("terminateTLSTraffic",""+terminateTLSTraffic);
+		//sip property
+		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
+		properties.setProperty("host", "127.0.0.1");
+		properties.setProperty("externalUdpPort", "5060");
+		properties.setProperty("internalUdpPort", "5065");
+		//smpp property
+		properties.setProperty("smppName","SMPP Load Balancer");
+		properties.setProperty("smppHost","127.0.0.1");
+		properties.setProperty("smppPort","2776");
+		properties.setProperty("maxConnectionSize","10");
+		properties.setProperty("nonBlockingSocketsEnabled","true");
+		properties.setProperty("defaultSessionCountersEnabled","true");
+		properties.setProperty("timeoutResponse","3000");
+		properties.setProperty("timeoutConnection","1000");
+		properties.setProperty("timeoutEnquire","5000");
+		properties.setProperty("reconnectPeriod","1000");
+		properties.setProperty("timeoutConnectionCheckClientSide","1000");
+		properties.setProperty("timeoutConnectionCheckServerSide","1000");
 		if(isSsl)
 		{
-			balancerRunner.balancerContext.properties.setProperty("javax.net.ssl.keyStore",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
-			balancerRunner.balancerContext.properties.setProperty("javax.net.ssl.keyStorePassword","123456");
-			balancerRunner.balancerContext.properties.setProperty("javax.net.ssl.trustStore",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
-			balancerRunner.balancerContext.properties.setProperty("javax.net.ssl.trustStorePassword","123456");
-			balancerRunner.balancerContext.properties.setProperty("smppSslPort","2876");
-			balancerRunner.balancerContext.properties.setProperty("terminateTLSTraffic",""+terminateTLSTraffic);
+			properties.setProperty("javax.net.ssl.keyStore",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			properties.setProperty("javax.net.ssl.keyStorePassword","123456");
+			properties.setProperty("javax.net.ssl.trustStore",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			properties.setProperty("javax.net.ssl.trustStorePassword","123456");
+			properties.setProperty("smppSslPort","2876");
+			
 		}
-		balancerRunner.balancerContext.terminateTLSTraffic = terminateTLSTraffic;
-		return balancerRunner;
+		
+		return properties;
 	}
 	
 	static SmppSessionConfiguration getSmppSessionConfiguration(int i, boolean isSslClient)
