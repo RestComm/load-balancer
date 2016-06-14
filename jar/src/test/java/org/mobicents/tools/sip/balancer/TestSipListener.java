@@ -1258,7 +1258,7 @@ public class TestSipListener implements SipListener {
 						sipProvider.sendRequest(ackRequest);
 					}
 					ackSent = true;					
-					Thread.sleep(1000);
+					//Thread.sleep(1000);
 					// If the caller is supposed to send the bye
 					if(sendReinvite && !reinviteSent) {
 						List<Header> headers = new ArrayList<Header>();
