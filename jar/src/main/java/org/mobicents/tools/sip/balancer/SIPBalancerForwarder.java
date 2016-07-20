@@ -760,10 +760,13 @@ public class SIPBalancerForwarder implements SipListener {
 				balancerRunner.balancerContext.internalViaWssPort = balancerRunner.balancerContext.internalWssPort;
 			}
 
+//			balancerRunner.balancerContext.publicIP = balancerRunner.balancerContext.properties
+//					.getProperty("public-ip",
+//							balancerRunner.balancerContext.host);
+			// https://github.com/RestComm/load-balancer/issues/43 don't use host by default if public-ip is not set or it will result in contact header responses being badly patched
 			balancerRunner.balancerContext.publicIP = balancerRunner.balancerContext.properties
-					.getProperty("public-ip",
-							balancerRunner.balancerContext.host);
-
+					.getProperty("public-ip");
+			
 			String blockedValues = balancerRunner.balancerContext.properties
 					.getProperty("blocked-values",
 							"sipvicious,sipcli,friendly-scanner");
