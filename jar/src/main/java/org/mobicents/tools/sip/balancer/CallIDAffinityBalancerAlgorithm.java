@@ -24,6 +24,7 @@ package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.header.Via;
+import gov.nist.javax.sip.message.ResponseExt;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -60,15 +62,25 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		String host = via.getHost();
 		Integer port = via.getPort();
 		boolean found = false;
+		
+		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
+		
 		for(SIPNode node : invocationContext.nodes) {
-			if(node.getIp().equals(host)) {
+			if(logger.isDebugEnabled()) {
+				logger.debug("internal response checking sendernode " + senderNode + " against node " + node + " or Via host:port " + host + ":" + port);
+			} 
+			// https://github.com/RestComm/load-balancer/issues/45 Checking sender node against list of nodes to ensure it's still available
+			// not checking it was making the B2BUA use case fail and route back the 180 Ringing to one of the nodes instead of the sender. 
+			if(senderNode != null && senderNode.equals(node)) {
+				found = true;
+			} else if (node.getIp().equals(host)) {
 				if(port.equals(node.getProperties().get(transport+"Port"))) {
 					found = true;
 				}
 			}
 		}
 		if(logger.isDebugEnabled()) {
-			logger.debug("external response node found ? " + found);
+			logger.debug("internal response node found ? " + found);
 		}
 		if(!found) {
 			String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
@@ -246,8 +258,9 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 				minUtilNode = node;
 			}
 		}
-
-		logger.info("Least busy node selected " + minUtilNode + " with " + minUtil + " calls");
+		if(logger.isDebugEnabled()) {
+			logger.debug("Least busy node selected " + minUtilNode + " with " + minUtil + " calls");
+		}
 		
 		return minUtilNode;
 	}
