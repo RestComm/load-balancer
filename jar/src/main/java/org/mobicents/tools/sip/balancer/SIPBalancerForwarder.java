@@ -1448,7 +1448,7 @@ public class SIPBalancerForwarder implements SipListener {
 
 		if (!isRequestFromServer) {
 			viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-			balancerRunner.balancerContext.externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(transport),transport, newBranch + "_" + version);
+			balancerRunner.balancerContext.externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(outerTransport),outerTransport, newBranch + "_" + version);
 			String innerTransport = transport;
 			if (balancerRunner.balancerContext.terminateTLSTraffic) {
 				if (innerTransport.equalsIgnoreCase(ListeningPoint.TLS))
