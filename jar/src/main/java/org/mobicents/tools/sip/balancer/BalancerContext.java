@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sip.ListeningPoint;
@@ -57,6 +58,8 @@ public class BalancerContext {
 	public CopyOnWriteArrayList<SIPNode> aliveNodes = null;
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	public String algorithmClassName;
+	
+	public AtomicInteger numberHttpRequest = new AtomicInteger(0);
 	
 	public boolean terminateTLSTraffic;
 	public boolean isSendTrying;

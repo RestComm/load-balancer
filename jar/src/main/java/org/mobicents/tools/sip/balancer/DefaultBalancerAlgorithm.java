@@ -106,8 +106,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				return invocationContext.nodes.get(nodeId);
 				
 			}
-			
-			return invocationContext.nodes.get(0);
+			//if request doesn't have jsessionid (very first request), we choose next node using round robin algorithm
+			balancerContext.numberHttpRequest.compareAndSet(Integer.MAX_VALUE, 0);
+			return invocationContext.nodes.get(balancerContext.numberHttpRequest.getAndIncrement() % invocationContext.nodes.size());
 		} else {
 			String unavailaleHost = getProperties().getProperty("unavailableHost");
 			if(unavailaleHost != null) {

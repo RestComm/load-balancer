@@ -146,7 +146,10 @@ public class HttpBalancerWithHttpServerTest
 			{ 
 				WebConversation conversation = new WebConversation();
 				WebRequest request = new GetMethodWebRequest(new String("http://127.0.0.1:2080/app?fName=Konstantin&lName=Nosach"));
-				request.setParameter("jsessionid", ""+ jsessionid);
+				if(jsessionid%2==0)
+				{
+					request.setParameter("jsessionid", ""+ jsessionid);
+				}
 				WebResponse response = conversation.getResponse(request);
 				codeResponse = response.getResponseCode();
 				listener.clientCompleted();
