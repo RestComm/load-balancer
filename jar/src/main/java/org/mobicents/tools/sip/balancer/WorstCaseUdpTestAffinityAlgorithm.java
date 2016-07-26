@@ -22,6 +22,7 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.ListeningPointExt;
 import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.header.Via;
 
@@ -99,6 +100,12 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				node=assignedNode;
 			
 			uri.setHost(node.getIp());
+            if(balancerContext.terminateTLSTraffic)
+                if(transport.equalsIgnoreCase(ListeningPoint.TLS))
+                    transport=ListeningPoint.TCP.toLowerCase();
+                    else if (transport.equalsIgnoreCase(ListeningPointExt.WSS))
+                        transport=ListeningPointExt.WS.toLowerCase();
+                        
 			Integer port = (Integer) node.getProperties().get(transport + "Port");
 			uri.setPort(port);
 
