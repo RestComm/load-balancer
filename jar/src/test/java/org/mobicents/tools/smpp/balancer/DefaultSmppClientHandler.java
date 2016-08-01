@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.EnquireLinkResp;
+import com.cloudhopper.smpp.pdu.Pdu;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 
@@ -33,11 +34,28 @@ import com.cloudhopper.smpp.pdu.PduResponse;
 
 public class DefaultSmppClientHandler extends DefaultSmppSessionHandler 
 {
-	AtomicInteger enqLinkNumber = new AtomicInteger(0);
-    public AtomicInteger getEnqLinkNumber() 
+	private AtomicInteger enqLinkNumber = new AtomicInteger(0);
+	private AtomicInteger reponsesNumber = new AtomicInteger(0);
+	private AtomicInteger requestFromServerNumber = new AtomicInteger(0);
+    public AtomicInteger getReponsesNumber() {
+		return reponsesNumber;
+	}
+
+	public AtomicInteger getEnqLinkNumber() 
     {
 		return enqLinkNumber;
 	}
+	public AtomicInteger getRequestFromServerNumber() {
+		return requestFromServerNumber;
+	}
+    
+    @Override
+    public boolean firePduReceived(Pdu pdu) {
+        if(pdu.getCommandId() == SmppConstants.CMD_ID_SUBMIT_SM_RESP)
+        	reponsesNumber.getAndIncrement();
+        return true;
+    }
+    
 	@Override
 	public PduResponse firePduRequestReceived(@SuppressWarnings("rawtypes") PduRequest pduRequest) 
 	{
@@ -48,9 +66,11 @@ public class DefaultSmppClientHandler extends DefaultSmppSessionHandler
 			resp.setSequenceNumber(pduRequest.getSequenceNumber());
 			return resp;
 		}
-		else
+		else if(pduRequest.getCommandId() == SmppConstants.CMD_ID_DATA_SM)
 		{
-			return null;
+			requestFromServerNumber.getAndIncrement();
+			return pduRequest.createResponse();
 		}
+		return null;
 	}
 }

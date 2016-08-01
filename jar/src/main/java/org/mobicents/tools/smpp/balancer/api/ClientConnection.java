@@ -81,6 +81,9 @@ public interface ClientConnection {
 	/**
 	*Close connection to server
 	*/
-	public void closeChannel();	
+	public void closeChannel();
+	
+	void sendSmppRequest(Long sessionId, Pdu packet);
+	void enquireTimeout();	
 
 }

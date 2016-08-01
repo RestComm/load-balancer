@@ -25,6 +25,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
+import org.mobicents.tools.smpp.multiplexer.MServer;
 
 import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.ssl.SslConfiguration;
@@ -35,10 +37,10 @@ import com.cloudhopper.smpp.ssl.SslConfiguration;
 
 public class SmppBalancerRunner {
 	
-	private BalancerDispatcher balancerDispatcher;
+	private MBalancerDispatcher balancerDispatcher;
 	private ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 	private ScheduledExecutorService monitorExecutor  = Executors.newScheduledThreadPool(4);
-	private BalancerServer smppLbServer;
+	private MServer smppLbServer;
 	private BalancerRunner balancerRunner;
 
 	/**
@@ -79,8 +81,8 @@ public class SmppBalancerRunner {
 	        securedConfiguration.setSslConfiguration(sslConfig);        
         } 
         
-        balancerDispatcher = new BalancerDispatcher(balancerRunner,monitorExecutor);
-		smppLbServer = new BalancerServer(regularConfiguration, securedConfiguration, executor, balancerRunner, balancerDispatcher, monitorExecutor);
+        balancerDispatcher = new MBalancerDispatcher(balancerRunner,monitorExecutor);
+		smppLbServer = new MServer(regularConfiguration, securedConfiguration, executor, balancerRunner, balancerDispatcher, monitorExecutor);
         smppLbServer.start();
 	}
 	public void stop()
@@ -90,7 +92,7 @@ public class SmppBalancerRunner {
         monitorExecutor.shutdown();
 	}
 
-	public BalancerDispatcher getBalancerDispatcher() 
+	public MBalancerDispatcher getBalancerDispatcher() 
 	{
 		return balancerDispatcher;
 	}
@@ -155,7 +157,14 @@ public class SmppBalancerRunner {
      */
 	public int getNumberOfActiveSmppConnections()
 	{
-		return balancerDispatcher.getClientSessions().size() + balancerDispatcher.getServerSessions().size();
+		//int userSpaces = balancerDispatcher.getUserSpaces().size();
+		int customers = 0;
+		for(String key : balancerDispatcher.getUserSpaces().keySet())
+			customers +=balancerDispatcher.getUserSpaces().get(key).getCustomers().size();
+		if(customers==0)
+			return customers;
+			else
+				return customers + 1;
 	}
 
 }

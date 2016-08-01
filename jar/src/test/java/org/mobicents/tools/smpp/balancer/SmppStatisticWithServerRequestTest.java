@@ -52,7 +52,7 @@ public class SmppStatisticWithServerRequestTest{
 	
 	private static final Logger logger = LoggerFactory.getLogger(SmppStatisticWithServerRequestTest.class);
 	
-	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
+	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(16);
 
     private static ScheduledThreadPoolExecutor monitorExecutor = (ScheduledThreadPoolExecutor)Executors.newScheduledThreadPool(1, new ThreadFactory() {
          private AtomicInteger sequence = new AtomicInteger(0);
@@ -64,7 +64,7 @@ public class SmppStatisticWithServerRequestTest{
      }); 
     
     private static int serverNumbers = 1;
-    private static SmppServerWithKeepAlive [] serverArray;
+    private static AdvancedSmppServer [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
     private static BalancerRunner balancer;
@@ -78,11 +78,11 @@ public class SmppStatisticWithServerRequestTest{
 		balancer = new BalancerRunner();
         balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
 		//start servers
-        serverArray = new SmppServerWithKeepAlive[serverNumbers];
+        serverArray = new AdvancedSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new SmppServerWithKeepAlive(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
+			serverArray[i] = new AdvancedSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -94,18 +94,18 @@ public class SmppStatisticWithServerRequestTest{
 			logger.info("SMPP server started");
 		}
         try {
-			Thread.sleep(5000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	//tests statistic of SMPP load balancer
+	//tests statistic of requests from server
 	@Test
     public void testStatisticVariable() 
     {   
-		int clientNumbers = 1;
+		int clientNumbers = 3;
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
 		Locker locker=new Locker(clientNumbers);
 
@@ -113,7 +113,13 @@ public class SmppStatisticWithServerRequestTest{
 			new Load(i, locker).start();
 
 		locker.waitForClients();
-		assertEquals(1, balancer.smppBalancerRunner.getNumberOfSmppRequestsToClient());
+		assertEquals(clientNumbers, balancer.smppBalancerRunner.getNumberOfSmppRequestsToClient());
+		
+		for(DefaultSmppClientHandler handler : clientHandlerArray)
+			assertEquals(1, handler.getRequestFromServerNumber().get());
+		
+		for(DefaultSmppServerHandler handler : serverHandlerArray)
+			assertEquals(clientNumbers, handler.getResponsesFromClient().get());
 		
     }
 	
@@ -164,13 +170,14 @@ public class SmppStatisticWithServerRequestTest{
 			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i,false), clientHandlerArray[i]);
 			 @SuppressWarnings("rawtypes")
 			 BaseSm packet = new DataSm();
-			 String text160 = "\u20AC Lorem [ipsum] dolor sit amet, consectetur adipiscing elit. Proin feugiat, leo id commodo tincidunt, nibh diam ornare est, vitae accumsan risus lacus sed sem metus.";
+			 String text160 = "Hello world!";
 		     byte[] textBytes = CharsetUtil.encode(text160, CharsetUtil.CHARSET_GSM);
 			 packet.setShortMessage(textBytes);
-			 packet.setSequenceNumber(1);
+			 packet.setSequenceNumber(i+2);
 			 serverArray[0].sendData(packet);
-			 sleep(1000);
+			 sleep(100);
 		     session.unbind(5000);
+		     sleep(100);
 		        }catch(Exception e){
 		        	logger.error("", e);
 		        }

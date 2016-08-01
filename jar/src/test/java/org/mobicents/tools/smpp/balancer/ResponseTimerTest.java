@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
 /**
@@ -48,7 +49,7 @@ public class ResponseTimerTest {
 
 	private static final Logger logger = LoggerFactory.getLogger(CommonTest.class);
 	
-	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
+	private static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(16);
 
     private static ScheduledThreadPoolExecutor monitorExecutor = (ScheduledThreadPoolExecutor)Executors.newScheduledThreadPool(1, new ThreadFactory() {
          private AtomicInteger sequence = new AtomicInteger(0);
@@ -61,7 +62,7 @@ public class ResponseTimerTest {
     
     private static int clientNumbers = 1;
     private static int serverNumbers = 1;
-    private static SmppServerWithKeepAlive [] serverArray;
+    private static DefaultSmppServer [] serverArray;
     private static BalancerRunner balancer;
 
 	
@@ -75,9 +76,9 @@ public class ResponseTimerTest {
         balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
         
 		//start servers
-        serverArray = new SmppServerWithKeepAlive[serverNumbers];
+        serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverArray[i] = new SmppServerWithKeepAlive(ConfigInit.getSmppServerConfiguration(i,false),new ServerHandlerForResponseTimer(), executor,monitorExecutor);
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),new ServerHandlerForResponseTimer(), executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -89,7 +90,7 @@ public class ResponseTimerTest {
 			logger.info("SMPP server started");
 		}
 		try {
-			Thread.sleep(5000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -104,8 +105,7 @@ public class ResponseTimerTest {
 		new Load(locker).start();
 		locker.waitForClients();
 		assertEquals(1,balancer.smppBalancerRunner.getBalancerDispatcher().getNotRespondedPackets().get());
-		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
+
     }
 
 	@AfterClass

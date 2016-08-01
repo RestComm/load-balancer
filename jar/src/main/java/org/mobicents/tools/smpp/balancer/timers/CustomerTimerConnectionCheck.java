@@ -25,26 +25,27 @@ import org.mobicents.tools.smpp.balancer.api.ServerConnection;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ServerTimerConnection implements CancellableRunnable
+public class CustomerTimerConnectionCheck implements CancellableRunnable
 {
 	ServerConnection server;
 	Long sessionId;
 	private Boolean cancelled=false;
 	
-	public ServerTimerConnection(ServerConnection server, Long sessionId){
+	public CustomerTimerConnectionCheck(ServerConnection server, Long sessionId){
 		this.server = server;
 		this.sessionId = sessionId;
+
 	}
 	@Override
 	public void run() 
 	{
 		if(!cancelled)
-			server.connectionTimeout(sessionId);		
+			server.connectionCheck(sessionId);		
 	}
-	
+
 	@Override
 	public void cancel() 
 	{
 		this.cancelled=true;
-	}	
+	}
 }
