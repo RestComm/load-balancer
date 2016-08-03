@@ -57,9 +57,15 @@ public class SmppBalancerRunner {
         regularConfiguration.setName(balancerRunner.balancerContext.properties.getProperty("smppName"));
         regularConfiguration.setHost(balancerRunner.balancerContext.properties.getProperty("smppHost"));
         regularConfiguration.setPort(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("smppPort")));
-        regularConfiguration.setMaxConnectionSize(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("maxConnectionSize")));
-        regularConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("nonBlockingSocketsEnabled")));
-        regularConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("defaultSessionCountersEnabled")));
+        String maxConnectionSize = balancerRunner.balancerContext.properties.getProperty("maxConnectionSize");
+        if(maxConnectionSize!=null&&!maxConnectionSize.isEmpty())
+        	regularConfiguration.setMaxConnectionSize(Integer.parseInt(maxConnectionSize));
+        String nonBlockingSocketsEnabled = balancerRunner.balancerContext.properties.getProperty("nonBlockingSocketsEnabled");
+        if(nonBlockingSocketsEnabled!=null&&!nonBlockingSocketsEnabled.isEmpty())
+        	regularConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(nonBlockingSocketsEnabled));
+        String defaultSessionCountersEnabled = balancerRunner.balancerContext.properties.getProperty("defaultSessionCountersEnabled");
+        if(defaultSessionCountersEnabled!=null&&!defaultSessionCountersEnabled.isEmpty())
+        	regularConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(defaultSessionCountersEnabled));
         regularConfiguration.setUseSsl(false);                
         
         SmppServerConfiguration securedConfiguration = null;
