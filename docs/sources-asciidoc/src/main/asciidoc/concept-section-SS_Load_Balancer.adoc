@@ -14,7 +14,7 @@ Starting with the 7.0.0.GA release, Restcomm Load Balancer can handle WebSocket 
 One major advantage of having WebSocket support for Restcomm Load Balancer is to allow tunneling over HTTP port for SIP traffic and thus bypass proxy and firewall servers that might be blocking SIP traffic.
 
 [[_sslb_binary_sip_load_balancer_installing_configuring_and_running]]
-== SIP and SMPP Load Balancers: Installing, Configuring andRunning
+== Load Balancer: Installing, Configuring andRunning
 
 [[_sslb_binary_sip_load_balancer_preinstall_requirements_and_prerequisites]]
 === Pre-Install Requirements and Prerequisites
@@ -31,16 +31,16 @@ A JAIN SIP HA-enabled application server such as {this-platform}  JAIN SLEE or {
 The load balancer is located in the [path]_sip-balancer_ top-level directory of the {this-platform}  distribution.
 You will find the following files in the directory:
 
-SIP and SMPP load balancer executable JAR file::
-  This is the binary file with all dependencies, include SMPP load balancer
+Load balancer executable JAR file::
+  This is the binary file with all dependencies
 
-SIP and SMPP load balancer Configuration Properties file::
+Load balancer Configuration Properties file::
   This is the properties files with various settings
 
 [[_sslb_binary_sip_load_balancer_installing]]
 === Installing
 
-The SIP and SMPP load balancer executable JAR file can be extracted anywhere in the file system.
+The Load balancer executable JAR file can be extracted anywhere in the file system.
 It is recommended that the file is placed in the directory containing other JAR executables, so it can be easily located in the future.
 
 [[_sslb_binary_sip_load_balancer_configuring]]
@@ -52,7 +52,7 @@ Configuring the Restcomm Load Balancer and the two SIP Servlets-enabled Server n
 .Procedure: Configuring the {this-platform}  Restcomm Load Balancer and SIPServer Nodes
 . Configure lb.properties Configuration Properties File
 +
-Configure the SIP and SMPP Load Balancer's Configuration Properties file by substituting valid values for your personal setup. <<_sslb_complete_sample_lb.properties_file>>          shows a sample [path]_lb.properties_ file, with key element descriptions provided after the example.
+Configure the Load Balancer's Configuration Properties file by substituting valid values for your personal setup. <<_sslb_complete_sample_lb.properties_file>>          shows a sample [path]_lb.properties_ file, with key element descriptions provided after the example.
 The lines beginning with the pound sign are comments.
 +
 [[_sslb_complete_sample_lb.properties_file]]
@@ -192,6 +192,8 @@ smppHost = 127.0.0.1
 smppPort = 2776
 # The port of the load balancer for SSL protocol
 smppSslPort = 2876
+# The IP address:port of SMPP server
+remoteServers=174.37.245.38:8000
 # it is recommended that at any time there were no more than
 #10 (ten) SMPP messages are outstanding
 maxConnectionSize = 10
@@ -309,14 +311,20 @@ smppHost::
 smppPort::
   Port on which the SMPP load balancer will listen for incoming requests from clients.
 
+remoteServers::
+  The IP address:port of SMPP server
 maxConnectionSize::
-  It is recommended that at any time there were no more than ten SMPP messages are outstanding.
+max number of connections/sessions this server will expect to handle
+this number corrosponds to the number of worker threads handling reading
+data from sockets and the thread things will be processed under
+it is recommended that at any time there were no more than 10 (ten) SMPP messages are
+outstanding (10 is default)
 
 nonBlockingSocketsEnabled::
-  Turn off/on blocking.
+  Is NIO enabled (default true).
 
 defaultSessionCountersEnabled::
-  Turn off/on server counters.
+  Is default session counters enabled(used for testing)
 
 timeoutResponse::
   In milliseconds.
@@ -324,13 +332,11 @@ timeoutResponse::
 
 timeoutConnection::
   In milliseconds.
-  Max time allowable between connection to SMPP load balancer by client and bind request from client, after which client will disconnect.
+  Session initialization timer(if client connect but doesn’t send bind request then LB disconnects it)
 
 timeoutEnquire::
   In milliseconds.
-  Time interval `after which
-                  balancer check connection to server and
-                  client.`
+  Enquire Link Timer (after each this period LB checks connection to client and server, sends enquire_link)
 
 reconnectPeriod::
   In milliseconds.
@@ -342,8 +348,7 @@ timeoutConnectionCheckClientSide::
 
 timeoutConnectionCheckServerSide::
   In milliseconds.
-  After sending enquire link to server for checking connection, balancer wait this time and if not receive response close connection.
-
+  Connection check server side timer(time which LB wait for enquire_link_resp and if doesn’t receive, tries to rebind to server).
 javax.net.ssl.keyStore::
   Points to the keystore file we generated before.
 
@@ -419,11 +424,11 @@ image::images/converged-integrated-lb.png[]
 [[_sslb_binary_sip_load_balancer_running]]
 === Running
 
-.Procedure: Running the SIP/SMPP Load Balancer and SIP Server Nodes
-. Start the SIP/SMPP Load Balancer
+.Procedure: Running the Load Balancer and SIP Server Nodes
+. Start the Load Balancer
 +
-Start the SIP/SMPP load balancer, ensuring the Configuration Properties file ( [path]_lb.properties_ in this example) is specified.
-In the Linux terminal, or using the Windows Command Prompt, the SIP and SMPP Load Balancers are started by issuing a command similar to this one:
+Start the load balancer, ensuring the Configuration Properties file ( [path]_lb.properties_ in this example) is specified.
+In the Linux terminal, or using the Windows Command Prompt, the Load Balancers are started by issuing a command similar to this one:
 +
 ----
 java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties
@@ -455,13 +460,13 @@ home]$ java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependenci
 +
 The output shows the IP address on which the Restcomm Load Balancer is listening, as well as the external and internal listener ports.
 
-. Configure SIP/SMPP Server Nodes
+. Configure Server Nodes
 +
-The information about configuring your SIP Server, SMPP Server, SIP Servlets or JAIN SLEE, is in the respective server User Guide.
+The information about configuring your SIP Server, SIP Servlets or JAIN SLEE, is in the respective server User Guide.
 
 . Start Load Balancer Client Nodes
 +
-Start all SIP and SMPP load balancer client nodes.
+Start all SIP load balancer client nodes.
 
 
 [[_sslb_binary_sip_load_balancer_testing]]
@@ -537,7 +542,7 @@ This should produce similar output to the following:
 [[_sslb_binary_sip_load_balancer_uninstalling]]
 === Uninstalling
 
-To uninstall the SIP and SMPP load balancers, delete the JAR file you installed.
+To uninstall the load balancer, delete the JAR file you installed.
 
 [[_sslb_sip_load_balancing_basics]]
 == SIP Load Balancing Basics
@@ -577,24 +582,29 @@ The integrated HTTP load balancer is much easier to configure and generally requ
 Unlike the native apache, the integrated HTTP Load Balancer is written completely in Java, thus a performance penalty should be expected when using it.
 However, the integrated HTTP Balancer has an advantage when related SIP and HTTP requests must stick to the same node.
 
-== SMPP Load Balancing Basics
+== SMPP multiplexing basics
 
-SMPP load balancer is used for balancing load from SMPP clients (ESME) to SMPP servers (SMSC) based on round-robin algorithm.
-Because of SMPP protocol based on an application layer TCP/IP connection between the ESME and SMSC and is initiated by the ESME, we should use connection handling.
-SMPP load balancer includes three main parts: server part, client part and dispatcher.
-When new clients connect to SMPP load balancer, application creates instances of ClientConnectionImpl (client part) and ServerConnectionImpl (server part) classes that bind by session ID.
-They are used to establish a connection between client (ESME) and server (SMSC). When connection established it can be used in both directions: ESME and SMSC can initiate new messages or send back messages through the SMPP load balancer.
-Dispatcher is used for logical connection of client and server parts of SMPP load balancer.
-Each packet that is received by the client part, the dispatcher throws to server part (unless error is detected) and vice versa.
+SMPP providers (e.g.NEXMO) offer limited numbers of connections to their services
+but sometimes we need more than one client connections to it. So you can use our
+load balancer as SMPP multiplexer for multiplexing connections from several clients
+(Restcomm) to one SMPP provider using one connection.
+
+When very first client connect to SMPP load balancer, Load balancer creates connection
+to server and next clients reuse it. When connection to server established it can
+be used in both directions (transceiver mode): ESME and SMSC can send messages
+through the load balancer.
 
 .SMPP load balancer diagram
 image::images/SMPP-lb-diagram.png[]
 
-Main goal of application is to reduce the load on servers (SMSC) and simply transfer packets between client (ESME) and server(SMSC). But also it can inspect the received packets for correct command ID and will not send incorrect packets forward instead turn them back.
+Main goal is to reuse connection to the servers (SMSC) and simply transfer packets
+between client (ESME) and server(SMSC). But also it can inspect the received packets
+for correct command ID and will not send incorrect packets forward instead turn them back.
 
-When connection to server drops, SMPP load balancer can reconnect (rebind) to the next working server.
-During this process (reconnect) it turns back all received packets until the new connection is established.
-If there are no established connections with the servers, the client connection is closed and vice versa.
+When connection to server drops, SMPP load balancer can reconnect (rebind) to the
+server. During this process (reconnect) it turns back all received packets until
+the new connection is established. If there are no established connection with
+the server, all connections will be closed.
 
 == Pluggable balancer algorithms
 
@@ -1105,3 +1115,68 @@ For WSS:
 
 Login to Restcomm server https://127.0.0.2:8443/olympus/
 Fill in form: Load Balancer's ip adress (externalHost) 172.21.0.104 and port (externalWssPort) 5091
+
+== Integration Load Balancer SMPP with Restcomm and Nexmo
+
+.Configure Restcomm to Use SMPP
+First you need to configure the IP address and other features required
+to start Restcomm as explained link:http://documentation.telestax.com/connect/configuration/Starting%20Restcomm-Connect.html#start-restcomm-connect[Starting Restcomm-Connect.]
+Edit the file  $RESTCOMM_HOME/bin/restcomm/restcomm.conf You must set the SMPP_ACTIVATE variable to true for SMPP to be activated
+
+ #Connection details for SMPP Restcomm integration
+ SMPP_ACTIVATE='true' #Set to true to activate SMPP
+ SMPP_SYSTEM_ID='xxxxx'  #your NEXMO “key”
+ SMPP_PASSWORD='xxxxxx' #your NEXMO “secret”
+ SMPP_SYSTEM_TYPE='xxxxxx'  #This is required when working with Nexmo for inbound SMS
+ SMPP_PEER_IP='xxxxxx'  #smppHost of Load Balancer
+ SMPP_PEER_PORT='xxxxx'  #smppPort of Load Balancer
+
+.Configure Load Balancer to Use SMPP
+Edit the file lb-configuration.properies
+
+ # SMPP Load Balancer Settings
+ smppName=SMPP Load Balancer
+ # The address of the load balancer
+ smppHost=xxxxxx
+ # The port of the load balancer on which Restcomm connects
+ smppPort=xxxx
+ # The port of the load balancer for SSL protocol on which Restcomm connects
+ #smppSslPort=xxxx
+ # The IP address:port of Nexmo server
+ remoteServers=174.37.245.38:8000
+ # max number of connections/sessions this server will expect to handle
+ # this number corrosponds to the number of worker threads handling reading
+ # data from sockets and the thread things will be processed under
+ # it is recommended that at any time there were no more than 10 (ten) SMPP
+ # messages are outstanding (10 is default)
+ #maxConnectionSize=10
+ # Is NIO enabled (default true)
+ #nonBlockingSocketsEnabled=true
+ # Is default session counters enabled(used for testing)
+ #defaultSessionCountersEnabled=true
+ # Response timeout for load balancer in milliseconds (max time which LB wait
+ # for response, after timeout packet сonsidered lost and send error response)
+ timeoutResponse=10000
+ # Session initialization timer(if client connect but doesn’t send bind
+ # request then LB disconnects it)
+ timeoutConnection=1000
+ # Enquire Link Timer (after each this period LB checks connection to
+ # client and server(sends enquire_link))
+ timeoutEnquire=50000
+ # Time between reconnection(time which LB wait for reconnection if connection
+ # was lost)
+ reconnectPeriod=1000
+ # Connection check timer in load balancer (time which LB wait for
+ # enquire_link_resp and if doesn’t receive, close connection to client)
+ timeoutConnectionCheckClientSide=1000
+ # Connection check server side timer(time which LB wait for
+ # enquire_link_resp and if doesn’t receive, tries to rebind to server )
+ timeoutConnectionCheckServerSide=1000
+
+Start the Load balancer and Restcomm, in a few seconds connection should established
+and you can see next line:
+
+  INFO [MClientConnectionImpl] Connection to server : 127.0.0.1 : 10021 established. Server session ID : 0
+
+Now you can send outbound and inbound messages. How to send messages you can find
+link:http://documentation.telestax.com/connect/configuration/Restcomm%20-%20Connecting%20SMPP%20Endpoint%20through%20Nexmo.html[here]
