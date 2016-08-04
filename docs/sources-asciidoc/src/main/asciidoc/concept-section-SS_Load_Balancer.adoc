@@ -4,26 +4,200 @@
 .Star Cluster Topology.
 image::images/mss-MSSSIPLoadBalancer-dia-StarNetworkTopology.jpg[]
 
-The Restcomm Load Balancer is used to balance the load of SIP service requests and responses between nodes in a SIP Server cluster, such as {this-platform} JAIN SLEE or SIP Servlets.
-Both {this-platform} servers can be used in conjunction with the Restcomm Load Balancer to increase the performance and availability of SIP services and applications.
+The {this-platform} Load Balancer is used to balance the load of SIP service requests and responses between nodes in a SIP Server cluster, such as {this-platform} JAIN SLEE or SIP Servlets.
+Both {this-platform} servers can be used in conjunction with the {this-platform} Load Balancer to increase the performance and availability of SIP services and applications.
 
-In terms of functionality, the Restcomm Load Balancer is a simple stateless proxy server that intelligently forwards SIP session requests and responses between User Agents (UAs) on a Wide Area Network (WAN), and SIP Server nodes, which are almost always located on a Local Area Network (LAN). All SIP requests and responses pass through the Restcomm Load Balancer.
+In terms of functionality, the {this-platform} Load Balancer is a simple stateless proxy server that intelligently forwards SIP session requests and responses between User Agents (UAs) on a Wide Area Network (WAN), and SIP Server nodes, which are almost always located on a Local Area Network (LAN). All SIP requests and responses pass through the {this-platform} Load Balancer.
 
-Starting with the 7.0.0.GA release, Restcomm Load Balancer can handle WebSocket requests supporting up to version 13 of the wire protocol - RFC 6455 (version 17 of the draft hybi specification - http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-17  ). Restcomm Load Balancer will accept HTTP requests and if the request contains header Sec-WebSocket-Protocol it will upgrade the connection and dispatch the reuqest to a node capable to handle WebSocket requests (a node that has a WebSocket connector).
+Starting with the 2.0.0.GA release, {this-platform} Load Balancer can handle WebSocket requests supporting up to version 13 of the wire protocol - RFC 6455 (version 17 of the draft hybi specification - http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-17  ). {this-platform} Load Balancer will accept HTTP requests and if the request contains header Sec-WebSocket-Protocol it will upgrade the connection and dispatch the reuqest to a node capable to handle WebSocket requests (a node that has a WebSocket connector).
 
-One major advantage of having WebSocket support for Restcomm Load Balancer is to allow tunneling over HTTP port for SIP traffic and thus bypass proxy and firewall servers that might be blocking SIP traffic.
+One major advantage of having WebSocket support for {this-platform} Load Balancer is to allow tunneling over HTTP port for SIP traffic and thus bypass proxy and firewall servers that might be blocking SIP traffic.
+
+[[_sslb_sip_load_balancing_basics]]
+== SIP Load Balancing Basics
+
+All User Agents send SIP messages, such as `INVITE` and `MESSAGE`, to the same SIP URI (the IP address and port number of the {this-platform} Load Balancer on the WAN). The Load Balancer then parses, alters, and forwards those messages to an available node in the cluster.
+If the message was sent as a part of an existing SIP session, it will be forwarded to the cluster node which processed that User Agent's original transaction request.
+
+The SIP Server that receives the message acts upon it and sends a response back to the {this-platform} Load Balancer.
+The {this-platform} Load Balancer reparses, alters and forwards the message back to the original User Agent.
+This entire proxying and provisioning process is carried out independent of the User Agent, which is only concerned with the SIP service or application it is using.
+
+By using the Load Balancer, SIP traffic is balanced across a pool of available SIP Servers, increasing the overall throughput of the SIP service or application running on either individual nodes of the cluster.
+In the case of a {this-platform} server with `</distributed>` capabilities, load balancing advantages are applied across the entire cluster.
+
+The {this-platform} Load Balancer is also able to failover requests mid-call from unavailable nodes to available ones, thus increasing the reliability of the SIP service or application.
+The Load Balancer increases throughput and reliability by dynamically provisioning SIP service requests and responses across responsive nodes in a cluster.
+This enables SIP applications to meet the real-time demand for SIP services.
+
+[[_sslb_load_balancer_node_discovery]]
+=== Node Discovery of the {this-platform} Load Balancer
+
+Each individual {this-platform} SIP Server in the cluster is responsible for contacting the {this-platform} Load Balancer and relaying its health status and regular "heartbeats".
+
+From these health status reports and heartbeats, the {this-platform} Load Balancer creates and maintains a list of all available and healthy nodes in the cluster allowing for making the whole cluster dynamic and capable of autoscaling with no downtime.
+
+The Load Balancer forwards SIP requests between these cluster nodes, providing that the provisioning algorithm reports that each node is healthy and is still sending heartbeats.
+
+If an abnormality is detected, the {this-platform} Load Balancer removes the unhealthy or unresponsive node from the list of available nodes.
+In addition, mid-session and mid-call messages are failed over to a healthy node.
+
+The {this-platform} Load Balancer first receives SIP requests from endpoints on a port that is specified in its Configuration Properties configuration file.
+The {this-platform} Load Balancer, using a round-robin algorithm, then selects a node to which it forwards the SIP requests.
+The Load Balancer forwards all same-session requests to the first node selected to initiate the session, providing that the node is healthy and available.
+
+[[_sslb_load_balancer_keepalive]]
+=== Keepalives to the {this-platform} Load Balancer
+Each individual {this-platform} SIP Server in the cluster is responsible for contacting the {this-platform} Load Balancer and relaying its health status through regular "heartbeats" that are sent over a TCP connection. 
+
+The nodes typically send the IP addresses, ports and transports thay are listening on plus an optional list of custom information to allow more more powerful dynamic and intelligent routing to be done by the Load Balancer.
+
+If the Load Balancer doesn't receive the keepalive information from a node after a certain configurable amount of time, it discards the node. The time is reset for each message that the Load Balancer receives from the node as well be it a keepalive or a regular SIP or HTTP message.
+
+== HTTP Load Balancing Basics
+
+In addition to the SIP load balancing, there are several options for coordinated or cooperative load balancing with other protocols such as HTTP.
+
+Typically, a JBoss Application Server will use apache HTTP server with mod_jk, mod_proxy, mod_cluster or similar extension installed as an HTTP load balancer.
+This apache-based load balancer will parse incoming HTTP requests and will look for the session ID of those requests in order to ensure all requests from the same session arrive at the same application server.
+
+By default, this is done by examining the `jsessionid` HTTP cookie or GET parameter and looking for the `jvmRoute` assigned to the session.
+The typical `jsessionid` value is of the form `<sessionId>.<jvmRoute>` . The very first request for each new HTTP session does not have a session ID assigned; the apache routes the request to a random application server node.
+
+When the node responds it assigns a session ID and `jvmRoute` to the response of the request in a HTTP cookie.
+This response goes back to the client through apache, which keeps track of which node owns each `jvmRoute` . Once the very first request is served this way, the subsequent requests from this session will carry the assigned cookie, and the apache load balancer will always route the requests to the node, which advertised itself as the `jvmRoute` owner.
+
+Instead of using apache, an integrated HTTP Load Balancer is also available.
+The {this-platform} Load Balancer has a HTTP port where you can direct all incoming HTTP requests.
+The integrated HTTP load balancer behaves exactly like apache by default, but this behavior is extensible and can be overridden completely with the pluggable balancer algorithms.
+The integrated HTTP load balancer is much easier to configure and generally requires no effort, because it reuses most SIP settings and assumes reasonable default values.
+
+Unlike the native apache, the integrated HTTP Load Balancer is written completely in Java, thus a performance penalty should be expected when using it.
+However, the integrated HTTP Balancer has an advantage when related SIP and HTTP requests must stick to the same node.
+
+== SMPP Load Balancing Basics
+
+SMPP load balancer is used for balancing load from SMPP clients (ESME) to SMPP servers (SMSC) based on round-robin algorithm.
+Because of SMPP protocol based on an application layer TCP/IP connection between the ESME and SMSC and is initiated by the ESME, we should use connection handling.
+SMPP load balancer includes three main parts: server part, client part and dispatcher.
+When new clients connect to SMPP load balancer, application creates instances of ClientConnectionImpl (client part) and ServerConnectionImpl (server part) classes that bind by session ID.
+They are used to establish a connection between client (ESME) and server (SMSC). When connection established it can be used in both directions: ESME and SMSC can initiate new messages or send back messages through the SMPP load balancer.
+Dispatcher is used for logical connection of client and server parts of SMPP load balancer.
+Each packet that is received by the client part, the dispatcher throws to server part (unless error is detected) and vice versa.
+
+.SMPP load balancer diagram
+image::images/SMPP-lb-diagram.png[]
+
+Main goal of application is to reduce the load on servers (SMSC) and simply transfer packets between client (ESME) and server(SMSC). But also it can inspect the received packets for correct command ID and will not send incorrect packets forward instead turn them back.
+
+When connection to server drops, SMPP load balancer can reconnect (rebind) to the next working server.
+During this process (reconnect) it turns back all received packets until the new connection is established.
+If there are no established connections with the servers, the client connection is closed and vice versa.
+
+[[_sslb_smpp_load_balancer_implementation]]
+=== Implementation of the SMPP Load Balancer
+
+SMPP load balancer implements timers: enquire link timer, session initialization timer and response timer for connection handling.
+Timers of SMPP load balancer have next behaviour:
+
+* Session initialization timer disconnects client (ESME) if it does not send bind request in defined time;
+* Response timer sends response with system error if sender does not receive response in defined time;
+* Enquire link timer with a fixed rate checks the connections with client (ESME) and server (SMSC).
+
+Server part of SMPP load balancer has next states:
+
+* OPEN - it can receive only bind requests from client (ESME);
+* BINDING - it can't receive any messages, in this state we wait for client's response;
+* BOUND - it can receive all PDU packets from client (ESME), which he can send according SMPP protocol, except bind requests;
+* REBINDING - it can also receive all PDU packets from client (ESME), but returns them back, because the client part at this time is trying to reconnect to server;
+* UNBINDING - it can receive only unbind response from client (ESME);
+* CLOSED - it can't receive any messages, this is last state of life cycle, which indicate that connection is closed.
+
+Client part of SMPP load balancer has next states:
+
+* INITIAL - it can't receive any messages, this is first state of life cycle, at this state the client part is trying to connect to the server (SMSC) and if the connection is successful state changes to OPEN;
+* OPEN - it can't receive any messages, at this state the client part sends a bind request to the server (SMSC), and changes state to binding;
+* BINDING - it can receive only bind response from server, and if response does not have errors, the client part changes ones state to bound;
+* BOUND - it can receive all packets from server (SMSC), which can be sent according SMPP protocol, except unbind response;
+* REBINDING - if connection drops to the server (SMSC), the client part changes ones state to rebinding until reconnect.
+  If reconnect fails, connection is closed;
+* UNBINDING - it can receive unbind response from server only, after which state changes to closed state;
+* CLOSED - it can't receive any messages, this is the last state of the life cycle, which indicates that the connection is closed.
+
+== Pluggable balancer algorithms
+
+The {this-platform} Load Balancer exposes an interface to allow users to customize the routing decision making for special purposes.
+By default there are three built-in algorithms.
+Only one algorithm is active at any time and it is specified with the `algorithmClass` property in the configuration file.
+
+It is up to the algorithm how and whether to support distributed architecture or how to store the information needed for session affinity.
+The algorithms will be called for every SIP and HTTP request and other significant events to make more informed decisions.
+
+NOTE: Users must be aware that by default requests explicitly addressed to a live server node passing through the load balancer will be forwarded directly to the server node.
+This allows for pre-specified routing use-cases, where the target node is known by the SIP client through other means.
+If the target node is dead, then the node selection algorithm is used to route the request to an available node.
+
+The following is a list of the built-in algorithms:
+
+
+
+org.Restcomm.tools.sip.balancer.CallIDAffinityBalancerAlgorithm::
+  This algorithm is not distributable.
+  It selects nodes randomly to serve a give Call-ID extracted from the requests and responses.
+  It keeps a map with `Call-ID ->
+              nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
+  For HTTP it behaves like apache.
+
+  org.Restcomm.tools.sip.balancer.UserBasedAlgorithm::
+    This algorithm algorithm tie all calls for a given DID/Number to the same node.
+    All participants for a given conference will be on the same node.
+    It selects nodes randomly to serve a give To header extracted from the requests and responses.
+    It keeps a map with `To ->
+                nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
+    For HTTP it behaves like apache.
+
+org.Restcomm.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm::
+  This algorithm is distributable and can be used in distributed load balancer configurations.
+  It extracts the hash value of specific headers from SIP and HTTP messages to decide which application server node will handle the request.
+  Information about the options in this algorithms is available in the balancer configuration file comments.
+
+org.Restcomm.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm::
+  This algorithm is distributable and is similar to the previous algorithm, but it attempts to keep session affinity even when the cluster nodes are removed or added, which would normally cause hash values to point to different nodes.
+
+org.Restcomm.tools.sip.balancer.ClusterSubdomainAffinityAlgorithm::
+  This algorithm is not distributable, but supports grouping server nodes to act as a subcluster.
+  Any call of a node that belongs to a cluster group will be preferentially failed over to a node from the same group.
+  To configure a group you can just add the `subclusterMap` property in the load balancer properties and listing the IP addresses of the nodes.
+  The groups are enclosed in parentheses and the IP addresses are separate by commas as follows:
++
+----
+subclusterMap=( 192.168.1.1, 192.168.1.2 ) ( 10.10.10.10,20.20.20.20, 30.30.30.30)
+----
++
+The nodes specified in a group do not have to alive and nodes that are not specified are still allowed to join the cluster. Otherwise the algorthim behaves exactly as the default Call-ID affinity algorthim.
+
+== Distributed load balancing
+
+When the capacity of a single load balancer is exceeded, multiple load balancers can be used.
+With the help of an IP load balancer the traffic can be distributed between all {this-platform} load balancers based on some IP rules or round-robin.
+With consistent hash and `jvmRoute` -based balancer algorithms it doesn't matter which {this-platform} load balancer will process the request, because they would all make the same decisions based on information in the requests (headers, parameters or cookies) and the list of available nodes.
+With consistent hash algorithms there is no state to be preserved in the {this-platform} balancers.
+
+.Example deployment: IP load balancers serving both directions forincoming/outgoing requests in a cluster
+image::images/WSS_Failover_Goal.png[]
+
 
 [[_sslb_binary_sip_load_balancer_installing_configuring_and_running]]
-== SIP and SMPP Load Balancers: Installing, Configuring andRunning
+== {this-platform} Load Balancer: Installing, Configuring andRunning
 
 [[_sslb_binary_sip_load_balancer_preinstall_requirements_and_prerequisites]]
 === Pre-Install Requirements and Prerequisites
 
 .Software Prerequisites
 A JAIN SIP HA-enabled application server such as {this-platform}  JAIN SLEE or {this-platform} SIP Servlets is required.::
-  Running the Restcomm Load Balancer requires at least two instances of the application server as cluster nodes nodes.
-  Therefore, before configuring the Restcomm Load Balancer, we should make sure we've installed a the SIP application server first.
-  The {this-platform} Restcomm Load Balancer will work with a SIP Servlets-enabled JBoss Application Server _or_            a JAIN SLEE application server with SIP RA.
+  Running the {this-platform} Load Balancer requires at least two instances of the application server as cluster nodes nodes.
+  Therefore, before configuring the {this-platform} Load Balancer, we should make sure we've installed a the SIP application server first.
+  The {this-platform} {this-platform} Load Balancer will work with a SIP Servlets-enabled JBoss Application Server _or_            a JAIN SLEE application server with SIP RA.
 
 [[_sslb_binary_sip_load_balancer_downloading]]
 === Downloading
@@ -31,28 +205,28 @@ A JAIN SIP HA-enabled application server such as {this-platform}  JAIN SLEE or {
 The load balancer is located in the [path]_sip-balancer_ top-level directory of the {this-platform}  distribution.
 You will find the following files in the directory:
 
-SIP and SMPP load balancer executable JAR file::
+{this-platform} load balancer executable JAR file::
   This is the binary file with all dependencies, include SMPP load balancer
 
-SIP and SMPP load balancer Configuration Properties file::
+{this-platform} load balancer Configuration Properties file::
   This is the properties files with various settings
 
 [[_sslb_binary_sip_load_balancer_installing]]
 === Installing
 
-The SIP and SMPP load balancer executable JAR file can be extracted anywhere in the file system.
+The {this-platform} load balancer executable JAR file can be extracted anywhere in the file system.
 It is recommended that the file is placed in the directory containing other JAR executables, so it can be easily located in the future.
 
 [[_sslb_binary_sip_load_balancer_configuring]]
 === Configuring
 
-Configuring the Restcomm Load Balancer and the two SIP Servlets-enabled Server nodes is described in <<_sslb_configuring_the_sip_load_balancer_and_servlet_server_nodes>>      .
+Configuring the {this-platform} Load Balancer and the two SIP Servlets-enabled Server nodes is described in <<_sslb_configuring_the_sip_load_balancer_and_servlet_server_nodes>>      .
 
 [[_sslb_configuring_the_sip_load_balancer_and_servlet_server_nodes]]
-.Procedure: Configuring the {this-platform}  Restcomm Load Balancer and SIPServer Nodes
+.Procedure: Configuring the {this-platform}  {this-platform} Load Balancer and SIPServer Nodes
 . Configure lb.properties Configuration Properties File
 +
-Configure the SIP and SMPP Load Balancer's Configuration Properties file by substituting valid values for your personal setup. <<_sslb_complete_sample_lb.properties_file>>          shows a sample [path]_lb.properties_ file, with key element descriptions provided after the example.
+Configure the {this-platform} Load Balancer's Configuration Properties file by substituting valid values for your personal setup. <<_sslb_complete_sample_lb.properties_file>>          shows a sample [path]_lb.properties_ file, with key element descriptions provided after the example.
 The lines beginning with the pound sign are comments.
 +
 [[_sslb_complete_sample_lb.properties_file]]
@@ -60,8 +234,8 @@ The lines beginning with the pound sign are comments.
 ====
 [source]
 ----
-# Mobicents Load Balancer Settings
-# For an overview of the Mobicents Load Balancer visit http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm
+# Restcomm Load Balancer Settings
+# For an overview of the Restcomm Load Balancer visit http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm
 
 # The binding address of the load balancer
 host=127.0.0.1
@@ -114,20 +288,20 @@ httpsPort=2081
 #extraServerNodes=222.221.21.12:21,45.6.6.7:9003,33.5.6.7,33.9.9.2
 
 # Call-ID affinity algortihm settings. This algorithm is the default. No need to uncomment it.
-#algorithmClass=org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm
+#algorithmClass=org.Restcomm.tools.sip.balancer.CallIDAffinityBalancerAlgorithm
 # This property specifies how much time to keep an association before being evitcted.
 # It is needed to avoid memory leaks on dead calls. The time is in seconds.
 #callIdAffinityMaxTimeInCache=500
 
 # Uncomment to enable the consistent hash based on Call-ID algorithm.
-#algorithmClass=org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
+#algorithmClass=org.Restcomm.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
 # This property is not required, it defaults to Call-ID if not set, can be "From" or "To" when you want the SIP URI username
 #sipHeaderAffinityKey=Call-ID
 #specify the GET HTTP parameter to be used as hash key
 #httpAffinityKey=appsession
 
 # Uncomment to enable the persistent consistent hash based on Call-ID algorithm.
-#algorithmClass=org.mobicents.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm
+#algorithmClass=org.Restcomm.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm
 # This property is not required, it defaults to Call-ID if not set
 #sipHeaderAffinityKey=Call-ID
 #specify the GET HTTP parameter to be used as hash key
@@ -137,20 +311,20 @@ httpsPort=2081
 #persistentConsistentHashCacheConfiguration=/home/config.xml
 
 # Call-ID affinity algortihm settings. This algorithm is the default. No need to uncomment it.
-#algorithmClass=org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm
+#algorithmClass=org.Restcomm.tools.sip.balancer.CallIDAffinityBalancerAlgorithm
 # This property specifies how much time to keep an association before being evitcted.
 # It is needed to avoid memory leaks on dead calls. The time is in seconds.
 #callIdAffinityMaxTimeInCache=500
 
 # Uncomment to enable the consistent hash based on Call-ID algorithm.
-#algorithmClass=org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
+#algorithmClass=org.Restcomm.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm
 # This property is not required, it defaults to Call-ID if not set, can be "From" or "To" when you want the SIP URI username
 #sipHeaderAffinityKey=Call-ID
 #specify the GET HTTP parameter to be used as hash key
 #httpAffinityKey=appsession
 
 # Uncomment to enable the persistent consistent hash based on Call-ID algorithm.
-#algorithmClass=org.mobicents.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm
+#algorithmClass=org.Restcomm.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm
 # This property is not required, it defaults to Call-ID if not set
 #sipHeaderAffinityKey=Call-ID
 #specify the GET HTTP parameter to be used as hash key
@@ -241,42 +415,42 @@ statisticPort=2006
 +
 
 host::
-  Local IP address, or interface, on which the Restcomm Load Balancer will listen for incoming requests.
+  Local IP address, or interface, on which the {this-platform} Load Balancer will listen for incoming requests.
 
 externalUdpPort::
-  Port on which the Restcomm Load Balancer listens for incoming requests from SIP User Agents.
+  Port on which the {this-platform} Load Balancer listens for incoming requests from SIP User Agents.
 
 internalUdpPort::
-  Port on which the Restcomm Load Balancer forwards incoming requests to available, and healthy, SIP Server cluster nodes.
+  Port on which the {this-platform} Load Balancer forwards incoming requests to available, and healthy, SIP Server cluster nodes.
 
 rmiRegistryPort::
-  Port on which the Restcomm Load Balancer will establish the RMI heartbeat connection to the application servers.
+  Port on which the {this-platform} Load Balancer will establish the RMI heartbeat connection to the application servers.
   When this connection fails or a disconnection instruction is received, an application server node is removed and handling of requests continues without it by redirecting the load to the lie nodes.
 
 rmiRemoteObjectPort::
-  Port on which the Restcomm Load Balancer will use to export the RMI Remote Object.
+  Port on which the {this-platform} Load Balancer will use to export the RMI Remote Object.
 
 httpPort::
-  Port on which the Restcomm Load Balancer will accept HTTP requests to be distributed across the nodes.
+  Port on which the {this-platform} Load Balancer will accept HTTP requests to be distributed across the nodes.
 
 httpsPort::
-  Port on which the Restcomm Load Balancer will accept HTTPS requests to be distributed across the nodes.
+  Port on which the {this-platform} Load Balancer will accept HTTPS requests to be distributed across the nodes.
 
 externalIpLoadBalancerAddress::
   Address of the IP load balancer (if any) used for incoming requests to be distributed in the direction of the application server nodes.
-  This address may be used by the Restcomm Load Balancer to be put in SIP headers where the external address of the Restcomm Load Balancer is needed.
+  This address may be used by the {this-platform} Load Balancer to be put in SIP headers where the external address of the {this-platform} Load Balancer is needed.
 
 externalIpLoadBalancerUdpPort::
   The port of the external IP load balancer.
-  Any messages arriving at this port should be distributed across the external SIP ports of a set of Restcomm Load Balancers.
+  Any messages arriving at this port should be distributed across the external SIP ports of a set of {this-platform} Load Balancers.
 
 internalIpLoadBalancerAddresst::
   Address of the IP load balancer (if any) used for outgoing requests (requests initiated from the servers) to be distributed in the direction of the clients.
-  This address may be used by the Restcomm Load Balancer to be put in SIP headers where the internal address of the Restcomm Load Balancer is needed.
+  This address may be used by the {this-platform} Load Balancer to be put in SIP headers where the internal address of the {this-platform} Load Balancer is needed.
 
 internalIpLoadBalancerUdpPort::
   The port of the internal IP load balancer.
-  Any messages arriving at this port should be distributed across the internal SIP ports of a set of Restcomm Load Balancers.
+  Any messages arriving at this port should be distributed across the internal SIP ports of a set of {this-platform} Load Balancers.
 
 extraServerNodes::
   Comma-separated list of hosts that are server nodes.
@@ -298,7 +472,7 @@ nodeTimeout::
 heartbeatInterval::
   In milliseconds.
   Default value is 150 milliseonds.
-  The hearbeat interval must be much smaller than the interval specified in the JAIN SIP property on the server machines - `org.mobicents.ha.javax.sip.HEARTBEAT_INTERVAL`
+  The hearbeat interval must be much smaller than the interval specified in the JAIN SIP property on the server machines - `org.Restcomm.ha.javax.sip.HEARTBEAT_INTERVAL`
 
 smppName::
   Name of SMPP load balancer.
@@ -379,12 +553,12 @@ To assist with tuning, a comprehensive list of implementing classes for the SIP 
             SIP Stack page on nist.gov] . For a comprehensive list of properties associated with the SIP Stack implementation, refer to http://snad.ncsl.nist.gov/proj/iptel/jain-sip-1.2/javadoc/gov/nist/javax/sip/SipStackImpl.html[Class
             SipStackImpl page on nist.gov] .
 +
-NOTE: If Restcomm Load Balancer is behind firewall you will need to open all the required ports.
+NOTE: If {this-platform} Load Balancer is behind firewall you will need to open all the required ports.
 The default ports are: TCP: 2000, 2001, 2080, 5060, 5065, 8000 UDP: 5060, 5065
 
 . Configure logging
 +
-The Restcomm Load Balancer uses http://logging.apache.org/log4j[Log4J] as a logging mechanism.
+The {this-platform} Load Balancer uses http://logging.apache.org/log4j[Log4J] as a logging mechanism.
 You can configure it through the typical log4j xml configuration file and specify the path as follows `-DlogConfigFile=./log4j.xml` . Please refer to Log4J documentation for more information on how to configure the logging.
 A shortcut exists if you want to switch between INFO/DEBUG/WARN logging levels.
 The JVM option `-DlogLevel=DEBUG` will allow you to switch all loggig categories to the specified log level.
@@ -394,7 +568,7 @@ The JVM option `-DlogLevel=DEBUG` will allow you to switch all loggig categories
 
 ===== Apache HTTP Load Balancer
 
-The {this-platform} Restcomm Load Balancer can work in concert with HTTP load balancers such as `mod_jk` . Whenever an HTTP session is bound to a particular node, an instruction is sent to the Restcomm Load Balancer to direct the SIP calls from the same application session to the same node.
+The {this-platform} {this-platform} Load Balancer can work in concert with HTTP load balancers such as `mod_jk` . Whenever an HTTP session is bound to a particular node, an instruction is sent to the {this-platform} Load Balancer to direct the SIP calls from the same application session to the same node.
 
 It is sufficient to configure `mod_jk` to work for HTTP in JBoss in order to enable cooperative load balancing. {this-platform}  will read the configuration and will use it without any extra configuration.
 You can read more about configuring `mod_jk` with JBoss in your JBoss Application Server documentation.
@@ -426,13 +600,13 @@ Start the SIP/SMPP load balancer, ensuring the Configuration Properties file ( [
 In the Linux terminal, or using the Windows Command Prompt, the SIP and SMPP Load Balancers are started by issuing a command similar to this one:
 +
 ----
-java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties
+java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -Restcomm-balancer-config=lb-configuration.properties
 ----
 +
-Executing the Restcomm Load Balancer produces output similar to the following example:
+Executing the {this-platform} Load Balancer produces output similar to the following example:
 +
 ----
-home]$ java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties
+home]$ java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -Restcomm-balancer-config=lb-configuration.properties
 2016-02-08 15:54:28,036 INFO main - nodeTimeout=8400
 2016-02-08 15:54:28,038 INFO main - heartbeatInterval=150
 2016-02-08 15:54:28,039 INFO main - Node registry starting...
@@ -453,7 +627,7 @@ home]$ java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependenci
 2016-02-08 15:54:28,433 INFO main - SMPP Load Balancer uses port : 2876 for TLS clients.
 ----
 +
-The output shows the IP address on which the Restcomm Load Balancer is listening, as well as the external and internal listener ports.
+The output shows the IP address on which the {this-platform} Load Balancer is listening, as well as the external and internal listener ports.
 
 . Configure SIP/SMPP Server Nodes
 +
@@ -497,7 +671,7 @@ Notice that the call is handled by the second node.
 . Deploy SIP RA
 . Configure the JAIN SIP HA properties for load balancing according to the JAIN SLEE User Guide
 . Deploy a sample application
-. Run the sample scenario for the application using the Restcomm Load Balancer
+. Run the sample scenario for the application using the {this-platform} Load Balancer
 
 [[_sslb_binary_sip_load_balancer_stopping]]
 === Stopping
@@ -539,190 +713,27 @@ This should produce similar output to the following:
 
 To uninstall the SIP and SMPP load balancers, delete the JAR file you installed.
 
-[[_sslb_sip_load_balancing_basics]]
-== SIP Load Balancing Basics
-
-All User Agents send SIP messages, such as `INVITE`    and `MESSAGE` , to the same SIP URI (the IP address and port number of the Restcomm Load Balancer on the WAN). The Load Balancer then parses, alters, and forwards those messages to an available node in the cluster.
-If the message was sent as a part of an existing SIP session, it will be forwarded to the cluster node which processed that User Agent's original transaction request.
-
-The SIP Server that receives the message acts upon it and sends a response back to the Restcomm Load Balancer.
-The Restcomm Load Balancer reparses, alters and forwards the message back to the original User Agent.
-This entire proxying and provisioning process is carried out independent of the User Agent, which is only concerned with the SIP service or application it is using.
-
-By using the Load Balancer, SIP traffic is balanced across a pool of available SIP Servers, increasing the overall throughput of the SIP service or application running on either individual nodes of the cluster.
-In the case of a {this-platform} server with `</distributed>` capabilities, load balancing advantages are applied across the entire cluster.
-
-The Restcomm Load Balancer is also able to failover requests mid-call from unavailable nodes to available ones, thus increasing the reliability of the SIP service or application.
-The Load Balancer increases throughput and reliability by dynamically provisioning SIP service requests and responses across responsive nodes in a cluster.
-This enables SIP applications to meet the real-time demand for SIP services.
-
-== HTTP Load Balancing Basics
-
-In addition to the SIP load balancing, there are several options for coordinated or cooperative load balancing with other protocols such as HTTP.
-
-Typically, a JBoss Application Server will use apache HTTP server with mod_jk, mod_proxy, mod_cluster or similar extension installed as an HTTP load balancer.
-This apache-based load balancer will parse incoming HTTP requests and will look for the session ID of those requests in order to ensure all requests from the same session arrive at the same application server.
-
-By default, this is done by examining the `jsessionid` HTTP cookie or GET parameter and looking for the `jvmRoute` assigned to the session.
-The typical `jsessionid` value is of the form `<sessionId>.<jvmRoute>` . The very first request for each new HTTP session does not have a session ID assigned; the apache routes the request to a random application server node.
-
-When the node responds it assigns a session ID and `jvmRoute` to the response of the request in a HTTP cookie.
-This response goes back to the client through apache, which keeps track of which node owns each `jvmRoute` . Once the very first request is served this way, the subsequent requests from this session will carry the assigned cookie, and the apache load balancer will always route the requests to the node, which advertised itself as the `jvmRoute` owner.
-
-Instead of using apache, an integrated HTTP Load Balancer is also available.
-The Restcomm Load Balancer has a HTTP port where you can direct all incoming HTTP requests.
-The integrated HTTP load balancer behaves exactly like apache by default, but this behavior is extensible and can be overridden completely with the pluggable balancer algorithms.
-The integrated HTTP load balancer is much easier to configure and generally requires no effort, because it reuses most SIP settings and assumes reasonable default values.
-
-Unlike the native apache, the integrated HTTP Load Balancer is written completely in Java, thus a performance penalty should be expected when using it.
-However, the integrated HTTP Balancer has an advantage when related SIP and HTTP requests must stick to the same node.
-
-== SMPP Load Balancing Basics
-
-SMPP load balancer is used for balancing load from SMPP clients (ESME) to SMPP servers (SMSC) based on round-robin algorithm.
-Because of SMPP protocol based on an application layer TCP/IP connection between the ESME and SMSC and is initiated by the ESME, we should use connection handling.
-SMPP load balancer includes three main parts: server part, client part and dispatcher.
-When new clients connect to SMPP load balancer, application creates instances of ClientConnectionImpl (client part) and ServerConnectionImpl (server part) classes that bind by session ID.
-They are used to establish a connection between client (ESME) and server (SMSC). When connection established it can be used in both directions: ESME and SMSC can initiate new messages or send back messages through the SMPP load balancer.
-Dispatcher is used for logical connection of client and server parts of SMPP load balancer.
-Each packet that is received by the client part, the dispatcher throws to server part (unless error is detected) and vice versa.
-
-.SMPP load balancer diagram
-image::images/SMPP-lb-diagram.png[]
-
-Main goal of application is to reduce the load on servers (SMSC) and simply transfer packets between client (ESME) and server(SMSC). But also it can inspect the received packets for correct command ID and will not send incorrect packets forward instead turn them back.
-
-When connection to server drops, SMPP load balancer can reconnect (rebind) to the next working server.
-During this process (reconnect) it turns back all received packets until the new connection is established.
-If there are no established connections with the servers, the client connection is closed and vice versa.
-
-== Pluggable balancer algorithms
-
-The SIP/HTTP Load Balancer exposes an interface to allow users to customize the routing decision making for special purposes.
-By default there are three built-in algorithms.
-Only one algorithm is active at any time and it is specified with the `algorithmClass`    property in the configuration file.
-
-It is up to the algorithm how and whether to support distributed architecture or how to store the information needed for session affinity.
-The algorithms will be called for every SIP and HTTP request and other significant events to make more informed decisions.
-
-NOTE: Users must be aware that by default requests explicitly addressed to a live server node passing through the load balancer will be forwarded directly to the server node.
-This allows for pre-specified routing use-cases, where the target node is known by the SIP client through other means.
-If the target node is dead, then the node selection algorithm is used to route the request to an available node.
-
-The following is a list of the built-in algorithms:
-
-
-
-org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm::
-  This algorithm is not distributable.
-  It selects nodes randomly to serve a give Call-ID extracted from the requests and responses.
-  It keeps a map with `Call-ID ->
-              nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
-  For HTTP it behaves like apache.
-
-  org.mobicents.tools.sip.balancer.UserBasedAlgorithm::
-    This algorithm algorithm tie all calls for a given DID/Number to the same node.
-    All participants for a given conference will be on the same node.
-    It selects nodes randomly to serve a give To header extracted from the requests and responses.
-    It keeps a map with `To ->
-                nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
-    For HTTP it behaves like apache.
-
-org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm::
-  This algorithm is distributable and can be used in distributed load balancer configurations.
-  It extracts the hash value of specific headers from SIP and HTTP messages to decide which application server node will handle the request.
-  Information about the options in this algorithms is available in the balancer configuration file comments.
-
-org.mobicents.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm::
-  This algorithm is distributable and is similar to the previous algorithm, but it attempts to keep session affinity even when the cluster nodes are removed or added, which would normally cause hash values to point to different nodes.
-
-org.mobicents.tools.sip.balancer.ClusterSubdomainAffinityAlgorithm::
-  This algorithm is not distributable, but supports grouping server nodes to act as a subcluster.
-  Any call of a node that belongs to a cluster group will be preferentially failed over to a node from the same group.
-  To configure a group you can just add the `subclusterMap` property in the load balancer properties and listing the IP addresses of the nodes.
-  The groups are enclosed in parentheses and the IP addresses are separate by commas as follows:
-+
-----
-subclusterMap=( 192.168.1.1, 192.168.1.2 ) ( 10.10.10.10,20.20.20.20, 30.30.30.30)
-----
-+
-The nodes specified in a group do not have to alive and nodes that are not specified are still allowed to join the cluster. Otherwise the algorthim behaves exactly as the default Call-ID affinity algorthim.
-
-== Distributed load balancing
-
-When the capacity of a single load balancer is exceeded, multiple load balancers can be used.
-With the help of an IP load balancer the traffic can be distributed between all SIP/HTTP load balancers based on some IP rules or round-robin.
-With consistent hash and `jvmRoute` -based balancer algorithms it doesn't matter which SIP/HTTP load balancer will process the request, because they would all make the same decisions based on information in the requests (headers, parameters or cookies) and the list of available nodes.
-With consistent hash algorithms there is no state to be preserved in the SIP/HTTP balancers.
-
-.Example deployment: IP load balancers serving both directions forincoming/outgoing requests in a cluster
-image::images/WSS_Failover_Goal.png[]
-
-[[_sslb_sip_load_balancer_implementation]]
-== Implementation of the {this-platform}  Load Balancer
-
-Each individual {this-platform} SIP Server in the cluster is responsible for contacting the Restcomm Load Balancer and relaying its health status and regular "heartbeats".
-
-From these health status reports and heartbeats, the Restcomm Load Balancer creates and maintains a list of all available and healthy nodes in the cluster.
-The Load Balancer forwards SIP requests between these cluster nodes, providing that the provisioning algorithm reports that each node is healthy and is still sending heartbeats.
-
-If an abnormality is detected, the Restcomm Load Balancer removes the unhealthy or unresponsive node from the list of available nodes.
-In addition, mid-session and mid-call messages are failed over to a healthy node.
-
-The Restcomm Load Balancer first receives SIP requests from endpoints on a port that is specified in its Configuration Properties configuration file.
-The Restcomm Load Balancer, using a round-robin algorithm, then selects a node to which it forwards the SIP requests.
-The Load Balancer forwards all same-session requests to the first node selected to initiate the session, providing that the node is healthy and available.
-
-[[_sslb_smpp_load_balancer_implementation]]
-== Implementation of the SMPP Load Balancer
-
-SMPP load balancer implements timers: enquire link timer, session initialization timer and response timer for connection handling.
-Timers of SMPP load balancer have next behaviour:
-
-* Session initialization timer disconnects client (ESME) if it does not send bind request in defined time;
-* Response timer sends response with system error if sender does not receive response in defined time;
-* Enquire link timer with a fixed rate checks the connections with client (ESME) and server (SMSC).
-
-Server part of SMPP load balancer has next states:
-
-* OPEN - it can receive only bind requests from client (ESME);
-* BINDING - it can't receive any messages, in this state we wait for client's response;
-* BOUND - it can receive all PDU packets from client (ESME), which he can send according SMPP protocol, except bind requests;
-* REBINDING - it can also receive all PDU packets from client (ESME), but returns them back, because the client part at this time is trying to reconnect to server;
-* UNBINDING - it can receive only unbind response from client (ESME);
-* CLOSED - it can't receive any messages, this is last state of life cycle, which indicate that connection is closed.
-
-Client part of SMPP load balancer has next states:
-
-* INITIAL - it can't receive any messages, this is first state of life cycle, at this state the client part is trying to connect to the server (SMSC) and if the connection is successful state changes to OPEN;
-* OPEN - it can't receive any messages, at this state the client part sends a bind request to the server (SMSC), and changes state to binding;
-* BINDING - it can receive only bind response from server, and if response does not have errors, the client part changes ones state to bound;
-* BOUND - it can receive all packets from server (SMSC), which can be sent according SMPP protocol, except unbind response;
-* REBINDING - if connection drops to the server (SMSC), the client part changes ones state to rebinding until reconnect.
-  If reconnect fails, connection is closed;
-* UNBINDING - it can receive unbind response from server only, after which state changes to closed state;
-* CLOSED - it can't receive any messages, this is the last state of the life cycle, which indicates that the connection is closed.
 
 == SIP Message Flow
 
-The Restcomm Load Balancer appends itself to the `Via`    header of each request, so that returned responses are sent to the SIP Balancer before they are sent to the originating endpoint.
+The {this-platform} Load Balancer appends itself to the `Via`    header of each request, so that returned responses are sent to the SIP Balancer before they are sent to the originating endpoint.
 
 The Load Balancer also adds itself to the path of subsequent requests by adding Record-Route headers.
 It can subsequently handle mid-call failover by forwarding requests to a different node in the cluster if the node that originally handled the request fails or becomes unavailable.
-The Restcomm Load Balancer immediately fails over if it receives an unhealthy status, or irregular heartbeats from a node.
+The {this-platform} Load Balancer immediately fails over if it receives an unhealthy status, or irregular heartbeats from a node.
 
-Additionally, Restcomm Load Balancer will add two custom header containing the initial remote address and port of the sip client for every REGISTER request or requests with content.
+Additionally, {this-platform} Load Balancer will add two custom header containing the initial remote address and port of the sip client for every REGISTER request or requests with content.
 
 * X-Sip-Balancer-InitialRemoteAddr
 * X-Sip-Balancer-InitialRemotePort
 
 Application can use these two headers to have the correct location of the sip client that sent the REGISTER request.
 
-In advanced configurations, it is possible to run more than one Restcomm Load Balancer.
+In advanced configurations, it is possible to run more than one {this-platform} Load Balancer.
 Simply edit the balancers connection string in your SIP Server - the list is separated with semi-colon.
 
 <<_figure_mss_basic_ip_and_port_cluster_configuration>>    describes a basic IP and Port Cluster Configuration.
-In the diagram, the Restcomm Load Balancer is the server with the IP address of `192.168.1.1` .
+In the diagram, the {this-platform} Load Balancer is the server with the IP address of `192.168.1.1` .
 
 [[_figure_mss_basic_ip_and_port_cluster_configuration]]
 .Basic IP and Port Cluster Configuration
@@ -731,7 +742,7 @@ image::images/mss-MSSSIPLoadBalancer-dia-ClusterIPsAndPorts.jpg[]
 == Using the Load Balancer with Third-Party SIP Servers
 
 The load balancer only forwards requests to servers that send heartbeat signals.
-A third party server can send metadata using a SIP OPTIONS or SIP INFO message towards the internal port of the Restcomm Load Balancer.
+A third party server can send metadata using a SIP OPTIONS or SIP INFO message towards the internal port of the {this-platform} Load Balancer.
 For security reasons heartbeat messages arriving at the external entry-point will be ignored and using a single internal and external entry-point is not allowed.
 The third party SIP server must advertise it's metadata in the SIP message contents.
 
@@ -750,7 +761,7 @@ Max-Forwards: 70
 Contact: <sip:sender@127.0.0.1:4060;transport=udp;lr>
 Route: <sip:lbaddress_InternalPort@127.0.0.1:5065;node_host=127.0.0.1;node_port=5070;lr>
 Content-Type: text/plain;charset=UTF-8
-Mobicents-Heartbeat: 1
+Restcomm-Heartbeat: 1
 Content-Length: 54
 
 tcpPort=5070
@@ -759,27 +770,27 @@ hostname=sipHeartbeat
 ip=127.0.0.1
 ----
 
-The important headers to be filled in this request are `Mobicents-Heartbeat` , the Route header with `;node_host=127.0.0.1;node_port=5070` and the message contents.
+The important headers to be filled in this request are `Restcomm-Heartbeat` , the Route header with `;node_host=127.0.0.1;node_port=5070` and the message contents.
 The message contents are interpreted as properties of the `SIPNode` object representing the node in the load balancer and can be further interpreted by load balancing algorithms for load balancing purposes.
-The value of the `Mobicents-Heartbeat` header is arbitrary and reserved for future use, the presence of the header is sufficient to instruct the load balancer how to process the request.
+The value of the `Restcomm-Heartbeat` header is arbitrary and reserved for future use, the presence of the header is sufficient to instruct the load balancer how to process the request.
 
-All requests initiated by the SIP Server must have the following hint in their Route header `;node_host=127.0.0.1;node_port=5070` . This hint instructs the Restcomm Load Balancer that the dialog initated by the application server must stay on the node advertised in the hint.
+All requests initiated by the SIP Server must have the following hint in their Route header `;node_host=127.0.0.1;node_port=5070` . This hint instructs the {this-platform} Load Balancer that the dialog initated by the application server must stay on the node advertised in the hint.
 This function is cruicial when the direction of the requests withing the dialog is reversed.
 
 Since this SIP request represents a heartbeat signal, it must be sent regularly at least once every 5 seconds (by default). Sending this request is responsibility of the third party server.
 The load balancer will respond to every heartbeat request with 200 OK immediately.
 The third party server must expect the OK response.
-If no response if received within a threshhold time then the third party SIP server must assume the Restcomm Load Balancer is not available and use another (backup) load balancer.
+If no response if received within a threshhold time then the third party SIP server must assume the {this-platform} Load Balancer is not available and use another (backup) load balancer.
 
-The regular Restcomm Load Balancer setting are still in effect for third party servers and you can expect the same behavior as the Mobicents-specific RMI heartbeat configuration.
+The regular {this-platform} Load Balancer setting are still in effect for third party servers and you can expect the same behavior as the Restcomm-specific RMI heartbeat configuration.
 
 If you are desgning a pluggable algorithm using the SIP metadata, you can access the properties passed in the SIP message contents using `SIPNode.getProperties()`
 
 == Enabling TLS/WSS for Load Balancers
 
-=== Enabling TLS/WSS for Restcomm Load Balancer
+=== Enabling TLS/WSS for {this-platform} Load Balancer
 
-For enabling TLS/WSS support for Restcomm Load Balancer, you should correctly specify next property:
+For enabling TLS/WSS support for {this-platform} Load Balancer, you should correctly specify next property:
 
 * javax.net.ssl.keyStore;
 * javax.net.ssl.keyStorePassword;
@@ -884,9 +895,9 @@ Example for Ubuntu: https://www.linode.com/docs/databases/mysql/install-mysql-on
 .Step 2: Download the latest version of Restcomm
 
 . Download the latest version of Restcomm zip file from:
-https://mobicents.ci.cloudbees.com/job/RestComm/lastSuccessfulBuild/artifact/
+https://Restcomm.ci.cloudbees.com/job/RestComm/lastSuccessfulBuild/artifact/
 
-. Unzip the binary to a local directory. It should be similar to this Mobicents-Restcomm-JBoss-AS7-<version-number>.
+. Unzip the binary to a local directory. It should be similar to this Restcomm-Restcomm-JBoss-AS7-<version-number>.
 We shall refer to this above Restcomm directory as the $RESTCOMM_HOME.
 
 .Step 3: Configuring the mybatis.xml file to use Mysql
@@ -923,7 +934,7 @@ We shall refer to this above Restcomm directory as the $RESTCOMM_HOME.
 . Edit the file $RESTCOMM_HOME/standalone/deployments/restcomm.war/WEB-INF/conf/restcomm.xml
 . Find the dao-manager tag and change the sql-files path to mariadb as shown below
 
-  <dao-manager class="org.mobicents.servlet.restcomm.dao.mybatis.MybatisDaoManager">
+  <dao-manager class="org.Restcomm.servlet.restcomm.dao.mybatis.MybatisDaoManager">
     <configuration-file>${restcomm:home}/WEB-INF/conf/mybatis.xml</configuration-file>
     <data-files></data-files>
     <sql-files>${restcomm:home}/WEB-INF/scripts/mariadb/sql</sql-files>
@@ -945,10 +956,10 @@ in package $RESTCOMM_HOME/standalone/configuration/
 . Edit the file $RESTCOMM_HOME/standalone/configuration/mss-sip-stack.properties
 . Add next lines to file
 
-  org.mobicents.ha.javax.sip.BALANCERS=127.0.0.4:5082
-  org.mobicents.ha.javax.sip.LOCAL_HTTP_PORT=8080
-  org.mobicents.ha.javax.sip.LOCAL_SSL_PORT=8443
-  org.mobicents.ha.javax.sip.REACHABLE_CHECK=false
+  org.Restcomm.ha.javax.sip.BALANCERS=127.0.0.4:5082
+  org.Restcomm.ha.javax.sip.LOCAL_HTTP_PORT=8080
+  org.Restcomm.ha.javax.sip.LOCAL_SSL_PORT=8443
+  org.Restcomm.ha.javax.sip.REACHABLE_CHECK=false
   gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE=Disabled
   javax.net.ssl.keyStore=/absolutePathToKeystore/keystore
   javax.net.ssl.keyStorePassword=123456
@@ -1042,17 +1053,17 @@ Also we should add property -bmanagement=$bind_address, as shown below:
   echo 'TelScale RestComm started running on standalone mode. Screen session: restcomm2.'
   ....
   if screen -ls | grep -q 'mms2'; then
-  echo '...Mobicents Media Server is already running on screen session "mms2"!'
+  echo '...Restcomm Media Server is already running on screen session "mms2"!'
   else
   chmod +x $MMS_HOME/bin/run.sh
   screen -dmS 'mms2'  $MMS_HOME/bin/run.sh
-  echo '...Mobicents Media Server started running on screen "mms2"!'
+  echo '...Restcomm Media Server started running on screen "mms2"!'
 
 .. $RESTCOMM_HOME/bin/restcomm/stop-restcomm.sh
 
   if screen -ls | grep -q 'mms2'; then
   screen -S 'mms2' -p 0 -X 'quit'
-  echo '...stopped Mobicents Media Server instance running on screen session "mms2"...'
+  echo '...stopped Restcomm Media Server instance running on screen session "mms2"...'
   ....
   if screen -list | grep -q 'restcomm2'; then
   screen -S 'restcomm2' -p 0 -X 'quit'
@@ -1074,10 +1085,10 @@ You will be prompted to change the default password.
 
 .Step 13: Download and configuring of Load Balancer
 
-. Download last version of load balancer jar file from https://mobicents.ci.cloudbees.com/job/Restcomm-LoadBalancer/lastSuccessfulBuild/artifact/jar/target/sip-balancer-jar-x.x.xx-jar-with-dependencies.jar.
+. Download last version of load balancer jar file from https://Restcomm.ci.cloudbees.com/job/Restcomm-LoadBalancer/lastSuccessfulBuild/artifact/jar/target/sip-balancer-jar-x.x.xx-jar-with-dependencies.jar.
 Where <x.x.xx> is the release version number
-. Download configuration file for load balancer from https://mobicents.ci.cloudbees.com/job/Restcomm-LoadBalancer/ws/lb-configuration.properties
-. Download log4g file for load balancer from https://mobicents.ci.cloudbees.com/job/Restcomm-LoadBalancer/ws/lb-log4j.xml
+. Download configuration file for load balancer from https://Restcomm.ci.cloudbees.com/job/Restcomm-LoadBalancer/ws/lb-configuration.properties
+. Download log4g file for load balancer from https://Restcomm.ci.cloudbees.com/job/Restcomm-LoadBalancer/ws/lb-log4j.xml
 . Put this files in one folder
 . Modify lb-configuration.properties file for correct work. Comment #host= line, and uncomment end set up next lines:
 
