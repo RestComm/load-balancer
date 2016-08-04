@@ -125,7 +125,7 @@ public class TestTest{
 			assertEquals(smsNumber,handler.getReponsesNumber().get());
 		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
     }
-	//@Test
+	@Test
     public void testSessionInitTimer() 
     {
 		ClientConnectOnly dummyClient = new ClientConnectOnly();

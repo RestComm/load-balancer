@@ -28,6 +28,7 @@ public class UserSpace {
 	
 	private String systemId;
 	private String password;
+	private String systemType;
 	private ConcurrentLinkedQueue<MServerConnectionImpl> pendingCustomers;
 	private Map<Long, MServerConnectionImpl> customers;
 	private Map<Long, MClientConnectionImpl> connectionsToServers;
@@ -110,7 +111,7 @@ public class UserSpace {
 		if(packet.getCommandStatus()!=SmppConstants.STATUS_INVPASWD)
 		{
 			//in case its not password try to reinint
-				monitorExecutor.execute(new MBinderRunnable(clientConnection, systemId, password));
+				monitorExecutor.execute(new MBinderRunnable(clientConnection, systemId, password, systemType));
 		}
 		else
 		{
@@ -161,6 +162,7 @@ public class UserSpace {
 	public void initBind(MServerConnectionImpl customer)
 	{
 		boolean isSslConnection = customer.getConfig().isUseSsl();
+		this.systemType = customer.getConfig().getSystemType();
 		if(logger.isDebugEnabled())
 			logger.debug("Start initial bind for customer with sessionID : ");
 		bindingCustomer.set(customer);
@@ -173,7 +175,7 @@ public class UserSpace {
 				isSslConnection = false;
 				
 			connectionsToServers.put(serverSessionID, new MClientConnectionImpl(serverSessionID, this, monitorExecutor, balancerRunner, node, isSslConnection));
-			monitorExecutor.execute(new MBinderRunnable(connectionsToServers.get(serverSessionID), systemId, password));			
+			monitorExecutor.execute(new MBinderRunnable(connectionsToServers.get(serverSessionID), systemId, password, systemType));			
 		}
 	}
 	
@@ -275,7 +277,7 @@ public class UserSpace {
 		for(Long key:customers.keySet())
 			customers.get(key).reconnectState(true);
 		MClientConnectionImpl connection = connectionsToServers.get(serverSessionID);
-		monitorExecutor.schedule(new MBinderRunnable(connection, systemId, password), reconnectPeriod, TimeUnit.MILLISECONDS);
+		monitorExecutor.schedule(new MBinderRunnable(connection, systemId, password, systemType), reconnectPeriod, TimeUnit.MILLISECONDS);
 	}
 	
 	public void reconnectSuccesful(Long serverSessionID)

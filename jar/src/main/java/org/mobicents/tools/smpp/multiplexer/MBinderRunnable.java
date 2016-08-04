@@ -33,14 +33,16 @@ public class MBinderRunnable implements Runnable {
 	private MClientConnectionImpl client;
 	private String systemId;
 	private String password;
+	private String systemType;
 	private boolean isUseSsl;
 	
-	public MBinderRunnable(MClientConnectionImpl connection, String systemId, String password)
+	public MBinderRunnable(MClientConnectionImpl connection, String systemId, String password, String systemType)
 	{
 		this.client = connection;
 		this.node = connection.getNode();
 		this.systemId = systemId;
 		this.password = password;
+		this.systemType = systemType;
 		this.isUseSsl = connection.isSslConnection();
 
 	}
@@ -53,6 +55,7 @@ public class MBinderRunnable implements Runnable {
 		config.setPort(Integer.parseInt(node.getProperties().get("smppPort").toString()));
 		config.setSystemId(systemId);
 		config.setPassword(password);
+		config.setSystemType(systemType);
 		config.setUseSsl(isUseSsl);
 		if (client.connect()) 
 			client.bind();	
