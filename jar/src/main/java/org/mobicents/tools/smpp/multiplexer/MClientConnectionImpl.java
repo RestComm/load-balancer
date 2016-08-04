@@ -243,6 +243,7 @@ public class MClientConnectionImpl implements ClientConnection{
 			else {
 				if (packet.getCommandStatus() == SmppConstants.STATUS_OK) 
 				{
+					logger.info("Connection to server : " + config.getHost() + " : " + config.getPort()+ " established. Server session ID : " + serverSessionID);
 					if(logger.isDebugEnabled())
 						logger.debug("LB received bind response (" + packet + ") from server. server session ID : " + serverSessionID);
 					
