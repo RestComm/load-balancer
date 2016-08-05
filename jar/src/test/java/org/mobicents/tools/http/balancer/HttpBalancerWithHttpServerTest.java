@@ -78,7 +78,6 @@ public class HttpBalancerWithHttpServerTest
 		properties.setProperty("externalUdpPort", "5060");
 		properties.setProperty("httpPort", "2080");
 		properties.setProperty("maxContentLength", "1048576");
-		properties.setProperty("terminateTLSTraffic", "true");
 		balancerRunner.start(properties);
 		try 
 		{

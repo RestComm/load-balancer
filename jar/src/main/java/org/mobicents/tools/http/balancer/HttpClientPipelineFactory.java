@@ -43,12 +43,14 @@ import com.cloudhopper.smpp.ssl.SslContextFactory;
  * 
  */
 public class HttpClientPipelineFactory implements ChannelPipelineFactory {
-    int maxContentLength = 1048576;
-    BalancerRunner balancerRunner;
+    private int maxContentLength = 1048576;
+    private BalancerRunner balancerRunner;
+    private boolean isUseSsl;
     
-    public HttpClientPipelineFactory(BalancerRunner balancerRunner, int maxContentLength) {
+    public HttpClientPipelineFactory(BalancerRunner balancerRunner, int maxContentLength, boolean isUseSsl) {
         this.balancerRunner = balancerRunner;
         this.maxContentLength = maxContentLength;
+        this.isUseSsl = isUseSsl;
     }
 
     public ChannelPipeline getPipeline() throws Exception {
@@ -62,7 +64,7 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         // https://telestax.atlassian.net/browse/LB-8 if commented accessing the RestComm Management console fails, so making the maxContentLength Configurable
         pipeline.addLast("aggregator", new HttpChunkAggregator(maxContentLength));
         pipeline.addLast("handler", new HttpResponseHandler(balancerRunner));
-        if(!balancerRunner.balancerContext.terminateTLSTraffic){
+        if(isUseSsl){
         	SslConfiguration sslConfig = new SslConfiguration();
    	     	sslConfig.setTrustAll(true);
    	     	sslConfig.setValidateCerts(true);

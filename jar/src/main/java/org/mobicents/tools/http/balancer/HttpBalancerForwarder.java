@@ -81,6 +81,11 @@ public class HttpBalancerForwarder {
 			logger.info("HTTPS LB listening on port " + httpsPort);
 			HttpChannelAssociations.serverSecureBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, true));
 			serverSecureChannel = HttpChannelAssociations.serverSecureBootstrap.bind(new InetSocketAddress(httpsPort));
+			if(!balancerRunner.balancerContext.terminateTLSTraffic)
+			{
+				HttpChannelAssociations.inboundSecureBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
+				HttpChannelAssociations.inboundSecureBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength, true));
+			}
 		}
 		if(balancerRunner.balancerContext.properties.getProperty("statisticPort")!=null)
 		{
@@ -90,7 +95,7 @@ public class HttpBalancerForwarder {
 			serverStatisticChannel = HttpChannelAssociations.serverStatisticBootstrap.bind(new InetSocketAddress(statisticPort));
 		}
 		
-		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength));		
+		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength, false));		
 	}
 
 	public void stop() {
@@ -135,6 +140,8 @@ public class HttpBalancerForwarder {
 			HttpChannelAssociations.serverStatisticBootstrap.shutdown();
 		
 		HttpChannelAssociations.inboundBootstrap.shutdown();
+		if(HttpChannelAssociations.inboundSecureBootstrap!=null)
+			HttpChannelAssociations.inboundSecureBootstrap.shutdown();
 		nioServerSocketChannelFactory.shutdown();
 		nioClientSocketChannelFactory.shutdown();
 		

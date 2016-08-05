@@ -227,7 +227,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                 		if(logger.isDebugEnabled()) {
                             logger.debug("Dispatching HTTPS request to node: "+ node.getIp()+" port: "+ node.getProperties().get("sslPort"));
                         }
-                        future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer) node.getProperties().get("sslPort")));
+                        future = HttpChannelAssociations.inboundSecureBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer) node.getProperties().get("sslPort")));
                 	}
                 }
 
