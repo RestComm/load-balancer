@@ -60,11 +60,17 @@ public class HttpServer
 	private AtomicBoolean stopFlag = new AtomicBoolean(false);
 	private String lbAddress = "127.0.0.1";
 	private int lbRMIport = 2000;
+	private int instanceId;
 	
-	public HttpServer(int httpPort, int sslPort)
+	public HttpServer(int httpPort, int sslPort, int instanceId)
 	{
 		this.httpPort = httpPort;
 		this.sslPort = sslPort;
+		this.instanceId = instanceId;
+	}
+	public HttpServer(int httpPort, int sslPort)
+	{
+		this(httpPort, sslPort, -1);
 	}
 	
 	public void start() 
@@ -86,6 +92,9 @@ public class HttpServer
 			appServerNode.getProperties().put("version", "0");
 			appServerNode.getProperties().put("httpPort", httpPort);
 			appServerNode.getProperties().put("sslPort", sslPort);
+			if(instanceId!=-1)
+				appServerNode.getProperties().put("instanceId", instanceId);
+			
 			
 			timer.schedule(new TimerTask() {
 				

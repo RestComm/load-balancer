@@ -48,7 +48,7 @@ The Load Balancer forwards all same-session requests to the first node selected 
 
 [[_sslb_load_balancer_keepalive]]
 === Keepalives to the {this-platform} Load Balancer
-Each individual {this-platform} SIP Server in the cluster is responsible for contacting the {this-platform} Load Balancer and relaying its health status through regular "heartbeats" that are sent over a TCP connection. 
+Each individual {this-platform} SIP Server in the cluster is responsible for contacting the {this-platform} Load Balancer and relaying its health status through regular "heartbeats" that are sent over a TCP connection.
 
 The nodes typically send the IP addresses, ports and transports thay are listening on plus an optional list of custom information to allow more more powerful dynamic and intelligent routing to be done by the Load Balancer.
 
@@ -59,13 +59,17 @@ If the Load Balancer doesn't receive the keepalive information from a node after
 In addition to the SIP load balancing, there are several options for coordinated or cooperative load balancing with other protocols such as HTTP.
 
 Typically, a JBoss Application Server will use apache HTTP server with mod_jk, mod_proxy, mod_cluster or similar extension installed as an HTTP load balancer.
-This apache-based load balancer will parse incoming HTTP requests and will look for the session ID of those requests in order to ensure all requests from the same session arrive at the same application server.
+This apache-based load balancer will parse incoming HTTP requests and will look for the session ID of those requests in order to ensure all requests from the
+same session arrive at the same application server.
 
 By default, this is done by examining the `jsessionid` HTTP cookie or GET parameter and looking for the `jvmRoute` assigned to the session.
-The typical `jsessionid` value is of the form `<sessionId>.<jvmRoute>` . The very first request for each new HTTP session does not have a session ID assigned; the apache routes the request to a random application server node.
+The typical `jsessionid` value is of the form `<sessionId>.<jvmRoute>` . The very first request for each new HTTP session does not have a session ID assigned;
+the apache routes the request to a random application server node.
 
 When the node responds it assigns a session ID and `jvmRoute` to the response of the request in a HTTP cookie.
-This response goes back to the client through apache, which keeps track of which node owns each `jvmRoute` . Once the very first request is served this way, the subsequent requests from this session will carry the assigned cookie, and the apache load balancer will always route the requests to the node, which advertised itself as the `jvmRoute` owner.
+This response goes back to the client through apache, which keeps track of which node owns each `jvmRoute` . Once the very first request is served this way,
+the subsequent requests from this session will carry the assigned cookie, and the apache load balancer will always route the requests to the node, which advertised
+itself as the `jvmRoute` owner.
 
 Instead of using apache, an integrated HTTP Load Balancer is also available.
 The {this-platform} Load Balancer has a HTTP port where you can direct all incoming HTTP requests.
@@ -74,6 +78,10 @@ The integrated HTTP load balancer is much easier to configure and generally requ
 
 Unlike the native apache, the integrated HTTP Load Balancer is written completely in Java, thus a performance penalty should be expected when using it.
 However, the integrated HTTP Balancer has an advantage when related SIP and HTTP requests must stick to the same node.
+
+Also HTTP load balancer can choose the next node by 'instanceId' which is got from the Restcomm connector info. First the Load balancer
+checks whether http request contains 'CallSID' parameter. If it does, the Load balancer checks whether 'instanceId' from http request corresponds to 'instanceId'
+of each node connected to the Load balancer. If the Load balancer finds the correspondence, it sends http request to this node.
 
 == SMPP Load Balancing Basics
 

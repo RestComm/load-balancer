@@ -30,13 +30,17 @@ import java.util.Set;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.Cookie;
 import org.jboss.netty.handler.codec.http.CookieDecoder;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
+	
+	private static final Logger logger = Logger.getLogger(DefaultBalancerAlgorithm.class.getCanonicalName());
 	protected Properties properties;
 	protected BalancerContext balancerContext;
 	protected InvocationContext invocationContext;
@@ -70,6 +74,31 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
 	public SIPNode processHttpRequest(HttpRequest request) {
 		if(invocationContext.nodes.size()>0) {
+			String callSid = getUrlParameters(request.getUri()).get("CallSid");
+			if(callSid!=null)
+			{
+				String instanceId = getUrlParameters(request.getUri()).get("instanceId");
+				if(instanceId!=null)
+				{
+					for(SIPNode node : invocationContext.nodes)
+					{
+						if(instanceId.equals(node.getProperties().get("instanceId").toString()))
+						{
+							return node;
+						}
+					}
+				}
+				else
+				{
+					logger.warn("CallSID parameter exists in HTTP request but instanceId doesn't. LB will send request to node 0");
+					return invocationContext.nodes.get(0);
+				}
+					//if callSID exists but has't match than return node 0
+					logger.warn("CallSID parameter exists in HTTP request but has't match to any node. LB will send request to node 0");
+					return invocationContext.nodes.get(0);
+			}
+			else
+			{
 
 			String httpSessionId = null;
 			httpSessionId = getUrlParameters(request.getUri()).get("jsessionid");
@@ -109,6 +138,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			//if request doesn't have jsessionid (very first request), we choose next node using round robin algorithm
 			balancerContext.numberHttpRequest.compareAndSet(Integer.MAX_VALUE, 0);
 			return invocationContext.nodes.get(balancerContext.numberHttpRequest.getAndIncrement() % invocationContext.nodes.size());
+			}
 		} else {
 			String unavailaleHost = getProperties().getProperty("unavailableHost");
 			if(unavailaleHost != null) {
