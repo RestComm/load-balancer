@@ -54,6 +54,19 @@ The nodes typically send the IP addresses, ports and transports thay are listeni
 
 If the Load Balancer doesn't receive the keepalive information from a node after a certain configurable amount of time, it discards the node. The time is reset for each message that the Load Balancer receives from the node as well be it a keepalive or a regular SIP or HTTP message.
 
+=== {this-platform} Load Balancer supports SIP Over Websockets
+
+The websocket client (e.g. TelScale Olympus) can connect to Load balancer
+on port which should be set in lb-configuration.properties externalWsPort and
+internalWsPort if needed. To work with secure websocket it is necessary to set
+externalWssPort and internalWssPort. When websocket client connects to the
+{this-platform} Load balancer, then the LB opens connection to a node from the
+list of nodes which is based on keepalives got from the server. During the further
+connections of the client, each time LB opens the new connection to the node
+from the list of connected nodes according to chosen algorithm. If the
+connection has already been established to this node, then LB reuses this 
+connection. The same goes for other connection-oriented transport protocols.
+
 == HTTP Load Balancing Basics
 
 In addition to the SIP load balancing, there are several options for coordinated or cooperative load balancing with other protocols such as HTTP.
