@@ -75,9 +75,16 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	public SIPNode processHttpRequest(HttpRequest request) {
 		if(invocationContext.nodes.size()>0) {
 			String callSid = getUrlParameters(request.getUri()).get("CallSid");
+			
+			if(callSid == null) 
+				callSid = getParameterFromCookie(request, "CallSid");
+			
 			if(callSid!=null)
 			{
-				String instanceId = getUrlParameters(request.getUri()).get("instanceId");
+				String [] tmpArray = callSid.split("-");
+				String instanceId = null;
+				if(tmpArray.length>1)
+					instanceId = tmpArray[1];
 				if(instanceId!=null)
 				{
 					for(SIPNode node : invocationContext.nodes)
@@ -102,20 +109,10 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 
 			String httpSessionId = null;
 			httpSessionId = getUrlParameters(request.getUri()).get("jsessionid");
-			if(httpSessionId == null) {
-				CookieDecoder cookieDocoder = new CookieDecoder();
-				String cookieString = request.getHeader("Cookie");
-				if(cookieString != null) {
-					Set<Cookie> cookies = cookieDocoder.decode(cookieString);
-					Iterator<Cookie> cookieIterator = cookies.iterator();
-					while(cookieIterator.hasNext()) {
-						Cookie c = cookieIterator.next();
-						if(c.getName().equalsIgnoreCase("jsessionid")) {
-							httpSessionId = c.getValue();
-						}
-					}
-				}
-			}
+			
+			if(httpSessionId == null) 
+				httpSessionId = getParameterFromCookie(request, "jsessionid");
+				
 			if(httpSessionId != null) {
 				int indexOfDot = httpSessionId.lastIndexOf('.');
 				if(indexOfDot>0 && indexOfDot<httpSessionId.length()) {
@@ -182,6 +179,22 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
     	}
     	return parameters;
     }
+	private String getParameterFromCookie(HttpRequest request, String parameter){
+		
+			CookieDecoder cookieDocoder = new CookieDecoder();
+			String cookieString = request.getHeader("Cookie");
+			if(cookieString != null) {
+				Set<Cookie> cookies = cookieDocoder.decode(cookieString);
+				Iterator<Cookie> cookieIterator = cookies.iterator();
+				while(cookieIterator.hasNext()) {
+					Cookie c = cookieIterator.next();
+					if(c.getName().equalsIgnoreCase("jsessionid")) {
+						return c.getValue();
+					}
+				}
+			}
+		return null;
+	}
 	
 	public void processInternalResponse(Response response) {
 		
