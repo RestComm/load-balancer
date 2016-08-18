@@ -64,7 +64,7 @@ externalWssPort and internalWssPort. When websocket client connects to the
 list of nodes which is based on keepalives got from the server. During the further
 connections of the client, each time LB opens the new connection to the node
 from the list of connected nodes according to chosen algorithm. If the
-connection has already been established to this node, then LB reuses this 
+connection has already been established to this node, then LB reuses this
 connection. The same goes for other connection-oriented transport protocols.
 
 == HTTP Load Balancing Basics
@@ -93,8 +93,8 @@ Unlike the native apache, the integrated HTTP Load Balancer is written completel
 However, the integrated HTTP Balancer has an advantage when related SIP and HTTP requests must stick to the same node.
 
 Also HTTP load balancer can choose the next node by 'instanceId' which is got from the Restcomm connector info. First the Load balancer
-checks whether http request contains 'CallSID' parameter. If it does, the Load balancer checks whether 'instanceId' from http request corresponds to 'instanceId'
-of each node connected to the Load balancer. If the Load balancer finds the correspondence, it sends http request to this node.
+checks whether http request contains 'CallSID' parameter. If it does, the Load balancer gets 'instanceId' from it and checks whether 'instanceId' corresponds to 'instanceId'
+of nodes connected to the Load balancer. If the Load balancer finds the correspondence, it sends http request to this node.
 
 == SMPP Load Balancing Basics
 
