@@ -66,7 +66,7 @@ public interface ServerConnection {
 	*Send enquire_link to client and server for checking connection 
 	*@param sessionId session(client) id
 	*/
-	public void enquireTimeout(Long sessionId);
+	public void enquireTimeout();
 	/**
 	*Close connection if enquire response does not receive from client or server in time
 	*@param sessionId session(client) id

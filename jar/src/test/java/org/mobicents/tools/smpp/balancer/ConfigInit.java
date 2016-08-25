@@ -49,6 +49,7 @@ public class ConfigInit {
 		config.setDefaultSessionCountersEnabled(true);
 		config.setJmxEnabled(true);
 		config.setPort(10021 + i);
+		config.setHost("127.0.0.1");
 		if(isSslServer)
 		{
 			SslConfiguration sslConfig = new SslConfiguration();			
@@ -75,13 +76,14 @@ public class ConfigInit {
 		properties.setProperty("smppName","SMPP Load Balancer");
 		properties.setProperty("smppHost","127.0.0.1");
 		properties.setProperty("smppPort","2776");
+		properties.setProperty("remoteServers","127.0.0.1:10021");
 		properties.setProperty("maxConnectionSize","10");
 		properties.setProperty("nonBlockingSocketsEnabled","true");
 		properties.setProperty("defaultSessionCountersEnabled","true");
 		properties.setProperty("timeoutResponse","3000");
 		properties.setProperty("timeoutConnection","1000");
 		properties.setProperty("timeoutEnquire","5000");
-		properties.setProperty("reconnectPeriod","1000");
+		properties.setProperty("reconnectPeriod","500");
 		properties.setProperty("timeoutConnectionCheckClientSide","1000");
 		properties.setProperty("timeoutConnectionCheckServerSide","1000");
 		if(isSsl)
@@ -106,7 +108,7 @@ public class ConfigInit {
 		config.setHost("127.0.0.1");
 		
 		config.setConnectTimeout(10000);
-		config.setSystemId("1"+i);
+		config.setSystemId("RestComm");
 		config.setPassword("password");
 		config.getLoggingOptions().setLogBytes(true);
         // to enable monitoring (request expiration)
@@ -132,7 +134,7 @@ public class ConfigInit {
 
 	static SubmitSm getSubmitSm() throws SmppInvalidArgumentException
 	{
-		String text160 = "\u20AC Lorem [ipsum] dolor sit amet, consectetur adipiscing elit. Proin feugiat, leo id commodo tincidunt, nibh diam ornare est, vitae accumsan risus lacus sed sem metus.";
+		String text160 = "Hello world!";
         byte[] textBytes = CharsetUtil.encode(text160, CharsetUtil.CHARSET_GSM);
         SubmitSm submit = new SubmitSm();
         submit.setSourceAddress(new Address((byte)0x03, (byte)0x00, "40404"));

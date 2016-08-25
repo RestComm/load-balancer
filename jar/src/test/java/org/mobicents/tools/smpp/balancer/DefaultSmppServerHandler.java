@@ -21,6 +21,9 @@ package org.mobicents.tools.smpp.balancer;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.log4j.Logger;
+import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl;
+
 import com.cloudhopper.smpp.SmppServerHandler;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
@@ -36,20 +39,28 @@ import com.cloudhopper.smpp.type.SmppProcessingException;
  */
 
 public class DefaultSmppServerHandler implements SmppServerHandler {
+	
+	private static final Logger logger = Logger.getLogger(DefaultSmppServerHandler.class);
 
-	AtomicInteger smsNumber = new AtomicInteger(0);
+	int smsNumber;
 	AtomicInteger enqLinkNumber = new AtomicInteger(0);
+	AtomicInteger responsesFromClient = new AtomicInteger(0);
     public AtomicInteger getEnqLinkNumber() {
 		return enqLinkNumber;
 	}
 
-	public AtomicInteger getSmsNumber() {
+	public int getSmsNumber() {
 		return smsNumber;
 	}
+	
 
-    public void resetCounters()
+    public AtomicInteger getResponsesFromClient() {
+		return responsesFromClient;
+	}
+
+	public void resetCounters()
     {
-    	smsNumber.set(0);
+    	smsNumber=0;
     	enqLinkNumber.set(0);
     }
 	@SuppressWarnings("rawtypes")
@@ -65,8 +76,9 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
 
     public void sessionDestroyed(Long sessionId, SmppServerSession session) 
     {
-        	smsNumber.addAndGet(session.getCounters().getRxSubmitSM().getRequest());
+        	smsNumber=session.getCounters().getRxSubmitSM().getRequest();
         	enqLinkNumber.addAndGet(session.getCounters().getRxEnquireLink().getRequest());
+         	responsesFromClient.addAndGet(session.getCounters().getTxDataSM().getResponse());
     }
     
     public class TestSmppSessionHandler extends DefaultSmppSessionHandler 
@@ -76,5 +88,11 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
         public PduResponse firePduRequestReceived(PduRequest pduRequest) {
             return pduRequest.createResponse();
         }
+        @Override
+        public void fireUnexpectedPduResponseReceived(PduResponse pduResponse) {
+            logger.info("Server get response : " + pduResponse);
+        } 
     }
+    
+   
 }

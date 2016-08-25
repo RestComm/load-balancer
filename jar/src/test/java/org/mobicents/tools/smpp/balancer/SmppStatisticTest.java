@@ -21,6 +21,7 @@ package org.mobicents.tools.smpp.balancer;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -39,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
 /**
@@ -61,8 +63,8 @@ public class SmppStatisticTest{
          }
      }); 
     
-    private static int serverNumbers = 3;
-    private static SmppServerWithKeepAlive [] serverArray;
+    private static int serverNumbers = 1;
+    private static DefaultSmppServer [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
     private static BalancerRunner balancer;
@@ -77,11 +79,11 @@ public class SmppStatisticTest{
 		balancer = new BalancerRunner();
         balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
 		//start servers
-        serverArray = new SmppServerWithKeepAlive[serverNumbers];
+        serverArray = new DefaultSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new SmppServerWithKeepAlive(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -93,7 +95,7 @@ public class SmppStatisticTest{
 			logger.info("SMPP server started");
 		}
         try {
-			Thread.sleep(5000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -104,29 +106,31 @@ public class SmppStatisticTest{
 	@Test
     public void testStatisticVariable() 
     {   
-		int clientNumbers = 3;
+		int clientNumbers = 10;
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
 		int smsNumber = 1;
 		Locker locker=new Locker(clientNumbers);
 
-		for(int i = 0; i < clientNumbers; i++)
-			new Load(i, smsNumber, locker).start();
-		
+		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
+		for(int i = 0; i <clientNumbers; i++)
+			processors.add(new Load(i, smsNumber, locker));
+		for(int i = 0; i <clientNumbers; i++)
+			processors.get(i).start();
+		logger.info("1activeConnections : " + activeConnections);
 		try {
-			Thread.sleep(2000);
+			Thread.sleep(500);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		activeConnections = balancer.smppBalancerRunner.getNumberOfActiveSmppConnections();
 		locker.waitForClients();
-
-		assertEquals(798, balancer.smppBalancerRunner.getNumberOfSmppBytesToServer());
-		assertEquals(198, balancer.smppBalancerRunner.getNumberOfSmppBytesToClient());
+		assertEquals(clientNumbers*61, balancer.smppBalancerRunner.getNumberOfSmppBytesToServer());
+		assertEquals(clientNumbers*17, balancer.smppBalancerRunner.getNumberOfSmppBytesToClient());
 		assertEquals(clientNumbers*3, balancer.smppBalancerRunner.getNumberOfSmppRequestsToServer());
 		assertEquals(clientNumbers, balancer.smppBalancerRunner.getSmppRequestsProcessedById(SmppConstants.CMD_ID_SUBMIT_SM));
 		assertEquals(clientNumbers, balancer.smppBalancerRunner.getSmppResponsesProcessedById(SmppConstants.CMD_ID_SUBMIT_SM_RESP));
-		assertEquals(clientNumbers*2, activeConnections);
+		assertEquals(clientNumbers+1, activeConnections);
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
     }
 	
 	@After
@@ -179,8 +183,10 @@ public class SmppStatisticTest{
 			 {
 				 session.submit(ConfigInit.getSubmitSm(), 12000);
 			 }
-			 sleep(3000);
+			 sleep(1000);
+
 		     session.unbind(5000);
+		     
 		        }catch(Exception e){
 		        	logger.error("", e);
 		        }

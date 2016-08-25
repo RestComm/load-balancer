@@ -17,35 +17,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-package org.mobicents.tools.smpp.balancer.timers;
+package org.mobicents.tools.smpp.multiplexer;
 
-import org.mobicents.tools.smpp.balancer.api.ClientConnection;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelHandler;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
+
+import com.cloudhopper.smpp.pdu.Pdu;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ServerTimerEnquire implements CancellableRunnable
-{
-	ClientConnection client;
-	private Boolean cancelled=false;
+public class MServerConnectionHandlerImpl extends SimpleChannelHandler{
+
+	private MServerConnectionImpl listener;
+	public MServerConnectionHandlerImpl(MServerConnectionImpl listener)
+	{
+		this.listener=listener;
+	}
 	
-	public ServerTimerEnquire(ClientConnection client) 
-	{
-		this.client = client;
-	}
-
 	@Override
-	public void run() 
-	{
-		if(!cancelled)
-			client.enquireTimeout();
-	}
-
-	@Override
-	public void cancel() 
-	{
-		this.cancelled=true;
-	}
+     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
+	 {		 
+		if (e.getMessage() instanceof Pdu) 
+		{
+	            Pdu pdu = (Pdu)e.getMessage();
+	            this.listener.packetReceived(pdu);
+ 	    }
+     }
 }

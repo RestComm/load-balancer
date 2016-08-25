@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
 /**
@@ -45,11 +46,9 @@ import com.cloudhopper.smpp.type.SmppChannelException;
 
 public class RebindTest {
 
-	private static final Logger logger = LoggerFactory
-			.getLogger(CommonTest.class);
+	private static final Logger logger = LoggerFactory.getLogger(CommonTest.class);
 
-	private static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors
-			.newCachedThreadPool();
+	private static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 
 	private static ScheduledThreadPoolExecutor monitorExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1, new ThreadFactory() {
 				private AtomicInteger sequence = new AtomicInteger(0);
@@ -62,8 +61,9 @@ public class RebindTest {
 
 	private static BalancerRunner balancer;
 	private static int clientNumbers = 1;
-	private static int serverNumbers = 3;
-	private static SmppServerWithKeepAlive[] serverArray;
+	private static int serverNumbers = 1;
+	private static DefaultSmppServer[] serverArray;
+	private static DefaultSmppServerHandler serverHandler = new DefaultSmppServerHandler() ;
 
 	@BeforeClass
 	public static void initialization() {
@@ -75,11 +75,10 @@ public class RebindTest {
         balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
         
 		// start servers
-		serverArray = new SmppServerWithKeepAlive[serverNumbers];
+		serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverArray[i] = new SmppServerWithKeepAlive(
-					ConfigInit.getSmppServerConfiguration(i,false),
-					new DefaultSmppServerHandler(), executor, monitorExecutor);
+			
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),	serverHandler, executor, monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -91,7 +90,7 @@ public class RebindTest {
 			logger.info("SMPP server started");
 		}
 		try {
-			Thread.sleep(5000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -104,9 +103,11 @@ public class RebindTest {
 		// start client
 		new Load(locker).start();
 		locker.waitForClients();
-		assertEquals(1, serverArray[1].getBindRequested());
-		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getClientSessions().isEmpty());
-		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getServerSessions().isEmpty());
+		assertEquals(2, serverArray[0].getChannelConnects());
+		assertEquals(2, serverArray[0].getCounters().getBindRequested());
+		assertEquals(1, serverHandler.getSmsNumber());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
+	
 	}
 
 	@AfterClass
@@ -136,12 +137,14 @@ public class RebindTest {
 			SmppSession session = null;
 			try {
 
-				session = client.bind(
-						ConfigInit.getSmppSessionConfiguration(1,false),
-						new DefaultSmppClientHandler());
+				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false),new DefaultSmppClientHandler());
 				serverArray[0].stop();
-				sleep(2000);
+				serverArray[0].start();
+				sleep(1000);
+				session.submit(ConfigInit.getSubmitSm(), 12000);
+				sleep(1000);
 				session.unbind(5000);
+				//sleep(1000);
 
 			} catch (Exception e) {
 				logger.error("", e);

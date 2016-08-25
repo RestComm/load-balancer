@@ -19,33 +19,32 @@
 
 package org.mobicents.tools.smpp.balancer.timers;
 
-import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ServerTimerEnquire implements CancellableRunnable
+public class CustomerTimerConnection implements CancellableRunnable
 {
-	ClientConnection client;
+	ServerConnection server;
+	Long sessionId;
 	private Boolean cancelled=false;
 	
-	public ServerTimerEnquire(ClientConnection client) 
-	{
-		this.client = client;
+	public CustomerTimerConnection(ServerConnection server, Long sessionId){
+		this.server = server;
+		this.sessionId = sessionId;
 	}
-
 	@Override
 	public void run() 
 	{
 		if(!cancelled)
-			client.enquireTimeout();
+			server.connectionTimeout(sessionId);		
 	}
-
+	
 	@Override
 	public void cancel() 
 	{
 		this.cancelled=true;
-	}
+	}	
 }

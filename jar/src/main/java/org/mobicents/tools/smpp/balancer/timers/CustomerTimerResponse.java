@@ -19,31 +19,37 @@
 
 package org.mobicents.tools.smpp.balancer.timers;
 
-import org.mobicents.tools.smpp.balancer.api.ClientConnection;
+import org.mobicents.tools.smpp.balancer.api.ServerConnection;
+
+import com.cloudhopper.smpp.pdu.Pdu;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ClientTimerServerSideConnectionCheck implements CancellableRunnable
-{
-	ClientConnection client;
-	Long sessionId;
-	private Boolean cancelled=false;
-	public ClientTimerServerSideConnectionCheck(ClientConnection client)
+public class CustomerTimerResponse implements CancellableRunnable 
+{	
+	ServerConnection server;
+	Pdu packet;
+	private Boolean cancelled=false;	
+
+	public CustomerTimerResponse(ServerConnection server, Pdu packet) 
 	{
-		this.client = client;
+		this.server = server;
+		this.packet = packet;
 	}
-	
-	public void cancel()
-	{
-		this.cancelled=true;
-	}
-	
+
 	@Override
 	public void run() 
 	{
 		if(!cancelled)
-			client.connectionCheckServerSide();		
+			server.requestTimeout(packet);
 	}
+
+	@Override
+	public void cancel() 
+	{		
+		this.cancelled=true;
+	}
+
 }

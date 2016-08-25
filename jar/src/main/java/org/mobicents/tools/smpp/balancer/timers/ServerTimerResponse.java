@@ -19,7 +19,7 @@
 
 package org.mobicents.tools.smpp.balancer.timers;
 
-import org.mobicents.tools.smpp.balancer.api.ServerConnection;
+import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 
 import com.cloudhopper.smpp.pdu.Pdu;
 
@@ -27,15 +27,15 @@ import com.cloudhopper.smpp.pdu.Pdu;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ServerTimerResponse implements CancellableRunnable 
-{	
-	ServerConnection server;
-	Pdu packet;
-	private Boolean cancelled=false;	
+public class ServerTimerResponse implements CancellableRunnable {
+	
+	ClientConnection client;
+	private Boolean cancelled=false;
+	Pdu packet;	
 
-	public ServerTimerResponse(ServerConnection server, Pdu packet) 
+	public ServerTimerResponse(ClientConnection client, Pdu packet) 
 	{
-		this.server = server;
+		this.client = client;
 		this.packet = packet;
 	}
 
@@ -43,13 +43,12 @@ public class ServerTimerResponse implements CancellableRunnable
 	public void run() 
 	{
 		if(!cancelled)
-			server.requestTimeout(packet);
+			client.requestTimeout(packet);
 	}
 
 	@Override
 	public void cancel() 
-	{		
+	{
 		this.cancelled=true;
 	}
-
 }
