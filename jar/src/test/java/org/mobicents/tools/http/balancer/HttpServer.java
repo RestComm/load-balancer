@@ -52,6 +52,7 @@ public class HttpServer
 	private ServerBootstrap serverSecureBootstrap;
 	private int httpPort;
 	private int sslPort;
+	private int udpPort;
 	private AtomicInteger requestCount = new AtomicInteger(0);
 	private boolean sendHeartbeat = true;
 	private String balancers;
@@ -61,12 +62,14 @@ public class HttpServer
 	private String lbAddress = "127.0.0.1";
 	private int lbRMIport = 2000;
 	private int instanceId;
+	public static int delta = 0;
 	
 	public HttpServer(int httpPort, int sslPort, int instanceId)
 	{
 		this.httpPort = httpPort;
 		this.sslPort = sslPort;
 		this.instanceId = instanceId;
+		this.udpPort = 4060 + delta++;
 	}
 	public HttpServer(int httpPort, int sslPort)
 	{
@@ -91,6 +94,7 @@ public class HttpServer
 		    appServerNode = new SIPNode("HttpServer", "127.0.0.1");		
 			appServerNode.getProperties().put("version", "0");
 			appServerNode.getProperties().put("httpPort", httpPort);
+			appServerNode.getProperties().put("udpPort", udpPort);
 			appServerNode.getProperties().put("sslPort", sslPort);
 			if(instanceId!=-1)
 				appServerNode.getProperties().put("instanceId", instanceId);

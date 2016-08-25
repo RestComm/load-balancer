@@ -137,7 +137,8 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 	
 	protected boolean isAlive(SIPNode node) {
-		if(invocationContext.nodes.contains(node)) return true;
+		//if(invocationContext.nodes.contains(node)) return true;
+		if(invocationContext.sipNodeMap.containsValue(node)) return true;
 		return false;
 	}
 	
@@ -211,13 +212,15 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		String host = via.getHost();
 		Integer port = via.getPort();		
 		Boolean found = false;
-		for(SIPNode node : context.nodes) {
-			if(node.getIp().equals(host)) {
-				if(port.equals(node.getProperties().get(transport+"Port"))) {
-					found = true;
-				}
-			}
-		}
+//		for(SIPNode node : context.nodes) {
+//			if(node.getIp().equals(host)) {
+//				if(port.equals(node.getProperties().get(transport+"Port"))) {
+//					found = true;
+//				}
+//			}
+//		}
+		if(context.sipNodeMap.containsKey(new KeySip(host, port)))
+			found = true;
 		if(logger.isDebugEnabled()) {
 			logger.debug("external response node found ? " + found);
 		}
@@ -229,7 +232,8 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			}
 			try {
 				SIPNode node = (SIPNode) nodesArray[nodeIndex];
-				if(node == null || !context.nodes.contains(node)) {
+				//if(node == null || !context.nodes.contains(node)) {
+				if(node == null || !context.sipNodeMap.containsValue(node)) {
 					if(logger.isDebugEnabled()) {
 						logger.debug("No node to handle " + via);
 					}
@@ -259,7 +263,8 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 	protected void syncNodes() {
 		nodes.clear();
-		nodes.addAll(invocationContext.nodes);
+		//nodes.addAll(invocationContext.nodes);
+		nodes.addAll(invocationContext.sipNodeMap.values());
 		nodesArray = nodes.toArray(new Object[]{});
 		nodesAreDirty = false;
 	}

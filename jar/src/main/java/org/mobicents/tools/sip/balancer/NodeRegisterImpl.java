@@ -308,7 +308,11 @@ public class NodeRegisterImpl  implements NodeRegister {
                     InvocationContext ctx = balancerRunner.getInvocationContext(
                             (String) node.getProperties().get("version"));
                     balancerRunner.balancerContext.aliveNodes.remove(node);
-                    ctx.nodes.remove(node);
+                    //ctx.nodes.remove(node);
+                    String instanceId = (String) node.getProperties().get("instanceId");
+                    if(instanceId!=null)
+                    	ctx.httpNodeMap.remove(instanceId);
+                    ctx.sipNodeMap.remove(new KeySip(node));
                     ctx.balancerAlgorithm.nodeRemoved(node);
                     if(logger.isInfoEnabled()) {
                         logger.info("NodeExpirationTimerTask Run NSync["
@@ -352,26 +356,40 @@ public class NodeRegisterImpl  implements NodeRegister {
                     balancerRunner.balancerContext.jvmRouteToSipNode.put(
                             (String)pingNode.getProperties().get("jvmRoute"), pingNode);				
                 }
-                SIPNode nodePresent = null;
-                Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
-                while (nodesIterator.hasNext() && nodePresent == null) {
-                    SIPNode node = (SIPNode) nodesIterator.next();
-                    if (node.equals(pingNode)) {
-                        nodePresent = node;
-                    }
-                }
+                
+                
+//                SIPNode nodePresent = null;
+//                Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
+//                while (nodesIterator.hasNext() && nodePresent == null) 
+//                {
+//                    SIPNode node = (SIPNode) nodesIterator.next();
+//                    if (node.equals(pingNode)) 
+//                    {
+//                        nodePresent = node;
+//                    }
+//                }
+                SIPNode nodePresent = ctx.sipNodeMap.get(new KeySip(pingNode));
+                
                 // adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
-                if(nodePresent != null) {
+                if(nodePresent != null) 
+                {
                     nodePresent.updateTimerStamp();
                     if(logger.isTraceEnabled()) {
                         logger.trace("Ping " + nodePresent.getTimeStamp());
                     }
-                } else {
+                } 
+                else 
+                {
                     Integer current = Integer.parseInt(version);
                     Integer latest = Integer.parseInt(latestVersion);
                     latestVersion = Math.max(current, latest) + "";
                     balancerRunner.balancerContext.aliveNodes.add(pingNode);
-                    ctx.nodes.add(pingNode);
+                    ctx.sipNodeMap.put(new KeySip(pingNode), pingNode);
+                    Integer instanceId = (Integer) pingNode.getProperties().get("instanceId");
+                    if(instanceId!=null)
+                    	ctx.httpNodeMap.put(new KeyHttp(instanceId), pingNode);
+                   // ctx.nodes.add(pingNode);
+                    
                     ctx.balancerAlgorithm.nodeAdded(pingNode);
                     balancerRunner.balancerContext.allNodesEver.add(pingNode);
                     pingNode.updateTimerStamp();
@@ -395,7 +413,11 @@ public class NodeRegisterImpl  implements NodeRegister {
         for (SIPNode pingNode : ping) {
             InvocationContext ctx = balancerRunner.getInvocationContext(
                     (String) pingNode.getProperties().get("version"));
-            ctx.nodes.remove(pingNode);
+            //ctx.nodes.remove(pingNode);
+            String instanceId = (String) pingNode.getProperties().get("instanceId");
+            if(instanceId!=null)
+            	ctx.httpNodeMap.remove(instanceId);
+            ctx.sipNodeMap.remove(new KeySip(pingNode));
             boolean nodePresent = false;
             Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
             while (nodesIterator.hasNext() && !nodePresent) {
@@ -474,4 +496,4 @@ public class NodeRegisterImpl  implements NodeRegister {
             ctx.balancerAlgorithm.jvmRouteSwitchover(fromJvmRoute, toJvmRoute);
         }
     }
-}
+  }

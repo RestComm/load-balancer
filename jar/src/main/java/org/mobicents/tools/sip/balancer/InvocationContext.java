@@ -50,7 +50,9 @@ public class InvocationContext {
 		balancerAlgorithm.stop();
 	}
 	
-	public CopyOnWriteArrayList<SIPNode> nodes = new CopyOnWriteArrayList<SIPNode>();
+	//public CopyOnWriteArrayList<SIPNode> nodes = new CopyOnWriteArrayList<SIPNode>();
+	public ConcurrentHashMap<KeySip, SIPNode> sipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
+	public ConcurrentHashMap<KeyHttp, SIPNode> httpNodeMap = new ConcurrentHashMap<KeyHttp, SIPNode>();
 	public String version;
 	private ConcurrentHashMap<String, Object> attribs = new ConcurrentHashMap<String, Object>();
 	public Object getAttribute(String name) {

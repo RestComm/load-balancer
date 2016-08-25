@@ -28,6 +28,7 @@ import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.sip.SipFactory;
@@ -96,20 +97,24 @@ public class ClusterSubdomainAffinityAlgorithmTest{
 			algorithm.balancerContext.algorithmClassName = ClusterSubdomainAffinityAlgorithm.class.getName();
 			InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
 			
-			ctx.nodes = new CopyOnWriteArrayList<SIPNode>();
+			//ctx.nodes = new CopyOnWriteArrayList<SIPNode>();
+			ctx.sipNodeMap = new ConcurrentHashMap<>();
 			for(int q=0;q<100;q++) {
-				ctx.nodes.add(new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q));
+				SIPNode node = new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q);
+				ctx.sipNodeMap.put(new KeySip(node),node);
 			}
 			for(int q=0;q<100;q++) {
-				ctx.nodes.add(new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q));
+				SIPNode node = new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q);
+				ctx.sipNodeMap.put(new KeySip(node),node);
 			}
 			SIPNode originalNode = new SIPNode("original", "original");
 			SIPNode partnerNode = new SIPNode("partner", "partner");
 
 			// This is dead BalancerContext.balancerContext.nodes.add(originalNode);
-			ctx.nodes.add(partnerNode);
+			ctx.sipNodeMap.put(new KeySip(partnerNode), partnerNode);
 			for(int q=0;q<100;q++) {
-				ctx.nodes.add(new SIPNode("nonParner"+q, "nonPartner"+q));
+				SIPNode node = new SIPNode("nonParner"+q, "nonPartner"+q);
+				ctx.sipNodeMap.put(new KeySip(node),node);
 			}
 			algorithm.callIdMap.put("cid", originalNode);
 			Request request = SipFactory.getInstance().createMessageFactory().createRequest(inviteRequest);

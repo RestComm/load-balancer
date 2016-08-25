@@ -38,12 +38,13 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
     	}
 		SIPNode oldNode = node;
 		List<String> alternativeNodes = nodeToNodeGroup.get(oldNode.getIp());
-		for(SIPNode check : invocationContext.nodes)  {
+		//for(SIPNode check : invocationContext.nodes)  { 
+		for(SIPNode check : invocationContext.sipNodeMap.values())  {
 			for(String alt : alternativeNodes)
-			if(check.getIp().equals(alt)) {
-				groupedFailover(oldNode, check);
-				logger.info("Grouped failover to partner node from " + oldNode + " to " + check);
-				return check;
+				if(check.getIp().equals(alt)) {
+					groupedFailover(oldNode, check);
+					logger.info("Grouped failover to partner node from " + oldNode + " to " + check);
+					return check;
 			}
 		}
 		logger.info("No alternatives found for " + oldNode + " from " + alternativeNodes);

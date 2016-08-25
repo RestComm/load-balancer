@@ -30,6 +30,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -88,7 +89,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				//Gvag: new transaction should go to a new node
 				SIPNode newNode = nextAvailableNode();//getNodeA(callId+cseq);
 				if(newNode == null) {
-					for(SIPNode currNode:invocationContext.nodes) {
+					//for(SIPNode currNode:invocationContext.nodes) {
+					for(SIPNode currNode:invocationContext.sipNodeMap.values()) {
 						if(!currNode.equals(assignedNode)) {
 							newNode = currNode;
 						}
@@ -160,14 +162,16 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
 		boolean found = false;
-		for(SIPNode node : invocationContext.nodes) {
+		//for(SIPNode node : invocationContext.nodes) {
+		for(SIPNode node : invocationContext.sipNodeMap.values()) {
 			if(node.getIp().equals(host)) found = true;
 		}
 		if(!found) {
 			String callId = ((SIPHeader) response.getHeader(headerName))
 			.getValue();
 			SIPNode node = callIdMap.get(callId);
-			if(node == null || !invocationContext.nodes.contains(node)) {
+			//if(node == null || !invocationContext.nodes.contains(node)) {
+			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
 				node = selectNewNode(node, callId);
 				try {
 					via.setHost(node.getIp());
@@ -226,7 +230,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	    		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
 	    	}
 		} else {
-			if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
+			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
+			if(!invocationContext.sipNodeMap.containsValue(node)) { // If the assigned node is now dead
 				node = selectNewNode(node, callId);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
@@ -234,7 +239,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		    		logger.debug("The assigned node in the affinity map is still alive: " + node);
 		    	}
 				if(!request.getMethod().equals("ACK")) {
-					for(SIPNode n:invocationContext.nodes) {
+					//for(SIPNode n:invocationContext.nodes) {
+					for(SIPNode n:invocationContext.sipNodeMap.values()) {
 						if(!n.equals(node)) node = n;
 						break;
 					}
@@ -279,10 +285,26 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	
 	protected synchronized SIPNode nextAvailableNode() {
 		BalancerContext balancerContext = getBalancerContext();
-		if(invocationContext.nodes.size() == 0) return null;
-		int nextNode = nextNodeCounter.incrementAndGet();
-		nextNode %= invocationContext.nodes.size();
-		return invocationContext.nodes.get(nextNode);
+//		if(invocationContext.nodes.size() == 0) return null;
+//		int nextNode = nextNodeCounter.incrementAndGet();
+//		nextNode %= invocationContext.nodes.size();
+//		return invocationContext.nodes.get(nextNode);
+		if(invocationContext.sipNodeMap.size() == 0) return null;
+		if(it==null)
+			it = invocationContext.sipNodeMap.entrySet().iterator();
+		Map.Entry pair = null;
+		if(it.hasNext())
+		{
+			pair = (Map.Entry)it.next();
+			if(!it.hasNext())
+				it = invocationContext.sipNodeMap.entrySet().iterator();
+		}
+		else
+		{
+			it = invocationContext.sipNodeMap.entrySet().iterator();
+		}
+		return (SIPNode) pair.getValue();
+		
 	}
 	
 	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {

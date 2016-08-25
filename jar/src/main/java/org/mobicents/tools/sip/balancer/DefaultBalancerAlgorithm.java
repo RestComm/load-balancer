@@ -24,8 +24,10 @@ package org.mobicents.tools.sip.balancer;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.SynchronousQueue;
 
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -44,6 +46,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
 	protected BalancerContext balancerContext;
 	protected InvocationContext invocationContext;
+	protected Iterator<Entry<KeySip, SIPNode>> it = null;
+	protected Iterator<SIPNode> httpRequestIterator = null;
+	protected Iterator <SIPNode> instanceIdIterator = null;
 
 	public void setProperties(Properties properties) {
 		this.properties = properties;
@@ -72,8 +77,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}
 	
-	public SIPNode processHttpRequest(HttpRequest request) {
-		if(invocationContext.nodes.size()>0) {
+	public synchronized SIPNode processHttpRequest(HttpRequest request) {
+		//if(invocationContext.nodes.size()>0) {
+		if(invocationContext.sipNodeMap.size()>0) {
 			String callSid = getUrlParameters(request.getUri()).get("CallSid");
 			
 			if(callSid == null) 
@@ -81,32 +87,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			
 			if(callSid!=null)
 			{
-				String [] tmpArray = callSid.split("-");
-				String instanceId = null;
-				if(tmpArray.length>1)
-					instanceId = tmpArray[1];
-				if(instanceId!=null)
-				{
-					for(SIPNode node : invocationContext.nodes)
-					{
-						if(instanceId.equals(node.getProperties().get("instanceId").toString()))
-						{
-							return node;
-						}
-					}
-				}
-				else
-				{
-					logger.warn("CallSID parameter exists in HTTP request but instanceId doesn't. LB will send request to node 0");
-					return invocationContext.nodes.get(0);
-				}
-					//if callSID exists but has't match than return node 0
-					logger.warn("CallSID parameter exists in HTTP request but has't match to any node. LB will send request to node 0");
-					return invocationContext.nodes.get(0);
+				return processCallSid(callSid);
 			}
-			else
-			{
-
+			
 			String httpSessionId = null;
 			httpSessionId = getUrlParameters(request.getUri()).get("jsessionid");
 			
@@ -121,20 +104,49 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 					SIPNode node = balancerContext.jvmRouteToSipNode.get(jvmRoute);
 					
 					if(node != null) {
-						if(invocationContext.nodes.contains(node)) {
+						//if(invocationContext.nodes.contains(node)) {
+						if(invocationContext.sipNodeMap.containsValue(node)) {
 							return node;
 						}
 					}
 				}
 				
 				// As a failsafe if there is no jvmRoute, just hash the sessionId
-				int nodeId = Math.abs(httpSessionId.hashCode()%invocationContext.nodes.size());
-				return invocationContext.nodes.get(nodeId);
+				//int nodeId = Math.abs(httpSessionId.hashCode()%invocationContext.nodes.size());
+				//return invocationContext.nodes.get(nodeId);
+				logger.warn("As a failsafe if there is no jvmRoute. LB will send request to node accordingly RR algorithm");
+				if(httpRequestIterator==null)
+					httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+				if(httpRequestIterator.hasNext())
+				{
+					return httpRequestIterator.next();
+				}
+				else
+				{
+					httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+					if(httpRequestIterator.hasNext())
+					{
+						return httpRequestIterator.next();
+					}
+					else
+						return null;
+				}
 				
 			}
 			//if request doesn't have jsessionid (very first request), we choose next node using round robin algorithm
-			balancerContext.numberHttpRequest.compareAndSet(Integer.MAX_VALUE, 0);
-			return invocationContext.nodes.get(balancerContext.numberHttpRequest.getAndIncrement() % invocationContext.nodes.size());
+//			balancerContext.numberHttpRequest.compareAndSet(Integer.MAX_VALUE, 0);
+//			return invocationContext.nodes.get(balancerContext.numberHttpRequest.getAndIncrement() % invocationContext.nodes.size());
+			if(httpRequestIterator==null)
+				httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+			if(httpRequestIterator.hasNext())
+				return httpRequestIterator.next();
+			else
+			{
+				httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+				if(httpRequestIterator.hasNext())
+					return httpRequestIterator.next();
+				else
+					return null;
 			}
 		} else {
 			String unavailaleHost = getProperties().getProperty("unavailableHost");
@@ -227,4 +239,50 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	public void assignToNode(String id, SIPNode node) {
 		
 	}	
+	
+	private SIPNode processCallSid(String callSid)
+	{
+		String [] tmpArray = callSid.split("-");
+		String instanceId = null;
+		if(tmpArray.length>1)
+			instanceId = tmpArray[0];
+		if(instanceId!=null)
+		{
+			SIPNode node = invocationContext.httpNodeMap.get(new KeyHttp(Integer.parseInt(instanceId)));
+			if(node!=null)
+			{
+				return node;
+			}
+			else
+			{
+				if(instanceIdIterator==null)
+					instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
+				logger.warn("instanceId exists in HTTP request but doesn't match to any node. LB will send request to node accordingly RR algorithm");
+				if(instanceIdIterator.hasNext())
+					return instanceIdIterator.next();
+				else
+				{
+					instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
+					if(instanceIdIterator.hasNext())
+						return instanceIdIterator.next();
+					else
+						return null;
+				}
+			}
+		}
+		else
+		{
+			logger.warn("CallSID parameter exists in HTTP request but instanceId doesn't. LB will send request to node accordingly RR algorithm");
+			if(instanceIdIterator.hasNext())
+				return instanceIdIterator.next();
+			else
+			{
+				instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
+				if(instanceIdIterator.hasNext())
+					return instanceIdIterator.next();
+				else
+					return null;
+			}
+		}
+	}
 }

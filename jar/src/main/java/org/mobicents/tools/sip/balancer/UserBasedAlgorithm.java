@@ -25,6 +25,7 @@ import gov.nist.javax.sip.message.ResponseExt;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -70,20 +71,25 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 
 		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
 		
-		for(SIPNode node : invocationContext.nodes) {
-			if(logger.isDebugEnabled()) {
-				logger.debug("internal response checking sendernode " + senderNode + " against node " + node + " or Via host:port " + host + ":" + port);
-			} 
-			// https://github.com/RestComm/load-balancer/issues/45 Checking sender node against list of nodes to ensure it's still available
-			// not checking it was making the B2BUA use case fail and route back the 180 Ringing to one of the nodes instead of the sender. 
-			if(senderNode != null && senderNode.equals(node)) {
-				found = true;
-			} else if (node.getIp().equals(host)) {
-				if(port.equals(node.getProperties().get(transport+"Port"))) {
-					found = true;
-				}
-			}
-		}
+		if(senderNode != null&&invocationContext.sipNodeMap.containsValue(senderNode))
+			found = true;
+		else if	(invocationContext.sipNodeMap.containsKey(new KeySip(host, port)))
+			found = true;
+		
+//		for(SIPNode node : invocationContext.nodes) {
+//			if(logger.isDebugEnabled()) {
+//				logger.debug("internal response checking sendernode " + senderNode + " against node " + node + " or Via host:port " + host + ":" + port);
+//			} 
+//			// https://github.com/RestComm/load-balancer/issues/45 Checking sender node against list of nodes to ensure it's still available
+//			// not checking it was making the B2BUA use case fail and route back the 180 Ringing to one of the nodes instead of the sender. 
+//			if(senderNode != null && senderNode.equals(node)) {
+//				found = true;
+//			} else if (node.getIp().equals(host)) {
+//				if(port.equals(node.getProperties().get(transport+"Port"))) {
+//					found = true;
+//				}
+//			}
+//		}
 		if(logger.isDebugEnabled()) {
 			logger.debug("internal response node found ? " + found);
 		}
@@ -98,7 +104,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			
 			
 			SIPNode node = userToMap.get(user);
-			if(node == null || !invocationContext.nodes.contains(node)) {
+			//if(node == null || !invocationContext.nodes.contains(node)) {
+			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
 				node = selectNewNode(node, user);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
@@ -141,7 +148,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	    		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
 	    	}
 		} else {
-			if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
+			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
+			if(!invocationContext.sipNodeMap.containsValue(node)) { // If the assigned node is now dead
 				node = selectNewNode(node, user);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
@@ -161,13 +169,15 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		String host = via.getHost();
 		Integer port = via.getPort();
 		boolean found = false;
-		for(SIPNode node : invocationContext.nodes) {
-			if(node.getIp().equals(host)) {
-				if(port.equals(node.getProperties().get(transport+"Port"))) {
-					found = true;
-				}
-			}
-		}
+//		for(SIPNode node : invocationContext.nodes) {
+//			if(node.getIp().equals(host)) {
+//				if(port.equals(node.getProperties().get(transport+"Port"))) {
+//					found = true;
+//				}
+//			}
+//		}
+		if(invocationContext.sipNodeMap.containsKey(new KeySip(host, port)))
+			found = true;
 		if(logger.isDebugEnabled()) {
 			logger.debug("external response node found ? " + found);
 		}
@@ -181,7 +191,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 				user = ((TelURL)currURI).getPhoneNumber();
 			
 			SIPNode node = userToMap.get(user);
-			if(node == null || !invocationContext.nodes.contains(node)) {
+			//if(node == null || !invocationContext.nodes.contains(node)) {
+			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
 				node = selectNewNode(node, user);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
@@ -311,10 +322,25 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	protected synchronized SIPNode nextAvailableNode() {
-		if(invocationContext.nodes.size() == 0) return null;
-		int nextNode = nextNodeCounter.incrementAndGet();
-		nextNode %= invocationContext.nodes.size();
-		return invocationContext.nodes.get(nextNode);
+//		if(invocationContext.nodes.size() == 0) return null;
+//		int nextNode = nextNodeCounter.incrementAndGet();
+//		nextNode %= invocationContext.nodes.size();
+//		return invocationContext.nodes.get(nextNode);
+		if(invocationContext.sipNodeMap.size() == 0) return null;
+		if(it==null)
+			it = invocationContext.sipNodeMap.entrySet().iterator();
+		Map.Entry pair = null;
+		if(it.hasNext())
+		{
+			pair = (Map.Entry)it.next();
+			if(!it.hasNext())
+				it = invocationContext.sipNodeMap.entrySet().iterator();
+		}
+		else
+		{
+			it = invocationContext.sipNodeMap.entrySet().iterator();
+		}
+		return (SIPNode) pair.getValue();
 	}
 	
 	protected SIPNode selectNewNode(SIPNode node, String user) {

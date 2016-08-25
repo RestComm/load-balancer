@@ -967,7 +967,8 @@ public class SIPBalancerForwarder implements SipListener {
     }
 
     private SIPNode getAliveNode(String host, int port, String otherTransport, InvocationContext ctx) {
-        return getNodeFromCollection(host, port, otherTransport, ctx.nodes);
+        //return getNodeFromCollection(host, port, otherTransport, ctx.nodes);
+    	return ctx.sipNodeMap.get(new KeySip(host,port));
     }
 
     private SIPNode getAliveNodeAnyVersion(String host, int port, String otherTransport) {
@@ -975,6 +976,7 @@ public class SIPBalancerForwarder implements SipListener {
     }
 
     private SIPNode getNodeFromCollection(String host, int port, String otherTransport, Collection<SIPNode> ctx) {
+    	
         otherTransport = otherTransport.toLowerCase();
         for(SIPNode node : ctx) {
             if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
@@ -1312,7 +1314,9 @@ public class SIPBalancerForwarder implements SipListener {
                 if(nextNode != null) {
                     if(logger.isDebugEnabled()) {
                         String nodesString = "";
-                        Object[] nodes = ctx.nodes.toArray();
+                        //Object[] nodes = ctx.nodes.toArray();
+                        Object[] nodes = ctx.sipNodeMap.values().toArray();
+                        
                         for(Object n : nodes) {
                             nodesString +=n + " , ";
                         }
@@ -2045,7 +2049,7 @@ public class SIPBalancerForwarder implements SipListener {
                     }
                     balancerRunner.balancerContext.internalSipProvider.sendResponse(response);
                 } else {
-                	if(comesFromInternalNode(response,ctx,initialRemoteAddr,message.getPeerPacketSourcePort(),transport))
+                	if(!comesFromInternalNode(response,ctx,initialRemoteAddr,message.getPeerPacketSourcePort(),transport))
                 		ctx.balancerAlgorithm.processExternalResponse(response);
                 	else
                 		ctx.balancerAlgorithm.processInternalResponse(response);
@@ -2067,16 +2071,17 @@ public class SIPBalancerForwarder implements SipListener {
 		boolean found = false;
 		if(host!=null && port!=null)
 		{
-			for(SIPNode node : ctx.nodes) {
-				if(node.getIp().equals(host)) {
-					if(port.equals(node.getProperties().get(transport+"Port"))) {
-						found = true;
-						break;
-					}
-				}
-			}
+			if(ctx.sipNodeMap.containsKey(new KeySip(host, port)))
+				found = true;
+//			for(SIPNode node : ctx.nodes) {
+//				if(node.getIp().equals(host)) {
+//					if(port.equals(node.getProperties().get(transport+"Port"))) {
+//						found = true;
+//						break;
+//					}
+//				}
+//			}
 		}
-		
 		return found;
 	}
     

@@ -145,7 +145,7 @@ public class InstanceIdAlgorithmTest
 			{ 
 				WebConversation conversation = new WebConversation();
 				WebRequest request = new GetMethodWebRequest(
-						new String("http://127.0.0.1:2080/app?fName=Konstantin&lName=Nosach&CallSid=123-"+instanceId));
+						new String("http://127.0.0.1:2080/app?fName=Konstantin&lName=Nosach&CallSid="+instanceId+"-123"));
 				WebResponse response = conversation.getResponse(request);
 				codeResponse = response.getResponseCode();
 				listener.clientCompleted();

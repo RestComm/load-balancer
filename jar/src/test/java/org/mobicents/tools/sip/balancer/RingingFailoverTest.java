@@ -25,6 +25,7 @@ package org.mobicents.tools.sip.balancer;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.sip.SipFactory;
@@ -57,7 +58,9 @@ public class RingingFailoverTest {
 		algorithm.balancerContext = new BalancerContext();
 		algorithm.balancerContext.algorithmClassName = CallIDAffinityBalancerAlgorithm.class.getName();
 		InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
-		ctx.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
+		//ctx.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
+		ctx.sipNodeMap.put(new KeySip(adNode), adNode); 
+				
 		algorithm.invocationContext = ctx;
 		algorithm.processExternalResponse(response);
 		
