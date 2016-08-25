@@ -96,24 +96,29 @@ Also HTTP load balancer can choose the next node by 'instanceId' which is got fr
 checks whether http request contains 'CallSID' parameter. If it does, the Load balancer gets 'instanceId' from it and checks whether 'instanceId' corresponds to 'instanceId'
 of nodes connected to the Load balancer. If the Load balancer finds the correspondence, it sends http request to this node.
 
-== SMPP Load Balancing Basics
+== SMPP multiplexing basics
 
-SMPP load balancer is used for balancing load from SMPP clients (ESME) to SMPP servers (SMSC) based on round-robin algorithm.
-Because of SMPP protocol based on an application layer TCP/IP connection between the ESME and SMSC and is initiated by the ESME, we should use connection handling.
-SMPP load balancer includes three main parts: server part, client part and dispatcher.
-When new clients connect to SMPP load balancer, application creates instances of ClientConnectionImpl (client part) and ServerConnectionImpl (server part) classes that bind by session ID.
-They are used to establish a connection between client (ESME) and server (SMSC). When connection established it can be used in both directions: ESME and SMSC can initiate new messages or send back messages through the SMPP load balancer.
-Dispatcher is used for logical connection of client and server parts of SMPP load balancer.
-Each packet that is received by the client part, the dispatcher throws to server part (unless error is detected) and vice versa.
+SMPP providers (e.g.NEXMO) offer limited numbers of connections to their services
+but sometimes we need more than one client connections to it. So you can use our
+load balancer as SMPP multiplexer for multiplexing connections from several clients
+(Restcomm) to one SMPP provider using one connection.
+
+When very first client connect to SMPP load balancer, Load balancer creates connection
+to server and next clients reuse it. When connection to server established it can
+be used in both directions (transceiver mode): ESME and SMSC can send messages
+through the load balancer.
 
 .SMPP load balancer diagram
 image::images/SMPP-lb-diagram.png[]
 
-Main goal of application is to reduce the load on servers (SMSC) and simply transfer packets between client (ESME) and server(SMSC). But also it can inspect the received packets for correct command ID and will not send incorrect packets forward instead turn them back.
+Main goal is to reuse connection to the servers (SMSC) and simply transfer packets
+between client (ESME) and server(SMSC). But also it can inspect the received packets
+for correct command ID and will not send incorrect packets forward instead turn them back.
 
-When connection to server drops, SMPP load balancer can reconnect (rebind) to the next working server.
-During this process (reconnect) it turns back all received packets until the new connection is established.
-If there are no established connections with the servers, the client connection is closed and vice versa.
+When connection to server drops, SMPP load balancer can reconnect (rebind) to the
+server. During this process (reconnect) it turns back all received packets until
+the new connection is established. If there are no established connection with
+the server, all connections will be closed.
 
 [[_sslb_smpp_load_balancer_implementation]]
 === Implementation of the SMPP Load Balancer
