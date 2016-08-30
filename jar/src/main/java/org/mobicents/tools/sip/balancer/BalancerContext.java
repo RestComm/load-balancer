@@ -63,6 +63,7 @@ public class BalancerContext {
 	
 	public boolean terminateTLSTraffic;
 	public boolean isSendTrying;
+	public boolean isUseWithNexmo;
 	
 	public Object parameters;
 	

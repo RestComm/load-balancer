@@ -32,6 +32,7 @@ import javax.sip.address.SipURI;
 import javax.sip.header.CSeqHeader;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.FromHeader;
+import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.MessageFactory;
@@ -179,6 +180,7 @@ public class BackToBackUserAgent implements SipListenerExt {
         			
         			Request newRequest = (Request) request.clone();
     		        newRequest.removeHeader(RouteHeader.NAME);
+    		        newRequest.removeHeader(RecordRouteHeader.NAME);
     		        FromHeader fromHeader = (FromHeader) newRequest.getHeader(FromHeader.NAME);
     		        fromHeader.setTag(Long.toString(Math.abs(new Random().nextLong())));
     		        ViaHeader viaHeader = ((ListeningPointExt) sp.getListeningPoint(transport)).createViaHeader();

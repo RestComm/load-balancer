@@ -141,6 +141,7 @@ public class SIPBalancerForwarder implements SipListener {
     	
 		balancerRunner.balancerContext.isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
     	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.properties.getProperty("sipHeaderAffinityKey","Call-ID");
+    	balancerRunner.balancerContext.isUseWithNexmo = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isUseWithNexmo","false"));
 
         SipFactory sipFactory = null;
         balancerRunner.balancerContext.sipStack = null;
@@ -1376,7 +1377,32 @@ public class SIPBalancerForwarder implements SipListener {
                 }
             } else {
                 nextNode = ctx.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
+                //add Route header for using it for transferring instead of using uri
+                if(nextNode!=null && hints.subsequentRequest && !isRequestFromServer)
+                {
+                	if(request.getRequestURI() instanceof SipURI) 
+                	{
+                        SipURI sipUri =(SipURI) request.getRequestURI();                                             
+                        SipURI routeSipUri = balancerRunner.balancerContext.addressFactory.createSipURI(null, nextNode.getIp());
+                        Integer port = (Integer)nextNode.getProperties().get(transport + "Port");
+                	 
+                        //port should not be null since it subsequent request
+                        if(port != null) 
+                        {
+                        	routeSipUri.setPort(port);
+                        	routeSipUri.setTransportParam(transport);
+                        	routeSipUri.setLrParam();                     
+                     
+                        	if(!sipUri.getHost().equals(routeSipUri) || sipUri.getPort()!=routeSipUri.getPort())
+                        	{
+                        		final RouteHeader route = balancerRunner.balancerContext.headerFactory.createRouteHeader(balancerRunner.balancerContext.addressFactory.createAddress(routeSipUri));
+                        		request.addFirst(route);
+                        	}
+                        }
+                	}
+                }
             }
+
             if(nextNode == null) {
                 if(logger.isDebugEnabled()) {
                     logger.debug("No nodes available");
@@ -1973,6 +1999,28 @@ public class SIPBalancerForwarder implements SipListener {
         
         if(viaHeader!=null && !isRouteHeaderExternal(viaHeader.getHost(), viaHeader.getPort(), viaHeader.getTransport())) {
             response.removeFirst(ViaHeader.NAME);
+        }
+        //removes rport and received from last Via header because of NEXMO patches it
+        if(balancerRunner.balancerContext.isUseWithNexmo)
+        {
+        	viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+        	if(viaHeader!=null) 
+        	{
+        		if(logger.isDebugEnabled())
+        			logger.debug("We are going to remove rport and received parametres from :" + viaHeader);
+        		response.removeFirst(ViaHeader.NAME);
+        		viaHeader.removeParameter("rport");
+        		viaHeader.removeParameter("received");
+			
+        		try {
+        			response.addFirst(viaHeader);
+        		} catch (NullPointerException | SipException e) {
+        			// TODO Auto-generated catch block
+        			e.printStackTrace();
+        		}
+        		if(logger.isDebugEnabled())
+        			logger.debug("After removing :" + response);
+        	}
         }
         
         boolean fromServer = false;
