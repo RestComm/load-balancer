@@ -36,6 +36,8 @@ import gov.nist.javax.sip.stack.LoadBalancerNioMessageProcessorFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1074,6 +1076,8 @@ public class SIPBalancerForwarder implements SipListener {
     }
 
     public SipURI getLoopbackUri(Request request) {
+    	if(logger.isDebugEnabled())
+    		logger.debug("Check request for loop. Request: " + request);
         SipURI uri = null;
 
         RouteHeader route = (RouteHeader) request.getHeader(RouteHeader.NAME);
@@ -1086,10 +1090,22 @@ public class SIPBalancerForwarder implements SipListener {
                 uri = (SipURI) request.getRequestURI();
             }
         }
-        
+        if(uri.getHost().matches(".*[a-zA-Z]+.*"))
+        {
+        	if(logger.isDebugEnabled())
+        		logger.debug("We are going to patch URI because it has domain name instead of IP : " + uri);
+			try 
+        	{
+				uri.setHost(InetAddress.getByName(uri.getHost()).getHostAddress());
+			} catch (UnknownHostException | ParseException e) {
+				e.printStackTrace();
+			}
+        }
         if(uri != null) 
         {
-            if(uri.getHost().equals(balancerRunner.balancerContext.externalHost) || uri.getHost().equals(balancerRunner.balancerContext.publicIP))
+            if(uri.getHost().equals(balancerRunner.balancerContext.externalHost) 
+            		|| uri.getHost().equals(balancerRunner.balancerContext.publicIP) 
+            		|| uri.getHost().equals(balancerRunner.balancerContext.externalIpLoadBalancerAddress))
             {
 				int port = uri.getPort();
 				if (port == balancerRunner.balancerContext.externalUdpPort
@@ -1100,7 +1116,9 @@ public class SIPBalancerForwarder implements SipListener {
 					return uri;
             }
                 
-            if(uri.getHost().equals(balancerRunner.balancerContext.internalHost) || uri.getHost().equals(balancerRunner.balancerContext.publicIP))
+            if(uri.getHost().equals(balancerRunner.balancerContext.internalHost) 
+            		|| uri.getHost().equals(balancerRunner.balancerContext.publicIP)
+            		|| uri.getHost().equals(balancerRunner.balancerContext.internalIpLoadBalancerAddress))
             {
 				int port = uri.getPort();
 				if (port == balancerRunner.balancerContext.internalUdpPort
@@ -1218,11 +1236,11 @@ public class SIPBalancerForwarder implements SipListener {
                 logger.debug("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);
             }
 
-            SipURI loopbackUri = getLoopbackUri(request);
-            if(loopbackUri != null) {
-            	loopbackUri.setHost(hints.serverAssignedNode.getIp());
-            	loopbackUri.setPort((Integer) hints.serverAssignedNode.getProperties().get(transport + "Port"));
-            }
+//            SipURI loopbackUri = getLoopbackUri(request);
+//            if(loopbackUri != null) {
+//            	loopbackUri.setHost(hints.serverAssignedNode.getIp());
+//            	loopbackUri.setPort((Integer) hints.serverAssignedNode.getProperties().get(transport + "Port"));
+//            }
         }
 
         SIPNode nextNode = null;
@@ -1250,6 +1268,13 @@ public class SIPBalancerForwarder implements SipListener {
         } else {
         	if(logger.isDebugEnabled()) {
         		logger.debug("Request not from server");
+        	}
+        	if(hints.serverAssignedNode !=null){
+        		SipURI loopbackUri = getLoopbackUri(request);
+        		if(loopbackUri != null) {
+        			loopbackUri.setHost(hints.serverAssignedNode.getIp());
+        			loopbackUri.setPort((Integer) hints.serverAssignedNode.getProperties().get(transport + "Port"));
+            }
         	}
             // Request is NOT from app server, first check if we have hints in Route headers
             SIPNode assignedNode = hints.serverAssignedNode;
