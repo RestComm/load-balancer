@@ -109,9 +109,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 						} 
 						else 
 						{
-							writeResponse(e,
-									HttpResponseStatus.INTERNAL_SERVER_ERROR,
-									"Server error");
+							writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Server error");
 							return;
 						}
 					}
@@ -120,6 +118,12 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 					//ignore exception
 				}
 			}
+            if(!isSecured&&balancerRunner.balancerContext.properties.getProperty("httpsPort")!=null&&!balancerRunner.balancerContext.terminateTLSTraffic)
+            {
+            	//redirect http request send 3xx response
+            	sendRedirectResponse(e, request);
+            	return;
+            }
 
             balancerRunner.balancerContext.httpRequests.incrementAndGet();
             balancerRunner.balancerContext.httpRequestsProcessedByMethod.get(request.getMethod().getName()).incrementAndGet();
@@ -369,5 +373,15 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     	response.setContent(buf);
     	ChannelFuture future = e.getChannel().write(response);
     	future.addListener(ChannelFutureListener.CLOSE);
-    }        
+    }
+    
+    private void sendRedirectResponse(MessageEvent e, HttpRequest request)
+    {
+    	HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FOUND);
+    	String host = request.getHeader("Host");
+    	host = host.replace(balancerRunner.balancerContext.properties.getProperty("httpPort"), balancerRunner.balancerContext.properties.getProperty("httpsPort"));
+    	response.setHeader("Location", "https://"+host+request.getUri());
+    	ChannelFuture future = e.getChannel().write(response);
+    	future.addListener(ChannelFutureListener.CLOSE);
+    }
 }
