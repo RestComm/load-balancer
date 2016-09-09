@@ -118,7 +118,8 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 					//ignore exception
 				}
 			}
-            if(!isSecured&&balancerRunner.balancerContext.properties.getProperty("httpsPort")!=null&&!balancerRunner.balancerContext.terminateTLSTraffic)
+            if(balancerRunner.balancerContext.properties.getProperty("httpsPort")!=null
+            		&&((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort()==Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("httpPort")))
             {
             	//redirect http request send 3xx response
             	sendRedirectResponse(e, request);
