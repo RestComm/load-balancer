@@ -12,6 +12,20 @@
     </includes>
   </fileSet>
   <fileSet>
+    <directory>${basedir}/../docs/sources-asciidoc/target/generated-docs/pdf</directory>
+    <outputDirectory>/docs</outputDirectory>
+    <includes>
+      <include>Load_Balancer_User_Guide.pdf</include>
+    </includes>
+  </fileSet>
+    <fileSet>
+    <directory>${basedir}/../docs/sources-asciidoc/target/generated-docs/html-book</directory>
+    <outputDirectory>/docs/html-book</outputDirectory>
+    <includes>
+      <include>*</include>
+    </includes>
+  </fileSet>
+  <fileSet>
     <directory>${basedir}/src/test/resources</directory>
     <outputDirectory>/</outputDirectory>
     <includes>
