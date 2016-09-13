@@ -48,8 +48,10 @@ public class AppServer {
 	public SipProvider sipProvider;
 	public String version;
 	AtomicBoolean stopFlag = new AtomicBoolean(false);
+	boolean isDummy;
 	
-	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) {
+	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) 
+	{
 		this.port = port;
 		this.name = appServer;
 		this.lbAddress = lbAddress;
@@ -58,6 +60,12 @@ public class AppServer {
 		this.lbSIPint = lbSIPint;
 		this.version = version;
 		this.transport=transport;
+	}
+	
+	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport, boolean isDummy)
+	{
+		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport);
+		this.isDummy = isDummy; 
 	}
 	
 	public void setBalancers(String balancers) {
@@ -72,8 +80,11 @@ public class AppServer {
 	public void start() {
 		timer = new Timer();
 		
-		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, false, true);		
-		sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
+		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, false, true);
+		if(!isDummy)
+			sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
+		else
+			sipListener = new TestSipListener(port+1, lbSIPint, protocolObjects, false);
 		sipListener.appServer = this;
 		try {
 			sipProvider = sipListener.createProvider();
