@@ -310,6 +310,13 @@ httpsPort=2081
 #internalIpLoadBalancerWsPort=119
 #internalIpLoadBalancerWssPort=120
 
+#enabled send back 5xx in case of exception while sending to destination
+#isSend5xxResponse=true
+#reason of error
+#isSend5xxResponseReasonHeader=Destination not available
+#code of error
+#isSend5xxResponseSatusCode=503
+
 # Designate extra IP addresses as serer nodes
 #extraServerNodes=222.221.21.12:21,45.6.6.7:9003,33.5.6.7,33.9.9.2
 
@@ -479,6 +486,16 @@ internalIpLoadBalancerAddresst::
 internalIpLoadBalancerUdpPort::
   The port of the internal IP load balancer.
   Any messages arriving at this port should be distributed across the internal SIP ports of a set of {this-platform} Load Balancers.
+
+isSend5xxResponse::
+  Enables send back 5xx in case of exception while sending to destination.
+  By default false.
+
+isSend5xxResponseReasonHeader::
+  Reason of error. If not defined the Load Balancer won't add ReasonHeader to
+  response message
+isSend5xxResponseSatusCode::
+  Code of error. You can manage it.
 
 extraServerNodes::
   Comma-separated list of hosts that are server nodes.
