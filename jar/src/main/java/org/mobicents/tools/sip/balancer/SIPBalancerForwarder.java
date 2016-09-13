@@ -35,8 +35,10 @@ import gov.nist.javax.sip.message.SIPResponse;
 import gov.nist.javax.sip.stack.LoadBalancerNioMessageProcessorFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -75,6 +77,7 @@ import javax.sip.header.Header;
 import javax.sip.header.HeaderAddress;
 import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
+import javax.sip.header.ReasonHeader;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.ToHeader;
@@ -142,6 +145,9 @@ public class SIPBalancerForwarder implements SipListener {
     public void start() {
     	
 		balancerRunner.balancerContext.isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
+		balancerRunner.balancerContext.isSend5xxResponse = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSend5xxResponse","false"));
+		balancerRunner.balancerContext.isSend5xxResponseReasonHeader = balancerRunner.balancerContext.properties.getProperty("isSend5xxResponseReasonHeader");
+		balancerRunner.balancerContext.isSend5xxResponseSatusCode = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("isSend5xxResponseSatusCode","503"));
     	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.properties.getProperty("sipHeaderAffinityKey","Call-ID");
     	balancerRunner.balancerContext.isUseWithNexmo = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isUseWithNexmo","false"));
 
@@ -1539,21 +1545,60 @@ public class SIPBalancerForwarder implements SipListener {
             return;
         }
 
-		if (!isRequestFromServer) {
-			request.addHeader(viaHeaderExternal);
-			if (viaHeaderInternal != null)
-				request.addHeader(viaHeaderInternal);
+        try 
+        {
+        	if (!isRequestFromServer) {
+        		request.addHeader(viaHeaderExternal);
+        		if (viaHeaderInternal != null)
+        			request.addHeader(viaHeaderInternal);
 
-			if (balancerRunner.balancerContext.isTwoEntrypoints())
-				balancerRunner.balancerContext.internalSipProvider.sendRequest(request);
-			else
-				balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
-        } else {
-            // Check if the next hop is actually the load balancer again
-            if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
-            if(viaHeaderExternal != null) request.addHeader(viaHeaderExternal); 
-            balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
+        		if (balancerRunner.balancerContext.isTwoEntrypoints())
+        			balancerRunner.balancerContext.internalSipProvider.sendRequest(request);
+        		else
+        			balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
+        	} else {
+        		// Check if the next hop is actually the load balancer again
+        		if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
+        		if(viaHeaderExternal != null) request.addHeader(viaHeaderExternal); 
+        		balancerRunner.balancerContext.externalSipProvider.sendRequest(request);
+        	}
         }
+        catch (SipException e) 
+        {
+        	if(balancerRunner.balancerContext.isSend5xxResponse)
+        		try {
+        			Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.SERVICE_UNAVAILABLE, request);
+        			RouteList routeList = ((SIPMessage)request).getRouteHeaders();
+        			if (routeList != null) {
+        				Route route = (Route)routeList.getFirst();
+        				SipUri sipUri = (SipUri)route.getAddress().getURI();
+        				if (sipUri.toString().contains("node_host") || sipUri.toString().contains("node_port")) {
+        					String nodeHost = sipUri.getParameter("node_host");
+        					int nodePort = Integer.parseInt(sipUri.getParameter("node_port"));
+        					ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+        					viaHeader.setHost(nodeHost);
+        					viaHeader.setPort(nodePort);
+        				}
+        			}
+        			if(balancerRunner.balancerContext.isSend5xxResponseReasonHeader!=null)
+        			{
+        				HeaderFactory hf=SipFactory.getInstance().createHeaderFactory();
+        				ReasonHeader reasonHeader = hf.createReasonHeader(transport, 
+        								balancerRunner.balancerContext.isSend5xxResponseSatusCode, 
+        								balancerRunner.balancerContext.isSend5xxResponseReasonHeader);
+        				response.setHeader(reasonHeader);
+        			}
+        			sipProvider.sendResponse(response);
+        		} catch (SipException ex) {
+        			logger.error("Unexpected exception while sending SERVICE_UNAVAILABLE", ex);
+        		} catch (ParseException ex) {
+        			logger.error("Unexpected exception while sending SERVICE_UNAVAILABLE", ex);
+        		} catch (NumberFormatException ex) {
+        			logger.error("Unexpected exception while sending SERVICE_UNAVAILABLE", ex);
+        		} catch (InvalidArgumentException ex) {
+        			logger.error("Unexpected exception while sending SERVICE_UNAVAILABLE", ex);
+        		}
+			}
    
     }
 
