@@ -31,7 +31,7 @@ import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
-import com.meterware.httpunit.GetMethodWebRequest;
+import com.meterware.httpunit.PostMethodWebRequest;
 import com.meterware.httpunit.WebConversation;
 import com.meterware.httpunit.WebRequest;
 import com.meterware.httpunit.WebResponse;
@@ -98,7 +98,7 @@ public class InstanceIdAlgorithmTest
 
 		for(int i = 0; i < numberUsers;i++)
 		{
-			userArray[i] = new HttpUser(1, locker);
+			userArray[i] = new HttpUser(i, locker);
 			userArray[i].start();
 		}
 		
@@ -131,11 +131,11 @@ public class InstanceIdAlgorithmTest
 	private class HttpUser extends Thread
 	{
 		int codeResponse;
-		int instanceId;
+		int accountSid;
 		ClientListener listener;
-		public HttpUser(int instanceId, ClientListener listener)
+		public HttpUser(int accountSid, ClientListener listener)
 		{
-		 this.instanceId = instanceId;	
+		 this.accountSid = accountSid;	
 		 this.listener = listener;
 		}
 
@@ -144,8 +144,10 @@ public class InstanceIdAlgorithmTest
 			try 
 			{ 
 				WebConversation conversation = new WebConversation();
-				WebRequest request = new GetMethodWebRequest(
-						new String("http://127.0.0.1:2080/app?fName=Konstantin&lName=Nosach&CallSid="+instanceId+"-123"));
+				WebRequest request = new PostMethodWebRequest(
+						"http://user:password@127.0.0.1:2080/restcomm/2012-04-24/Accounts/"+accountSid+"/Calls.json/1-CAccccfd3a0c3");
+				request.setHeaderField("Url", "http://192.168.1.151:8080/restcomm/demos/conference.xml");
+				request.setHeaderField("MoveConnectedCallLeg", "true");
 				WebResponse response = conversation.getResponse(request);
 				codeResponse = response.getResponseCode();
 				listener.clientCompleted();

@@ -80,15 +80,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	public synchronized SIPNode processHttpRequest(HttpRequest request) {
 		//if(invocationContext.nodes.size()>0) {
 		if(invocationContext.sipNodeMap.size()>0) {
-			String callSid = getUrlParameters(request.getUri()).get("CallSid");
-			
-			if(callSid == null) 
-				callSid = getParameterFromCookie(request, "CallSid");
-			
-			if(callSid!=null)
-			{
-				return processCallSid(callSid);
-			}
+			String instanceId = getInstanceId(request.getUri());
+			if(instanceId!=null)
+				return getNodeByInstanceId(instanceId);
 			
 			String httpSessionId = null;
 			httpSessionId = getUrlParameters(request.getUri()).get("jsessionid");
@@ -191,6 +185,20 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
     	}
     	return parameters;
     }
+	
+	private String getInstanceId(String url)
+	{
+		String[] tokens = url.split("/");
+		if(tokens.length>6)
+		{
+			if(tokens[6].split("-").length>1)
+				return tokens[6].split("-")[0];
+			else
+				return null;
+		}	
+		return null;
+	}
+	
 	private String getParameterFromCookie(HttpRequest request, String parameter){
 		
 			CookieDecoder cookieDocoder = new CookieDecoder();
@@ -240,39 +248,20 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}	
 	
-	private SIPNode processCallSid(String callSid)
+	private SIPNode getNodeByInstanceId(String instanceId)
 	{
-		String [] tmpArray = callSid.split("-");
-		String instanceId = null;
-		if(tmpArray.length>1)
-			instanceId = tmpArray[0];
-		if(instanceId!=null)
+		if(logger.isDebugEnabled())
+			logger.debug("Node by instanceId("+instanceId+") getting");
+		SIPNode node = invocationContext.httpNodeMap.get(new KeyHttp(Integer.parseInt(instanceId)));
+		if(node!=null)
 		{
-			SIPNode node = invocationContext.httpNodeMap.get(new KeyHttp(Integer.parseInt(instanceId)));
-			if(node!=null)
-			{
-				return node;
-			}
-			else
-			{
-				if(instanceIdIterator==null)
-					instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
-				logger.warn("instanceId exists in HTTP request but doesn't match to any node. LB will send request to node accordingly RR algorithm");
-				if(instanceIdIterator.hasNext())
-					return instanceIdIterator.next();
-				else
-				{
-					instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
-					if(instanceIdIterator.hasNext())
-						return instanceIdIterator.next();
-					else
-						return null;
-				}
-			}
+			return node;
 		}
 		else
 		{
-			logger.warn("CallSID parameter exists in HTTP request but instanceId doesn't. LB will send request to node accordingly RR algorithm");
+			if(instanceIdIterator==null)
+				instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
+			logger.warn("instanceId exists in HTTP request but doesn't match to any node. LB will send request to node accordingly RR algorithm");
 			if(instanceIdIterator.hasNext())
 				return instanceIdIterator.next();
 			else
