@@ -1408,10 +1408,13 @@ public class SIPBalancerForwarder implements SipListener {
                 }
             } else {
                 nextNode = ctx.balancerAlgorithm.processAssignedExternalRequest(request, assignedNode);
+                if(logger.isDebugEnabled()) {
+                    logger.debug("Next node " + nextNode + " from assignedNode " + assignedNode);
+                }
                 //add Route header for using it for transferring instead of using uri
                 if(nextNode!=null && hints.subsequentRequest && !isRequestFromServer)
                 {
-                	if(request.getRequestURI() instanceof SipURI) 
+                	if(request.getRequestURI().isSipURI()) 
                 	{
                         SipURI sipUri =(SipURI) request.getRequestURI();                                             
                         SipURI routeSipUri = balancerRunner.balancerContext.addressFactory.createSipURI(null, nextNode.getIp());
@@ -1424,10 +1427,26 @@ public class SIPBalancerForwarder implements SipListener {
                         	routeSipUri.setTransportParam(transport);
                         	routeSipUri.setLrParam();                     
                      
-                        	if(!sipUri.getHost().equals(routeSipUri) || sipUri.getPort()!=routeSipUri.getPort())
+                        	if(!sipUri.getHost().equals(routeSipUri.getHost()) || sipUri.getPort()!=routeSipUri.getPort())
                         	{
-                        		final RouteHeader route = balancerRunner.balancerContext.headerFactory.createRouteHeader(balancerRunner.balancerContext.addressFactory.createAddress(routeSipUri));
-                        		request.addFirst(route);
+                        		Boolean oldHeaderMatch=false;
+                        		Header oldHeader=request.getHeader(RouteHeader.NAME);
+                        		if(oldHeader!=null)
+                        		{
+                        			RouteHeader oldRouteHeader=(RouteHeader)oldHeader;
+                        			if(oldRouteHeader.getAddress().getURI().isSipURI())
+                        			{
+                        				SipURI oldURI=(SipURI)oldRouteHeader.getAddress().getURI();
+                        				if(oldURI.getHost().equals(routeSipUri.getHost()) && oldURI.getPort()==routeSipUri.getPort())
+                        					oldHeaderMatch=true;                        				
+                        			}
+                        		}
+                        		
+                        		if(!oldHeaderMatch)
+                        		{
+                        			final RouteHeader route = balancerRunner.balancerContext.headerFactory.createRouteHeader(balancerRunner.balancerContext.addressFactory.createAddress(routeSipUri));
+                        			request.addFirst(route);
+                        		}
                         	}
                         }
                 	}
