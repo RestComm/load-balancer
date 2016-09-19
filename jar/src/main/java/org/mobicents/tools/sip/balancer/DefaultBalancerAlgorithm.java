@@ -191,7 +191,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		String[] tokens = url.split("/");
 		if(tokens.length>6)
 		{
-			if(tokens[6].split("-").length>1)
+			if(tokens[3].equals("Accounts")&&tokens[6].split("-").length>1)
 				return tokens[6].split("-")[0];
 			else
 				return null;
