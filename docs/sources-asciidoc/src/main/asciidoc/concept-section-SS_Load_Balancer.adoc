@@ -108,6 +108,12 @@ to server and next clients reuse it. When connection to server established it ca
 be used in both directions (transceiver mode): ESME and SMSC can send messages
 through the load balancer.
 
+If we have more than one server then Load balancer uses round robin algorithm for
+sending the requests from clients to the servers. You can specify in which way
+Load balancer will send requests from the server to clients by using
+isUseRrSendSmppRequestToClient property. If true, Load balancer uses
+round robin algorithm; if false, LB sends each request to all clients.
+
 .SMPP load balancer diagram
 image::images/SMPP-lb-diagram.png[]
 
@@ -400,7 +406,7 @@ smppPort = 2776
 # The port of the load balancer for SSL protocol
 smppSslPort = 2876
 # The IP address:port of SMPP server
-remoteServers=174.37.245.38:8000
+remoteServers=174.37.245.38:8000,174.37.245.40:8000
 # it is recommended that at any time there were no more than
 #10 (ten) SMPP messages are outstanding
 maxConnectionSize = 10
@@ -420,6 +426,9 @@ reconnectPeriod = 1000
 timeoutConnectionCheckClientSide = 1000
 # Connection check server side timer
 timeoutConnectionCheckServerSide = 1000
+#if true use round robin algorithm for sending SMPP requests from server to clients
+#if false send each request from server to all clients
+#isUseRrSendSmppRequestToClient=false
 
 # SSL configuration
 #points to the keystore file we generated before
@@ -568,6 +577,11 @@ timeoutConnectionCheckClientSide::
 timeoutConnectionCheckServerSide::
   In milliseconds.
   Connection check server side timer(time which LB wait for enquire_link_resp and if doesn’t receive, tries to rebind to server).
+
+isUseRrSendSmppRequestToClient::
+  If true use round robin algorithm for sending SMPP requests from server to client
+  if false send each request from server to all clients. Default is false.
+
 javax.net.ssl.keyStore::
   Points to the keystore file we generated before.
 
