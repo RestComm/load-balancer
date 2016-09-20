@@ -66,6 +66,18 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
 	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStorePassword"));
 	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStore"));
 	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStorePassword"));
+	        String sProtocols = balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS");
+	        String sCipherSuites = balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.ENABLED_CIPHER_SUITES");
+	        if(sProtocols!=null)
+	        {
+	        	String [] protocols = sProtocols.split(",");
+	        	sslConfig.setIncludeProtocols(protocols);
+	        }
+	        if(sCipherSuites!=null)
+	        {
+	        	String [] cipherSuites = sCipherSuites.split(",");
+	        	sslConfig.setIncludeCipherSuites(cipherSuites);
+	        }
         	SslContextFactory factory = new SslContextFactory(sslConfig);
     	    SSLEngine sslEngine = factory.newSslEngine();
     	    sslEngine.setUseClientMode(false);

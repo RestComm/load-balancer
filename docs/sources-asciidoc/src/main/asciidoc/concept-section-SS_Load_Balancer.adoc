@@ -430,8 +430,10 @@ javax.net.ssl.keyStorePassword=123456
 javax.net.ssl.trustStore=/home/konstantinnosach/tmp/keystore
 #provides the password we used when we generated the truststore
 javax.net.ssl.trustStorePassword=123456
-#this is important because sipp supports only TLSv1 and so we need to restrict the protocols only to that
-gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS=TLSv1
+#sets secure protocols
+gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS=TLSv1,TLSv1.1,TLSv1.2
+#sets cipher suits
+#gov.nist.javax.sip.ENABLED_CIPHER_SUITES=TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
 #can be : Enabled, Disabled, DisabledAll, Want
 #if Enabled, used to request and require client certificate authentication: the connection will terminate if no suitable client certificate is presented
 #if Want, used to request client certificate authentication, but keep the connection if no authentication is provided
@@ -579,7 +581,10 @@ javax.net.ssl.trustStorePassword::
   Provides the password we used when we generated the truststore.
 
 gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS::
-  This is important because sipp supports only TLSv1 and so we need to restrict the protocols only to that.
+  Sets secure protocols for all balancers. All available : SSLv2Hello, SSLv3, TLSv1, TLSv1.1, TLSv1.2
+
+gov.nist.javax.sip.ENABLED_CIPHER_SUITES::
+  Sets cipher suits for HTTP and SIP balancers.
 
 gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE::
   If Enabled, used to request and require client certificate authentication: the connection will terminate if no suitable client certificate is presented.

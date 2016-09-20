@@ -84,6 +84,8 @@ public class HttpsBalancerWithHttpServerTest
 		properties.setProperty("javax.net.ssl.keyStorePassword","123456");
 		properties.setProperty("javax.net.ssl.trustStore",HttpsBalancerWithHttpServerTest.class.getClassLoader().getResource("keystore").getFile());
 		properties.setProperty("javax.net.ssl.trustStorePassword","123456");
+		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS", "TLSv1,TLSv1.1,TLSv1.2");
+		properties.setProperty("gov.nist.javax.sip.ENABLED_CIPHER_SUITES","TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
 		balancerRunner.start(properties);
 		try 
 		{
