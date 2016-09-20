@@ -61,9 +61,10 @@ public class RebindTest {
 
 	private static BalancerRunner balancer;
 	private static int clientNumbers = 1;
-	private static int serverNumbers = 1;
+	private static int serverNumbers = 3;
 	private static DefaultSmppServer[] serverArray;
-	private static DefaultSmppServerHandler serverHandler = new DefaultSmppServerHandler() ;
+	private static DefaultSmppServerHandler [] serverHandlerArray = new DefaultSmppServerHandler[serverNumbers];
+	
 
 	@BeforeClass
 	public static void initialization() {
@@ -77,8 +78,8 @@ public class RebindTest {
 		// start servers
 		serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),	serverHandler, executor, monitorExecutor);
+			serverHandlerArray[i] = new DefaultSmppServerHandler();
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor, monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -98,16 +99,25 @@ public class RebindTest {
 	}
 	//tests situation with dropped connection to server(rebind check)
 	@Test
+	public void testDisconnectServers() {
+		Locker locker = new Locker(clientNumbers);
+		// start client
+		new Load(locker, 1).start();
+		locker.waitForClients();
+		
+		assertEquals(1, serverHandlerArray[2].getSmsNumber());
+		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
+	}
+	
+	@Test
 	public void testRebind() {
 		Locker locker = new Locker(clientNumbers);
 		// start client
-		new Load(locker).start();
+		new Load(locker, 2).start();
 		locker.waitForClients();
-		assertEquals(2, serverArray[0].getChannelConnects());
-		assertEquals(2, serverArray[0].getCounters().getBindRequested());
-		assertEquals(1, serverHandler.getSmsNumber());
+		
+		assertEquals(2, serverHandlerArray[0].getSmsNumber());
 		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
-	
 	}
 
 	@AfterClass
@@ -127,9 +137,11 @@ public class RebindTest {
 
 	private class Load extends Thread {
 		private ClientListener listener;
+		private int testNumber; 
 
-		Load(ClientListener listener) {
+		Load(ClientListener listener, int testNumber) {
 			this.listener = listener;
+			this.testNumber = testNumber;
 		}
 
 		public void run() {
@@ -137,14 +149,31 @@ public class RebindTest {
 			SmppSession session = null;
 			try {
 
-				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false),new DefaultSmppClientHandler());
-				serverArray[0].stop();
-				serverArray[0].start();
-				sleep(1000);
-				session.submit(ConfigInit.getSubmitSm(), 12000);
-				sleep(1000);
-				session.unbind(5000);
-				//sleep(1000);
+				if(testNumber == 1)
+				{
+					session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false),new DefaultSmppClientHandler());
+					serverArray[0].stop();
+					serverArray[1].stop();
+					sleep(1000);
+					session.submit(ConfigInit.getSubmitSm(), 12000);
+					sleep(1000);
+					session.unbind(5000);
+					serverArray[0].start();
+					serverArray[1].start();
+				}
+				if(testNumber == 2)
+				{
+					session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false),new DefaultSmppClientHandler());
+					serverArray[0].stop();
+					serverArray[0].start();
+					sleep(2000);
+					 for(int j = 0; j < 6; j++)
+					 {
+						 session.submit(ConfigInit.getSubmitSm(), 12000); 
+					 }
+					 sleep(1000);
+				     session.unbind(5000);
+				}
 
 			} catch (Exception e) {
 				logger.error("", e);

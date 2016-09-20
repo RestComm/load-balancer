@@ -69,7 +69,8 @@ public class MServerConnectionImpl implements ServerConnection {
 	private Channel channel;
 	private final PduTranscoder transcoder;
 	private Map<Integer, TimerData> packetMap =  new ConcurrentHashMap <Integer, TimerData>();
-	private Map<Integer, Integer> sequenceMap =  new ConcurrentHashMap <Integer, Integer>();
+	private Map<Integer, CustomerPacket> sequenceMap =  new ConcurrentHashMap <Integer, CustomerPacket>();
+ 	
 	private UserSpace userSpace;
 	private BaseBind<?> bindRequest;
 	public BaseBind<?> getBindRequest() {
@@ -181,7 +182,7 @@ public class MServerConnectionImpl implements ServerConnection {
 				packetMap.put(packet.getSequenceNumber(), new TimerData(packet, monitorExecutor.schedule(responseTimer,timeoutResponse,TimeUnit.MILLISECONDS),responseTimer));
 				
 				userSpace = lbServerListener.bindRequested(sessionId, this, this.bindRequest);
-				userSpace.bind(sessionId, this, packet);
+				userSpace.bind(this, packet);
 				
 
 			}
@@ -242,12 +243,12 @@ public class MServerConnectionImpl implements ServerConnection {
 				if(logger.isDebugEnabled())
 					logger.debug("LB received SMPP response (" + packet + ") from client. session ID : " + sessionId);
 				
-				Integer originalSequence=sequenceMap.remove(packet.getSequenceNumber());
+				CustomerPacket originalSequence=sequenceMap.remove(packet.getSequenceNumber());
 				if(originalSequence!=null)
 				{
-					packet.setSequenceNumber(originalSequence);
+					packet.setSequenceNumber(originalSequence.getSequence());
 					correctPacket = true;
-					userSpace.sendResponseToServer(sessionId,packet);
+					userSpace.sendResponseToServer(sessionId,packet,originalSequence.getSessionId());
 				}
 				
 				break;				
@@ -255,7 +256,7 @@ public class MServerConnectionImpl implements ServerConnection {
 				
 				if(logger.isDebugEnabled())
 					logger.debug("LB received enquire_link response from client. session ID : " + sessionId);
-				
+
 				correctPacket = true;
 				isClientSideOk = true;
 				break;
@@ -396,7 +397,7 @@ public class MServerConnectionImpl implements ServerConnection {
     public void sendUnbindRequest(Pdu packet) {
 
 		Integer currSequence=lastSequenceNumberSent.incrementAndGet();
-		sequenceMap.put(currSequence, packet.getSequenceNumber());
+		sequenceMap.put(currSequence, new CustomerPacket(null,packet.getSequenceNumber()));
 		packet.setSequenceNumber(currSequence);
 
 		ChannelBuffer buffer = null;
@@ -413,9 +414,9 @@ public class MServerConnectionImpl implements ServerConnection {
 		if(logger.isDebugEnabled()) 
 			logger.debug("LB sent unbind request ("+ packet +") to client. session ID : " + sessionId);
 
-		channel.write(buffer);
-		
+		channel.write(buffer);		
 	}
+	
 	/**
 	*Send generic_nack to client if unable to convert request
 	*from client
@@ -445,9 +446,9 @@ public class MServerConnectionImpl implements ServerConnection {
 	
 	
 	@Override
-	public void sendRequest(Pdu packet) {
+	public void sendRequest(Long serverSessionID,Pdu packet) {
 		Integer currSequence=lastSequenceNumberSent.incrementAndGet();
-		sequenceMap.put(currSequence, packet.getSequenceNumber());
+		sequenceMap.put(currSequence, new CustomerPacket(serverSessionID,packet.getSequenceNumber()));
 		packet.setSequenceNumber(currSequence);
 		
 		ChannelBuffer buffer = null;
@@ -585,6 +586,11 @@ public class MServerConnectionImpl implements ServerConnection {
 		
 		channel.close();	
 		logger.info("Connection to  client. session ID : " + sessionId + " closed");
+	}
+
+	@Override
+	public void sendRequest(Pdu packet) {
+		
 	}
 
 }

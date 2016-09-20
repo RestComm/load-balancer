@@ -58,11 +58,12 @@ public class SslBalancerSslServerTest {
 				}
 			});
 
-	private static int clientNumbers = 10;
-	private static int serverNumbers = 1;
+	private static int clientNumbers = 6;
+	private static int serverNumbers = 3;
 	private static DefaultSmppServer [] serverArray;
 	private static BalancerRunner balancer;
-	private static DefaultSmppServerHandler serverHandler;
+    private static DefaultSmppServerHandler [] serverHandlerArray = new DefaultSmppServerHandler[serverNumbers];
+    private static DefaultSmppClientHandler [] clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
 
 	@BeforeClass
 	public static void initialization() {
@@ -75,8 +76,8 @@ public class SslBalancerSslServerTest {
 		// start servers
 		serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverHandler = new DefaultSmppServerHandler();
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,true),serverHandler, executor, monitorExecutor);
+			serverHandlerArray[i] = new DefaultSmppServerHandler();
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,true),serverHandlerArray[i], executor, monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -102,12 +103,18 @@ public class SslBalancerSslServerTest {
 		
 		ArrayList<Load> customers = new ArrayList<>();
 		for(int i = 0; i < clientNumbers; i++)
-			customers.add(new Load(locker,true));
+			customers.add(new Load(i,locker,true));
 		for(int i = 0; i < clientNumbers; i++)
 			customers.get(i).start();
 		
 		locker.waitForClients();
-		assertEquals(clientNumbers,serverHandler.getSmsNumber());
+	    
+		long smsToServers = 0;
+		for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
+			smsToServers+=serverHandler.smsNumber;
+		assertEquals(clientNumbers, smsToServers);
+		for(DefaultSmppClientHandler clientHandler : clientHandlerArray)
+			assertEquals(1,clientHandler.getReponsesNumber().get());
 		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
 		
 	}
@@ -128,19 +135,22 @@ public class SslBalancerSslServerTest {
 	}
 
 	private class Load extends Thread {
+		private int i;
 		private ClientListener listener;
 		private boolean isSslClient;
 
-		Load(ClientListener listener, boolean isSslClient) {
+		Load(int i, ClientListener listener, boolean isSslClient) {
 			this.listener = listener;
 			this.isSslClient = isSslClient;
+			this.i = i;
 		}
 
 		public void run() {
 			DefaultSmppClient client = new DefaultSmppClient();
+			clientHandlerArray[i] = new DefaultSmppClientHandler();
 			SmppSession session = null;
 			try {
-				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,isSslClient),new DefaultSmppClientHandler());
+				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,isSslClient),clientHandlerArray[i]);
 				session.submit(ConfigInit.getSubmitSm(), 12000);
 				sleep(100);
 				session.unbind(5000);

@@ -53,6 +53,11 @@ public interface ServerConnection {
 	*/
 	public void sendRequest(Pdu packet);
 	/**
+	*Send SMPP request to client
+	*@param serverSessionID server ID andPDU packet
+	*/
+	public void sendRequest(Long serverSessionID,Pdu packet);
+	/**
 	*Create a response with error to the client if he did not get it in time
 	*@param packet PDU packet
 	*/

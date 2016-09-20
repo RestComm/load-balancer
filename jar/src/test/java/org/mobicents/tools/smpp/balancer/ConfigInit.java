@@ -63,6 +63,13 @@ public class ConfigInit {
 		return config;
 	}
 	
+	static Properties getLbProperties(boolean isSsl, boolean terminateTLSTraffic, boolean isOneServer)
+	{
+		Properties properties = getLbProperties(isSsl,terminateTLSTraffic);
+		properties.setProperty("remoteServers","127.0.0.1:10021");
+		properties.setProperty("isUseRrSendSmppRequestToClient","true");
+		return properties;
+	}
 	static Properties getLbProperties(boolean isSsl, boolean terminateTLSTraffic)
 	{
 		Properties properties = new Properties();
@@ -76,7 +83,7 @@ public class ConfigInit {
 		properties.setProperty("smppName","SMPP Load Balancer");
 		properties.setProperty("smppHost","127.0.0.1");
 		properties.setProperty("smppPort","2776");
-		properties.setProperty("remoteServers","127.0.0.1:10021");
+		properties.setProperty("remoteServers","127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023");
 		properties.setProperty("maxConnectionSize","10");
 		properties.setProperty("nonBlockingSocketsEnabled","true");
 		properties.setProperty("defaultSessionCountersEnabled","true");

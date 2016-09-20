@@ -1,7 +1,7 @@
 package org.mobicents.tools.smpp.multiplexer;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.log4j.Logger;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.SIPNode;
+import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
 
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.pdu.BaseBind;
@@ -32,7 +33,10 @@ public class UserSpace {
 	private ConcurrentLinkedQueue<MServerConnectionImpl> pendingCustomers;
 	private Map<Long, MServerConnectionImpl> customers;
 	private Map<Long, MClientConnectionImpl> connectionsToServers;
-	private AtomicLong serverRequest = new AtomicLong(0);
+	private AtomicLong requestToServer = new AtomicLong(0);
+	private AtomicLong requestToClient = new AtomicLong(0);
+	private boolean isUseRrSendSmppRequestToClient;
+	
 	private SIPNode [] nodes;
 	private Long serverSessionID = new Long(0);
 	private ScheduledExecutorService monitorExecutor;
@@ -47,16 +51,17 @@ public class UserSpace {
 		this.systemId = systemId;
 		this.password = password;
 		this.balancerRunner = balancerRunner;
-		this.customers = new HashMap<Long, MServerConnectionImpl>();
+		this.customers = new ConcurrentHashMap<Long, MServerConnectionImpl>();
 		this.pendingCustomers = new ConcurrentLinkedQueue<MServerConnectionImpl>();
-		this.connectionsToServers = new HashMap<Long, MClientConnectionImpl>();
+		this.connectionsToServers = new ConcurrentHashMap<Long, MClientConnectionImpl>();
 		this.nodes = nodes;
 		this.monitorExecutor = monitorExecutor;
 		this.dispatcher = dispatcher;
 		this.reconnectPeriod = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("reconnectPeriod", "500"));
+		this.isUseRrSendSmppRequestToClient = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isUseRrSendSmppRequestToClient","false"));
 	}
 	
-	public synchronized void bind(Long sessionId, MServerConnectionImpl customer,Pdu bindPdu) {
+	public synchronized void bind(MServerConnectionImpl customer,Pdu bindPdu) {
 		
 			switch(bindState.get())
 			{
@@ -164,7 +169,7 @@ public class UserSpace {
 		boolean isSslConnection = customer.getConfig().isUseSsl();
 		this.systemType = customer.getConfig().getSystemType();
 		if(logger.isDebugEnabled())
-			logger.debug("Start initial bind for customer with sessionID : ");
+			logger.debug("Start initial bind for customer with sessionID : " + customer.getSessionId());
 		bindingCustomer.set(customer);
 		//INITIAL CONNECTION TO ALL SERVERS
 		for(SIPNode node: nodes)
@@ -175,7 +180,8 @@ public class UserSpace {
 				isSslConnection = false;
 				
 			connectionsToServers.put(serverSessionID, new MClientConnectionImpl(serverSessionID, this, monitorExecutor, balancerRunner, node, isSslConnection));
-			monitorExecutor.execute(new MBinderRunnable(connectionsToServers.get(serverSessionID), systemId, password, systemType));			
+			monitorExecutor.execute(new MBinderRunnable(connectionsToServers.get(serverSessionID), systemId, password, systemType));
+			serverSessionID++;
 		}
 	}
 	
@@ -211,11 +217,41 @@ public class UserSpace {
 		
 		if(logger.isDebugEnabled())
 			logger.debug("LB sending message form customer with sessionId : " + sessionId + " to server ");
-		for(Long serverSessionID :connectionsToServers.keySet())
-			connectionsToServers.get(serverSessionID).sendSmppRequest(sessionId ,packet);
 		
+		requestToServer.compareAndSet(Long.MAX_VALUE, 0);
+		MClientConnectionImpl[] currItems=new MClientConnectionImpl[connectionsToServers.size()];
+		currItems=connectionsToServers.values().toArray(currItems);
+		while(currItems[(int)(requestToServer.get()%connectionsToServers.size())].getClientState() != ClientState.BOUND)
+		{
+			requestToServer.getAndIncrement();
+		}
+			currItems[(int)(requestToServer.getAndIncrement()%connectionsToServers.size())].sendSmppRequest(sessionId, packet);
 	}
-	public void sendResponseToServer(Long sessionId, Pdu packet)
+	
+	public void sendRequestToClient(Pdu packet, Long serverSessionId)
+	{
+		balancerRunner.balancerContext.smppRequestsToClient.getAndIncrement();
+		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
+		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
+		
+		if(logger.isDebugEnabled())
+			logger.debug("LB sending request from server with sessionId : " + serverSessionId + " to client. via RR algorithm? : " + isUseRrSendSmppRequestToClient);
+		
+		if(isUseRrSendSmppRequestToClient)
+		{
+			//sends using RR algorithm
+			requestToClient.compareAndSet(Long.MAX_VALUE, 0);
+			customers.get(requestToClient.getAndIncrement()%customers.size()).sendRequest(serverSessionId,packet);
+		}
+		else
+		{
+			//sends to all clients
+			for(Long clientSessionID : customers.keySet())
+				customers.get(clientSessionID).sendRequest(serverSessionId,packet);
+		}
+	}
+	
+	public void sendResponseToServer(Long sessionId, Pdu packet,Long serverSessionId)
 	{
 		if(logger.isDebugEnabled())
 			logger.debug("LB sending response from customer with sessionId : " + sessionId + " to server ");
@@ -224,8 +260,8 @@ public class UserSpace {
 		balancerRunner.balancerContext.smppResponsesProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
 		
-		for(Long serverSessionID :connectionsToServers.keySet())
-			connectionsToServers.get(serverSessionID).sendSmppResponse(packet);
+		if(serverSessionId!=null)
+			connectionsToServers.get(serverSessionId).sendSmppResponse(packet);
 		
 	}
 
@@ -244,16 +280,6 @@ public class UserSpace {
 				customers.get(customerPacket.getSessionId()).sendResponse(packet);
 	}
 	
-	public void sendRequestToClient(Pdu packet)
-	{
-		balancerRunner.balancerContext.smppRequestsToClient.getAndIncrement();
-		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
-		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
-		
-		serverRequest.compareAndSet(Long.MAX_VALUE, 0);
-		customers.get(serverRequest.getAndIncrement()%customers.size()).sendRequest(packet);
-	}
-	
 	public void enquireLinkReceivedFromServer()
 	{
 		for(Long key:customers.keySet())
@@ -263,21 +289,34 @@ public class UserSpace {
 	public void unbindRequestedFromServer(Unbind packet, Long serverSessioId)
 	{
 		if(logger.isDebugEnabled())
-			logger.debug("LB got unbind request form server with serverSessionId :" + serverSessioId+". LB is sending unbind to all customers");
+			logger.debug("LB got unbind request form server with serverSessionId :" + serverSessioId+". LB removed it from list of nodes");
 		
-		for(Long key:customers.keySet())
-			customers.get(key).sendUnbindRequest(packet);
+		connectionsToServers.remove(serverSessioId);
 		
-		connectionsToServers.get(serverSessioId).sendUnbindResponse(packet.createResponse());
+		if(connectionsToServers.isEmpty())
+		{
+			if(logger.isDebugEnabled())
+				logger.debug("LB hasn't had nodes already : " + serverSessioId+". LB sent unbind to all clients and unbind response to server");
+			
+			for(Long key:customers.keySet())
+				customers.get(key).sendUnbindRequest(packet);
+		
+			connectionsToServers.get(serverSessioId).sendUnbindResponse(packet.createResponse());
+		}
 	}
-	//TODO: handle server UP , server DOWN events
+	
 	public void connectionLost(Long serverSessionID)
 	{
 		//set all connected customers to rebinding state and trying to reconnect
-		for(Long key:customers.keySet())
-			customers.get(key).reconnectState(true);
+		if(connectionsToServers.size() == 1)
+			for(Long key:customers.keySet())
+				customers.get(key).reconnectState(true);
+		
 		MClientConnectionImpl connection = connectionsToServers.get(serverSessionID);
+		connectionsToServers.remove(serverSessionID);
 		monitorExecutor.schedule(new MBinderRunnable(connection, systemId, password, systemType), reconnectPeriod, TimeUnit.MILLISECONDS);
+		monitorExecutor.schedule(new MReconnectCheckRunnable(connection,connectionsToServers, serverSessionID), reconnectPeriod + 500, TimeUnit.MILLISECONDS);
+
 	}
 	
 	public void reconnectSuccesful(Long serverSessionID)

@@ -559,4 +559,10 @@ public class ServerConnectionImpl implements ServerConnection {
 	public void serverSideOk() {
 		isServerSideOk = true;
 	}
+
+	@Override
+	public void sendRequest(Long serverSessionID, Pdu packet) {
+		// TODO Auto-generated method stub
+		
+	}
 }

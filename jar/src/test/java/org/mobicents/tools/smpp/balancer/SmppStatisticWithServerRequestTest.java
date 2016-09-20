@@ -76,7 +76,7 @@ public class SmppStatisticWithServerRequestTest{
 		boolean terminateTLSTraffic = true;
 		//start lb
 		balancer = new BalancerRunner();
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic,true));
 		//start servers
         serverArray = new AdvancedSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
@@ -175,7 +175,7 @@ public class SmppStatisticWithServerRequestTest{
 			 packet.setShortMessage(textBytes);
 			 packet.setSequenceNumber(i+2);
 			 serverArray[0].sendData(packet);
-			 sleep(100);
+			 sleep(1000);
 		     session.unbind(5000);
 		     sleep(100);
 		        }catch(Exception e){

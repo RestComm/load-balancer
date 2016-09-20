@@ -61,7 +61,7 @@ public class CommonTest{
          }
      }); 
     private static BalancerRunner balancer;
-    private static int serverNumbers = 1;
+    private static int serverNumbers = 3;
     private static DefaultSmppServer [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
@@ -97,12 +97,35 @@ public class CommonTest{
 			e.printStackTrace();
 		}
 	}
-	
+	@Test
+	public void testTransfer() 
+    {
+		int clientNumbers = 9;
+		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
+		int sms = 99;
+		Locker locker=new Locker(clientNumbers);
+		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
+		for(int i = 0; i < clientNumbers; i++)
+			processors.add(new Load(i, sms, locker));
+		
+		for(int i = 0; i < clientNumbers; i++)
+			processors.get(i).start();
+		
+	    locker.waitForClients();
+	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
+	    	assertNotEquals(0, serverHandler.smsNumber);
+	    	//assertEquals(sms*clientNumbers/serverNumbers,serverHandler.smsNumber);
+
+	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
+	    	assertEquals(sms,clientHandler.getReponsesNumber().get());
+	    
+	    assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
+    }
 	//tests work of enquire link timer
 	@Test
     public void testEnquireLinkTimer() 
     {
-		int clientNumbers = 1;
+		int clientNumbers = 3;
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
 		int sms= 0;
 		Locker locker=new Locker(clientNumbers);
@@ -114,8 +137,12 @@ public class CommonTest{
 			processors.get(i).start();
 		
 	    locker.waitForClients();
-   		assertEquals(3,serverHandlerArray[0].getEnqLinkNumber().get());
-		assertEquals(3,clientHandlerArray[0].getEnqLinkNumber().get());
+	    
+	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
+	    	assertEquals(3,serverHandler.getEnqLinkNumber().get());
+
+	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
+	    	assertEquals(3,clientHandler.getEnqLinkNumber().get());
 
     }
 	//tests work of session initialization timer
@@ -129,7 +156,7 @@ public class CommonTest{
 		} catch (Exception e) {
 			logger.error("", e);
 		} 
-		//assertEquals(1,balancer.smppBalancerRunner.getBalancerDispatcher().getNotBindClients().get());
+		assertEquals(1,balancer.smppBalancerRunner.getBalancerDispatcher().getNotBindClients().get());
     }
 	@After
 	public void resetCounters()
@@ -139,7 +166,6 @@ public class CommonTest{
 		    	serverArray[i].resetCounters();
 		    	serverHandlerArray[i].resetCounters();
 		    }
-		  //balancer.smppBalancerRunner.getBalancerDispatcher().getCounterConnections().set(0);
 	}
 
 	@AfterClass
@@ -184,7 +210,7 @@ public class CommonTest{
 			 }
 			 
 			 if(smsNumber == 0)
-			 	 sleep(13000);
+			 	 sleep(14000);
 			 
 			 sleep(2000);
 		     session.unbind(5000);

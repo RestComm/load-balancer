@@ -73,7 +73,7 @@ public class ResponseTimerTest {
 		boolean enableSslLbPort = false;
 		boolean terminateTLSTraffic = true;
 		balancer = new BalancerRunner();
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic, true));
         
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];

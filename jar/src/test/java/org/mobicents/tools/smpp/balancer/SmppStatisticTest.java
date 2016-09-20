@@ -77,7 +77,7 @@ public class SmppStatisticTest{
 		boolean terminateTLSTraffic = true;
 		//start lb
 		balancer = new BalancerRunner();
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic,true));
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];

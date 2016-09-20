@@ -301,7 +301,7 @@ public class MClientConnectionImpl implements ClientConnection{
 				correctPacket = true;
 				ServerTimerResponse response=new ServerTimerResponse(this ,packet);
 				packetMap.put(packet.getSequenceNumber(), new TimerData(packet, monitorExecutor.schedule(response,timeoutResponse,TimeUnit.MILLISECONDS),response));
-				userSpace.sendRequestToClient(packet);
+				userSpace.sendRequestToClient(packet, serverSessionID);
 			
 				break;
 			case SmppConstants.CMD_ID_ENQUIRE_LINK:
