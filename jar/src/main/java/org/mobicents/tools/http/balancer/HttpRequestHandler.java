@@ -33,6 +33,7 @@ import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -190,7 +191,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                 if(logger.isInfoEnabled()) {
                     logger.info("Service unavailable. No server is available.");
                 }
-                writeResponse(e, HttpResponseStatus.SERVICE_UNAVAILABLE, "Service is temporarily unavailable");
+                writeResponse(e, HttpResponseStatus.SERVICE_UNAVAILABLE, IOUtils.toString(this.getClass().getClassLoader().getResourceAsStream("500.html")));
                 return;
             }
 
@@ -340,7 +341,11 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         }
 
         // Write the response.
-        ChannelFuture future = e.getChannel().write(response);
+        ChannelFuture future = null;
+        if(status.equals(HttpResponseStatus.SERVICE_UNAVAILABLE))
+        	future = e.getChannel().write(buf);
+        else
+        	future = e.getChannel().write(response);
 
         // Close the connection after the write operation is done if necessary.
         if (close) {
