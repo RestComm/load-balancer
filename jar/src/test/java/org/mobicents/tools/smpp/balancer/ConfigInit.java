@@ -21,6 +21,7 @@ package org.mobicents.tools.smpp.balancer;
 
 import java.util.Properties;
 
+import org.mobicents.tools.sip.balancer.ActiveStandbyAlgorithm;
 import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.smpp.SmppBindType;
 import com.cloudhopper.smpp.SmppServerConfiguration;
@@ -66,8 +67,17 @@ public class ConfigInit {
 	static Properties getLbProperties(boolean isSsl, boolean terminateTLSTraffic, boolean isOneServer)
 	{
 		Properties properties = getLbProperties(isSsl,terminateTLSTraffic);
+		if(isOneServer)
+		{
 		properties.setProperty("remoteServers","127.0.0.1:10021");
 		properties.setProperty("isUseRrSendSmppRequestToClient","true");
+		}
+		else
+		{
+			properties.setProperty("remoteServers","127.0.0.1:10021,127.0.0.1:10022");
+			properties.setProperty("remoteServers","127.0.0.1:10021,127.0.0.1:10022");
+			properties.setProperty("algorithmClass", ActiveStandbyAlgorithm.class.getName());
+		}
 		return properties;
 	}
 	static Properties getLbProperties(boolean isSsl, boolean terminateTLSTraffic)

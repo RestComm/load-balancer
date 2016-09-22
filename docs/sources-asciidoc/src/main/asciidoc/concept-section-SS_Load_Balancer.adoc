@@ -180,13 +180,18 @@ org.Restcomm.tools.sip.balancer.CallIDAffinityBalancerAlgorithm::
               nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
   For HTTP it behaves like apache.
 
-  org.Restcomm.tools.sip.balancer.UserBasedAlgorithm::
+org.Restcomm.tools.sip.balancer.UserBasedAlgorithm::
     This algorithm algorithm tie all calls for a given DID/Number to the same node.
     All participants for a given conference will be on the same node.
     It selects nodes randomly to serve a give To header extracted from the requests and responses.
     It keeps a map with `To ->
                 nodeId` associations and this map is not shared with other load balancers which will cause them to make different decisions.
     For HTTP it behaves like apache.
+
+org.Restcomm.tools.sip.balancer.ActiveStandbyAlgorithm::
+  This algorithm allows to send all requests to the active node. If the active node
+  will disconnected in some way then the Load balancer will send requests to the 
+  passive node. This algorithm works for all protocols(SIP,HTTP,SMPP).
 
 org.Restcomm.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm::
   This algorithm is distributable and can be used in distributed load balancer configurations.

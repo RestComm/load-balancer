@@ -354,7 +354,7 @@ public class MClientConnectionImpl implements ClientConnection{
 					enquireRunnable=new ServerTimerEnquire(this);
 					enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
 
-				    userSpace.reconnectSuccesful(serverSessionID);
+				    userSpace.reconnectSuccesful(serverSessionID,this);
 				    clientState = ClientState.BOUND;
 				}else
 				{

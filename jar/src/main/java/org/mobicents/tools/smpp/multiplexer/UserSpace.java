@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
+import org.mobicents.tools.sip.balancer.ActiveStandbyAlgorithm;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
@@ -218,6 +219,15 @@ public class UserSpace {
 		if(logger.isDebugEnabled())
 			logger.debug("LB sending message form customer with sessionId : " + sessionId + " to server ");
 		
+		if(balancerRunner.algorithClassName.endsWith("ActiveStandbyAlgorithm"))
+		{
+			if(connectionsToServers.get(0l)!=null&&connectionsToServers.get(0l).getClientState()==ClientState.BOUND)
+				connectionsToServers.get(0l).sendSmppRequest(sessionId, packet);
+			else
+				connectionsToServers.get(1l).sendSmppRequest(sessionId, packet);
+		}
+		else
+		{
 		requestToServer.compareAndSet(Long.MAX_VALUE, 0);
 		MClientConnectionImpl[] currItems=new MClientConnectionImpl[connectionsToServers.size()];
 		currItems=connectionsToServers.values().toArray(currItems);
@@ -226,6 +236,7 @@ public class UserSpace {
 			requestToServer.getAndIncrement();
 		}
 			currItems[(int)(requestToServer.getAndIncrement()%connectionsToServers.size())].sendSmppRequest(sessionId, packet);
+		}
 	}
 	
 	public void sendRequestToClient(Pdu packet, Long serverSessionId)
@@ -315,14 +326,13 @@ public class UserSpace {
 		MClientConnectionImpl connection = connectionsToServers.get(serverSessionID);
 		connectionsToServers.remove(serverSessionID);
 		monitorExecutor.schedule(new MBinderRunnable(connection, systemId, password, systemType), reconnectPeriod, TimeUnit.MILLISECONDS);
-		monitorExecutor.schedule(new MReconnectCheckRunnable(connection,connectionsToServers, serverSessionID), reconnectPeriod + 500, TimeUnit.MILLISECONDS);
-
 	}
 	
-	public void reconnectSuccesful(Long serverSessionID)
+	public void reconnectSuccesful(Long serverSessionID, MClientConnectionImpl connection)
 	{
 		for(Long key:customers.keySet())
 			customers.get(key).reconnectState(false);
+		connectionsToServers.put(serverSessionID,connection);
 	}
 	
 		

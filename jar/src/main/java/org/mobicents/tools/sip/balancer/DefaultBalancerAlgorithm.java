@@ -27,8 +27,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.SynchronousQueue;
-
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -38,7 +36,6 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.Cookie;
 import org.jboss.netty.handler.codec.http.CookieDecoder;
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
@@ -78,7 +75,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	}
 	
 	public synchronized SIPNode processHttpRequest(HttpRequest request) {
-		//if(invocationContext.nodes.size()>0) {
 		if(invocationContext.sipNodeMap.size()>0) {
 			String instanceId = getInstanceId(request.getUri());
 			if(instanceId!=null)
@@ -93,21 +89,16 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			if(httpSessionId != null) {
 				int indexOfDot = httpSessionId.lastIndexOf('.');
 				if(indexOfDot>0 && indexOfDot<httpSessionId.length()) {
-					//String sessionIdWithoutJvmRoute = httpSessionId.substring(0, indexOfDot);
 					String jvmRoute = httpSessionId.substring(indexOfDot + 1);
 					SIPNode node = balancerContext.jvmRouteToSipNode.get(jvmRoute);
 					
 					if(node != null) {
-						//if(invocationContext.nodes.contains(node)) {
 						if(invocationContext.sipNodeMap.containsValue(node)) {
 							return node;
 						}
 					}
 				}
-				
-				// As a failsafe if there is no jvmRoute, just hash the sessionId
-				//int nodeId = Math.abs(httpSessionId.hashCode()%invocationContext.nodes.size());
-				//return invocationContext.nodes.get(nodeId);
+
 				logger.warn("As a failsafe if there is no jvmRoute. LB will send request to node accordingly RR algorithm");
 				if(httpRequestIterator==null)
 					httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
@@ -128,8 +119,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				
 			}
 			//if request doesn't have jsessionid (very first request), we choose next node using round robin algorithm
-//			balancerContext.numberHttpRequest.compareAndSet(Integer.MAX_VALUE, 0);
-//			return invocationContext.nodes.get(balancerContext.numberHttpRequest.getAndIncrement() % invocationContext.nodes.size());
 			if(httpRequestIterator==null)
 				httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
 			if(httpRequestIterator.hasNext())
