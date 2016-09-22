@@ -97,7 +97,9 @@ public class ActiveStandbyHttpTest
 			if(i==4)
 			{
 				sleep(5000);
-				serverArray[1].stop();
+				for(HttpServer server : serverArray)
+					if(server.getRequstCount().get()!=0)
+						server.stop();
 				sleep(11000);
 			}
 		}
