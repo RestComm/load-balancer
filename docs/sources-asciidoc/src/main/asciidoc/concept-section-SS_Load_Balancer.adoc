@@ -328,6 +328,11 @@ httpsPort=2081
 #code of error
 #isSend5xxResponseSatusCode=503
 
+#if LB gets response from the node with this status code and reason more than three times,
+#it removes this node from the node's map until the node will be restarted
+#responseStatusCodeNodeRemoval=503
+#responseReasonNodeRemoval=Unable to setup media services
+
 # Designate extra IP addresses as serer nodes
 #extraServerNodes=222.221.21.12:21,45.6.6.7:9003,33.5.6.7,33.9.9.2
 
@@ -512,6 +517,11 @@ isSend5xxResponseReasonHeader::
   response message
 isSend5xxResponseSatusCode::
   Code of error. You can manage it.
+
+responseStatusCodeNodeRemoval::
+responseReasonNodeRemoval::
+  if LB gets response from the node with this status code and reason more than three times,
+  it removes this node from the node's map until the node will be restarted
 
 extraServerNodes::
   Comma-separated list of hosts that are server nodes.

@@ -51,6 +51,7 @@ public class InvocationContext {
 	}
 	
 	//public CopyOnWriteArrayList<SIPNode> nodes = new CopyOnWriteArrayList<SIPNode>();
+	public ConcurrentHashMap<KeySip, SIPNode> badSipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
 	public ConcurrentHashMap<KeySip, SIPNode> sipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
 	public ConcurrentHashMap<KeyHttp, SIPNode> httpNodeMap = new ConcurrentHashMap<KeyHttp, SIPNode>();
 	public String version;

@@ -64,6 +64,7 @@ import javax.sip.RequestEvent;
 import javax.sip.ResponseEvent;
 import javax.sip.ServerTransaction;
 import javax.sip.SipException;
+import javax.sip.SipFactory;
 import javax.sip.SipListener;
 import javax.sip.SipProvider;
 import javax.sip.TransactionDoesNotExistException;
@@ -84,9 +85,11 @@ import javax.sip.header.ExpiresHeader;
 import javax.sip.header.ExtensionHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
+import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.ProxyAuthenticateHeader;
 import javax.sip.header.ProxyAuthorizationHeader;
+import javax.sip.header.ReasonHeader;
 import javax.sip.header.RecordRouteHeader;
 import javax.sip.header.ReferToHeader;
 import javax.sip.header.RequireHeader;
@@ -188,6 +191,10 @@ public class TestSipListener implements SipListener {
 	private int transactionCount;
 
 	private int dialogCount;
+
+	public int getDialogCount() {
+		return dialogCount;
+	}
 
 	private boolean cancelReceived;
 	
@@ -993,11 +1000,10 @@ public class TestSipListener implements SipListener {
 			if(requireHeader != null && "100rel".equalsIgnoreCase(requireHeader.getOptionTag().trim())) {
 				sendReliably = true;
 			}
-				
+			if(respondWithError == null)	
 			for (int provisionalResponseToSend : provisionalResponsesToSend) {
 				Thread.sleep(getTimeToWaitBetweenProvisionnalResponse());
-				Response response = protocolObjects.messageFactory.createResponse(
-						provisionalResponseToSend, request);
+				Response response = protocolObjects.messageFactory.createResponse(provisionalResponseToSend, request);
 				if(provisionalResponseToSend >= Response.TRYING && provisionalResponseToSend < Response.OK) {
 					ToHeader toHeader = (ToHeader) response.getHeader(ToHeader.NAME);
 					if(provisionalResponseToSend != Response.TRYING && toHeader.getTag() == null) {
@@ -1016,8 +1022,8 @@ public class TestSipListener implements SipListener {
 				}
 			}										
 			if(respondWithError != null && !sendReliably) {
-				Response response = protocolObjects.messageFactory.createResponse(
-						respondWithError, request);
+				Response response = protocolObjects.messageFactory.createResponse(respondWithError, request);
+				response.setReasonPhrase("Unable to setup media services");
 				st.sendResponse(response);
 				eventListener.uasAfterResponse(response.getStatusCode(), appServer);
 				return;

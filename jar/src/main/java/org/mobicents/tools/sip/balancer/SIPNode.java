@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <p>
@@ -54,6 +55,7 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	private String ip = null;
 	private long timeStamp = System.currentTimeMillis();
 	private HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
+	private AtomicInteger failCounter = new AtomicInteger(0);
 
 
 	public SIPNode(){}
@@ -81,6 +83,13 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 
 	public void updateTimerStamp() {
 		this.timeStamp = System.currentTimeMillis();
+	}
+
+	public AtomicInteger getFailCounter() {
+		return failCounter;
+	}
+	public void setFailCounter(AtomicInteger failCounter) {
+		this.failCounter = failCounter;
 	}
 
 	@Override

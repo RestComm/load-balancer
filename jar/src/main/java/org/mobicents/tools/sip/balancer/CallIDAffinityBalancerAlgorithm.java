@@ -73,6 +73,9 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			found = true;
 		else if	(invocationContext.sipNodeMap.containsKey(new KeySip(host, port)))
 			found = true;
+		else if(response.getStatusCode()==balancerContext.responseStatusCodeNodeRemoval 
+    			&& response.getReasonPhrase().equals(balancerContext.responseReasonNodeRemoval))
+			return;
 		
 //		for(SIPNode node : invocationContext.nodes) {
 //			if(logger.isDebugEnabled()) {
@@ -148,7 +151,6 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
 				node = selectNewNode(node, callId);
 				String transportProperty = transport + "Port";
-				System.out.println(transportProperty);
 				port = (Integer) node.getProperties().get(transportProperty);
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 				if(logger.isDebugEnabled()) {
@@ -261,18 +263,20 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		if(it==null)
 			it = invocationContext.sipNodeMap.entrySet().iterator();
 		Map.Entry pair = null;
+		while(it.hasNext())
+		{
+			pair = (Map.Entry)it.next();
+			if(invocationContext.sipNodeMap.containsKey(pair.getKey()))
+				return (SIPNode) pair.getValue();
+		}
+		it = invocationContext.sipNodeMap.entrySet().iterator();
 		if(it.hasNext())
 		{
 			pair = (Map.Entry)it.next();
-			if(!it.hasNext())
-				it = invocationContext.sipNodeMap.entrySet().iterator();
+			return (SIPNode) pair.getValue();
 		}
 		else
-		{
-			it = invocationContext.sipNodeMap.entrySet().iterator();
-		}
-		return (SIPNode) pair.getValue();
-			 
+			return null;
 	}
 	
 	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {

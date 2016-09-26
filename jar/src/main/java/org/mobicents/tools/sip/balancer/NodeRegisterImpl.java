@@ -346,8 +346,18 @@ public class NodeRegisterImpl  implements NodeRegister {
             } else {
                 String version = (String) pingNode.getProperties().get("version");
                 if(version == null) version = "0";
-                InvocationContext ctx = balancerRunner.getInvocationContext(
-                        version);
+                InvocationContext ctx = balancerRunner.getInvocationContext(version);
+                
+                //if bad node changed sessioId it means that the node was restarted so we remove it from map of bad nodes
+                KeySip keySip = new KeySip(pingNode);
+                SIPNode badNode = ctx.badSipNodeMap.get(keySip);
+                if(badNode != null)
+                {
+                	if(badNode.getProperties().get("sessionId").equals(pingNode.getProperties().get("sessionId")))
+                		continue;
+                	else
+                		ctx.badSipNodeMap.remove(keySip);
+                }
                 pingNode.updateTimerStamp();
                 //logger.info("Pingnode updated " + pingNode);
                 if(pingNode.getProperties().get("jvmRoute") != null) {
@@ -368,7 +378,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 //                        nodePresent = node;
 //                    }
 //                }
-                SIPNode nodePresent = ctx.sipNodeMap.get(new KeySip(pingNode));
+                SIPNode nodePresent = ctx.sipNodeMap.get(keySip);
                 
                 // adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
                 if(nodePresent != null) 
@@ -384,7 +394,7 @@ public class NodeRegisterImpl  implements NodeRegister {
                     Integer latest = Integer.parseInt(latestVersion);
                     latestVersion = Math.max(current, latest) + "";
                     balancerRunner.balancerContext.aliveNodes.add(pingNode);
-                    ctx.sipNodeMap.put(new KeySip(pingNode), pingNode);
+                    ctx.sipNodeMap.put(keySip, pingNode);
                     Integer instanceId = (Integer) pingNode.getProperties().get("instanceId");
                     if(instanceId!=null)
                     	ctx.httpNodeMap.put(new KeyHttp(instanceId), pingNode);

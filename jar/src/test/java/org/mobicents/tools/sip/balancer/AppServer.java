@@ -30,6 +30,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sip.SipProvider;
+import javax.sip.message.Response;
 
 public class AppServer {
 	public ProtocolObjects protocolObjects;
@@ -49,6 +50,8 @@ public class AppServer {
 	public String version;
 	AtomicBoolean stopFlag = new AtomicBoolean(false);
 	boolean isDummy;
+	boolean isMediaFailure;
+	boolean isFirstStart = true;
 	
 	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) 
 	{
@@ -68,6 +71,13 @@ public class AppServer {
 		this.isDummy = isDummy; 
 	}
 	
+	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport, boolean isDummy, boolean isMediaFailure)
+	{
+		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport);
+		this.isDummy = isDummy;
+		this.isMediaFailure = isMediaFailure;
+	}
+	
 	public void setBalancers(String balancers) {
 		this.balancers = balancers;
 	}
@@ -82,22 +92,34 @@ public class AppServer {
 		
 		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, false, true);
 		if(!isDummy)
-			sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
+		{
+			if(!isMediaFailure||!isFirstStart)
+			{
+				sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
+			}
+			else
+			{
+				sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
+				sipListener.setRespondWithError(Response.SERVICE_UNAVAILABLE);
+			}
+		}
 		else
+		{
 			sipListener = new TestSipListener(port+1, lbSIPint, protocolObjects, false);
+		}
 		sipListener.appServer = this;
 		try {
 			sipProvider = sipListener.createProvider();
 			sipProvider.addSipListener(sipListener);
 			protocolObjects.start();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		appServerNode = new SIPNode(name, "127.0.0.1");		
 		appServerNode.getProperties().put(transport.toLowerCase() + "Port", port);		
 		appServerNode.getProperties().put("version", version);
-		
+		appServerNode.getProperties().put("sessionId", ""+System.currentTimeMillis());
+		stopFlag.set(false);
 		timer.schedule(new TimerTask() {
 			
 			@Override
@@ -116,6 +138,7 @@ public class AppServer {
 	}
 	
 	public void stop() {
+		isFirstStart = false;
 		stopFlag.getAndSet(true);
 		timer.cancel();
 		

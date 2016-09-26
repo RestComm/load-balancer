@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.sip.balancer;
 
+package org.mobicents.tools.sip.balancer.operation;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
@@ -27,26 +29,26 @@ import javax.sip.message.Response;
 
 import org.junit.After;
 import org.junit.Test;
+import org.mobicents.tools.sip.balancer.AppServer;
+import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class Response5xxTest {
+public class MediaFailureTest {
 	
 	BalancerRunner balancer;
 	Shootist shootist;
-	AppServer server;
-	AppServer ringingAppServer;
-	AppServer okAppServer;
 	Properties properties;
+	AppServer badServer,goodServer;
 
 	public void setUp() throws Exception
 	{
 		shootist = new Shootist(ListeningPoint.TCP,5060);
 		balancer = new BalancerRunner();
-		properties = new Properties();
+		Properties properties = new Properties();
 		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
 		properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
 		// You need 16 for logging traces. 32 for debug + traces.
@@ -58,18 +60,19 @@ public class Response5xxTest {
 				"logs/sipbalancerforwarder.xml");
 		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
 		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
-		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
+		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");		
 		properties.setProperty("host", "127.0.0.1");
+		properties.setProperty("internalTcpPort", "5065");
 		properties.setProperty("externalTcpPort", "5060");
-		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS", "TLSv1");
-		properties.setProperty("gov.nist.javax.sip.TLS_CLIENT_AUTH_TYPE", "Disabled");
-		properties.setProperty("isSend5xxResponse", "true");
-		properties.setProperty("isSend5xxResponseReasonHeader", "Destination not available");
-		properties.setProperty("isSend5xxResponseSatusCode", "503");
-		
+		properties.setProperty("responseReasonNodeRemoval","Unable to setup media services");
+
 		balancer.start(properties);
-		server = new AppServer("node" ,4060 , "127.0.0.1", 2000, 5060, 5060, "0", ListeningPoint.TCP, true);
-		server.start();
+		
+		goodServer = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
+		badServer = new AppServer("node1",4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, false,true);
+		goodServer.start();
+		Thread.sleep(5000);
+		badServer.start();
 		Thread.sleep(5000);
 	}
 	
@@ -77,22 +80,44 @@ public class Response5xxTest {
 	public void tearDown() throws Exception 
 	{
 		shootist.stop();
-		server.stop();
+		badServer.stop();
+		goodServer.stop();
 		balancer.stop();
 	}
 	
 	@Test
-	public void testSend503Response() throws Exception
+	public void testMediaFailure() throws Exception
 	{
+		int serviceAnavaible = 0;
+		int okCounter = 0;
 		setUp();
-		boolean was503 = false;
-		shootist.sendInitialInvite();
-		Thread.sleep(1000);
+		for(int i=0; i<8; i++)
+		{
+			shootist.sendInitialInvite();
+			Thread.sleep(5000);
+			if(i==6)
+			{
+				badServer.stop();
+				goodServer.stop();
+				Thread.sleep(5000);
+				badServer.start();
+				Thread.sleep(8000);
+			}
+		}
+		
 		for(Response res : shootist.responses)
 		{
-			if(res.getStatusCode() != Response.SERVICE_UNAVAILABLE)
-				was503 = true;
+			if(res.getStatusCode() == Response.SERVICE_UNAVAILABLE)
+				serviceAnavaible++;
+			if(res.getStatusCode() == Response.OK)
+				okCounter++;
 		}
-		assertTrue(was503);
+		assertEquals(3,serviceAnavaible);
+		assertEquals(5,okCounter);
+		assertEquals(1,badServer.getTestSipListener().getDialogCount());
+		assertEquals(4,goodServer.getTestSipListener().getDialogCount());
+		
+		
 	}
 }
+

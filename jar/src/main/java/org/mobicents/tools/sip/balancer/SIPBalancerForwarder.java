@@ -150,6 +150,8 @@ public class SIPBalancerForwarder implements SipListener {
 		balancerRunner.balancerContext.isSend5xxResponseSatusCode = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("isSend5xxResponseSatusCode","503"));
     	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.properties.getProperty("sipHeaderAffinityKey","Call-ID");
     	balancerRunner.balancerContext.isUseWithNexmo = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isUseWithNexmo","false"));
+    	balancerRunner.balancerContext.responseReasonNodeRemoval = balancerRunner.balancerContext.properties.getProperty("responseReasonNodeRemoval");
+    	balancerRunner.balancerContext.responseStatusCodeNodeRemoval = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("responseStatusCodeNodeRemoval","503"));
 
         SipFactory sipFactory = null;
         balancerRunner.balancerContext.sipStack = null;
@@ -2126,6 +2128,8 @@ public class SIPBalancerForwarder implements SipListener {
         }
 
         if(fromServer) {
+        	if(senderNode!=null)
+        		mediaFailureDetection(response, ctx, senderNode);
             /*
 			if("true".equals(balancerRunner.balancerContext.properties.getProperty("removeNodesOn500Response")) && response.getStatusCode() == 500) {
 				// If the server is broken remove it from the list and try another one with the next retransmission
@@ -2135,8 +2139,8 @@ public class SIPBalancerForwarder implements SipListener {
 						balancerRunner.balancerContext.balancerAlgorithm.nodeRemoved(sourceNode);
 					}
 				}
-			}*/  
-        	
+			} 
+        	*/
         	if(balancerRunner.balancerContext.publicIP != null && balancerRunner.balancerContext.publicIP.trim().length() > 0) {
         		if(logger.isDebugEnabled()) {
         			logger.debug("Will add Record-Route header to response with public IP Address: "+balancerRunner.balancerContext.publicIP);
@@ -2200,6 +2204,22 @@ public class SIPBalancerForwarder implements SipListener {
                 logger.error("Unexpected exception while forwarding the response \n" + response, ex);
             }
         }
+    }
+
+    private void mediaFailureDetection(Response response, InvocationContext ctx, SIPNode node)
+    {
+    	KeySip keySip = new KeySip(node);
+    	if(response.getStatusCode()==balancerRunner.balancerContext.responseStatusCodeNodeRemoval 
+    			&& response.getReasonPhrase().equals(balancerRunner.balancerContext.responseReasonNodeRemoval))
+    		if(ctx.sipNodeMap.get(keySip).getFailCounter().incrementAndGet()>2)
+    			{
+					if(ctx.sipNodeMap.size()>1) 
+						{
+							ctx.sipNodeMap.remove(keySip);
+							ctx.badSipNodeMap.put(keySip, node);
+							ctx.balancerAlgorithm.nodeRemoved(node);
+						}
+    			}
     }
 
     //need to verify that comes from external in case of single leg

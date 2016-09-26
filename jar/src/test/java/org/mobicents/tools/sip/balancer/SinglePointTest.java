@@ -84,9 +84,9 @@ public class SinglePointTest {
 		assertTrue(server.getTestSipListener().getByeReceived());
 		for(Response res : shootistTcp.responses)
 		{
-			if(res.getStatusCode() != Response.RINGING)
+			if(res.getStatusCode() == Response.RINGING)
 				wasRinging = true;
-			if(res.getStatusCode() != Response.OK)
+			if(res.getStatusCode() == Response.OK)
 				wasOk = true;
 		}
 		assertTrue(wasOk);
@@ -108,9 +108,9 @@ public class SinglePointTest {
 		assertTrue(server.getTestSipListener().getByeReceived());
 		for(Response res : shootistTls.responses)
 		{
-			if(res.getStatusCode() != Response.RINGING)
+			if(res.getStatusCode() == Response.RINGING)
 				wasRinging = true;
-			if(res.getStatusCode() != Response.OK)
+			if(res.getStatusCode() == Response.OK)
 				wasOk = true;
 		}
 		assertTrue(wasOk);
@@ -132,9 +132,9 @@ public class SinglePointTest {
 		assertTrue(server.getTestSipListener().getByeReceived());
 		for(Response res : shootistTls.responses)
 		{
-			if(res.getStatusCode() != Response.RINGING)
+			if(res.getStatusCode() == Response.RINGING)
 				wasRinging = true;
-			if(res.getStatusCode() != Response.OK)
+			if(res.getStatusCode() == Response.OK)
 				wasOk = true;
 		}
 		assertTrue(wasOk);

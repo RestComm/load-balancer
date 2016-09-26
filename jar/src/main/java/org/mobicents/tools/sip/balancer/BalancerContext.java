@@ -67,6 +67,8 @@ public class BalancerContext {
 	public String isSend5xxResponseReasonHeader;
 	public int isSend5xxResponseSatusCode;
 	public boolean isUseWithNexmo;
+	public String responseReasonNodeRemoval;
+	public int responseStatusCodeNodeRemoval;
 	
 	public Object parameters;
 	
