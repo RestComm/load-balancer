@@ -95,6 +95,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 		InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
 		
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
 		serverSessions.put(sessionId,serverConnection);
@@ -125,6 +126,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	public void unbindRequested(Long sessionID, Pdu packet) 
 	{
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
 		
@@ -166,6 +168,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	public void smppEntityRequested(Long sessionID, Pdu packet) 
 	{
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
 		
@@ -185,6 +188,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	public void smppEntityRequestFromServer(Long sessionId, Pdu packet) 
 	{
 		balancerRunner.balancerContext.smppRequestsToClient.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
 		
@@ -238,6 +242,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	public void unbindRequestedFromServer(Long sessionId, Pdu packet) 
 	{
 		balancerRunner.balancerContext.smppRequestsToClient.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
 		

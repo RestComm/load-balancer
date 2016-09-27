@@ -53,7 +53,10 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
+import org.restcomm.commons.statistics.reporter.RestcommStatsReporter;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.MetricRegistry;
 import com.sun.jdmk.comm.HtmlAdaptorServer;
 
 /**
@@ -75,8 +78,17 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public static final String REGISTRY_PORT = "2000";
 	public static final String REMOTE_OBJECT_PORT = "2001";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
+	protected static final String STATISTICS_SERVER = "statistics.server";
+	protected static final String DEFAULT_STATISTICS_SERVER = "https://statistics.restcomm.com/rest/";
 	
 	private SipBalancerShutdownHook shutdownHook=null;
+	
+	RestcommStatsReporter statsReporter = RestcommStatsReporter.getRestcommStatsReporter();
+	MetricRegistry metrics = RestcommStatsReporter.getMetricRegistry();
+	//define metric name
+    Counter counterCalls = metrics.counter("calls");
+    //Counter counterSeconds = metrics.counter("seconds");
+    Counter counterMessages = metrics.counter("messages");	
 	
 	ConcurrentHashMap<String, InvocationContext> contexts = new ConcurrentHashMap<String, InvocationContext>();
 	static {
@@ -221,6 +233,24 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				logger.debug("adding shutdown hook");
 			}
 			
+			String statisticsServer = Version.getVersionProperty(STATISTICS_SERVER);
+			if(statisticsServer == null || !statisticsServer.contains("http")) {
+				statisticsServer = DEFAULT_STATISTICS_SERVER;
+			}
+			//define remote server address (optionally)
+	        statsReporter.setRemoteServer(statisticsServer);
+	        String projectName = System.getProperty("RestcommProjectName", "loadbalancer");
+	        String projectType = System.getProperty("RestcommProjectType", "community");
+	        String projectVersion = System.getProperty("RestcommProjectVersion", Version.getVersionProperty(Version.RELEASE_VERSION));
+	        if(logger.isDebugEnabled()) {
+		 		logger.debug("Restcomm Stats " + projectName + " " + projectType + " " + projectVersion);
+		 	}
+	        statsReporter.setProjectName(projectName);
+	        statsReporter.setProjectType(projectType);
+	        statsReporter.setVersion(projectVersion);
+	        
+	        Version.printVersion();
+	        
 			sipForwarder = new SIPBalancerForwarder(properties, this, reg);
 			sipForwarder.start();
 			httpBalancerForwarder = new HttpBalancerForwarder();
@@ -338,6 +368,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			timer.cancel();
 			timer = null;
 		}
+		
+		statsReporter.stop();
 		
 		if(sipForwarder!=null)
 		{
@@ -524,8 +556,17 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		return smppBalancerRunner.getNumberOfActiveSmppConnections();
 	}
 	
-	
-	
+	public void incCalls() {
+		counterCalls.inc();
+	}
+
+	public void incMessages() {
+		counterMessages.inc();
+	}
+
+//	public void incSeconds(long seconds) {
+//		counterSeconds.inc(seconds);
+//	}
 	
 	public void setNodeExpiration(long value) {
 		reg.setNodeExpiration(value);

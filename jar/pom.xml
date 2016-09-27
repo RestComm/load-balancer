@@ -22,6 +22,14 @@
 		</manifest.implementation.version>
 		<manifest.implementation.vendor>TeleStax, Inc.
 		</manifest.implementation.vendor>
+		<restcomm.commons.version>2.0.145</restcomm.commons.version>
+		<metrics.version>3.1.0</metrics.version>
+		<slf4j.version>1.5.5</slf4j.version>
+		
+		<restcomm.name>Restcomm</restcomm.name>
+		<maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
+		<release.timestamp>${maven.build.timestamp}</release.timestamp>
+		<restcomm.statistics.server>https://statistics.restcomm.com/rest/</restcomm.statistics.server>
 	</properties>
 
 	<dependencies>
@@ -111,9 +119,9 @@
 		</dependency>
 		
 		<dependency>
-    		<groupId>com.sun.jersey</groupId>
-    		<artifactId>jersey-client</artifactId>
-    		<version>1.12</version>
+    			<groupId>com.sun.jersey</groupId>
+    			<artifactId>jersey-client</artifactId>
+    			<version>1.12</version>
 		</dependency>
 		
 		<dependency>
@@ -121,15 +129,63 @@
 			<artifactId>gson</artifactId>
 			<version>2.3.1</version>
 		</dependency>
+
 		<dependency>
-    		<groupId>org.apache.commons</groupId>
-    		<artifactId>commons-io</artifactId>
-    		<version>1.3.2</version>
+    			<groupId>org.apache.commons</groupId>
+    			<artifactId>commons-io</artifactId>
+    			<version>1.3.2</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.restcomm.commons</groupId>
+			<artifactId>restcomm-statistics</artifactId>
+			<version>${restcomm.commons.version}</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>io.dropwizard.metrics</groupId>
+		    <artifactId>metrics-core</artifactId>
+		    <version>${metrics.version}</version>
+		</dependency>
+
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-api</artifactId>
+		    <version>${slf4j.version}</version>
+		</dependency>
+
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-simple</artifactId>
+		    <version>${slf4j.version}</version>
 		</dependency>
 	</dependencies>
 
 	<build>
-		<plugins>			
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<plugins>	
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+				<version>1.3</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>create</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<buildNumberPropertiesFileLocation>${basedir}/src/main/resources/org/mobicents/tools/sip</buildNumberPropertiesFileLocation>
+					<revisionOnScmFailure>no-revision</revisionOnScmFailure>
+				</configuration>
+			</plugin>		
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>

@@ -193,6 +193,7 @@ public class UserSpace {
 		
 		//statistic
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		
 		customers.get(sessionId).sendUnbindResponse(packet.createResponse());
@@ -213,6 +214,7 @@ public class UserSpace {
 	{
 		//statistic
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
 		
@@ -242,6 +244,7 @@ public class UserSpace {
 	public void sendRequestToClient(Pdu packet, Long serverSessionId)
 	{
 		balancerRunner.balancerContext.smppRequestsToClient.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
 		

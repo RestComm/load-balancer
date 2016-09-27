@@ -62,6 +62,7 @@ public class MBalancerDispatcher implements MLbServerListener {
 	public UserSpace bindRequested(Long sessionId, MServerConnectionImpl customer, Pdu packet) 
 	{
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
+		balancerRunner.incMessages();
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		//only first bind sends to server we not add it to statistic
 		//balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());

@@ -939,6 +939,12 @@ public class SIPBalancerForwarder implements SipListener {
                 } else {
                     requestsProcessed.incrementAndGet();
                 }
+                if(Request.INVITE.equalsIgnoreCase(method)) {
+                	balancerRunner.incCalls();
+                }
+                if(Request.MESSAGE.equalsIgnoreCase(method)) {
+                	balancerRunner.incMessages();
+                }
             } else {
                 balancerRunner.balancerContext.responsesProcessed.incrementAndGet();
                 balancerRunner.balancerContext.bytesTransferred.addAndGet(((Response) message).getContentLength().getContentLength());
