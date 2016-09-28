@@ -362,7 +362,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
             throws Exception {
-        logger.error("Error", e.getCause());
+        logger.info("Channel closed possibly due to no activity");
         e.getChannel().close();
     }
     private void writeStatisticResponse(MessageEvent e)

@@ -74,6 +74,8 @@ public class HttpBalancerForwarder {
 		logger.info("HTTP LB listening on port " + httpPort);
 		logger.debug("HTTP maxContentLength Chunking set to " + maxContentLength);
 		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, false));
+		HttpChannelAssociations.serverBootstrap.setOption("child.tcpNoDelay", true);
+		HttpChannelAssociations.serverBootstrap.setOption("child.keepAlive", true);
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
 		if(balancerRunner.balancerContext.properties.getProperty("httpsPort")!=null)
 		{
@@ -85,6 +87,8 @@ public class HttpBalancerForwarder {
 			{
 				HttpChannelAssociations.inboundSecureBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
 				HttpChannelAssociations.inboundSecureBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength, true));
+				HttpChannelAssociations.inboundSecureBootstrap.setOption("child.tcpNoDelay", true);
+				HttpChannelAssociations.inboundSecureBootstrap.setOption("child.keepAlive", true);
 			}
 		}
 		if(balancerRunner.balancerContext.properties.getProperty("statisticPort")!=null)
