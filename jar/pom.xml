@@ -24,7 +24,7 @@
 		</manifest.implementation.vendor>
 		<restcomm.commons.version>2.0.145</restcomm.commons.version>
 		<metrics.version>3.1.0</metrics.version>
-		<slf4j.version>1.5.5</slf4j.version>
+		<slf4j.version>1.5.6</slf4j.version>
 		
 		<restcomm.name>Restcomm</restcomm.name>
 		<maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
