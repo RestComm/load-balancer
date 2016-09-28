@@ -46,7 +46,6 @@ public class HttpBalancerForwarder {
 	NioClientSocketChannelFactory nioClientSocketChannelFactory = null;
 	Channel serverChannel;
 	Channel serverSecureChannel;
-	Channel serverStatisticChannel;
 	
 	public void start() {
 		executor = Executors.newCachedThreadPool();
@@ -96,7 +95,7 @@ public class HttpBalancerForwarder {
 			Integer statisticPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("statisticPort"));
 			logger.info("Load balancer statistic on port : " + statisticPort);
 			HttpChannelAssociations.serverStatisticBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, false));
-			serverStatisticChannel = HttpChannelAssociations.serverStatisticBootstrap.bind(new InetSocketAddress(statisticPort));
+			HttpChannelAssociations.serverStatisticChannel = HttpChannelAssociations.serverStatisticBootstrap.bind(new InetSocketAddress(statisticPort));
 		}
 		
 		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength, false));		
@@ -123,18 +122,17 @@ public class HttpBalancerForwarder {
 			serverSecureChannel.close();
 			serverSecureChannel.getCloseFuture().awaitUninterruptibly();
 		}
-		if(serverStatisticChannel!=null)
+		if(HttpChannelAssociations.serverStatisticChannel!=null)
 		{
-			serverStatisticChannel.unbind();
-			serverStatisticChannel.close();
-			serverStatisticChannel.getCloseFuture().awaitUninterruptibly();
+			HttpChannelAssociations.serverStatisticChannel.unbind();
+			HttpChannelAssociations.serverStatisticChannel.close();
+			HttpChannelAssociations.serverStatisticChannel.getCloseFuture().awaitUninterruptibly();
 		}
 		
 		executor.shutdownNow();
 		executor = null;
 		
 		//cleaning everything
-		balancerRunner.stop();
 		HttpChannelAssociations.serverBootstrap.shutdown();
 		
 		if(HttpChannelAssociations.serverSecureBootstrap!=null)

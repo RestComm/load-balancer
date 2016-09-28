@@ -59,6 +59,7 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.GracefulShutdown;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.sip.balancer.StatisticObject;
@@ -108,11 +109,18 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 							writeStatisticResponse(e);
 							return;
 						} 
-						else 
-						{
-							writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Server error");
-							return;
-						}
+						else
+							if(uri.getPath().equalsIgnoreCase("/lbstop"))
+							{
+								writeResponse(e,  HttpResponseStatus.LOCKED, IOUtils.toString(this.getClass().getClassLoader().getResourceAsStream("bye.html")));
+								new GracefulShutdown(balancerRunner).start();
+								return;
+							}
+							else 
+							{
+								writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Server error");
+								return;
+							}
 					}
 				} catch (URISyntaxException e1) 
 				{
@@ -342,7 +350,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
         // Write the response.
         ChannelFuture future = null;
-        if(status.equals(HttpResponseStatus.SERVICE_UNAVAILABLE))
+        if(status.equals(HttpResponseStatus.SERVICE_UNAVAILABLE)||status.equals(HttpResponseStatus.LOCKED))
         	future = e.getChannel().write(buf);
         else
         	future = e.getChannel().write(response);

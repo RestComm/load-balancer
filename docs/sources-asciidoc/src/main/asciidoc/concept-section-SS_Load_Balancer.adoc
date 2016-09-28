@@ -190,7 +190,7 @@ org.Restcomm.tools.sip.balancer.UserBasedAlgorithm::
 
 org.Restcomm.tools.sip.balancer.ActiveStandbyAlgorithm::
   This algorithm allows to send all requests to the active node. If the active node
-  will disconnected in some way then the Load balancer will send requests to the 
+  will disconnected in some way then the Load balancer will send requests to the
   passive node. This algorithm works for all protocols(SIP,HTTP,SMPP).
 
 org.Restcomm.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm::
@@ -758,7 +758,21 @@ Notice that the call is handled by the second node.
 [[_sslb_binary_sip_load_balancer_stopping]]
 === Stopping
 
-Assuming that you started the JBoss Application Server as a foreground process in the Linux terminal, the easiest way to stop it is by pressing the  key combination in the same terminal in which you started it.
+Assuming that you started the JBoss Application Server as a foreground process
+in the Linux terminal, the easiest way to stop it is by pressing the  key combination
+in the same terminal in which you started it.
+
+If you use
+link:http://www.keepalived.org/[keepalived] for maintaining active and standby
+Load balancers as it was described
+link:http://documentation.telestax.com/core/tutorials/high-availability/Load-Balancer_failover-keepalived.html[here]
+then you can gracefully shutdown active Load balancer by using http request
+http://host:statisticPort/lbstop for upgrades without loosing calls
+and redirect new calls to another active LB. The request will turn off the
+statistic port. The keepalived utility checks the statistic port and then
+switches traffic to the standby Load balancer if the statistic port is turned off.
+After two seconds the Load balancer finally  stops.
+.
 
 This should produce similar output to the following:
 
@@ -789,6 +803,7 @@ This should produce similar output to the following:
 2016-02-08 16:17:01,963 INFO Thread-142 - Node Expiration Task cancelled true
 2016-02-08 16:17:01,963 INFO Thread-142 - Node registry stopped.
 ----
+
 
 [[_sslb_binary_sip_load_balancer_uninstalling]]
 === Uninstalling
