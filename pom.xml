@@ -20,7 +20,7 @@
 	<description>Restcomm Converged Load Balancer Parent</description>
 	<url>https://github.com/Restcomm/load-balancer</url>
 	<properties>
-		<jain-sip-ri.version>1.2.283</jain-sip-ri.version>
+		<jain-sip-ri.version>1.2.308</jain-sip-ri.version>
 	</properties>
 
 	<modules>
