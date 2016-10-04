@@ -152,6 +152,8 @@ public class SIPBalancerForwarder implements SipListener {
     	balancerRunner.balancerContext.isUseWithNexmo = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isUseWithNexmo","false"));
     	balancerRunner.balancerContext.responseReasonNodeRemoval = balancerRunner.balancerContext.properties.getProperty("responseReasonNodeRemoval");
     	balancerRunner.balancerContext.responseStatusCodeNodeRemoval = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("responseStatusCodeNodeRemoval","503"));
+    	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.properties.getProperty("matchingHostnameForRoute");
+    	balancerRunner.balancerContext.isFilterSubdomain = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isFilterSubdomain","false"));
 
         SipFactory sipFactory = null;
         balancerRunner.balancerContext.sipStack = null;
@@ -1860,6 +1862,29 @@ public class SIPBalancerForwarder implements SipListener {
         SIPNode node = null;
         String callVersion = null;
         int numberOfRemovedRouteHeaders = 0;
+        if(balancerRunner.balancerContext.matchingHostnameForRoute!=null)
+        {
+        	RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+        	if(routeHeader!=null)
+        	{
+        		if(logger.isDebugEnabled())
+        		{
+        			logger.debug("Matching host name for route is : " + balancerRunner.balancerContext.matchingHostnameForRoute);
+        			logger.debug("Matching host name and subdomain: " + balancerRunner.balancerContext.isFilterSubdomain);
+        		}
+        		if(!balancerRunner.balancerContext.isFilterSubdomain)
+        		{
+        			if(((SipURI)routeHeader.getAddress().getURI()).getHost().equals(balancerRunner.balancerContext.matchingHostnameForRoute))
+        				request.removeFirst(RouteHeader.NAME);
+        		}
+        		else
+        		{
+        			if(((SipURI)routeHeader.getAddress().getURI()).getHost().endsWith("."+balancerRunner.balancerContext.matchingHostnameForRoute))
+        				request.removeFirst(RouteHeader.NAME);
+        		}
+        			
+        	}
+        }
 
         //Removing first routeHeader if it is for the sip balancer
         RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);

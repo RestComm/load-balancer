@@ -69,6 +69,8 @@ public class BalancerContext {
 	public boolean isUseWithNexmo;
 	public String responseReasonNodeRemoval;
 	public int responseStatusCodeNodeRemoval;
+	public String matchingHostnameForRoute;
+	public boolean isFilterSubdomain;
 	
 	public Object parameters;
 	
