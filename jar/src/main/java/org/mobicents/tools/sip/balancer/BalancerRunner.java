@@ -51,32 +51,21 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.configuration.XmlConfigurationLoader;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 import org.restcomm.commons.statistics.reporter.RestcommStatsReporter;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.sun.jdmk.comm.HtmlAdaptorServer;
-
 /**
  * @author jean.deruelle@gmail.com
  *
  */
 public class BalancerRunner implements BalancerRunnerMBean {
 
-	private static final String NODE_TIMEOUT = "nodeTimeout";
-	private static final String HEARTBEAT_INTERVAL = "heartbeatInterval";
-	private static final String HOST_PROP = "host";
-	private static final String RMI_REGISTRY_PORT_PROP = "rmiRegistryPort";
-	private static final String RMI_REMOTE_OBJECT_PORT_PROP = "rmiRemoteObjectPort";
-	private static final String JMX_HTML_ADAPTER_PORT_PROP = "jmxHtmlAdapterPort";
-	private static final String ALGORITHM_PROP = "algorithmClass";
-	private static final String DEFAULT_ALGORITHM = CallIDAffinityBalancerAlgorithm.class.getCanonicalName();
 	public static final String SIP_BALANCER_JMX_NAME = "mobicents:type=LoadBalancer,name=LoadBalancer";
-	public static final String HTML_ADAPTOR_PORT = "8000";
-	public static final String REGISTRY_PORT = "2000";
-	public static final String REMOTE_OBJECT_PORT = "2001";
 	public static final String HTML_ADAPTOR_JMX_NAME = "mobicents:name=htmladapter,port=";
 	protected static final String STATISTICS_SERVER = "statistics.server";
 	protected static final String DEFAULT_STATISTICS_SERVER = "https://statistics.restcomm.com/rest/";
@@ -135,12 +124,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	 */
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			logger.error("Please specify mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			logger.error("Please specify mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.xml");
 			return;
 		}
 		
 		if(!args[0].startsWith("-mobicents-balancer-config=")) {
-			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.properties");
+			logger.error("Impossible to find the configuration file since you didn't specify the mobicents-balancer-config argument. Usage is : java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependencies.jar -mobicents-balancer-config=lb-configuration.xml");
 			return;
 		}
 		
@@ -150,16 +139,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		balancerRunner.start(configurationFileLocation); 
 	}
 	
-	public void start(Properties properties) {
+	public void start(LoadBalancerConfiguration lbConfig) {
 		adapter = new HtmlAdaptorServer();
-		String ipAddress = properties.getProperty(HOST_PROP);
+		String ipAddress = lbConfig.getCommonConfiguration().getHost();
 		if(ipAddress == null) {
-			ipAddress = properties.getProperty("internalHost");
+			ipAddress = lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost();
 		}
 		if(ipAddress == null) {
-			ipAddress = properties.getProperty("externalHost");
+			ipAddress = lbConfig.getSipConfiguration().getExternalLegConfiguration().getHost();
 		}
-		
 		InetAddress addr = null;
 		try {
 			addr = InetAddress.getByName(ipAddress);
@@ -167,37 +155,20 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("Couldn't get the InetAddress from the host " + ipAddress, e);
 			return;
 		}
+		
 		int jmxHtmlPort = -1;
-		String portAsString = properties.getProperty(JMX_HTML_ADAPTER_PORT_PROP,HTML_ADAPTOR_PORT);
-		try {
-			jmxHtmlPort = Integer.parseInt(portAsString);
-		} catch(NumberFormatException nfe) {
-			logger.error("Couldn't convert jmxHtmlAdapterPort to a valid integer", nfe);
-			return ; 
-		}
+		jmxHtmlPort = lbConfig.getCommonConfiguration().getJmxHtmlAdapterPort();
+
 		int rmiRegistryPort = -1;
-		portAsString = properties.getProperty(RMI_REGISTRY_PORT_PROP,REGISTRY_PORT);
-		try {
-			rmiRegistryPort = Integer.parseInt(portAsString);
-		} catch(NumberFormatException nfe) {
-			logger.error("Couldn't convert rmiRegistryPort to a valid integer", nfe);
-			return ; 
-		}
+		rmiRegistryPort = lbConfig.getCommonConfiguration().getRmiRegistryPort();
+	
 		
-	      int remoteObjectPort = -1;
-	        portAsString = properties.getProperty(RMI_REMOTE_OBJECT_PORT_PROP,REMOTE_OBJECT_PORT);
-	        try {
-	            remoteObjectPort = Integer.parseInt(portAsString);
-	        } catch(NumberFormatException nfe) {
-	            logger.error("Couldn't convert rmiRemoreObjectPort to a valid integer", nfe);
-	            return ; 
-	        }
+		int remoteObjectPort = -1;
+	    remoteObjectPort = lbConfig.getCommonConfiguration().getRmiRemoteObjectPort();
 		
-		this.algorithClassName = properties.getProperty(ALGORITHM_PROP, DEFAULT_ALGORITHM);
+		this.algorithClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
 		balancerContext.algorithmClassName = this.algorithClassName;
-		balancerContext.terminateTLSTraffic = Boolean.parseBoolean(properties.getProperty("terminateTLSTraffic","false"));
-		
-		
+		balancerContext.terminateTLSTraffic = lbConfig.getSslConfiguration().getTerminateTLSTraffic();
 		
 		try {
 			
@@ -214,11 +185,11 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			reg.balancerRunner = this;
 			
 			try {
-				reg.setNodeExpirationTaskInterval(Integer.parseInt(properties.getProperty(HEARTBEAT_INTERVAL, "150")));
-				reg.setNodeExpiration(Integer.parseInt(properties.getProperty(NODE_TIMEOUT, "10200")));
+				reg.setNodeExpirationTaskInterval(lbConfig.getCommonConfiguration().getHeartbeatInterval());
+				reg.setNodeExpiration(lbConfig.getCommonConfiguration().getNodeTimeout());
 				if(logger.isInfoEnabled()) {
-					logger.info(NODE_TIMEOUT + "=" + reg.getNodeExpiration());
-					logger.info(HEARTBEAT_INTERVAL + "=" + reg.getNodeExpirationTaskInterval());
+					logger.info("Node timeout" + " = " + reg.getNodeExpiration());
+					logger.info("Heartbeat interval" + " = " + reg.getNodeExpirationTaskInterval());
 				}
 			} catch(NumberFormatException nfe) {
 				logger.error("Couldn't convert rmiRegistryPort to a valid integer", nfe);
@@ -251,8 +222,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	        
 	        Version.printVersion();
 	        
-			sipForwarder = new SIPBalancerForwarder(properties, this, reg);
+			sipForwarder = new SIPBalancerForwarder(lbConfig, this, reg);
 			sipForwarder.start();
+			if(lbConfig.getHttpConfiguration().getHttpPort()!=null)
+			{
 			httpBalancerForwarder = new HttpBalancerForwarder();
 			httpBalancerForwarder.balancerRunner = this;
 			try {
@@ -260,7 +233,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			} catch (org.jboss.netty.channel.ChannelException e) {
 				logger.warn("HTTP forwarder could not be restarted.");
 			}
-			
+			}
 			//register the sip balancer
 			ObjectName on = new ObjectName(SIP_BALANCER_JMX_NAME);
 			if (server.isRegistered(on)) {
@@ -280,7 +253,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("An unexpected error occurred while starting the load balancer", e);
 			return;
 		}
-		if(properties.getProperty("smppPort")!=null)
+		if(lbConfig.getSmppConfiguration().getSmppPort()!=null)
 		{
 			smppBalancerRunner = new SmppBalancerRunner(this);
 			smppBalancerRunner.start();
@@ -295,25 +268,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public void start(final String configurationFileLocation) {
 		File file = new File(configurationFileLocation);
 		lastupdate = file.lastModified();
-        FileInputStream fileInputStream = null;
-        try {
-        	fileInputStream = new FileInputStream(file);
-		} catch (FileNotFoundException e) {
-			throw new IllegalArgumentException("the configuration file location " + configurationFileLocation + " does not exists !");
-		}
-        
-        Properties properties = new Properties(System.getProperties());
-        try {
-			properties.load(fileInputStream);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to load the properties configuration file located at " + configurationFileLocation);
-		} finally {
-			try {
-				fileInputStream.close();
-			} catch (IOException e) {
-				logger.warn("Problem closing file " + e);
-			}
-		}
+		final XmlConfigurationLoader configLoader = new XmlConfigurationLoader();
+        LoadBalancerConfiguration lbConfig = configLoader.load(file); 
+
 		timer = new Timer();
 		timer.scheduleAtFixedRate(new TimerTask() {
 			public void run() {
@@ -321,29 +278,19 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				if(lastupdate < conf.lastModified()) {
 					lastupdate = conf.lastModified();
 					logger.info("Configuration file changed, applying changes.");
-					FileInputStream fileInputStream = null;
 					try {
 						for(InvocationContext ctx : contexts.values()) {
-							fileInputStream = new FileInputStream(conf);
-							balancerContext.properties.load(fileInputStream);
+							balancerContext.lbConfig = configLoader.load(conf);
 							ctx.balancerAlgorithm.configurationChanged();
 						}
 					} catch (Exception e) {
 						logger.warn("Problem reloading configuration " + e);
-					} finally {
-						if(fileInputStream != null) {
-							try {
-								fileInputStream.close();
-							} catch (Exception e) {
-								logger.error("Problem closing stream " + e);
-							}
-						}
-					}
+					} 
 				}
 			}
 		}, 3000, 2000);
 
-		start(properties);
+		start(lbConfig);
 
 	}
 	
@@ -591,20 +538,20 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		return nodeList;
 	}
 
-	public Properties getProperties() {
-		return balancerContext.properties;
+	public LoadBalancerConfiguration getConfiguration() {
+		return balancerContext.lbConfig;
 	}
-
-	public String getProperty(String key) {
-		return balancerContext.properties.getProperty(key);
-	}
-
-	public void setProperty(String key, String value) {
-		balancerContext.properties.setProperty(key, value);
-		for(InvocationContext ctx : contexts.values()) {
-			ctx.balancerAlgorithm.configurationChanged();
-		}
-	}
+//TODO!!!!!!!!!
+//	public String getProperty(String key) {
+//		return properties.getProperty(key);
+//	}
+//
+//	public void setProperty(String key, String value) {
+//		balancerContext.properties.setProperty(key, value);
+//		for(InvocationContext ctx : contexts.values()) {
+//			ctx.balancerAlgorithm.configurationChanged();
+//		}
+//	}
 	
 	@Override
 	public double getJvmCpuUsage() 

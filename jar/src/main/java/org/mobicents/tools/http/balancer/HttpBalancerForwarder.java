@@ -59,16 +59,13 @@ public class HttpBalancerForwarder {
 
 		// https://telestax.atlassian.net/browse/LB-7 making the default port the same
 		Integer httpPort = 2080;
-		if(balancerRunner.balancerContext.properties != null) {
-			String httpPortString = balancerRunner.balancerContext.properties.getProperty("httpPort", "2080");
-			httpPort = Integer.parseInt(httpPortString);
-		}
+		if(balancerRunner.balancerContext.lbConfig != null) 
+			httpPort = balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getHttpPort();
 		
 		// Defaulting to 1 MB
 		int maxContentLength = 1048576;
-		if(balancerRunner.balancerContext.properties != null) {
-			String maxContentLengthString = balancerRunner.balancerContext.properties.getProperty("maxContentLength", "1048576");
-			maxContentLength = Integer.parseInt(maxContentLengthString);
+		if(balancerRunner.balancerContext.lbConfig != null) {
+			maxContentLength = balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getMaxContentLength();
 		}
 		logger.info("HTTP LB listening on port " + httpPort);
 		logger.debug("HTTP maxContentLength Chunking set to " + maxContentLength);
@@ -76,9 +73,9 @@ public class HttpBalancerForwarder {
 		HttpChannelAssociations.serverBootstrap.setOption("child.tcpNoDelay", true);
 		HttpChannelAssociations.serverBootstrap.setOption("child.keepAlive", true);
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
-		if(balancerRunner.balancerContext.properties.getProperty("httpsPort")!=null)
+		Integer httpsPort = balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getHttpsPort();
+		if(httpsPort != null)
 		{
-			Integer httpsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("httpsPort", "2085"));
 			logger.info("HTTPS LB listening on port " + httpsPort);
 			HttpChannelAssociations.serverSecureBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, true));
 			serverSecureChannel = HttpChannelAssociations.serverSecureBootstrap.bind(new InetSocketAddress(httpsPort));
@@ -90,9 +87,10 @@ public class HttpBalancerForwarder {
 				HttpChannelAssociations.inboundSecureBootstrap.setOption("child.keepAlive", true);
 			}
 		}
-		if(balancerRunner.balancerContext.properties.getProperty("statisticPort")!=null)
+		
+		Integer statisticPort = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getStatisticPort();
+		if(statisticPort != null)
 		{
-			Integer statisticPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("statisticPort"));
 			logger.info("Load balancer statistic on port : " + statisticPort);
 			HttpChannelAssociations.serverStatisticBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, false));
 			HttpChannelAssociations.serverStatisticChannel = HttpChannelAssociations.serverStatisticBootstrap.bind(new InetSocketAddress(statisticPort));

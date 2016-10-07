@@ -36,6 +36,7 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.Cookie;
 import org.jboss.netty.handler.codec.http.CookieDecoder;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
@@ -46,9 +47,18 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Iterator<Entry<KeySip, SIPNode>> it = null;
 	protected Iterator<SIPNode> httpRequestIterator = null;
 	protected Iterator <SIPNode> instanceIdIterator = null;
+	protected LoadBalancerConfiguration lbConfig; 
 
-	public void setProperties(Properties properties) {
-		this.properties = properties;
+//	public void setProperties(Properties properties) {
+//		this.properties = properties;
+//	}
+
+	public LoadBalancerConfiguration getConfiguration() {
+		return lbConfig;
+	}
+
+	public void setConfiguration(LoadBalancerConfiguration lbConfig) {
+		this.lbConfig = lbConfig;
 	}
 	
 	public void setInvocationContext(InvocationContext ctx) {
@@ -63,9 +73,9 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		return balancerContext;
 	}
 
-	public Properties getProperties() {
-		return properties;
-	}
+//	public Properties getProperties() {
+//		return properties;
+//	}
 	
 	public void processInternalRequest(Request request) {
 		
@@ -132,7 +142,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 					return null;
 			}
 		} else {
-			String unavailaleHost = getProperties().getProperty("unavailableHost");
+			String unavailaleHost = getConfiguration().getHttpConfiguration().getUnavailableHost();
 			if(unavailaleHost != null) {
 				SIPNode node = new SIPNode(unavailaleHost, unavailaleHost);
 				node.getProperties().put("httpPort", 80);

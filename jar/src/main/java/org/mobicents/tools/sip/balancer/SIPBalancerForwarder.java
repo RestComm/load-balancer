@@ -87,6 +87,7 @@ import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 /**
  * A transaction stateful UDP Forwarder that listens at a port and forwards to multiple
@@ -134,91 +135,109 @@ public class SIPBalancerForwarder implements SipListener {
     protected String[] extraServerAddresses;
     protected int[] extraServerPorts;
 
-    public SIPBalancerForwarder(Properties properties, BalancerRunner balancerRunner, NodeRegister register) throws IllegalStateException{
+    public SIPBalancerForwarder(LoadBalancerConfiguration lbConfig, BalancerRunner balancerRunner, NodeRegister register) throws IllegalStateException{
         super();
         this.balancerRunner = balancerRunner;
         this.balancerRunner.balancerContext.forwarder = this;
-        this.balancerRunner.balancerContext.properties = properties;
+        this.balancerRunner.balancerContext.lbConfig = lbConfig;
         this.register = register;		
     }
 
     public void start() {
     	
-		balancerRunner.balancerContext.isSendTrying = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSendTrying","true"));
-		balancerRunner.balancerContext.isSend5xxResponse = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isSend5xxResponse","false"));
-		balancerRunner.balancerContext.isSend5xxResponseReasonHeader = balancerRunner.balancerContext.properties.getProperty("isSend5xxResponseReasonHeader");
-		balancerRunner.balancerContext.isSend5xxResponseSatusCode = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("isSend5xxResponseSatusCode","503"));
-    	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.properties.getProperty("sipHeaderAffinityKey","Call-ID");
-    	balancerRunner.balancerContext.isUseWithNexmo = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isUseWithNexmo","false"));
-    	balancerRunner.balancerContext.responseReasonNodeRemoval = balancerRunner.balancerContext.properties.getProperty("responseReasonNodeRemoval");
-    	balancerRunner.balancerContext.responseStatusCodeNodeRemoval = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("responseStatusCodeNodeRemoval","503"));
-    	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.properties.getProperty("matchingHostnameForRoute");
-    	balancerRunner.balancerContext.isFilterSubdomain = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isFilterSubdomain","false"));
+		balancerRunner.balancerContext.isSendTrying = balancerRunner.balancerContext.lbConfig.getSipConfiguration().isSendTrying();
+		balancerRunner.balancerContext.isSend5xxResponse = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsSend5xxResponse();
+		balancerRunner.balancerContext.isSend5xxResponseReasonHeader = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsSend5xxResponseReasonHeader();
+		balancerRunner.balancerContext.isSend5xxResponseSatusCode = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsSend5xxResponseSatusCode();
+    	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
+    	balancerRunner.balancerContext.isUseWithNexmo = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsUseWithNexmo();
+    	balancerRunner.balancerContext.responseReasonNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponseReasonNodeRemoval();
+    	balancerRunner.balancerContext.responseStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponseStatusCodeNodeRemoval();
+    	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMatchingHostnameForRoute();
+    	balancerRunner.balancerContext.isFilterSubdomain = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsFilterSubdomain();
 
         SipFactory sipFactory = null;
         balancerRunner.balancerContext.sipStack = null;
 
-        balancerRunner.balancerContext.host = balancerRunner.balancerContext.properties.getProperty("host");   
-        balancerRunner.balancerContext.internalHost = balancerRunner.balancerContext.properties.getProperty("internalHost",balancerRunner.balancerContext.host); 
-        balancerRunner.balancerContext.externalHost = balancerRunner.balancerContext.properties.getProperty("externalHost",balancerRunner.balancerContext.host);
+        balancerRunner.balancerContext.host = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getHost();
+        balancerRunner.balancerContext.internalHost = 
+        		balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost()==null?
+        				balancerRunner.balancerContext.host:balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost(); 
+        balancerRunner.balancerContext.externalHost = 
+        		balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getHost()==null?
+        				balancerRunner.balancerContext.host:balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getHost();
         
-        if(balancerRunner.balancerContext.properties.getProperty("externalUdpPort") != null)
-        	balancerRunner.balancerContext.externalUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalUdpPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("externalTcpPort") != null)
-        	balancerRunner.balancerContext.externalTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalTcpPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("externalTlsPort") != null)
-        	balancerRunner.balancerContext.externalTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalTlsPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("externalWsPort") != null)
-        	balancerRunner.balancerContext.externalWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalWsPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("externalWssPort") != null)
-        	balancerRunner.balancerContext.externalWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalWssPort"));
+        //external
+        Integer port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getUdpPort();
+        if(port != null && port != 0)
+        	balancerRunner.balancerContext.externalUdpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getTcpPort();
+        if(port != null && port != 0)
+        	balancerRunner.balancerContext.externalTcpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getTlsPort();
+        if(port != null && port != 0)
+        	balancerRunner.balancerContext.externalTlsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getWsPort();
+        if(port != null && port != 0)
+        	balancerRunner.balancerContext.externalWsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getWssPort();
+        if(port != null && port != 0)
+        	balancerRunner.balancerContext.externalWssPort = port;
+        //internal
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getUdpPort();
+        if(port != null && port != 0) 
+            balancerRunner.balancerContext.internalUdpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getTcpPort();
+        if(port != null && port != 0) 
+            balancerRunner.balancerContext.internalTcpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getTlsPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalTlsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getWsPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalWsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getWssPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalWssPort = port;
         
-        if(balancerRunner.balancerContext.properties.getProperty("internalUdpPort") != null) 
-            balancerRunner.balancerContext.internalUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalUdpPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("internalTcpPort") != null) 
-            balancerRunner.balancerContext.internalTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalTcpPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("internalTlsPort") != null) 
-            balancerRunner.balancerContext.internalTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalTlsPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("internalWsPort") != null) 
-            balancerRunner.balancerContext.internalWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalWsPort"));
-        if(balancerRunner.balancerContext.properties.getProperty("internalWssPort") != null) 
-            balancerRunner.balancerContext.internalWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalWssPort"));
         
-        
-        balancerRunner.balancerContext.externalIpLoadBalancerAddress = balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerAddress");
-        balancerRunner.balancerContext.internalIpLoadBalancerAddress = balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerAddress");
+        balancerRunner.balancerContext.externalIpLoadBalancerAddress = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerAddress();
+        balancerRunner.balancerContext.internalIpLoadBalancerAddress = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerAddress();
 
-        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerUdpPort") != null) {
-          balancerRunner.balancerContext.externalLoadBalancerUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerUdpPort"));
-          }
-        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTcpPort") != null) {
-            balancerRunner.balancerContext.externalLoadBalancerTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTcpPort"));
-          }
-        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTlsPort") != null) {
-            balancerRunner.balancerContext.externalLoadBalancerTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerTlsPort"));
-          }
-        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWsPort") != null) {
-            balancerRunner.balancerContext.externalLoadBalancerWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWsPort"));
-          }
-        if(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWssPort") != null) {
-            balancerRunner.balancerContext.externalLoadBalancerWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("externalIpLoadBalancerWssPort"));
-          }
+        //external
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerUdpPort();
+        if(port != null && port != 0)
+          balancerRunner.balancerContext.externalLoadBalancerUdpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerTcpPort();
+        if(port != null && port != 0)  
+            balancerRunner.balancerContext.externalLoadBalancerTcpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerTlsPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.externalLoadBalancerTlsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerWsPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.externalLoadBalancerWsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerWssPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.externalLoadBalancerWssPort = port;
+          
+        //internal
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerUdpPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalLoadBalancerUdpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerTcpPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalLoadBalancerTcpPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerTlsPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalLoadBalancerTlsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerWsPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalLoadBalancerWsPort = port;
+        port = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerWssPort();
+        if(port != null && port != 0)
+            balancerRunner.balancerContext.internalLoadBalancerWssPort = port;
         
-        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerUdpPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerUdpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerUdpPort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTcpPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerTcpPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTcpPort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTlsPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerTlsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerTlsPort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWsPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerWsPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWsPort"));
-        }
-        if(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWssPort") != null) {
-            balancerRunner.balancerContext.internalLoadBalancerWssPort = Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("internalIpLoadBalancerWssPort"));
-        }
 
         if(balancerRunner.balancerContext.isTwoEntrypoints()) {
             if(balancerRunner.balancerContext.externalLoadBalancerUdpPort > 0) {
@@ -269,8 +288,8 @@ public class SIPBalancerForwarder implements SipListener {
             }
         }
 
-        String extraServerNodesString = balancerRunner.balancerContext.properties.getProperty("extraServerNodes");
-        String performanceTestingMode = balancerRunner.balancerContext.properties.getProperty("performanceTestingMode");
+        String extraServerNodesString = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExtraServerNodes();
+
         if(extraServerNodesString != null) {
             ArrayList<SIPNode> extraServerNodes = new ArrayList<SIPNode>();
             extraServerAddresses = extraServerNodesString.split(",");
@@ -292,7 +311,7 @@ public class SIPBalancerForwarder implements SipListener {
                 extraServerNodes.add(extraServerNode);
                 logger.info("Extra Server: " + extraServerAddresses[q] + ":" + extraServerPorts[q]);
             }
-            if(performanceTestingMode.equalsIgnoreCase("true")){
+            if(balancerRunner.balancerContext.lbConfig.getSipConfiguration().isPerformanceTestingMode()){
                 register.handlePingInRegister(extraServerNodes);
                 logger.info("Extra Servers registered as active nodes!");
             }
@@ -302,14 +321,8 @@ public class SIPBalancerForwarder implements SipListener {
             // Create SipStack object
             sipFactory = SipFactory.getInstance();
             sipFactory.setPathName("gov.nist");
-            
-            balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", LoadBalancerNioMessageProcessorFactory.class.getName());    		
-            balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", SIPBalancerValveProcessor.class.getName());
-            if(balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE") == null) {
-                balancerRunner.balancerContext.properties.setProperty("gov.nist.javax.sip.TCP_POST_PARSING_THREAD_POOL_SIZE", "100");
-            }
 
-            balancerRunner.balancerContext.sipStack = (SipStackImpl) sipFactory.createSipStack(balancerRunner.balancerContext.properties);
+            balancerRunner.balancerContext.sipStack = (SipStackImpl) sipFactory.createSipStack(balancerRunner.balancerContext.lbConfig.getSipStackConfiguration().getSipStackProperies());
 
         } catch (PeerUnavailableException pue) {
             // could not find
@@ -320,8 +333,8 @@ public class SIPBalancerForwarder implements SipListener {
     
         try {
             balancerRunner.balancerContext.headerFactory = sipFactory.createHeaderFactory();
-            boolean usePrettyEncoding = Boolean.valueOf(balancerRunner.balancerContext.properties.getProperty("usePrettyEncoding", "false"));
-            if(usePrettyEncoding) {
+            //boolean usePrettyEncoding = Boolean.valueOf(balancerRunner.balancerContext.properties.getProperty("usePrettyEncoding", "false"));
+            if(balancerRunner.balancerContext.lbConfig.getSipConfiguration().isUsePrettyEncoding()) {
                 ((HeaderFactoryImpl)balancerRunner.balancerContext.headerFactory).setPrettyEncoding(true);
             }
             balancerRunner.balancerContext.addressFactory = sipFactory.createAddressFactory();
@@ -329,7 +342,6 @@ public class SIPBalancerForwarder implements SipListener {
 
             ListeningPoint externalLpUdp=null,externalLpTcp=null,externalLpTls=null,externalLpWs=null,externalLpWss=null;
             ArrayList <ListeningPoint> lpsExt = new ArrayList<ListeningPoint>();
-            
             if(balancerRunner.balancerContext.externalUdpPort != 0)
             {
             	externalLpUdp = balancerRunner.balancerContext.sipStack.createListeningPoint(balancerRunner.balancerContext.externalHost, balancerRunner.balancerContext.externalUdpPort, ListeningPoint.UDP);
@@ -732,11 +744,7 @@ public class SIPBalancerForwarder implements SipListener {
 			balancerRunner.balancerContext.activeInternalHeader[WSS] = balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[WSS] != null ?
 					balancerRunner.balancerContext.internalIpBalancerRecordRouteHeader[WSS] : balancerRunner.balancerContext.internalRecordRouteHeader[WSS];
 
-			balancerRunner.balancerContext.useIpLoadBalancerAddressInViaHeaders = Boolean
-					.valueOf(balancerRunner.balancerContext.properties
-							.getProperty(
-									"useIpLoadBalancerAddressInViaHeaders",
-									"false"));
+			balancerRunner.balancerContext.useIpLoadBalancerAddressInViaHeaders = balancerRunner.balancerContext.lbConfig.getSipConfiguration().isUseIpLoadBalancerAddressInViaHeaders();
 			
 			if (balancerRunner.balancerContext.useIpLoadBalancerAddressInViaHeaders) 
 			{
@@ -778,14 +786,10 @@ public class SIPBalancerForwarder implements SipListener {
 //					.getProperty("public-ip",
 //							balancerRunner.balancerContext.host);
 			// https://github.com/RestComm/load-balancer/issues/43 don't use host by default if public-ip is not set or it will result in contact header responses being badly patched
-			balancerRunner.balancerContext.publicIP = balancerRunner.balancerContext.properties
-					.getProperty("public-ip");
+			balancerRunner.balancerContext.publicIP = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getPublicIp();
 			
-			String blockedValues = balancerRunner.balancerContext.properties
-					.getProperty("blocked-values",
-							"sipvicious,sipcli,friendly-scanner");
-			balancerRunner.balancerContext.blockedList = new ArrayList<String>(
-					Arrays.asList(blockedValues.split(",")));
+			String blockedValues = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getBlockedValues();
+			balancerRunner.balancerContext.blockedList = new ArrayList<String>(Arrays.asList(blockedValues.split(",")));
 
 			balancerRunner.balancerContext.sipStack.start();
 			SIPBalancerValveProcessor valve = (SIPBalancerValveProcessor) balancerRunner.balancerContext.sipStack.sipMessageValve;

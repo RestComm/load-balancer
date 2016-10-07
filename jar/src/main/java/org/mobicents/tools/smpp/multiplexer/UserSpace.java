@@ -58,8 +58,8 @@ public class UserSpace {
 		this.nodes = nodes;
 		this.monitorExecutor = monitorExecutor;
 		this.dispatcher = dispatcher;
-		this.reconnectPeriod = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("reconnectPeriod", "500"));
-		this.isUseRrSendSmppRequestToClient = Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("isUseRrSendSmppRequestToClient","false"));
+		this.reconnectPeriod = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getReconnectPeriod();
+		this.isUseRrSendSmppRequestToClient = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getIsUseRrSendSmppRequestToClient();
 	}
 	
 	public synchronized void bind(MServerConnectionImpl customer,Pdu bindPdu) {

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<load-balancer-properties>
+<common>
+  <host>127.0.0.1</host>
+  <rmiRegistryPort>2000</rmiRegistryPort>
+  <rmiRemoteObjectPort>2001</rmiRemoteObjectPort>
+  <nodeTimeout>8400</nodeTimeout>
+  <heartbeatInterval>150</heartbeatInterval>
+  <statisticPort>2006</statisticPort>
+  <jmxHtmlAdapterPort>8000</jmxHtmlAdapterPort>
+</common>
+<sip>
+  <publicIp></publicIp>
+  <isSendTrying>true</isSendTrying>
+  <useIpLoadBalancerAddressInViaHeaders>false</useIpLoadBalancerAddressInViaHeaders>
+  <performanceTestingMode>true</performanceTestingMode>
+  <extraServerNodes>127.0.0.1:5090,127.0.0.1:5091</extraServerNodes>
+  <isSend5xxResponse>true</isSend5xxResponse>
+  <isSend5xxResponseReasonHeader>Destination not available</isSend5xxResponseReasonHeader>
+  <isSend5xxResponseSatusCode>503</isSend5xxResponseSatusCode>
+  <responseStatusCodeNodeRemoval>503</responseStatusCodeNodeRemoval>
+  <responseReasonNodeRemoval>Unable to setup media services</responseReasonNodeRemoval>
+  <matchingHostnameForRoute>restcomm.com</matchingHostnameForRoute>
+  <isFilterSubdomain>true</isFilterSubdomain>
+  <algorithm>
+    <algorithmClass></algorithmClass>
+    <sipHeaderAffinityKey></sipHeaderAffinityKey>
+    <callIdAffinityGroupFailover>false</callIdAffinityGroupFailover>
+    <callIdAffinityMaxTimeInCache>180</callIdAffinityMaxTimeInCache>
+    <httpAffinityKey></httpAffinityKey>
+    <persistentConsistentHashCacheConfiguration></persistentConsistentHashCacheConfiguration>
+    <earlyDialogWorstCase>false</earlyDialogWorstCase>
+  </algorithm>
+  <external>
+    <host></host>
+    <ipLoadBalancerAddress></ipLoadBalancerAddress>
+    <udpPort>5060</udpPort>
+    <tcpPort>5060</tcpPort>
+    <tlsPort></tlsPort>
+    <wsPort></wsPort>
+    <wssPort></wssPort>
+    <ipLoadBalancerUdpPort></ipLoadBalancerUdpPort>
+    <ipLoadBalancerTcpPort></ipLoadBalancerTcpPort>
+    <ipLoadBalancerTlsPort></ipLoadBalancerTlsPort>
+    <ipLoadBalancerWsPort></ipLoadBalancerWsPort>
+    <ipLoadBalancerWssPort></ipLoadBalancerWssPort>
+  </external>
+  <internal>
+    <host></host>
+    <ipLoadBalancerAddress></ipLoadBalancerAddress>
+    <udpPort>5065</udpPort>
+    <tcpPort>5065</tcpPort>
+    <tlsPort></tlsPort>
+    <wsPort></wsPort>
+    <wssPort></wssPort>
+    <ipLoadBalancerUdpPort></ipLoadBalancerUdpPort>
+    <ipLoadBalancerTcpPort></ipLoadBalancerTcpPort>
+    <ipLoadBalancerTlsPort></ipLoadBalancerTlsPort>
+    <ipLoadBalancerWsPort></ipLoadBalancerWsPort>
+    <ipLoadBalancerWssPort></ipLoadBalancerWssPort>
+  </internal>
+</sip>
+<http>
+  <httpPort></httpPort>
+  <httpsPort></httpsPort>
+  <maxContentLength></maxContentLength>
+  <unavailableHost></unavailableHost>
+</http>
+<smpp>
+  <smppHost>127.0.0.1</smppHost>
+  <smppPort>2776</smppPort>
+  <smppSslPort></smppSslPort>
+  <remoteServers>127.0.0.1:10021,127.0.0.1:10022</remoteServers>
+  <maxConnectionSize>10</maxConnectionSize>
+  <nonBlockingSocketsEnabled>true</nonBlockingSocketsEnabled>
+  <defaultSessionCountersEnabled>true</defaultSessionCountersEnabled>
+  <timeoutResponse>10000</timeoutResponse>
+  <timeoutConnection>1000</timeoutConnection>
+  <timeoutEnquire>2000000</timeoutEnquire>
+  <reconnectPeriod>1000</reconnectPeriod>
+  <timeoutConnectionCheckClientSide>1000</timeoutConnectionCheckClientSide>
+  <timeoutConnectionCheckServerSide>1000</timeoutConnectionCheckServerSide>
+  <isUseRrSendSmppRequestToClient>false</isUseRrSendSmppRequestToClient>
+  
+</smpp>
+<ssl>
+  <terminateTLSTraffic></terminateTLSTraffic>
+  <keyStore></keyStore>
+  <keyStorePassword></keyStorePassword>
+  <trustStore></trustStore>
+  <trustStorePassword></trustStorePassword>
+  <tlsClientProtocols></tlsClientProtocols>
+    <enabledCipherSuites></enabledCipherSuites>
+</ssl>
+<sipStack>
+	<property>
+    	<key>javax.sip.STACK_NAME</key>
+		<value>SipBalancerForwarder</value>
+	</property>
+	<property>
+    	<key>javax.sip.AUTOMATIC_DIALOG_SUPPORT</key>
+		<value>off</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.TRACE_LEVEL</key>
+		<value>0</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.LOG_MESSAGE_CONTENT</key>
+		<value>false</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.DEBUG_LOG</key>
+		<value>./logs/sipbalancerforwarderdebug.txt</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.SERVER_LOG</key>
+		<value>./logs/sipbalancerforwarder.xml</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.THREAD_POOL_SIZE</key>
+		<value>64</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.REENTRANT_LISTENER</key>
+		<value>true</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.AGGRESSIVE_CLEANUP</key>
+		<value>true</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.RECEIVE_UDP_BUFFER_SIZE</key>
+		<value>65536</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.SEND_UDP_BUFFER_SIZE</key>
+		<value>65536</value>
+	</property>
+	<property>
+    	<key>MAX_LISTENER_RESPONSE_TIME</key>
+		<value>120</value>
+	</property>
+		<property>
+    	<key>gov.nist.javax.sip.MAX_MESSAGE_SIZE</key>
+		<value>10000</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.MAX_FORK_TIME_SECONDS</key>
+		<value>0</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.AUTOMATIC_DIALOG_ERROR_HANDLING</key>
+		<value>false</value>
+	</property>
+	<property>
+    	<key>org.mobicents.ext.javax.sip.congestion.SIP_SCANNERS</key>
+		<value>sipvicious,sipcli,friendly-scanner,VaxSIPUserAgent,eyeBeam,SIP Call,check_sip,FreePBX</value>
+	</property>
+</sipStack>
+</load-balancer-properties>
+

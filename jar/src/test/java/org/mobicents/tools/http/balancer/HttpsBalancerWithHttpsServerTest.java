@@ -20,14 +20,12 @@
 package org.mobicents.tools.http.balancer;
 
 import static org.junit.Assert.assertEquals;
-import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
-
-import java.util.Properties;
 import java.util.concurrent.Semaphore;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
@@ -61,31 +59,14 @@ public class HttpsBalancerWithHttpsServerTest
 		}
 		
 		balancerRunner = new BalancerRunner();
-		Properties properties = new Properties();
-		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
-		properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
-		// You need 16 for logging traces. 32 for debug + traces.
-		// Your code will limp at 32 but it is best for debugging.
-		properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "32");
-		properties.setProperty("gov.nist.javax.sip.DEBUG_LOG", "logs/sipbalancerforwarderdebug.txt");
-		properties.setProperty("gov.nist.javax.sip.SERVER_LOG",	"logs/sipbalancerforwarder.xml");
-		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
-		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
-		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
-		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
-		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalUdpPort", "5065");
-		properties.setProperty("externalUdpPort", "5060");
-		properties.setProperty("httpPort", "2080");
-		properties.setProperty("httpsPort", "2081");
-		properties.setProperty("maxContentLength", "1048576");
-		//SSL properties
-		properties.setProperty("terminateTLSTraffic", "false");
-		properties.setProperty("javax.net.ssl.keyStore",HttpsBalancerWithHttpsServerTest.class.getClassLoader().getResource("keystore").getFile());
-		properties.setProperty("javax.net.ssl.keyStorePassword","123456");
-		properties.setProperty("javax.net.ssl.trustStore",HttpsBalancerWithHttpsServerTest.class.getClassLoader().getResource("keystore").getFile());
-		properties.setProperty("javax.net.ssl.trustStorePassword","123456");
-		balancerRunner.start(properties);
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setUdpPort(5065);
+		lbConfig.getHttpConfiguration().setHttpsPort(2081);
+		lbConfig.getSslConfiguration().setKeyStore(HttpsBalancerWithHttpsServerTest.class.getClassLoader().getResource("keystore").getFile());
+		lbConfig.getSslConfiguration().setKeyStorePassword("123456");
+		lbConfig.getSslConfiguration().setTrustStore(HttpsBalancerWithHttpsServerTest.class.getClassLoader().getResource("keystore").getFile());
+		lbConfig.getSslConfiguration().setTrustStorePassword("123456");
+		balancerRunner.start(lbConfig);
 		try
 		{
 			Thread.sleep(1000);

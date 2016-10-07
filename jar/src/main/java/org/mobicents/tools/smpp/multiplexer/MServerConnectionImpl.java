@@ -103,10 +103,10 @@ public class MServerConnectionImpl implements ServerConnection {
     	this.sessionId = sessionId;
     	this.config.setUseSsl(useSsl);
     	this.transcoder = new DefaultPduTranscoder(new DefaultPduTranscoderContext());
-    	this.timeoutResponse = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutResponse", "10000"));
-    	this.timeoutConnection = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnection", "10000"));
-    	this.timeoutEnquire = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutEnquire", "10000"));
-    	this.timeoutConnectionCheckClientSide = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnectionCheckClientSide", "10000"));
+    	this.timeoutResponse = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutResponse();
+    	this.timeoutConnection = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnection();
+    	this.timeoutEnquire = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutEnquire();
+    	this.timeoutConnectionCheckClientSide = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnectionCheckClientSide();
     	this.monitorExecutor = monitorExecutor;
     	this.connectionRunnable = new CustomerTimerConnection(this, sessionId);
     	this.connectionTimer =  monitorExecutor.schedule(connectionRunnable,timeoutConnection,TimeUnit.MILLISECONDS);

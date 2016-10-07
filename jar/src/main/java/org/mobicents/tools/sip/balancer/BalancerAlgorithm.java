@@ -32,6 +32,7 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 /**
  * The BalancerAlgortihm interface exposes the methods implemented by decision making algorithms
@@ -104,13 +105,15 @@ public interface BalancerAlgorithm {
 	 * 
 	 * @return
 	 */
-	Properties getProperties();
+	//Properties getProperties();
+	LoadBalancerConfiguration getConfiguration();
 	
 	/**
 	 * Also allows to change the properties completely when it makes sense
 	 * @param properties
 	 */
-	void setProperties(Properties properties);
+	//void setProperties(Properties properties);
+	void setConfiguration(LoadBalancerConfiguration configuration);
 	
 	/**
 	 * Get the balancer context, which exposes useful information such as the available AS nodes at the moment

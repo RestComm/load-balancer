@@ -35,6 +35,7 @@ import javax.sip.SipFactory;
 import javax.sip.message.Request;
 
 import org.junit.Test;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 
 public class ClusterSubdomainAffinityAlgorithmTest{
@@ -91,8 +92,8 @@ public class ClusterSubdomainAffinityAlgorithmTest{
 			
 			ClusterSubdomainAffinityAlgorithm algorithm = new ClusterSubdomainAffinityAlgorithm();
 			algorithm.balancerContext = new BalancerContext();
-			algorithm.balancerContext.properties = new Properties();
-			algorithm.balancerContext.properties.setProperty("subclusterMap", failoverGroup);
+			algorithm.balancerContext.lbConfig = new LoadBalancerConfiguration();
+			algorithm.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().setSubclusterMap(failoverGroup);
 			
 			algorithm.balancerContext.algorithmClassName = ClusterSubdomainAffinityAlgorithm.class.getName();
 			InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);

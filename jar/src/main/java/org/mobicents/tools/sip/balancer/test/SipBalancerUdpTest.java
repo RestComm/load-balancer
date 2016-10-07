@@ -28,6 +28,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Properties;
 
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 public class SipBalancerUdpTest {
@@ -66,29 +67,19 @@ public class SipBalancerUdpTest {
 		
 		
 		balancer = new BalancerRunner();
-		Properties properties = new Properties();
-		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
-		properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
-		// You need 16 for logging traces. 32 for debug + traces.
-		// Your code will limp at 32 but it is best for debugging.
-		properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "0");
-		properties.setProperty("gov.nist.javax.sip.DEBUG_LOG",
-				"logs/sipbalancerforwarderdebug.txt");
-		properties.setProperty("gov.nist.javax.sip.SERVER_LOG",
-				"logs/sipbalancerforwarder.xml");
-		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "100");
-		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
-		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");		
-		
-		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("externalHost", "127.0.0.1");
-		properties.setProperty("internalHost", "127.0.0.1");
-		properties.setProperty("internalUdpPort", "5065");
-		properties.setProperty("externalUdpPort", "5060");
-		properties.setProperty("usePrettyEncoding", "true");
-		balancer.start(properties);
-		
-		
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		Properties properies = new Properties();
+		properies.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
+		lbConfig.getSipStackConfiguration().setSipStackProperies(properies);
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setHost("127.0.0.1");
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setHost("127.0.0.1");
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setUdpPort(5060);
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setUdpPort(5065);
+		lbConfig.getSipConfiguration().setUsePrettyEncoding(true);
+		lbConfig.getHttpConfiguration().setHttpPort(null);
+		lbConfig.getSmppConfiguration().setSmppPort(null);
+		balancer.start(lbConfig);
+
 		server = new BlackholeAppServer("blackhole", 18452, "127.0.0.1");
 		server.start();
 		Thread.sleep(5000);

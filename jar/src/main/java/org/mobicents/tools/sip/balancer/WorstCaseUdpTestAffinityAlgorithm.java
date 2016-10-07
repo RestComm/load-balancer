@@ -335,15 +335,14 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	}
 
 	public void init() {
-		String maxTimeInCacheString = getProperties().getProperty("callIdAffinityMaxTimeInCache");
+		Integer maxTimeInCacheString = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getCallIdAffinityMaxTimeInCache();
 		if(maxTimeInCacheString != null) {
-			this.maxCallIdleTime = Integer.parseInt(maxTimeInCacheString);
+			this.maxCallIdleTime = maxTimeInCacheString;
 		}
 		logger.info("Call Idle Time is " + this.maxCallIdleTime + " seconds. Inactive calls will be evicted.");
-		String earlyDialogWorstCaseString = getProperties().getProperty("earlyDialogWorstCase");
-		if(earlyDialogWorstCaseString != null) {
-			earlyDialogWorstCase = Boolean.parseBoolean(earlyDialogWorstCaseString);
-		}
+		
+		earlyDialogWorstCase = lbConfig.getSipConfiguration().getAlgorithmConfiguration().isEarlyDialogWorstCase();
+		
 		logger.info("Early dialog worst case is " + this.earlyDialogWorstCase);
 		final WorstCaseUdpTestAffinityAlgorithm thisAlgorithm = this;
 		this.cacheEvictionTimer.schedule(new TimerTask() {
@@ -394,10 +393,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			}
 		}, 0, 6000);
 		
-		String groupFailoverProperty = getProperties().getProperty("callIdAffinityGroupFailover");
-		if(groupFailoverProperty != null) {
-			this.groupedFailover = Boolean.parseBoolean(groupFailoverProperty);
-		}
+		this.groupedFailover = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().isCallIdAffinityGroupFailover();
 		logger.info("Grouped failover is set to " + this.groupedFailover);
 	}
 	

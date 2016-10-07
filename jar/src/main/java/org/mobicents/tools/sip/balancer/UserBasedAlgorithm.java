@@ -237,10 +237,10 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 
 	@Override
 	public void init() {
-		if(getProperties() != null) {
-			String maxTimeInCacheString = getProperties().getProperty("userAffinityMaxTimeInCache");
+		if(getConfiguration() != null) {
+			Integer maxTimeInCacheString = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getCallIdAffinityMaxTimeInCache();
 			if(maxTimeInCacheString != null) {
-				this.maxCallIdleTime = Integer.parseInt(maxTimeInCacheString);
+				this.maxCallIdleTime = maxTimeInCacheString;
 			}
 		}
 		logger.info("Call Idle Time is " + this.maxCallIdleTime + " seconds. Inactive calls will be evicted.");
@@ -275,11 +275,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			}
 		}, 0, 6000);
 
-		if(getProperties() != null) {
-			String groupFailoverProperty = getProperties().getProperty("userAffinityGroupFailover");
-			if(groupFailoverProperty != null) {
-				this.groupedFailover = Boolean.parseBoolean(groupFailoverProperty);
-			}
+		if(getConfiguration() != null) {
+			this.groupedFailover = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().isCallIdAffinityGroupFailover();
 		}
 		logger.info("Grouped failover is set to " + this.groupedFailover);
 		

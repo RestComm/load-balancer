@@ -163,7 +163,7 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	
 	public void init() {
 		InputStream configurationInputStream = null;
-		String configFile = getProperties().getProperty("persistentConsistentHashCacheConfiguration");
+		String configFile = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getPersistentConsistentHashCacheConfiguration();
 		if(configFile != null) {
 			logger.info("Try to use cache configuration from " + configFile);
 			try {
@@ -179,8 +179,8 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 		}
 		
 
-		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
-		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
+		this.httpAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getHttpAffinityKey();
+		this.sipHeaderAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
 	}
 	
 	@Override

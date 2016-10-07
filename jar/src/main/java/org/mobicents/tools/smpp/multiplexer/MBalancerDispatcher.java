@@ -47,7 +47,7 @@ public class MBalancerDispatcher implements MLbServerListener {
 	{
 		this.balancerRunner = balancerRunner;
 		this.monitorExecutor = monitorExecutor;
-		String [] s = balancerRunner.balancerContext.properties.getProperty("remoteServers").split(",");
+		String [] s = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getRemoteServers().split(",");
 		this.nodes = new SIPNode[s.length];
 		String [] sTmp = new String[2];
 		for(int i = 0; i < s.length; i++)
