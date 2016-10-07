@@ -38,6 +38,7 @@ import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.MBeanServer;
@@ -248,7 +249,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	        statsReporter.setProjectName(projectName);
 	        statsReporter.setProjectType(projectType);
 	        statsReporter.setVersion(projectVersion);
-	        
+	        //define periodicy - default to once a day
+	        statsReporter.start(86400, TimeUnit.SECONDS);
+
 	        Version.printVersion();
 	        
 			sipForwarder = new SIPBalancerForwarder(properties, this, reg);
