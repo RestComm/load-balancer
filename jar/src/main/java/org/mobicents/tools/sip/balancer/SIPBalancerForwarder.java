@@ -2254,7 +2254,7 @@ public class SIPBalancerForwarder implements SipListener {
     	KeySip keySip = new KeySip(node);
     	if(response.getStatusCode()==balancerRunner.balancerContext.responseStatusCodeNodeRemoval 
     			&& response.getReasonPhrase().equals(balancerRunner.balancerContext.responseReasonNodeRemoval))
-    		if(ctx.sipNodeMap.get(keySip).getFailCounter().incrementAndGet()>2)
+    		if(ctx.sipNodeMap.get(keySip).getAndIncrementFailCounter()>2)
     			{
 					if(ctx.sipNodeMap.size()>1) 
 						{
