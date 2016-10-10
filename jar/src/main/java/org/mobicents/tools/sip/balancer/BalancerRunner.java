@@ -84,7 +84,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	
 	private SipBalancerShutdownHook shutdownHook=null;
 	
-	RestcommStatsReporter statsReporter = RestcommStatsReporter.getRestcommStatsReporter();
+	RestcommStatsReporter statsReporter = new RestcommStatsReporter();
 	MetricRegistry metrics = RestcommStatsReporter.getMetricRegistry();
 	//define metric name
     Counter counterCalls = metrics.counter("calls");
