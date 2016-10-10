@@ -55,7 +55,7 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	private String ip = null;
 	private long timeStamp = System.currentTimeMillis();
 	private HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
-	private AtomicInteger failCounter = new AtomicInteger(0);
+	private int failCounter = 0;
 
 
 	public SIPNode(){}
@@ -85,10 +85,10 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 		this.timeStamp = System.currentTimeMillis();
 	}
 
-	public AtomicInteger getFailCounter() {
-		return failCounter;
+	public int getAndIncrementFailCounter() {
+		return ++failCounter;
 	}
-	public void setFailCounter(AtomicInteger failCounter) {
+	public void setFailCounter(int failCounter) {
 		this.failCounter = failCounter;
 	}
 

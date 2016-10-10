@@ -1278,9 +1278,10 @@ public class SIPBalancerForwarder implements SipListener {
                 sipProvider.sendResponse(response);
                 return;
             }
-            
-            nextNode = hints.serverAssignedNode;            
-            
+            nextNode = hints.serverAssignedNode;
+            if(logger.isDebugEnabled()) {
+        		logger.debug("nexNode " + nextNode);
+        	}
         } else {
         	if(logger.isDebugEnabled()) {
         		logger.debug("Request not from server");
@@ -1481,6 +1482,9 @@ public class SIPBalancerForwarder implements SipListener {
 
             }
         }
+        if(logger.isDebugEnabled()) {
+            logger.debug("Next node " + nextNode);
+        }
 
         String requestMethod=request.getMethod();
         //100 Trying should be sent only if has indent really forwarding request, othewise should send 500 error
@@ -1659,11 +1663,19 @@ public class SIPBalancerForwarder implements SipListener {
 
     private RecordRouteHeader stampRecordRoute(RecordRouteHeader rrh, RouteHeaderHints hints, String transport) {
         SipURI uri = (SipURI) rrh.getAddress().getURI();
-        try {        	
-            logger.debug("About to stamp RecordRoute for hints:\n"+hints.serverAssignedNode.toString()+"\n");
-            uri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
-            uri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
-            uri.setParameter(ROUTE_PARAM_NODE_VERSION, hints.version);
+        try {
+        	if(hints.serverAssignedNode != null) {
+	        	if(logger.isDebugEnabled()) {
+	        		logger.debug("About to stamp RecordRoute for hints:\n"+hints.serverAssignedNode.toString()+"\n");
+	        	}
+	            uri.setParameter(ROUTE_PARAM_NODE_HOST, hints.serverAssignedNode.getIp());
+	            uri.setParameter(ROUTE_PARAM_NODE_PORT, hints.serverAssignedNode.getProperties().get(transport.toLowerCase()+"Port").toString());
+	            uri.setParameter(ROUTE_PARAM_NODE_VERSION, hints.version);
+        	} else {
+        		if(logger.isDebugEnabled()) {
+	        		logger.debug("No serverAssignedNode could be found, not stamping the record route\n");
+	        	}
+        	}
         } catch (ParseException e) {
             logger.warn("Problem adding rrh" ,e);
         }
