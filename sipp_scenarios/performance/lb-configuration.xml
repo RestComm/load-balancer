@@ -153,10 +153,6 @@
     	<key>gov.nist.javax.sip.AUTOMATIC_DIALOG_ERROR_HANDLING</key>
 		<value>false</value>
 	</property>
-	<property>
-    	<key>org.mobicents.ext.javax.sip.congestion.SIP_SCANNERS</key>
-		<value>sipvicious,sipcli,friendly-scanner,VaxSIPUserAgent,eyeBeam,SIP Call,check_sip,FreePBX</value>
-	</property>
 </sipStack>
 </load-balancer-properties>
 

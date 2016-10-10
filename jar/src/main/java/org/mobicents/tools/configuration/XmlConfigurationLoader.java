@@ -97,7 +97,8 @@ public class XmlConfigurationLoader{
         //Algorithm configuration
         if(!src.getString("algorithm.algorithmClass").equals(""))
         	alg.setAlgorithmClass(src.getString("algorithm.algorithmClass",AlgorithmConfiguration.ALGORITHM_CLASS));
-        alg.setSipHeaderAffinityKey(src.getString("algorithm.sipHeaderAffinityKey",AlgorithmConfiguration.SIP_HEADER_AFFINITY_KEY));
+        if(!src.getString("algorithm.sipHeaderAffinityKey").equals(""))
+        	alg.setSipHeaderAffinityKey(src.getString("algorithm.sipHeaderAffinityKey",AlgorithmConfiguration.SIP_HEADER_AFFINITY_KEY));
         alg.setCallIdAffinityGroupFailover(src.getBoolean("algorithm.callIdAffinityGroupFailover",AlgorithmConfiguration.CALL_ID_AFFINITY_GROUP_FAILOVER));
         alg.setCallIdAffinityMaxTimeInCache(src.getInteger("algorithm.callIdAffinityMaxTimeInCache",AlgorithmConfiguration.CALL_ID_AFFINITY_MAX_TIME_IN_CACHE));
         alg.setHttpAffinityKey(src.getString("algorithm.httpAffinityKey",AlgorithmConfiguration.HTTP_AFFINITY_KEY));
