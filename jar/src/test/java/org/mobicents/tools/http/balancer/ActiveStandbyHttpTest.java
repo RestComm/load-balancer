@@ -48,6 +48,7 @@ public class ActiveStandbyHttpTest
 	private static int numberUsers = 6;
 	private static HttpServer [] serverArray;
 	private static HttpUser [] userArray;
+	private static HttpServer stoppedServer;
 	
 	@BeforeClass
 	public static void initialization() 
@@ -98,8 +99,13 @@ public class ActiveStandbyHttpTest
 			{
 				sleep(5000);
 				for(HttpServer server : serverArray)
+				{
 					if(server.getRequstCount().get()!=0)
+					{
+						stoppedServer=server;
 						server.stop();
+					}
+				}
 				sleep(11000);
 			}
 		}
@@ -115,8 +121,7 @@ public class ActiveStandbyHttpTest
 			e.printStackTrace();
 		}
 		
-		assertEquals(1,serverArray[0].getRequstCount().get());
-		assertEquals(numberUsers-1,serverArray[1].getRequstCount().get());
+		assertEquals(numberUsers-1,stoppedServer.getRequstCount().get());
 		
 		for(int i = 0; i < numberUsers;i++)
 			assertEquals(200, userArray[i].codeResponse);

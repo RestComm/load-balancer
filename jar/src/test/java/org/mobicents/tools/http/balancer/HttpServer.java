@@ -148,7 +148,7 @@ public class HttpServer
 		serverBootstrap.shutdown();
 		serverSecureBootstrap.shutdown();
 		nioServerSocketChannelFactory.shutdown();
-		logger.info("HTTP load balancer stoped.");
+		logger.info("HTTP server stoped : " + appServerNode);
 	}
 	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) {
 		if(sendHeartbeat) {

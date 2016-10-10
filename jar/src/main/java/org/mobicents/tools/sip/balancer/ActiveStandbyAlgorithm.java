@@ -167,24 +167,22 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 	
 	protected SIPNode nextAvailableNode()
 	{
-		if(invocationContext.sipNodeMap.size() == 0) 
-			return null;
-		
-		if(it==null)
-			it = invocationContext.sipNodeMap.entrySet().iterator();
-		
+		it = invocationContext.sipNodeMap.entrySet().iterator();
 		Map.Entry pair = null;
+		while(it.hasNext())
+		{
+			pair = (Map.Entry)it.next();
+			if(invocationContext.sipNodeMap.containsKey(pair.getKey()))
+				return (SIPNode) pair.getValue();
+		}
+		it = invocationContext.sipNodeMap.entrySet().iterator();
 		if(it.hasNext())
 		{
 			pair = (Map.Entry)it.next();
-			if(!it.hasNext())
-				it = invocationContext.sipNodeMap.entrySet().iterator();
+			return (SIPNode) pair.getValue();
 		}
 		else
-		{
-			it = invocationContext.sipNodeMap.entrySet().iterator();
-		}
-		return (SIPNode) pair.getValue();
+			return null;
 			 
 	}
 
