@@ -152,6 +152,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 	
 	public void start(Properties properties) {
+		if(statsReporter==null)
+			statsReporter = new RestcommStatsReporter();
 		adapter = new HtmlAdaptorServer();
 		String ipAddress = properties.getProperty(HOST_PROP);
 		if(ipAddress == null) {
@@ -373,6 +375,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		}
 		
 		statsReporter.stop();
+		statsReporter = null;
 		
 		if(sipForwarder!=null)
 		{
