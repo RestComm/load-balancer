@@ -65,8 +65,10 @@
   <unavailableHost></unavailableHost>
 </http>
 <smpp>
-  <smppPort>2776</smppPort>
+  <smppHost></smppHost>
+  <smppPort></smppPort>
   <smppSslPort></smppSslPort>
+  <remoteServers></remoteServers>
   <maxConnectionSize>10</maxConnectionSize>
   <nonBlockingSocketsEnabled>true</nonBlockingSocketsEnabled>
   <defaultSessionCountersEnabled>true</defaultSessionCountersEnabled>

@@ -161,10 +161,12 @@ public class SIPBalancerForwarder implements SipListener {
 
         balancerRunner.balancerContext.host = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getHost();
         balancerRunner.balancerContext.internalHost = 
-        		balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost().equals("")?
+        		(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost()==null||
+        				balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost().equals(""))?
         				balancerRunner.balancerContext.host:balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost(); 
         balancerRunner.balancerContext.externalHost = 
-        		balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getHost().equals("")?
+        		(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getHost()==null||
+        				balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getHost().equals(""))?
         				balancerRunner.balancerContext.host:balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getHost();
         
         //external
