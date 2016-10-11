@@ -125,9 +125,9 @@ public class MClientConnectionImpl implements ClientConnection{
 	public  MClientConnectionImpl(Long serverSessionID, UserSpace userSpace, ScheduledExecutorService monitorExecutor, BalancerRunner balancerRunner, SIPNode node, boolean isSslConnection) 
 	{
 		  this.serverSessionID = serverSessionID;
-		  this.timeoutResponse = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutResponse", "10000"));
-		  this.timeoutEnquire = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutEnquire", "10000"));
-		  this.timeoutConnectionCheckServerSide = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("timeoutConnectionCheckServerSide", "10000"));
+		  this.timeoutResponse = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutResponse();
+		  this.timeoutEnquire = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutEnquire();
+		  this.timeoutConnectionCheckServerSide = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnectionCheckServerSide();
 		  this.isSslConnection = isSslConnection;
 		  this.monitorExecutor = monitorExecutor;
 		  this.node = node;

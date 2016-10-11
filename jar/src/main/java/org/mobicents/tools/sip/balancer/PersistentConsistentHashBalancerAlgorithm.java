@@ -99,7 +99,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	public void init() {
 		CacheFactory cacheFactory = new DefaultCacheFactory();
 		InputStream configurationInputStream = null;
-		String configFile = getProperties().getProperty("persistentConsistentHashCacheConfiguration");
+		String configFile = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getPersistentConsistentHashCacheConfiguration();
 		if(configFile != null) {
 			logger.info("Try to use cache configuration from " + configFile);
 			try {
@@ -125,8 +125,8 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		}
 		syncNodes(context);*/
 
-		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
-		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
+		this.httpAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getHttpAffinityKey();
+		this.sipHeaderAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
 	}
 	
 	@Override

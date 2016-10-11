@@ -54,7 +54,7 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 
 	public void init() {
 		super.init();
-		String subclusterMap = getProperties().getProperty("subclusterMap");
+		String subclusterMap = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSubclusterMap();
 		logger.info("Subcluster map: " + subclusterMap);
 		loadSubclusters(subclusterMap);
 		logger.info("Grouped failover is set to " + this.groupedFailover);
@@ -100,7 +100,7 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 	public void configurationChanged() {
 		super.configurationChanged();
 		try {
-			loadSubclusters(getProperties().getProperty("subclusterMap"));
+			loadSubclusters(getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSubclusterMap());
 			logger.info("Subclusters reloaded. The groups are as follows:" + dumpSubcluster());
 		} catch (Exception e) {
 			logger.error("Subcluster changes were unsuccesful", e);

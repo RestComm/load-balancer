@@ -43,6 +43,7 @@ import javax.sip.header.RecordRouteHeader;
 import javax.sip.message.MessageFactory;
 
 import org.jboss.netty.handler.codec.http.HttpMethod;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 import com.cloudhopper.smpp.SmppConstants;
 
@@ -140,7 +141,7 @@ public class BalancerContext {
 
 	public SipStackImpl sipStack;	
 
-	public Properties properties;  
+	public LoadBalancerConfiguration lbConfig;
 	
 	public RecordRouteHeader[] externalRecordRouteHeader = new RecordRouteHeader[5];
 	public RecordRouteHeader[] externalIpBalancerRecordRouteHeader = new RecordRouteHeader[5]; 

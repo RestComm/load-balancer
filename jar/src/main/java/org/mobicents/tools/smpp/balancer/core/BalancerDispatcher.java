@@ -62,7 +62,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	public BalancerDispatcher(BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor)
 	{
 		this.balancerRunner = balancerRunner;
-		this.reconnectPeriod = Long.parseLong(balancerRunner.balancerContext.properties.getProperty("reconnectPeriod"));
+		this.reconnectPeriod = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getReconnectPeriod();
 		this.monitorExecutor = monitorExecutor;
 	}
 	

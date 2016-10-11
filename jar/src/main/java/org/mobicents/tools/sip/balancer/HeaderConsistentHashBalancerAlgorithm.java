@@ -189,15 +189,15 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
     }
 
     public void init() {
-    	this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
-    	this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
+    	this.httpAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getHttpAffinityKey();
+    	this.sipHeaderAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
     	logger.info("SIP affinity key = " + sipHeaderAffinityKey + " HTTP key = " + httpAffinityKey);
     }
     
 	public void configurationChanged() {
 		logger.info("Configuration changed");
-		this.httpAffinityKey = getProperties().getProperty("httpAffinityKey", "appsession");
-		this.sipHeaderAffinityKey = getProperties().getProperty("sipHeaderAffinityKey", "Call-ID");
+		this.httpAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getHttpAffinityKey();
+		this.sipHeaderAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
 	}
 	
 	@Override

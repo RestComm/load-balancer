@@ -311,10 +311,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	public void init() {
-		if(getProperties() != null) {
-			String maxTimeInCacheString = getProperties().getProperty("callIdAffinityMaxTimeInCache");
-			if(maxTimeInCacheString != null) {
-				this.maxCallIdleTime = Integer.parseInt(maxTimeInCacheString);
+		if(getConfiguration() != null) {
+			Integer maxTimeInCache = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getCallIdAffinityMaxTimeInCache();
+			if(maxTimeInCache != null) {
+				this.maxCallIdleTime = maxTimeInCache;
 			}
 		}
 		logger.info("Call Idle Time is " + this.maxCallIdleTime + " seconds. Inactive calls will be evicted.");
@@ -349,11 +349,8 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			}
 		}, 0, 6000);
 
-		if(getProperties() != null) {
-			String groupFailoverProperty = getProperties().getProperty("callIdAffinityGroupFailover");
-			if(groupFailoverProperty != null) {
-				this.groupedFailover = Boolean.parseBoolean(groupFailoverProperty);
-			}
+		if(getConfiguration() != null) {
+			this.groupedFailover = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().isCallIdAffinityGroupFailover();
 		}
 		logger.info("Grouped failover is set to " + this.groupedFailover);
 	}

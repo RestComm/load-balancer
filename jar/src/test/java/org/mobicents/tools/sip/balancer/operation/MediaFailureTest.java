@@ -29,6 +29,7 @@ import javax.sip.message.Response;
 
 import org.junit.After;
 import org.junit.Test;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
@@ -48,25 +49,19 @@ public class MediaFailureTest {
 	{
 		shootist = new Shootist(ListeningPoint.TCP,5060);
 		balancer = new BalancerRunner();
-		Properties properties = new Properties();
-		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
-		properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
-		// You need 16 for logging traces. 32 for debug + traces.
-		// Your code will limp at 32 but it is best for debugging.
-		properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "32");
-		properties.setProperty("gov.nist.javax.sip.DEBUG_LOG",
-				"logs/sipbalancerforwarderdebug.txt");
-		properties.setProperty("gov.nist.javax.sip.SERVER_LOG",
-				"logs/sipbalancerforwarder.xml");
-		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
-		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
-		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");		
-		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("internalTcpPort", "5065");
-		properties.setProperty("externalTcpPort", "5060");
-		properties.setProperty("responseReasonNodeRemoval","Unable to setup media services");
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.TRACE_LEVEL", "32");
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.DEBUG_LOG","logs/sipbalancerforwarderdebug.txt");
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.SERVER_LOG","logs/sipbalancerforwarder.xml");
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");	
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
+		lbConfig.getSipConfiguration().setResponseReasonNodeRemoval("Unable to setup media services");
 
-		balancer.start(properties);
+		balancer.start(lbConfig);
 		
 		goodServer = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
 		badServer = new AppServer("node1",4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, false,true);

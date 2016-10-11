@@ -35,7 +35,8 @@ public class InvocationContext {
 			Class clazz = Class.forName(balancerContext.algorithmClassName);
 			balancerAlgorithm = (DefaultBalancerAlgorithm) clazz.newInstance();
 			balancerAlgorithm.balancerContext = balancerContext;
-			balancerAlgorithm.setProperties(balancerContext.properties);
+			//balancerAlgorithm.setProperties(balancerContext.properties);
+			balancerAlgorithm.setConfiguration(balancerContext.lbConfig);
 			balancerAlgorithm.setInvocationContext(this);
 			logger.info("Balancer algorithm " + balancerContext.algorithmClassName + " loaded succesfully" +
 					" for cluster version = " + version);

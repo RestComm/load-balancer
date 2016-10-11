@@ -62,12 +62,12 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
         if(isSecure)
         {
         	SslConfiguration sslConfig = new SslConfiguration();
-	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStore"));
-	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStorePassword"));
-	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStore"));
-	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStorePassword"));
-	        String sProtocols = balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS");
-	        String sCipherSuites = balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.ENABLED_CIPHER_SUITES");
+	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getKeyStore());
+	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getKeyStorePassword());
+	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getTrustStore());
+	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getTrustStorePassword());
+	        String sProtocols = balancerRunner.balancerContext.lbConfig.getSslConfiguration().getTlsClientProtocols();
+	        String sCipherSuites = balancerRunner.balancerContext.lbConfig.getSslConfiguration().getEnabledCipherSuites();
 	        if(sProtocols!=null)
 	        {
 	        	String [] protocols = sProtocols.split(",");

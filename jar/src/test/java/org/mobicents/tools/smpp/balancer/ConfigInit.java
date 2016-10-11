@@ -19,7 +19,7 @@
 
 package org.mobicents.tools.smpp.balancer;
 
-import java.util.Properties;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 import org.mobicents.tools.sip.balancer.ActiveStandbyAlgorithm;
 import com.cloudhopper.commons.charset.CharsetUtil;
@@ -41,6 +41,7 @@ public class ConfigInit {
 	{
 		SmppServerConfiguration config = new SmppServerConfiguration();
 		config.setName("SMPP Server "+i);
+		config.setHost("127.0.0.1");
 		config.setMaxConnectionSize(10);
 		config.setNonBlockingSocketsEnabled(true);
 		config.setDefaultRequestExpiryTimeout(30000);
@@ -64,56 +65,50 @@ public class ConfigInit {
 		return config;
 	}
 	
-	static Properties getLbProperties(boolean isSsl, boolean terminateTLSTraffic, boolean isOneServer)
+	static LoadBalancerConfiguration getLbProperties(boolean isSsl, boolean terminateTLSTraffic, boolean isOneServer)
 	{
-		Properties properties = getLbProperties(isSsl,terminateTLSTraffic);
+		LoadBalancerConfiguration lbConfig = getLbProperties(isSsl,terminateTLSTraffic);
 		if(isOneServer)
 		{
-		properties.setProperty("remoteServers","127.0.0.1:10021");
-		properties.setProperty("isUseRrSendSmppRequestToClient","true");
+			lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021");
+			lbConfig.getSmppConfiguration().setIsUseRrSendSmppRequestToClient(true);
 		}
 		else
 		{
-			properties.setProperty("remoteServers","127.0.0.1:10021,127.0.0.1:10022");
-			properties.setProperty("remoteServers","127.0.0.1:10021,127.0.0.1:10022");
-			properties.setProperty("algorithmClass", ActiveStandbyAlgorithm.class.getName());
+			lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021,127.0.0.1:10022");
+			lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(ActiveStandbyAlgorithm.class.getName());
 		}
-		return properties;
+		return lbConfig;
 	}
-	static Properties getLbProperties(boolean isSsl, boolean terminateTLSTraffic)
+	static LoadBalancerConfiguration getLbProperties(boolean isSsl, boolean terminateTLSTraffic)
 	{
-		Properties properties = new Properties();
-		properties.setProperty("terminateTLSTraffic",""+terminateTLSTraffic);
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		lbConfig.getSslConfiguration().setTerminateTLSTraffic(terminateTLSTraffic);
 		//sip property
-		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder");
-		properties.setProperty("host", "127.0.0.1");
-		properties.setProperty("externalUdpPort", "5060");
-		properties.setProperty("internalUdpPort", "5065");
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		//smpp property
-		properties.setProperty("smppName","SMPP Load Balancer");
-		properties.setProperty("smppHost","127.0.0.1");
-		properties.setProperty("smppPort","2776");
-		properties.setProperty("remoteServers","127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023");
-		properties.setProperty("maxConnectionSize","10");
-		properties.setProperty("nonBlockingSocketsEnabled","true");
-		properties.setProperty("defaultSessionCountersEnabled","true");
-		properties.setProperty("timeoutResponse","3000");
-		properties.setProperty("timeoutConnection","1000");
-		properties.setProperty("timeoutEnquire","5000");
-		properties.setProperty("reconnectPeriod","500");
-		properties.setProperty("timeoutConnectionCheckClientSide","1000");
-		properties.setProperty("timeoutConnectionCheckServerSide","1000");
+		lbConfig.getSmppConfiguration().setSmppHost("127.0.0.1");
+		lbConfig.getSmppConfiguration().setSmppPort(2776);
+		lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023");
+		lbConfig.getSmppConfiguration().setDefaultSessionCountersEnabled(true);
+		lbConfig.getSmppConfiguration().setTimeoutResponse(3000);
+		lbConfig.getSmppConfiguration().setTimeoutConnection(1000);
+		lbConfig.getSmppConfiguration().setTimeoutEnquire(5000);
+		lbConfig.getSmppConfiguration().setReconnectPeriod(500);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckClientSide(1000);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckServerSide(1000);
 		if(isSsl)
 		{
-			properties.setProperty("javax.net.ssl.keyStore",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
-			properties.setProperty("javax.net.ssl.keyStorePassword","123456");
-			properties.setProperty("javax.net.ssl.trustStore",ConfigInit.class.getClassLoader().getResource("keystore").getFile());
-			properties.setProperty("javax.net.ssl.trustStorePassword","123456");
-			properties.setProperty("smppSslPort","2876");
+			lbConfig.getSslConfiguration().setKeyStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			lbConfig.getSslConfiguration().setKeyStorePassword("123456");
+			lbConfig.getSslConfiguration().setTrustStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			lbConfig.getSslConfiguration().setTrustStorePassword("123456");
+			lbConfig.getSmppConfiguration().setSmppSslPort(2876);
 			
 		}
 		
-		return properties;
+		return lbConfig;
 	}
 	
 	static SmppSessionConfiguration getSmppSessionConfiguration(int i, boolean isSslClient)

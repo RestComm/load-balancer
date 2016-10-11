@@ -99,12 +99,13 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         Object msg = e.getMessage();
         if (msg instanceof HttpRequest) {
             request = (HttpRequest)e.getMessage();
-            if(balancerRunner.getProperty("statisticPort")!=null)
+            Integer statisticPort = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getStatisticPort();
+            if(statisticPort != null)
             {
 				try 
 				{
 					URI uri = new URI(request.getUri());
-					if (((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort() == Integer.parseInt(balancerRunner.getProperty("statisticPort"))) {
+					if (((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort() == statisticPort) {
 						if (uri.getPath().equalsIgnoreCase("/lbstat")) {
 							writeStatisticResponse(e);
 							return;
@@ -127,8 +128,10 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 					//ignore exception
 				}
 			}
-            if(balancerRunner.balancerContext.properties.getProperty("httpsPort")!=null
-            		&&((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort()==Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("httpPort")))
+
+            if(balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getHttpsPort()!=null
+            		&&(((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort()==balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getHttpPort()))
+            	
             {
             	//redirect http request send 3xx response
             	sendRedirectResponse(e, request);
@@ -393,7 +396,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     {
     	HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FOUND);
     	String host = request.getHeader("Host");
-    	host = host.replace(balancerRunner.balancerContext.properties.getProperty("httpPort"), balancerRunner.balancerContext.properties.getProperty("httpsPort"));
+    	host = host.replace(balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getHttpPort().toString(), balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getHttpsPort().toString());
     	response.setHeader("Location", "https://"+host+request.getUri());
     	ChannelFuture future = e.getChannel().write(response);
     	future.addListener(ChannelFutureListener.CLOSE);

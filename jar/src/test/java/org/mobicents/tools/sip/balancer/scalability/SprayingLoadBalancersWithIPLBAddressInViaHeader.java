@@ -28,8 +28,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Properties;
-
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
@@ -37,6 +35,7 @@ import javax.sip.header.RecordRouteHeader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
@@ -57,36 +56,26 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 	UDPPacketForwarder externalIpLoadBalancer;
 	UDPPacketForwarder internalIpLoadBalancer;
 	
-	private BalancerRunner prepBalancer(String id) {
+	private BalancerRunner prepBalancer(int id) {
 		BalancerRunner balancer = new BalancerRunner();
-		Properties properties = new Properties();
-		properties.setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder" + id);
-		properties.setProperty("javax.sip.AUTOMATIC_DIALOG_SUPPORT", "off");
-		// You need 16 for logging traces. 32 for debug + traces.
-		// Your code will limp at 32 but it is best for debugging.
-		properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "LOG4J");
-		properties.setProperty("gov.nist.javax.sip.DEBUG_LOG",
-				"logs/sipbalancerforwarderdebug.txt");
-		properties.setProperty("gov.nist.javax.sip.SERVER_LOG",
-				"logs/sipbalancerforwarder.xml");
-		properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "2");
-		properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
-		properties.setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
-		
-		properties.setProperty("useIpLoadBalancerAddressInViaHeaders", "true");
-		properties.setProperty("externalHost", "127.0.0.1");
-		properties.setProperty("internalHost", "127.0.0.1");
-		properties.setProperty("internalUdpPort", "5"+id+"65");
-		properties.setProperty("externalUdpPort", "5"+id+"60");
-		properties.setProperty("rmiRegistryPort", "2" + id +"00");
-		properties.setProperty("httpPort", "2" + id +"80");
-		properties.setProperty("jmxHtmlAdapterPort", "8" + id +"00");
-		properties.setProperty("algorithmClass", HeaderConsistentHashBalancerAlgorithm.class.getName());
-		properties.setProperty("externalIpLoadBalancerAddress", "127.0.0.1");
-		properties.setProperty("externalIpLoadBalancerUdpPort", "9988");
-		properties.setProperty("internalIpLoadBalancerAddress", "127.0.0.1");
-		properties.setProperty("internalIpLoadBalancerUdpPort", "9922");
-		balancer.start(properties);
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		lbConfig.getSipConfiguration().setUseIpLoadBalancerAddressInViaHeaders(true);
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder" + id);
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setHost("127.0.0.1");
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setHost("127.0.0.1");
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(null);
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setUdpPort(5060+id*100);
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setUdpPort(5065+id*100);
+		lbConfig.getCommonConfiguration().setRmiRegistryPort(2000+id*100);
+		lbConfig.getCommonConfiguration().setJmxHtmlAdapterPort(8000+id*100);
+		lbConfig.getHttpConfiguration().setHttpPort(null);
+		lbConfig.getSmppConfiguration().setSmppPort(null);
+		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(HeaderConsistentHashBalancerAlgorithm.class.getName());
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerAddress("127.0.0.1");
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setIpLoadBalancerAddress("127.0.0.1");
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerUdpPort(9988);
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setIpLoadBalancerUdpPort(9922);
+		balancer.start(lbConfig);
 		return balancer;
 	}
 	
@@ -96,8 +85,8 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 		String balancerString = "";
 		String externalIpLBString = "";
 		String internalIpLBString = "";
-		for(Integer q=0;q<numBalancers;q++) {
-			balancers[q] = prepBalancer(q.toString());
+		for(int q=0;q<numBalancers;q++) {
+			balancers[q] = prepBalancer(q);
 			balancerString += "127.0.0.1:"+2+q+"00,";
 			externalIpLBString += "127.0.0.1:"+5+q+"60,";
 			internalIpLBString += "127.0.0.1:"+5+q+"65,";

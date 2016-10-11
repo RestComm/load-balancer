@@ -54,41 +54,41 @@ public class SmppBalancerRunner {
 	public void start()
 	{
         SmppServerConfiguration regularConfiguration = new SmppServerConfiguration();
-        regularConfiguration.setName(balancerRunner.balancerContext.properties.getProperty("smppName"));
-        regularConfiguration.setHost(balancerRunner.balancerContext.properties.getProperty("smppHost"));
-        regularConfiguration.setPort(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("smppPort")));
-        String maxConnectionSize = balancerRunner.balancerContext.properties.getProperty("maxConnectionSize");
-        if(maxConnectionSize!=null&&!maxConnectionSize.isEmpty())
-        	regularConfiguration.setMaxConnectionSize(Integer.parseInt(maxConnectionSize));
-        String nonBlockingSocketsEnabled = balancerRunner.balancerContext.properties.getProperty("nonBlockingSocketsEnabled");
-        if(nonBlockingSocketsEnabled!=null&&!nonBlockingSocketsEnabled.isEmpty())
-        	regularConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(nonBlockingSocketsEnabled));
-        String defaultSessionCountersEnabled = balancerRunner.balancerContext.properties.getProperty("defaultSessionCountersEnabled");
-        if(defaultSessionCountersEnabled!=null&&!defaultSessionCountersEnabled.isEmpty())
-        	regularConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(defaultSessionCountersEnabled));
+        regularConfiguration.setName("SMPP Load Balancer");
+        regularConfiguration.setHost(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost());
+        regularConfiguration.setPort(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppPort());
+       	regularConfiguration.setMaxConnectionSize(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getMaxConnectionSize());
+       	regularConfiguration.setNonBlockingSocketsEnabled(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().isNonBlockingSocketsEnabled());
+      	regularConfiguration.setDefaultSessionCountersEnabled(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().isDefaultSessionCountersEnabled());
         regularConfiguration.setUseSsl(false);                
         
         SmppServerConfiguration securedConfiguration = null;
-        if(balancerRunner.balancerContext.properties.getProperty("smppSslPort")!=null)
+        Integer smppSslPort = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppSslPort();
+        if(smppSslPort!=null)
         {
         	securedConfiguration = new SmppServerConfiguration();
-        	securedConfiguration.setName(balancerRunner.balancerContext.properties.getProperty("smppName"));
-        	securedConfiguration.setHost(balancerRunner.balancerContext.properties.getProperty("smppHost"));
-	        securedConfiguration.setPort(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("smppSslPort")));
-	        securedConfiguration.setMaxConnectionSize(Integer.parseInt(balancerRunner.balancerContext.properties.getProperty("maxConnectionSize")));
-	        securedConfiguration.setNonBlockingSocketsEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("nonBlockingSocketsEnabled")));
-	        securedConfiguration.setDefaultSessionCountersEnabled(Boolean.parseBoolean(balancerRunner.balancerContext.properties.getProperty("defaultSessionCountersEnabled")));
+        	securedConfiguration.setHost(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost());
+	        securedConfiguration.setPort(smppSslPort);
+	        securedConfiguration.setMaxConnectionSize(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getMaxConnectionSize());
+	        securedConfiguration.setNonBlockingSocketsEnabled(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().isNonBlockingSocketsEnabled());
+	        securedConfiguration.setDefaultSessionCountersEnabled(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().isDefaultSessionCountersEnabled());
 	        securedConfiguration.setUseSsl(true);
             SslConfiguration sslConfig = new SslConfiguration();
-	        sslConfig.setKeyStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStore"));
-	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.keyStorePassword"));
-	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStore"));
-	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.properties.getProperty("javax.net.ssl.trustStorePassword"));
-	        String sProtocols = balancerRunner.balancerContext.properties.getProperty("gov.nist.javax.sip.TLS_CLIENT_PROTOCOLS");
+            sslConfig.setKeyStorePath(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getKeyStore());
+	        sslConfig.setKeyStorePassword(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getKeyStorePassword());
+	        sslConfig.setTrustStorePath(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getTrustStore());
+	        sslConfig.setTrustStorePassword(balancerRunner.balancerContext.lbConfig.getSslConfiguration().getTrustStorePassword());
+	        String sProtocols = balancerRunner.balancerContext.lbConfig.getSslConfiguration().getTlsClientProtocols();
+	        String sCipherSuites = balancerRunner.balancerContext.lbConfig.getSslConfiguration().getEnabledCipherSuites();
 	        if(sProtocols!=null)
 	        {
 	        	String [] protocols = sProtocols.split(",");
 	        	sslConfig.setIncludeProtocols(protocols);
+	        }
+	        if(sCipherSuites!=null)
+	        {
+	        	String [] cipherSuites = sCipherSuites.split(",");
+	        	sslConfig.setIncludeCipherSuites(cipherSuites);
 	        }
 	        securedConfiguration.setSslConfiguration(sslConfig);        
         } 

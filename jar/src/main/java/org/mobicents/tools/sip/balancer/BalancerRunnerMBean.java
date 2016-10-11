@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+
 
 /**
  * 
@@ -66,10 +68,10 @@ public interface BalancerRunnerMBean {
 	
 	List<SIPNode> getNodes();
 	String[] getNodeList();
-	
-	String getProperty(String key);
-	void setProperty(String key, String value);
-	Properties getProperties();
+	//TODO:
+//	String getProperty(String key);
+//	void setProperty(String key, String value);
+	LoadBalancerConfiguration getConfiguration();
 
 	//HTTP balancer
 	long getNumberOfHttpRequests();
