@@ -24,6 +24,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
@@ -91,8 +92,8 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 	
 	public String dumpSubcluster() {
 		String result = "";
-		for(String host:nodeToNodeGroup.keySet()) {
-			String mapped = host + ": " + nodeToNodeGroup.get(host);
+		for(Map.Entry<String, List<String>> entry : nodeToNodeGroup.entrySet()) {
+			String mapped = entry.getKey() + ": " + entry.getValue();
 			result += mapped + "\n";
 		}
 		return result;

@@ -27,6 +27,7 @@ import gov.nist.javax.sip.header.Via;
 import gov.nist.javax.sip.message.ResponseExt;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -292,11 +293,11 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		
 		int minUtil = Integer.MAX_VALUE;
 		SIPNode minUtilNode = null;
-		for(SIPNode node : nodeUtilization.keySet()) {
-			Integer util = nodeUtilization.get(node);
-			if(!node.equals(deadNode) && (util < minUtil)) {
+		for(Map.Entry<SIPNode, Integer> entry : nodeUtilization.entrySet()) {
+			Integer util = entry.getValue();
+			if(!entry.getKey().equals(deadNode) && (util < minUtil)) {
 				minUtil = util;
-				minUtilNode = node;
+				minUtilNode = entry.getKey();
 			}
 		}
 		if(logger.isDebugEnabled()) {
@@ -372,10 +373,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			SIPNode newNode = getBalancerContext().jvmRouteToSipNode.get(toJvmRoute);
 			if(oldNode != null && newNode != null) {
 				int updatedRoutes = 0;
-				for(String key : callIdMap.keySet()) {
-					SIPNode n = callIdMap.get(key);
+				for(Map.Entry<String, SIPNode> entry : callIdMap.entrySet()) {
+					SIPNode n = entry.getValue();
 					if(n.equals(oldNode)) {
-						callIdMap.replace(key, newNode);
+						callIdMap.replace( entry.getKey(), newNode);
 						updatedRoutes++;
 					}
 				}
@@ -400,10 +401,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		try {
 			if(oldNode != null && newNode != null) {
 				int updatedRoutes = 0;
-				for(String key : callIdMap.keySet()) {
-					SIPNode n = callIdMap.get(key);
+				for(Map.Entry<String, SIPNode> entry : callIdMap.entrySet()) {
+					SIPNode n = entry.getValue();
 					if(n.equals(oldNode)) {
-						callIdMap.replace(key, newNode);
+						callIdMap.replace(entry.getKey(), newNode);
 						updatedRoutes++;
 					}
 				}
