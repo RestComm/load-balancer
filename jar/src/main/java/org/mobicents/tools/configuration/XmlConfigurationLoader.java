@@ -66,6 +66,7 @@ public class XmlConfigurationLoader{
     private static void configureCommon(HierarchicalConfiguration<ImmutableNode> src, CommonConfiguration dst) 
     {
         dst.setHost(src.getString("host", CommonConfiguration.HOST));
+        dst.setIpv6Host(src.getString("ipv6Host", CommonConfiguration.IPV6_HOST));
         dst.setRmiRegistryPort(src.getInteger("rmiRegistryPort",CommonConfiguration.RMI_REGISTRY_PORT));
         dst.setRmiRemoteObjectPort(src.getInteger("rmiRemoteObjectPort",CommonConfiguration.RMI_REMOTE_OBJECT_PORT));
         dst.setNodeTimeout(src.getInteger("nodeTimeout", CommonConfiguration.NODE_TIMEOUT));
@@ -78,8 +79,8 @@ public class XmlConfigurationLoader{
     	InternalLegConfiguration in = dst.getInternalLegConfiguration();
     	AlgorithmConfiguration alg = dst.getAlgorithmConfiguration();
     	// Basic SIP configuration
-    	src.getString("publicIp", SipConfiguration.PUBLIC_IP);
         dst.setPublicIp(src.getString("publicIp", SipConfiguration.PUBLIC_IP));
+        dst.setPublicIpv6(src.getString("publicIpv6", SipConfiguration.PUBLIC_IPV6));
         dst.setExtraServerNodes(src.getString("extraServerNodes",SipConfiguration.EXTRA_SERVER_NODES));
         dst.setPerformanceTestingMode(src.getBoolean("performanceTestingMode",SipConfiguration.PERFORMANCE_TESTING_MODE));
         dst.setUseIpLoadBalancerAddressInViaHeaders(src.getBoolean("useIpLoadBalancerAddressInViaHeaders",SipConfiguration.USE_IP_LOAD_BALANCER_ADRESS_IN_VIA_HEADERS));
@@ -106,7 +107,7 @@ public class XmlConfigurationLoader{
         alg.setSubclusterMap(src.getString("subclusterMap",AlgorithmConfiguration.SUBCLUSTER_MAP));
         alg.setEarlyDialogWorstCase(src.getBoolean("earlyDialogWorstCase",AlgorithmConfiguration.EARLY_DIALOG_WORST_CASE));
         //external leg configuration
-        ex.setHost(src.getString("external.host",CommonConfiguration.HOST));
+        ex.setHost(src.getString("external.host",ExternalLegConfiguration.HOST));
         if(!src.getString("external.ipLoadBalancerAddress").equals(""))
         	ex.setIpLoadBalancerAddress(src.getString("external.ipLoadBalancerAddress", ExternalLegConfiguration.IP_LOAD_BALANCER_ADRESS));
         if(!src.getString("external.udpPort").equals(""))
@@ -129,8 +130,34 @@ public class XmlConfigurationLoader{
         	ex.setIpLoadBalancerWsPort(src.getInteger("external.ipLoadBalancerWsPort",ExternalLegConfiguration.IP_LOAD_BALANCER_WS_PORT));
         if(!src.getString("external.ipLoadBalancerWssPort").equals(""))
         	ex.setIpLoadBalancerWssPort(src.getInteger("external.ipLoadBalancerWssPort",ExternalLegConfiguration.IP_LOAD_BALANCER_WSS_PORT));
+        //external ipv6
+        ex.setIpv6Host(src.getString("external.ipv6Host",ExternalLegConfiguration.IPV6_HOST));
+        if(!src.getString("external.ipv6LoadBalancerAddress").equals(""))
+        	ex.setIpv6LoadBalancerAddress(src.getString("external.ipv6LoadBalancerAddress", ExternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS));
+        if(!src.getString("external.ipv6UdpPort").equals(""))
+        	ex.setIpv6UdpPort(src.getInteger("external.ipv6UdpPort", ExternalLegConfiguration.IPV6_UDP_PORT));
+        if(!src.getString("external.ipv6TcpPort").equals(""))
+        	ex.setIpv6TcpPort(src.getInteger("external.ipv6TcpPort", ExternalLegConfiguration.IPV6_TCP_PORT));
+        if(!src.getString("external.ipv6TlsPort").equals(""))
+        	ex.setIpv6TlsPort(src.getInteger("external.ipv6TlsPort", ExternalLegConfiguration.IPV6_TLS_PORT));
+        if(!src.getString("external.ipv6WsPort").equals(""))
+        	ex.setIpv6WsPort(src.getInteger("external.ipv6WsPort", ExternalLegConfiguration.IPV6_WS_PORT));
+        if(!src.getString("external.ipv6WssPort").equals(""))
+        	ex.setIpv6WssPort(src.getInteger("external.ipv6WssPort", ExternalLegConfiguration.IPV6_WSS_PORT));
+        if(!src.getString("external.ipv6LoadBalancerUdpPort").equals(""))
+        	ex.setIpv6LoadBalancerUdpPort(src.getInteger("external.ipv6LoadBalancerUdpPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_UDP_PORT));
+        if(!src.getString("external.ipv6LoadBalancerTcpPort").equals(""))
+        	ex.setIpv6LoadBalancerTcpPort(src.getInteger("external.ipv6LoadBalancerTcpPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_TCP_PORT));
+        if(!src.getString("external.ipv6LoadBalancerTlsPort").equals(""))
+        	ex.setIpv6LoadBalancerTlsPort(src.getInteger("external.ipv6LoadBalancerTlsPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_TLS_PORT));
+        if(!src.getString("external.ipv6LoadBalancerWsPort").equals(""))
+        	ex.setIpv6LoadBalancerWsPort(src.getInteger("external.ipv6LoadBalancerWsPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_WS_PORT));
+        if(!src.getString("external.ipv6LoadBalancerWssPort").equals(""))
+        	ex.setIpv6LoadBalancerWssPort(src.getInteger("external.ipv6LoadBalancerWssPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_WSS_PORT));
+        
         //internal leg configuration
-        in.setHost(src.getString("internal.host",CommonConfiguration.HOST));
+        in.setHost(src.getString("internal.host",InternalLegConfiguration.HOST));
+        in.setHost(src.getString("internal.ipv6Host",InternalLegConfiguration.IPV6_HOST));
         if(!src.getString("internal.ipLoadBalancerAddress").equals(""))
         	in.setIpLoadBalancerAddress(src.getString("internal.ipLoadBalancerAddress", InternalLegConfiguration.IP_LOAD_BALANCER_ADRESS));
         if(!src.getString("internal.udpPort").equals(""))
@@ -153,6 +180,30 @@ public class XmlConfigurationLoader{
         	in.setIpLoadBalancerWsPort(src.getInteger("internal.ipLoadBalancerWsPort",InternalLegConfiguration.IP_LOAD_BALANCER_WS_PORT));
         if(!src.getString("internal.ipLoadBalancerWssPort").equals(""))
         	in.setIpLoadBalancerWssPort(src.getInteger("internal.ipLoadBalancerWssPort",InternalLegConfiguration.IP_LOAD_BALANCER_WSS_PORT));
+        //ipv6
+        in.setIpv6Host(src.getString("internal.ipv6Host",InternalLegConfiguration.IPV6_HOST));
+        if(!src.getString("internal.ipv6LoadBalancerAddress").equals(""))
+        	in.setIpv6LoadBalancerAddress(src.getString("internal.ipv6LoadBalancerAddress", InternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS));
+        if(!src.getString("internal.ipv6UdpPort").equals(""))
+        	in.setIpv6UdpPort(src.getInteger("internal.ipv6UdpPort", InternalLegConfiguration.IPV6_UDP_PORT));
+        if(!src.getString("internal.ipv6TcpPort").equals(""))
+        	in.setIpv6TcpPort(src.getInteger("internal.ipv6TcpPort", InternalLegConfiguration.IPV6_TCP_PORT));
+        if(!src.getString("internal.ipv6TlsPort").equals(""))
+        	in.setIpv6TlsPort(src.getInteger("internal.ipv6TlsPort", InternalLegConfiguration.IPV6_TLS_PORT));
+        if(!src.getString("internal.ipv6WsPort").equals(""))
+        	in.setIpv6WsPort(src.getInteger("internal.ipv6WsPort", InternalLegConfiguration.IPV6_WS_PORT));
+        if(!src.getString("internal.ipv6WssPort").equals(""))
+        	in.setIpv6WssPort(src.getInteger("internal.ipv6WssPort", InternalLegConfiguration.IPV6_WSS_PORT));
+        if(!src.getString("internal.ipv6LoadBalancerUdpPort").equals(""))
+        	in.setIpv6LoadBalancerUdpPort(src.getInteger("internal.ipv6LoadBalancerUdpPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_UDP_PORT));
+        if(!src.getString("internal.ipv6LoadBalancerTcpPort").equals(""))
+        	in.setIpv6LoadBalancerTcpPort(src.getInteger("internal.ipv6LoadBalancerTcpPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_TCP_PORT));
+        if(!src.getString("internal.ipv6LoadBalancerTlsPort").equals(""))
+        	in.setIpv6LoadBalancerTlsPort(src.getInteger("internal.ipv6LoadBalancerTlsPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_TLS_PORT));
+        if(!src.getString("internal.ipv6LoadBalancerWsPort").equals(""))
+        	in.setIpv6LoadBalancerWsPort(src.getInteger("internal.ipv6LoadBalancerWsPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_WS_PORT));
+        if(!src.getString("internal.ipv6LoadBalancerWssPort").equals(""))
+        	in.setIpv6LoadBalancerWssPort(src.getInteger("internal.ipv6LoadBalancerWssPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_WSS_PORT));
     }
 
     private static void configureHttp(HierarchicalConfiguration<ImmutableNode> src, HttpConfiguration dst) 

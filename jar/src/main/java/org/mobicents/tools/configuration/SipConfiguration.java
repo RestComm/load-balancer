@@ -8,6 +8,7 @@ public class SipConfiguration {
     
     public static final Boolean IS_SEND_TRYING = true;
 	public static final String PUBLIC_IP = null;
+	public static final String PUBLIC_IPV6 = null;
 	public static final Boolean USE_IP_LOAD_BALANCER_ADRESS_IN_VIA_HEADERS = false;
 	public static final Boolean PERFORMANCE_TESTING_MODE = false;
 	public static final String EXTRA_SERVER_NODES = null;
@@ -24,6 +25,7 @@ public class SipConfiguration {
 
 	private Boolean isSendTrying;
 	private String publicIp;
+	private String publicIpv6;
 	private Boolean useIpLoadBalancerAddressInViaHeaders;
 	private Boolean performanceTestingMode;
 	private String extraServerNodes;
@@ -46,6 +48,7 @@ public class SipConfiguration {
 		
 		this.isSendTrying = IS_SEND_TRYING;
         this.publicIp = PUBLIC_IP;
+        this.publicIpv6 = PUBLIC_IPV6;
         this.useIpLoadBalancerAddressInViaHeaders = USE_IP_LOAD_BALANCER_ADRESS_IN_VIA_HEADERS;
         this.performanceTestingMode = PERFORMANCE_TESTING_MODE;
         this.extraServerNodes = EXTRA_SERVER_NODES;
@@ -83,6 +86,14 @@ public class SipConfiguration {
 	public void setPublicIp(String publicIp) 
 	{
 		this.publicIp = publicIp;
+	}
+
+	public String getPublicIpv6() {
+		return publicIpv6;
+	}
+
+	public void setPublicIpv6(String publicIpv6) {
+		this.publicIpv6 = publicIpv6;
 	}
 
 	public String getExtraServerNodes() 

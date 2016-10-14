@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -79,14 +81,14 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 		}
 	}
 
-	public SIPNode processExternalRequest(Request request) {
-		Integer nodeIndex = hashHeader(request);
+	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
+		Integer nodeIndex = hashHeader(request,isIpV6);
 		if(nodeIndex<0) {
 			return null;
 		} else {
 			BalancerContext balancerContext = getBalancerContext();
 			try {
-				SIPNode node = (SIPNode) nodesArray[nodeIndex];
+				SIPNode node = (SIPNode) nodesArray(isIpV6)[nodeIndex];
 				return node;
 			} catch (Exception e) {
 				return null;
@@ -100,19 +102,22 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	}
 	
 	public synchronized void nodeAdded(SIPNode node, InvocationContext context) {
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            			
 		addNode(node);
-		syncNodes();
+		syncNodes(isIpV6);
 	}
 	
 	private synchronized void addNode(SIPNode node) {
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            			
 		tmpNodes.add(node);
-		syncNodes();
+		syncNodes(isIpV6);
 		dumpNodes();
 	}
 
 	public synchronized void nodeRemoved(SIPNode node) {
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            			
 		tmpNodes.remove(node);
-		syncNodes();
+		syncNodes(isIpV6);
 		dumpNodes();
 
 	}
@@ -133,9 +138,18 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	
 	
 	private void dumpNodes() {
-		String nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + nodesArray.length + "):\n";
+		String nodes = null;
+		if(nodesArrayV6!=null)
+			nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + (nodesArrayV4.length + nodesArrayV6.length) + "):\n";
+		else
+			nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + (nodesArrayV4.length) + "):\n";
 		
-		for(Object object : nodesArray) {
+		for(Object object : nodesArrayV4) {
+			SIPNode node = (SIPNode) object;
+			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]" + " [HASH:" + absDigest(node.toStringWithoutJvmroute()) + "]"+ "\n";
+		}
+		
+		for(Object object : nodesArrayV6) {
 			SIPNode node = (SIPNode) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]" + " [HASH:" + absDigest(node.toStringWithoutJvmroute()) + "]"+ "\n";
 		}
@@ -143,9 +157,9 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	}
 	
 	@Override
-	protected int hashAffinityKeyword(String keyword) {
+	protected int hashAffinityKeyword(String keyword,Boolean isIpV6) {
 		int hashCode = Math.abs(keyword.hashCode());
-		Object[] nodes = nodesArray; // take a copy to avoid inconsistent reads
+		Object[] nodes = nodesArray(isIpV6); // take a copy to avoid inconsistent reads
 		int lastNodeWithLowerHash = 0;
 		for(int q=0;q<nodes.length;q++) {
 			SIPNode node = (SIPNode) nodes[q];
@@ -184,7 +198,7 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	}
 	
 	@Override
-	public synchronized void syncNodes() {
+	public synchronized void syncNodes(Boolean isIpV6) {
 		Set<SIPNode> nodes = tmpNodes;
 		if(nodes != null) {
 			ArrayList<SIPNode> nodeList = new ArrayList<SIPNode>();
@@ -206,7 +220,11 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 			HashMap<SIPNode, Integer> tmpNodeToHash = new HashMap<SIPNode, Integer>();
 			for(SIPNode node:nodeList) tmpNodeToHash.put(node, absDigest(node.toStringWithoutJvmroute()));
 			this.nodeToHash = tmpNodeToHash;
-			this.nodesArray = nodeList.toArray();
+			
+			if(isIpV6)
+				this.nodesArrayV6 = nodeList.toArray();
+			else
+				this.nodesArrayV4 = nodeList.toArray();
 		}
 		
 		dumpNodes();

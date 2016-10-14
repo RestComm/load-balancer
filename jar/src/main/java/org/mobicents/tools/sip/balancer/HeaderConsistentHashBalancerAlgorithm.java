@@ -32,6 +32,7 @@ import java.util.Timer;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -52,13 +53,31 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	
 	// We will maintain a sorted list of the nodes so all SIP LBs will see them in the same order
 	// no matter at what order the events arrived
-	private SortedSet<SIPNode> nodes = (SortedSet<SIPNode>) Collections.synchronizedSortedSet(new TreeSet<SIPNode>());
+	private SortedSet<SIPNode> nodesV4 = (SortedSet<SIPNode>) Collections.synchronizedSortedSet(new TreeSet<SIPNode>());
+	private SortedSet<SIPNode> nodesV6 = (SortedSet<SIPNode>) Collections.synchronizedSortedSet(new TreeSet<SIPNode>());
 	// And we also keep a copy in the array because it is faster to query by index
-	protected Object[] nodesArray;
+	protected Object[] nodesArrayV4;
+	protected Object[] nodesArrayV6;
 	
 	protected boolean nodesAreDirty = true;
 	
 	public HeaderConsistentHashBalancerAlgorithm() {
+	}
+	
+	private SortedSet<SIPNode> nodes(Boolean isIpV6)
+	{
+		if(isIpV6)
+			return nodesV6;
+		else
+			return nodesV4;
+	}
+	
+	protected Object[] nodesArray(Boolean isIpV6)
+	{
+		if(isIpV6)
+			return nodesArrayV6;
+		else
+			return nodesArrayV4;
 	}
 	
 	public HeaderConsistentHashBalancerAlgorithm(String headerName) {
@@ -69,18 +88,18 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		}
 	}
 
-	public SIPNode processExternalRequest(Request request) {
+	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
 		if(nodesAreDirty) { // for testing only where nodes are not removed, just start advertising new version while alive
 			synchronized(this) {
-				syncNodes();
+				syncNodes(isIpV6);
 			}
 		}
-		Integer nodeIndex = hashHeader(request);
+		Integer nodeIndex = hashHeader(request,isIpV6);
 		if(nodeIndex<0) {
 			return null;
 		} else {
 			try {
-				SIPNode node = (SIPNode) nodesArray[nodeIndex];
+				SIPNode node = (SIPNode) nodesArray(isIpV6)[nodeIndex];
 				return node;
 			} catch (Exception e) {
 				return null;
@@ -90,27 +109,31 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 
 	@Override
 	public synchronized void nodeAdded(SIPNode node) {
-		nodes.add(node);
-		nodesArray = nodes.toArray(new Object[]{});
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());		
+		nodes(isIpV6).add(node);
+		
+		if(isIpV6)
+			nodesArrayV6 = nodes(true).toArray(new Object[]{});
+		else
+			nodesArrayV4 = nodes(false).toArray(new Object[]{});
+		
 		nodesAreDirty = false;
 	}
 
 	@Override
 	public synchronized void nodeRemoved(SIPNode node) {
-		nodes.remove(node);
-		nodesArray = nodes.toArray(new Object[]{});
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());				
+		nodes(isIpV6).remove(node);
+		
+		if(isIpV6)
+			nodesArrayV6 = nodes(true).toArray(new Object[]{});
+		else
+			nodesArrayV4 = nodes(false).toArray(new Object[]{});
+		
 		nodesAreDirty = false;
 	}
 	
-	private void dumpNodes() {
-		System.out.println("0----------------------------------------------------0");
-		for(Object object : nodesArray) {
-			SIPNode node = (SIPNode) object;
-			System.out.println(node);
-		}
-	}
-	
-	protected Integer hashHeader(Message message) {
+	protected Integer hashHeader(Message message,Boolean isIpV6) {
 		String headerValue = null;
 		if(sipHeaderAffinityKey.equals("From")) {
 			headerValue = ((SipURI)((FromHeader) message.getHeader(FromHeader.NAME))
@@ -123,13 +146,13 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			.getValue();
 		}
 
-		if(nodesArray.length == 0) {
+		if(nodesArray(isIpV6).length == 0) {
 			throw new RuntimeException("No Application Servers registered. All servers are dead.");
 		}
 		
-		int nodeIndex = hashAffinityKeyword(headerValue);
+		int nodeIndex = hashAffinityKeyword(headerValue,isIpV6);
 		
-		if(isAlive((SIPNode)nodesArray[nodeIndex])) {
+		if(isAlive((SIPNode)nodesArray(isIpV6)[nodeIndex])) {
 			return nodeIndex;
 		} else {
 			return -1;
@@ -138,7 +161,8 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	
 	protected boolean isAlive(SIPNode node) {
 		//if(invocationContext.nodes.contains(node)) return true;
-		if(invocationContext.sipNodeMap.containsValue(node)) return true;
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            						
+		if(invocationContext.sipNodeMap(isIpV6).containsValue(node)) return true;
 		return false;
 	}
 	
@@ -147,19 +171,19 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		if(affinityKeyword == null) {
 			return super.processHttpRequest(request);
 		}
-		return (SIPNode) nodesArray[hashAffinityKeyword(affinityKeyword)];
+		return (SIPNode) nodesArrayV4[hashAffinityKeyword(affinityKeyword,false)];
 	}
 	
-	protected int hashAffinityKeyword(String keyword) {
-		int nodeIndex = Math.abs(keyword.hashCode()) % nodesArray.length;
+	protected int hashAffinityKeyword(String keyword,Boolean isIpV6) {
+		int nodeIndex = Math.abs(keyword.hashCode()) % nodesArray(isIpV6).length;
 
-		SIPNode computedNode = (SIPNode) nodesArray[nodeIndex];
+		SIPNode computedNode = (SIPNode) nodesArray(isIpV6)[nodeIndex];
 		
 		if(!isAlive(computedNode)) {
 			// If the computed node is dead, find a new one
-			for(int q = 0; q<nodesArray.length; q++) {
-				nodeIndex = (nodeIndex + 1) % nodesArray.length;
-				if(isAlive(((SIPNode)nodesArray[nodeIndex]))) {
+			for(int q = 0; q<nodesArray(isIpV6).length; q++) {
+				nodeIndex = (nodeIndex + 1) % nodesArray(isIpV6).length;
+				if(isAlive(((SIPNode)nodesArray(isIpV6)[nodeIndex]))) {
 					break;
 				}
 			}
@@ -201,14 +225,14 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	}
 	
 	@Override
-	public void processExternalResponse(Response response){
-		this.processExternalResponse(response, this.invocationContext);
+	public void processExternalResponse(Response response,Boolean isIpV6){
+		this.processExternalResponse(response, this.invocationContext,isIpV6);
 	}
 	
-	public void processExternalResponse(Response response, InvocationContext context) {
+	public void processExternalResponse(Response response, InvocationContext context,Boolean isIpV6) {
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
-		Integer nodeIndex = hashHeader(response);
+		Integer nodeIndex = hashHeader(response,isIpV6);
 		String host = via.getHost();
 		Integer port = via.getPort();		
 		Boolean found = false;
@@ -219,7 +243,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 //				}
 //			}
 //		}
-		if(context.sipNodeMap.containsKey(new KeySip(host, port)))
+		if(context.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
 		if(logger.isDebugEnabled()) {
 			logger.debug("external response node found ? " + found);
@@ -227,13 +251,13 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		if(!found) {
 			if(nodesAreDirty) {
 				synchronized(this) {
-					syncNodes();
+					syncNodes(isIpV6);
 				}
 			}
 			try {
-				SIPNode node = (SIPNode) nodesArray[nodeIndex];
+				SIPNode node = (SIPNode) nodesArray(isIpV6)[nodeIndex];
 				//if(node == null || !context.nodes.contains(node)) {
-				if(node == null || !context.sipNodeMap.containsValue(node)) {
+				if(node == null || !context.sipNodeMap(isIpV6).containsValue(node)) {
 					if(logger.isDebugEnabled()) {
 						logger.debug("No node to handle " + via);
 					}
@@ -261,11 +285,16 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			}
 		}
 	}
-	protected void syncNodes() {
-		nodes.clear();
+	protected void syncNodes(Boolean isIpV6) {
+		nodes(isIpV6).clear();
 		//nodes.addAll(invocationContext.nodes);
-		nodes.addAll(invocationContext.sipNodeMap.values());
-		nodesArray = nodes.toArray(new Object[]{});
+		nodes(isIpV6).addAll(invocationContext.sipNodeMap(isIpV6).values());
+		
+		if(isIpV6)
+			nodesArrayV6 = nodes(true).toArray(new Object[]{});
+		else
+			nodesArrayV4 = nodes(false).toArray(new Object[]{});
+		
 		nodesAreDirty = false;
 	}
 }

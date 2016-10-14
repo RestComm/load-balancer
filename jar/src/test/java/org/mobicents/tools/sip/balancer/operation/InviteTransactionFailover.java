@@ -84,7 +84,7 @@ public class InviteTransactionFailover {
 			servers[0].sendHeartbeat = false;
 			Thread.sleep(14000);
 			//assertEquals(numNodes-1, balancer.getInvocationContext("0").nodes.size());
-			assertEquals(numNodes-1, balancer.getInvocationContext("0").sipNodeMap.size());
+			assertEquals(numNodes-1, balancer.getInvocationContext("0").sipNodeMap(false).size());
 			assertEquals(numNodes-1, balancer.getNodeList().length);
 	}
 

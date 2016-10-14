@@ -22,6 +22,9 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import java.net.Inet6Address;
+import java.net.InetAddress;
+
 import gov.nist.javax.sip.message.SIPRequest;
 import gov.nist.javax.sip.stack.MessageChannel;
 import gov.nist.javax.sip.stack.SIPMessageValve;
@@ -39,18 +42,34 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
             .getCanonicalName());
 	BalancerRunner balancerRunner;
 	
-	public boolean processRequest(SIPRequest request,
-			MessageChannel messageChannel) {
+	public boolean processRequest(SIPRequest request, MessageChannel messageChannel) {
 		// https://telestax.atlassian.net/browse/LB-36
 		// catching all exceptions so it doesn't make JAIN SIP to fail
 		try {
-			SipProvider p = balancerRunner.balancerContext.externalSipProvider;
-			if(messageChannel.getPort() != balancerRunner.balancerContext.getExternalPortByTransport(messageChannel.getTransport())) {
-				if(balancerRunner.balancerContext.isTwoEntrypoints())
-					p = balancerRunner.balancerContext.internalSipProvider;
+			SipProvider p = null;
+			Boolean isIpv6=false;
+			InetAddress address = InetAddress.getByName(messageChannel.getHost());
+			if (address instanceof Inet6Address) 
+			{
+				isIpv6=true;
+				p = balancerRunner.balancerContext.externalIpv6SipProvider;
+				if(messageChannel.getPort() != balancerRunner.balancerContext.getExternalPortByTransport(messageChannel.getTransport(),isIpv6)) 
+				{
+					if(balancerRunner.balancerContext.isTwoEntrypoints())
+						p = balancerRunner.balancerContext.internalIpv6SipProvider;
+				}
+			} 
+			else 
+			{
+				p = balancerRunner.balancerContext.externalSipProvider;
+				if(messageChannel.getPort() != balancerRunner.balancerContext.getExternalPortByTransport(messageChannel.getTransport(),isIpv6)) 
+				{
+					if(balancerRunner.balancerContext.isTwoEntrypoints())
+						p = balancerRunner.balancerContext.internalSipProvider;
+				}
 			}
 			
-			RequestEvent event = new RequestEvent(p, null, null, request);
+			RequestEvent event = new RequestEvent(new BalancerAppContent(p,isIpv6), null, null, request);			
 			balancerRunner.balancerContext.forwarder.processRequest(event);
 		} catch (Exception e) {
 			logger.error("A Problem happened in the BalancerValve on request " + request, e);
@@ -64,12 +83,30 @@ public class SIPBalancerValveProcessor implements SIPMessageValve {
 		// https://telestax.atlassian.net/browse/LB-36
 		// catching all exceptions so it doesn't make JAIN SIP to fail
 		try {
-			SipProvider p = balancerRunner.balancerContext.externalSipProvider;
-			if(messageChannel.getPort() != balancerRunner.balancerContext.getExternalPortByTransport(messageChannel.getTransport())) {
-				if(balancerRunner.balancerContext.isTwoEntrypoints())
-					p = balancerRunner.balancerContext.internalSipProvider;
+			SipProvider p = null;
+			Boolean isIpv6=false;
+			InetAddress address = InetAddress.getByName(messageChannel.getHost());
+			if (address instanceof Inet6Address) 
+			{
+				isIpv6=true;
+				p = balancerRunner.balancerContext.externalIpv6SipProvider;
+				if(messageChannel.getPort() != balancerRunner.balancerContext.getExternalPortByTransport(messageChannel.getTransport(),isIpv6)) 
+				{
+					if(balancerRunner.balancerContext.isTwoEntrypoints())
+						p = balancerRunner.balancerContext.internalIpv6SipProvider;
+				}
+			} 
+			else 
+			{
+					p = balancerRunner.balancerContext.externalSipProvider;
+					if(messageChannel.getPort() != balancerRunner.balancerContext.getExternalPortByTransport(messageChannel.getTransport(),isIpv6)) 
+					{
+						if(balancerRunner.balancerContext.isTwoEntrypoints())
+							p = balancerRunner.balancerContext.internalSipProvider;
+					}
 			}
-			ResponseEvent event = new ResponseEvent(p, null, null, response);
+			
+			ResponseEvent event = new ResponseEvent(new BalancerAppContent(p,isIpv6), null, null, response);			
 			balancerRunner.balancerContext.forwarder.processResponse(event);
 		} catch (Exception e) {
 			logger.error("A Problem happened in the BalancerValve on response " + response, e);

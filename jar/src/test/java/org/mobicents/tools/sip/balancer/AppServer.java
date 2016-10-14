@@ -52,6 +52,7 @@ public class AppServer {
 	boolean isDummy;
 	boolean isMediaFailure;
 	boolean isFirstStart = true;
+	boolean isIpv6 = false;
 	
 	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) 
 	{
@@ -63,6 +64,11 @@ public class AppServer {
 		this.lbSIPint = lbSIPint;
 		this.version = version;
 		this.transport=transport;
+	}
+	public AppServer(boolean isIpv6,String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) 
+	{
+		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport);
+		this.isIpv6 = true;
 	}
 	
 	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport, boolean isDummy)
@@ -91,22 +97,24 @@ public class AppServer {
 		timer = new Timer();
 		
 		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, false, true);
-		if(!isDummy)
-		{
-			if(!isMediaFailure||!isFirstStart)
+
+			if(!isDummy)
 			{
-				sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
+				if(!isMediaFailure||!isFirstStart)
+				{
+					sipListener = new TestSipListener(isIpv6,port, lbSIPint, protocolObjects, false);
+				}
+				else
+				{
+					sipListener = new TestSipListener(isIpv6,port, lbSIPint, protocolObjects, false);
+					sipListener.setRespondWithError(Response.SERVICE_UNAVAILABLE);
+				}
 			}
 			else
 			{
-				sipListener = new TestSipListener(port, lbSIPint, protocolObjects, false);
-				sipListener.setRespondWithError(Response.SERVICE_UNAVAILABLE);
+				sipListener = new TestSipListener(isIpv6,port+1, lbSIPint, protocolObjects, false);
 			}
-		}
-		else
-		{
-			sipListener = new TestSipListener(port+1, lbSIPint, protocolObjects, false);
-		}
+
 		sipListener.appServer = this;
 		try {
 			sipProvider = sipListener.createProvider();
@@ -115,7 +123,10 @@ public class AppServer {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		appServerNode = new SIPNode(name, "127.0.0.1");		
+		if(!isIpv6)
+			appServerNode = new SIPNode(name, "127.0.0.1");
+		else
+			appServerNode = new SIPNode(name, "::1");
 		appServerNode.getProperties().put(transport.toLowerCase() + "Port", port);		
 		appServerNode.getProperties().put("version", version);
 		appServerNode.getProperties().put("sessionId", ""+System.currentTimeMillis());

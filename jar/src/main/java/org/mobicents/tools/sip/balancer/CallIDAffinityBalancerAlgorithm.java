@@ -35,6 +35,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -57,21 +58,20 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		logger.debug("internal request");
 	}
 	
-	public void processInternalResponse(Response response) {
+	public void processInternalResponse(Response response,Boolean isIpV6) {
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
 		Integer port = via.getPort();
 		boolean found = false;
-		
 		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
-
+		
 		if(logger.isDebugEnabled()) {
 			logger.debug("internal response checking sendernode " + senderNode + " or Via host:port " + host + ":" + port);
 		} 
-		if(senderNode != null&&invocationContext.sipNodeMap.containsValue(senderNode))
+		if(senderNode != null&&invocationContext.sipNodeMap(isIpV6).containsValue(senderNode))
 			found = true;
-		else if	(invocationContext.sipNodeMap.containsKey(new KeySip(host, port)))
+		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
 		else if(response.getStatusCode()==balancerContext.responseStatusCodeNodeRemoval 
     			&& response.getReasonPhrase().equals(balancerContext.responseReasonNodeRemoval))
@@ -99,7 +99,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
 			SIPNode node = callIdMap.get(callId);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
-			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
+			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, callId);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
@@ -121,7 +121,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	public void processExternalResponse(Response response) {
+	public void processExternalResponse(Response response,Boolean isIpV6) {
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
@@ -137,7 +137,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 //			}
 //		}
 		
-		if(invocationContext.sipNodeMap.containsKey(new KeySip(host, port)))
+		if(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
 		
 		
@@ -148,7 +148,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
 			SIPNode node = callIdMap.get(callId);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
-			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
+			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, callId);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
@@ -191,7 +191,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	public SIPNode processExternalRequest(Request request) {
+	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
 		String callId = ((SIPHeader) request.getHeader(headerName))
 		.getValue();
 		SIPNode node;
@@ -199,14 +199,14 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		callIdTimestamps.put(callId, System.currentTimeMillis());
 
 		if(node == null) { //
-			node = nextAvailableNode();
+			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			callIdMap.put(callId, node);
 			if(logger.isDebugEnabled()) {
 	    		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
 	    	}
 		} else {
-			if(!invocationContext.sipNodeMap.containsValue(node)) { // If the assigned node is now dead
+			if(!invocationContext.sipNodeMap(isIpV6).containsValue(node)) { // If the assigned node is now dead
 			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
 				node = selectNewNode(node, callId);
 			} else { // ..else it's alive and we can route there
@@ -238,7 +238,8 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
 		} else {
-			node = nextAvailableNode();
+			Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            				
+			node = nextAvailableNode(isIpV6);
 			if(node == null) {
 				if(logger.isDebugEnabled()) {
 		    		logger.debug("no nodes available return null");
@@ -254,22 +255,22 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		return node;
 	}
 	
-	protected synchronized SIPNode nextAvailableNode() {
+	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
 		//if(invocationContext.nodes.size() == 0) return null;
-		if(invocationContext.sipNodeMap.size() == 0) return null;
+		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
 		//int nextNode = nextNodeCounter.incrementAndGet();
 		//nextNode %= invocationContext.nodes.size();
 		//return invocationContext.nodes.get(nextNode);
 		if(it==null)
-			it = invocationContext.sipNodeMap.entrySet().iterator();
+			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		Map.Entry pair = null;
 		while(it.hasNext())
 		{
 			pair = (Map.Entry)it.next();
-			if(invocationContext.sipNodeMap.containsKey(pair.getKey()))
+			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey()))
 				return (SIPNode) pair.getValue();
 		}
-		it = invocationContext.sipNodeMap.entrySet().iterator();
+		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		if(it.hasNext())
 		{
 			pair = (Map.Entry)it.next();

@@ -3,6 +3,7 @@ package org.mobicents.tools.configuration;
 public class CommonConfiguration {
     
     public static final String HOST = "127.0.0.1";
+    public static final String IPV6_HOST = "::1";
     public static final Integer RMI_REGISTRY_PORT = 2000;
     public static final Integer RMI_REMOTE_OBJECT_PORT = 2001;
     public static final Integer NODE_TIMEOUT = 8400;
@@ -11,6 +12,7 @@ public class CommonConfiguration {
     public static final Integer JMX_HTML_ADAPTOR_PORT_PORT = 8000;
     
     private String host;
+    private String ipv6Host;
     private Integer rmiRegistryPort;
     private Integer rmiRemoteObjectPort;
     private Integer nodeTimeout;
@@ -21,6 +23,7 @@ public class CommonConfiguration {
     public CommonConfiguration() 
     {
         this.host = HOST;
+        this.ipv6Host = IPV6_HOST;
         this.rmiRegistryPort = RMI_REGISTRY_PORT;
         this.rmiRemoteObjectPort = RMI_REMOTE_OBJECT_PORT;
         this.nodeTimeout = NODE_TIMEOUT;
@@ -38,7 +41,15 @@ public class CommonConfiguration {
     {
         this.host = host;
     }
+	public String getIpv6Host() 
+	{
+		return ipv6Host;
+	}
 
+	public void setIpv6Host(String ipv6Host) 
+	{
+		this.ipv6Host = ipv6Host;
+	}
 	public Integer getRmiRegistryPort() 
 	{
 		return rmiRegistryPort;

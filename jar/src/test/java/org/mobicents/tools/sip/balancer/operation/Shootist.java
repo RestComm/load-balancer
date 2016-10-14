@@ -108,6 +108,7 @@ public class Shootist implements SipListener {
     
     boolean started = false;
     
+    private String localIPAddress="127.0.0.1";
     public String peerHostPort ="127.0.0.1:5060";
     public String transport ="udp";
     
@@ -138,6 +139,15 @@ public class Shootist implements SipListener {
     	this.localPort=localPort;
     }
     
+    public Shootist(String transport,int port,int localPort, boolean ipv6)
+    {
+    	this();
+    	this.transport=transport;
+    	this.peerHostPort = "[::1]:" + port;
+    	this.localIPAddress = "[::1]";
+    	this.localPort=localPort;
+    }
+    
     class ByeTask  extends TimerTask {
         Dialog dialog;
         public ByeTask(Dialog dialog)  {
@@ -160,7 +170,7 @@ public class Shootist implements SipListener {
     	try {
     		inviteRequest = request;
     		Response response = messageFactory.createResponse(180, request);
-    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:" + localPort));
+    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@" + localIPAddress + ":" + localPort));
     		response.addHeader(contactHeader);
     		dialog = stx.getDialog();
     		stx.sendResponse(response );
@@ -171,7 +181,7 @@ public class Shootist implements SipListener {
 				e.printStackTrace();
 			}
     		response = messageFactory.createResponse(200, request);
-    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@127.0.0.1:" + localPort));
+    		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@" + localIPAddress + ":" + localPort));
     		response.addHeader(contactHeader);
     		dialog = stx.getDialog();
     		stx.sendResponse(response );
@@ -279,7 +289,8 @@ public class Shootist implements SipListener {
         
         System.out.println("transaction state is " + tid.getState());
         System.out.println("Dialog = " + tid.getDialog());
-        System.out.println("Dialog State is " + tid.getDialog().getState());
+        if(tid.getDialog()!=null)
+        	System.out.println("Dialog State is " + tid.getDialog().getState());
 
         TestCase.assertSame("Checking dialog identity",tid.getDialog(), this.dialog);
 
@@ -396,7 +407,7 @@ public class Shootist implements SipListener {
             headerFactory = sipFactory.createHeaderFactory();
             addressFactory = sipFactory.createAddressFactory();
             messageFactory = sipFactory.createMessageFactory();
-            listeningPoint = sipStack.createListeningPoint("127.0.0.1", localPort, transport);
+            listeningPoint = sipStack.createListeningPoint(localIPAddress, localPort, transport);
             sipProvider = sipStack.createSipProvider(listeningPoint);
             Shootist listener = this;
             sipProvider.addSipListener(listener);            
@@ -478,7 +489,7 @@ public class Shootist implements SipListener {
                     method, callIdHeader, cSeqHeader, fromHeader,
                     toHeader, viaHeaders, maxForwards);
             // Create contact headers
-            String host = "127.0.0.1";
+            String host = localIPAddress;
 
             SipURI contactUrl = addressFactory.createSipURI(fromName, host);
             contactUrl.setPort(listeningPoint.getPort());

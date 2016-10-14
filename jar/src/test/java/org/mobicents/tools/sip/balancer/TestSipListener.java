@@ -338,6 +338,8 @@ public class TestSipListener implements SipListener {
 	
 	public Request firstRequest;
 	public Request lastInvite;
+	
+	private boolean isIpv6 = false;
 
 	class MyEventSource implements Runnable {
 		private TestSipListener notifier;
@@ -653,7 +655,11 @@ public class TestSipListener implements SipListener {
 			}
 
 			// Both 2xx response to SUBSCRIBE and NOTIFY need a Contact
-			Address address = protocolObjects.addressFactory.createAddress("Notifier <sip:127.0.0.1>");
+			Address address = null;
+			if(!isIpv6)
+				address = protocolObjects.addressFactory.createAddress("Notifier <sip:127.0.0.1>");
+			else
+				address = protocolObjects.addressFactory.createAddress("Notifier <sip:[::1]>");
 			((SipURI)address.getURI()).setPort( sipProvider.getListeningPoint(ListeningPoint.UDP).getPort() );				
 			ContactHeader contactHeader = protocolObjects.headerFactory.createContactHeader(address);			
 			response.addHeader(contactHeader);
@@ -1036,10 +1042,11 @@ public class TestSipListener implements SipListener {
 			}
 			
 			if(!waitForCancel) {
-				Address address = protocolObjects.addressFactory
-				.createAddress("Shootme <sip:127.0.0.1:" + myPort
-						+";transport="+protocolObjects.transport
-						+ ">");
+				Address address = null;
+				if(!isIpv6)
+					address = protocolObjects.addressFactory.createAddress("Shootme <sip:127.0.0.1:" + myPort +";transport="+protocolObjects.transport + ">");
+				else
+					address = protocolObjects.addressFactory.createAddress("Shootme <sip:[::1]:" + myPort +";transport="+protocolObjects.transport + ">");
 				contactHeader = protocolObjects.headerFactory.createContactHeader(address);						
 				setFinalResponse(protocolObjects.messageFactory
 						.createResponse(finalResponseToSend, request));
@@ -1328,11 +1335,13 @@ public class TestSipListener implements SipListener {
 							.createCSeqHeader(++seqNo, "INVITE");
 					// Create ViaHeaders (either use tcp or udp)
 					ArrayList viaHeaders = new ArrayList();
-					ViaHeader viaHeader = protocolObjects.headerFactory
-							.createViaHeader("127.0.0.1", sipProvider
-									.getListeningPoint(protocolObjects.transport).getPort(), 
-									protocolObjects.transport,
-									null);
+					ViaHeader viaHeader = null;
+					if(!isIpv6)
+						viaHeader = protocolObjects.headerFactory.createViaHeader("127.0.0.1", sipProvider
+								.getListeningPoint(protocolObjects.transport).getPort(), protocolObjects.transport,	null);
+					else
+						viaHeader = protocolObjects.headerFactory.createViaHeader("::1", sipProvider
+								.getListeningPoint(protocolObjects.transport).getPort(), protocolObjects.transport,	null);
 					// add via headers
 					viaHeaders.add(viaHeader);
 					// create max forwards
@@ -1445,9 +1454,13 @@ public class TestSipListener implements SipListener {
 		
 		// Create ViaHeaders
 		ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
-		ViaHeader viaHeader = protocolObjects.headerFactory.createViaHeader("127.0.0.1",
-				listeningPoint.getPort(), listeningPoint.getTransport(),
-				null);
+		ViaHeader viaHeader = null;
+		if(!isIpv6)
+			viaHeader = protocolObjects.headerFactory.createViaHeader("127.0.0.1",
+				listeningPoint.getPort(), listeningPoint.getTransport(),null);
+		else
+			viaHeader = protocolObjects.headerFactory.createViaHeader("::1",
+					listeningPoint.getPort(), listeningPoint.getTransport(),null);
 		// add via headers
 		viaHeaders.add(viaHeader);
 		
@@ -1474,7 +1487,11 @@ public class TestSipListener implements SipListener {
 				Request.INVITE, callIdHeader, cSeqHeader, fromHeader, toHeader,
 				viaHeaders, maxForwards);
 		// Create contact headers
-		String host = "127.0.0.1";
+		String host = null;
+		if(!isIpv6)
+			host = "127.0.0.1";
+		else
+			host = "::1";
 		
 		SipURI contactUrl = protocolObjects.addressFactory.createSipURI(fromName, host);
 		contactUrl.setPort(listeningPoint.getPort());
@@ -1567,8 +1584,10 @@ public class TestSipListener implements SipListener {
 
 	public SipProvider createProvider() throws Exception {
 		logger.info("Shootist: createProvider()");
-		listeningPoint = protocolObjects.sipStack.createListeningPoint(
-				"127.0.0.1", myPort, protocolObjects.transport);
+		if(!isIpv6)
+			listeningPoint = protocolObjects.sipStack.createListeningPoint("127.0.0.1", myPort, protocolObjects.transport);
+		else
+			listeningPoint = protocolObjects.sipStack.createListeningPoint("::1", myPort, protocolObjects.transport);
 		this.sipProvider = protocolObjects.sipStack
 				.createSipProvider(listeningPoint);
 		
@@ -1578,7 +1597,7 @@ public class TestSipListener implements SipListener {
 	public void addListeningPoint(String ipAddress, int port, String transport) throws Exception {
 		logger.info("Shootist: addListeningPoint()");
 		ListeningPoint listeningPoint = protocolObjects.sipStack.createListeningPoint(
-				"127.0.0.1", port, transport);
+				ipAddress, port, transport);
 		sipProvider.addListeningPoint(listeningPoint);
 	}
 
@@ -1617,10 +1636,13 @@ public class TestSipListener implements SipListener {
 		// Create ViaHeaders
 
 		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
-		ViaHeader viaHeader = protocolObjects.headerFactory
-				.createViaHeader("127.0.0.1", sipProvider
-						.getListeningPoint(protocolObjects.transport).getPort(), listeningPoint.getTransport(),
-						null);
+		ViaHeader viaHeader = null;
+		if(!isIpv6)
+			viaHeader = protocolObjects.headerFactory.createViaHeader("127.0.0.1", sipProvider
+						.getListeningPoint(protocolObjects.transport).getPort(), listeningPoint.getTransport(),	null);
+		else
+			viaHeader = protocolObjects.headerFactory.createViaHeader("::1", sipProvider
+					.getListeningPoint(protocolObjects.transport).getPort(), listeningPoint.getTransport(),	null);
 
 		// add via headers
 		viaHeaders.add(viaHeader);
@@ -1645,7 +1667,11 @@ public class TestSipListener implements SipListener {
 				requestURI, method, callIdHeader, cSeqHeader,
 				fromHeader, toHeader, viaHeaders, maxForwards);
 		// Create contact headers
-		String host = "127.0.0.1";
+		String host = null;
+		if(!isIpv6)
+			host = "127.0.0.1";
+		else
+			host = "::1";
 
 		URI contactUrl = null;
 		if(fromURI instanceof SipURI) {
@@ -1673,8 +1699,11 @@ public class TestSipListener implements SipListener {
 		contactHeader = protocolObjects.headerFactory
 				.createContactHeader(contactAddress);
 		request.addHeader(contactHeader);
-		
-		SipURI uri = protocolObjects.addressFactory.createSipURI(null, "127.0.0.1");
+		SipURI uri = null;
+		if(!isIpv6)
+			uri = protocolObjects.addressFactory.createSipURI(null, "127.0.0.1");
+		else
+			uri = protocolObjects.addressFactory.createSipURI(null, "::1");
 		
 		uri.setLrParam();
 		uri.setTransportParam(protocolObjects.transport);
@@ -1749,10 +1778,13 @@ public class TestSipListener implements SipListener {
 		// Create ViaHeaders
 
 		List<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
-		ViaHeader viaHeader = protocolObjects.headerFactory
-				.createViaHeader("127.0.0.1", sipProvider
-						.getListeningPoint(protocolObjects.transport).getPort(), listeningPoint.getTransport(),
-						null);
+		ViaHeader viaHeader = null;
+		if(!isIpv6)
+			viaHeader = protocolObjects.headerFactory.createViaHeader("127.0.0.1", sipProvider
+						.getListeningPoint(protocolObjects.transport).getPort(), listeningPoint.getTransport(),null);
+		else
+			viaHeader = protocolObjects.headerFactory.createViaHeader("::1", sipProvider
+					.getListeningPoint(protocolObjects.transport).getPort(), listeningPoint.getTransport(),null);
 
 		// add via headers
 		viaHeaders.add(viaHeader);
@@ -1777,7 +1809,11 @@ public class TestSipListener implements SipListener {
 				requestURI, method, callIdHeader, cSeqHeader,
 				fromHeader, toHeader, viaHeaders, maxForwards);
 		// Create contact headers
-		String host = "127.0.0.1";
+		String host = null;
+		if(!isIpv6)
+			host = "127.0.0.1";
+		else
+			host = "::1";
 
 		URI contactUrl = null;
 		if(fromURI instanceof SipURI) {
@@ -1803,8 +1839,11 @@ public class TestSipListener implements SipListener {
 		contactHeader = protocolObjects.headerFactory
 				.createContactHeader(contactAddress);
 		request.addHeader(contactHeader);
-		
-		SipURI uri = protocolObjects.addressFactory.createSipURI(null, "127.0.0.1");
+		SipURI uri = null;
+		if(!isIpv6)
+			uri = protocolObjects.addressFactory.createSipURI(null, "127.0.0.1");
+		else
+			uri = protocolObjects.addressFactory.createSipURI(null, "::1");
 		
 		uri.setLrParam();
 		uri.setTransportParam(protocolObjects.transport);
@@ -1882,12 +1921,16 @@ public class TestSipListener implements SipListener {
 		}
 	}
 	
-	public TestSipListener (int myPort, int peerPort, ProtocolObjects protocolObjects, boolean callerSendBye) {
+	public TestSipListener (boolean isIpv6, int myPort, int peerPort, ProtocolObjects protocolObjects, boolean callerSendBye) {
 		this.protocolObjects = protocolObjects;		
 		this.myPort = myPort;
+		this.isIpv6 = isIpv6;
 		if(peerPort > 0) {
 			this.peerPort = peerPort;
-			this.peerHostPort = "127.0.0.1:"+ peerPort;
+			if(!this.isIpv6)
+				this.peerHostPort = "127.0.0.1:"+ peerPort;
+			else
+				this.peerHostPort = "[::1]:"+ peerPort;
 		}
 		this.sendBye = callerSendBye;
 		allMessagesContent = new ArrayList<String>();
@@ -1897,6 +1940,7 @@ public class TestSipListener implements SipListener {
 		provisionalResponsesToSend.add(Response.TRYING);
 		provisionalResponsesToSend.add(Response.RINGING);
 	}
+
 
 	public void processIOException(IOExceptionEvent exceptionEvent) {
 		logger.info("IOException happened for "

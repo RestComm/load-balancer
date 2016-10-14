@@ -43,6 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 import org.jboss.util.propertyeditor.InetAddressEditor;
 
@@ -312,7 +313,9 @@ public class NodeRegisterImpl  implements NodeRegister {
                     String instanceId = (String) node.getProperties().get("instanceId");
                     if(instanceId!=null)
                     	ctx.httpNodeMap.remove(instanceId);
-                    ctx.sipNodeMap.remove(new KeySip(node));
+                    
+                    Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	                    
+                    ctx.sipNodeMap(isIpV6).remove(new KeySip(node));
                     ctx.balancerAlgorithm.nodeRemoved(node);
                     if(logger.isInfoEnabled()) {
                         logger.info("NodeExpirationTimerTask Run NSync["
@@ -339,75 +342,82 @@ public class NodeRegisterImpl  implements NodeRegister {
      * {@inheritDoc}
      */
     public synchronized void handlePingInRegister(ArrayList<SIPNode> ping) {
-        for (SIPNode pingNode : ping) {
+        for (SIPNode pingNode : ping) {        	
             if(pingNode.getIp() == null) {
                 // https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address 
                 logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");			   
             } else {
-                String version = (String) pingNode.getProperties().get("version");
-                if(version == null) version = "0";
-                InvocationContext ctx = balancerRunner.getInvocationContext(version);
-                
-                //if bad node changed sessioId it means that the node was restarted so we remove it from map of bad nodes
-                KeySip keySip = new KeySip(pingNode);
-                SIPNode badNode = ctx.badSipNodeMap.get(keySip);
-                if(badNode != null)
-                {
-                	if(badNode.getProperties().get("sessionId").equals(pingNode.getProperties().get("sessionId")))
-                		continue;
-                	else
-                		ctx.badSipNodeMap.remove(keySip);
-                }
-                pingNode.updateTimerStamp();
-                //logger.info("Pingnode updated " + pingNode);
-                if(pingNode.getProperties().get("jvmRoute") != null) {
-                    // Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
-                    // We need info about inactive nodes to do the failover
-                    balancerRunner.balancerContext.jvmRouteToSipNode.put(
-                            (String)pingNode.getProperties().get("jvmRoute"), pingNode);				
-                }
-                
-                
-//                SIPNode nodePresent = null;
-//                Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
-//                while (nodesIterator.hasNext() && nodePresent == null) 
-//                {
-//                    SIPNode node = (SIPNode) nodesIterator.next();
-//                    if (node.equals(pingNode)) 
-//                    {
-//                        nodePresent = node;
-//                    }
-//                }
-                SIPNode nodePresent = ctx.sipNodeMap.get(keySip);
-                
-                // adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
-                if(nodePresent != null) 
-                {
-                    nodePresent.updateTimerStamp();
-                    if(logger.isTraceEnabled()) {
-                        logger.trace("Ping " + nodePresent.getTimeStamp());
-                    }
-                } 
-                else 
-                {
-                    Integer current = Integer.parseInt(version);
-                    Integer latest = Integer.parseInt(latestVersion);
-                    latestVersion = Math.max(current, latest) + "";
-                    balancerRunner.balancerContext.aliveNodes.add(pingNode);
-                    ctx.sipNodeMap.put(keySip, pingNode);
-                    Integer instanceId = (Integer) pingNode.getProperties().get("instanceId");
-                    if(instanceId!=null)
-                    	ctx.httpNodeMap.put(new KeyHttp(instanceId), pingNode);
-                   // ctx.nodes.add(pingNode);
-                    
-                    ctx.balancerAlgorithm.nodeAdded(pingNode);
-                    balancerRunner.balancerContext.allNodesEver.add(pingNode);
-                    pingNode.updateTimerStamp();
-                    if(logger.isInfoEnabled()) {
-                        logger.info("NodeExpirationTimerTask Run NSync["
-                                + pingNode + "] added");
-                    }
-                }
+            	Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(pingNode.getIp());
+            	Boolean isIpV4=InetAddressValidator.getInstance().isValidInet4Address(pingNode.getIp());
+            	if(!isIpV4 && !isIpV6)
+            		logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");
+            	else
+            	{
+            		String version = (String) pingNode.getProperties().get("version");
+	                if(version == null) version = "0";
+	                InvocationContext ctx = balancerRunner.getInvocationContext(version);
+	                                
+	                //if bad node changed sessioId it means that the node was restarted so we remove it from map of bad nodes
+	                KeySip keySip = new KeySip(pingNode);	                	                
+	                SIPNode badNode = ctx.badSipNodeMap(isIpV6).get(keySip);
+	                if(badNode != null)
+	                {
+	                	if(badNode.getProperties().get("sessionId").equals(pingNode.getProperties().get("sessionId")))
+	                		continue;
+	                	else
+	                		ctx.badSipNodeMap(isIpV6).remove(keySip);
+	                }
+	                pingNode.updateTimerStamp();
+	                //logger.info("Pingnode updated " + pingNode);
+	                if(pingNode.getProperties().get("jvmRoute") != null) {
+	                    // Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
+	                    // We need info about inactive nodes to do the failover
+	                    balancerRunner.balancerContext.jvmRouteToSipNode.put(
+	                            (String)pingNode.getProperties().get("jvmRoute"), pingNode);				
+	                }
+	                
+	                
+	//                SIPNode nodePresent = null;
+	//                Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
+	//                while (nodesIterator.hasNext() && nodePresent == null) 
+	//                {
+	//                    SIPNode node = (SIPNode) nodesIterator.next();
+	//                    if (node.equals(pingNode)) 
+	//                    {
+	//                        nodePresent = node;
+	//                    }
+	//                }
+	                SIPNode nodePresent = ctx.sipNodeMap(isIpV6).get(keySip);
+	                
+	                // adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
+	                if(nodePresent != null) 
+	                {
+	                    nodePresent.updateTimerStamp();
+	                    if(logger.isTraceEnabled()) {
+	                        logger.trace("Ping " + nodePresent.getTimeStamp());
+	                    }
+	                } 
+	                else 
+	                {
+	                    Integer current = Integer.parseInt(version);
+	                    Integer latest = Integer.parseInt(latestVersion);
+	                    latestVersion = Math.max(current, latest) + "";
+	                    balancerRunner.balancerContext.aliveNodes.add(pingNode);
+	                    ctx.sipNodeMap(isIpV6).put(keySip, pingNode);
+	                    Integer instanceId = (Integer) pingNode.getProperties().get("instanceId");
+	                    if(instanceId!=null)
+	                    	ctx.httpNodeMap.put(new KeyHttp(instanceId), pingNode);
+	                   // ctx.nodes.add(pingNode);
+	                    
+	                    ctx.balancerAlgorithm.nodeAdded(pingNode);
+	                    balancerRunner.balancerContext.allNodesEver.add(pingNode);
+	                    pingNode.updateTimerStamp();
+	                    if(logger.isInfoEnabled()) {
+	                        logger.info("NodeExpirationTimerTask Run NSync["
+	                                + pingNode + "] added");
+	                    }
+	                }
+            	}
             }					
         }
     }
@@ -427,7 +437,9 @@ public class NodeRegisterImpl  implements NodeRegister {
             String instanceId = (String) pingNode.getProperties().get("instanceId");
             if(instanceId!=null)
             	ctx.httpNodeMap.remove(instanceId);
-            ctx.sipNodeMap.remove(new KeySip(pingNode));
+            
+            Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(pingNode.getIp());        	
+            ctx.sipNodeMap(isIpV6).remove(new KeySip(pingNode));
             boolean nodePresent = false;
             Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
             while (nodesIterator.hasNext() && !nodePresent) {

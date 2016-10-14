@@ -52,8 +52,11 @@ public class InvocationContext {
 	}
 	
 	//public CopyOnWriteArrayList<SIPNode> nodes = new CopyOnWriteArrayList<SIPNode>();
-	public ConcurrentHashMap<KeySip, SIPNode> badSipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
-	public ConcurrentHashMap<KeySip, SIPNode> sipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
+	private ConcurrentHashMap<KeySip, SIPNode> badSipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
+	private ConcurrentHashMap<KeySip, SIPNode> sipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
+	private ConcurrentHashMap<KeySip, SIPNode> badSipNodeMapV6 = new ConcurrentHashMap<KeySip, SIPNode>();
+	private ConcurrentHashMap<KeySip, SIPNode> sipNodeMapV6 = new ConcurrentHashMap<KeySip, SIPNode>();
+	
 	public ConcurrentHashMap<KeyHttp, SIPNode> httpNodeMap = new ConcurrentHashMap<KeyHttp, SIPNode>();
 	public String version;
 	private ConcurrentHashMap<String, Object> attribs = new ConcurrentHashMap<String, Object>();
@@ -65,5 +68,21 @@ public class InvocationContext {
 	}
 	public void removeAttribute(String name) {
 		attribs.remove(name);
+	}
+	
+	public ConcurrentHashMap<KeySip, SIPNode> sipNodeMap(Boolean isIpV6)
+	{
+		if(isIpV6)
+			return sipNodeMapV6;
+		else
+			return sipNodeMap;
+	}
+	
+	public ConcurrentHashMap<KeySip, SIPNode> badSipNodeMap(Boolean isIpV6)
+	{
+		if(isIpV6)
+			return badSipNodeMapV6;
+		else
+			return badSipNodeMap;
 	}
 }

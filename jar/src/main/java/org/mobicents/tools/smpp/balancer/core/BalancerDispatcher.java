@@ -110,7 +110,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 		synchronized (node) 
 		{
 			//node = invocationContext.nodes.get(counterConnections.getAndIncrement() % invocationContext.nodes.size());
-			node = invocationContext.sipNodeMap.elements().nextElement();//(counterConnections.getAndIncrement() % invocationContext.sipNodeMap.size());
+			node = invocationContext.sipNodeMap(false).elements().nextElement();//(counterConnections.getAndIncrement() % invocationContext.sipNodeMap.size());
 			sessionConfig.setHost(node.getIp());
 			if(!sessionConfig.isUseSsl())
 				sessionConfig.setPort((Integer) node.getProperties().get("smppPort"));

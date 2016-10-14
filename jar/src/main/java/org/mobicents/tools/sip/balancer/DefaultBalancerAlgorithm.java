@@ -85,7 +85,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	}
 	
 	public synchronized SIPNode processHttpRequest(HttpRequest request) {
-		if(invocationContext.sipNodeMap.size()>0) {
+		if(invocationContext.sipNodeMap(false).size()>0) {
 			String instanceId = getInstanceId(request.getUri());
 			if(instanceId!=null)
 				return getNodeByInstanceId(instanceId);
@@ -103,7 +103,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 					SIPNode node = balancerContext.jvmRouteToSipNode.get(jvmRoute);
 					
 					if(node != null) {
-						if(invocationContext.sipNodeMap.containsValue(node)) {
+						if(invocationContext.sipNodeMap(false).containsValue(node)) {
 							return node;
 						}
 					}
@@ -111,14 +111,14 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 
 				logger.warn("As a failsafe if there is no jvmRoute. LB will send request to node accordingly RR algorithm");
 				if(httpRequestIterator==null)
-					httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+					httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
 				if(httpRequestIterator.hasNext())
 				{
 					return httpRequestIterator.next();
 				}
 				else
 				{
-					httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+					httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
 					if(httpRequestIterator.hasNext())
 					{
 						return httpRequestIterator.next();
@@ -130,12 +130,12 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			}
 			//if request doesn't have jsessionid (very first request), we choose next node using round robin algorithm
 			if(httpRequestIterator==null)
-				httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+				httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
 			if(httpRequestIterator.hasNext())
 				return httpRequestIterator.next();
 			else
 			{
-				httpRequestIterator = invocationContext.sipNodeMap.values().iterator();
+				httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
 				if(httpRequestIterator.hasNext())
 					return httpRequestIterator.next();
 				else
@@ -215,11 +215,11 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		return null;
 	}
 	
-	public void processInternalResponse(Response response) {
+	public void processInternalResponse(Response response,Boolean isIpV6) {
 		
 	}
 	
-	public void processExternalResponse(Response response) {
+	public void processExternalResponse(Response response,Boolean isIpV6) {
 		
 	}
 	

@@ -52,7 +52,7 @@ public interface BalancerAlgorithm {
 	 * @param request
 	 * @return
 	 */
-	SIPNode processExternalRequest(Request request);
+	SIPNode processExternalRequest(Request request,Boolean isIpV6);
 	SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode);
 	void processInternalRequest(Request request);
 	/**
@@ -83,8 +83,8 @@ public interface BalancerAlgorithm {
 	 * 
 	 * @param response
 	 */
-	void processExternalResponse(Response response);
-	void processInternalResponse(Response response);
+	void processExternalResponse(Response response,Boolean isIpV6);
+	void processInternalResponse(Response response,Boolean isIpV6);
 	
 	/**
 	 * Notifying the algorithm when a node is dead.

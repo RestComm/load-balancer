@@ -99,29 +99,29 @@ public class ClusterSubdomainAffinityAlgorithmTest{
 			InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
 			
 			//ctx.nodes = new CopyOnWriteArrayList<SIPNode>();
-			ctx.sipNodeMap = new ConcurrentHashMap<>();
+			ctx.sipNodeMap(false).clear();
 			for(int q=0;q<100;q++) {
 				SIPNode node = new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q);
-				ctx.sipNodeMap.put(new KeySip(node),node);
+				ctx.sipNodeMap(false).put(new KeySip(node),node);
 			}
 			for(int q=0;q<100;q++) {
 				SIPNode node = new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q);
-				ctx.sipNodeMap.put(new KeySip(node),node);
+				ctx.sipNodeMap(false).put(new KeySip(node),node);
 			}
 			SIPNode originalNode = new SIPNode("original", "original");
 			SIPNode partnerNode = new SIPNode("partner", "partner");
 
 			// This is dead BalancerContext.balancerContext.nodes.add(originalNode);
-			ctx.sipNodeMap.put(new KeySip(partnerNode), partnerNode);
+			ctx.sipNodeMap(false).put(new KeySip(partnerNode), partnerNode);
 			for(int q=0;q<100;q++) {
 				SIPNode node = new SIPNode("nonParner"+q, "nonPartner"+q);
-				ctx.sipNodeMap.put(new KeySip(node),node);
+				ctx.sipNodeMap(false).put(new KeySip(node),node);
 			}
 			algorithm.callIdMap.put("cid", originalNode);
 			Request request = SipFactory.getInstance().createMessageFactory().createRequest(inviteRequest);
 			algorithm.loadSubclusters(failoverGroup);
 			algorithm.invocationContext = ctx;
-			SIPNode resultNode = algorithm.processExternalRequest(request);
+			SIPNode resultNode = algorithm.processExternalRequest(request,false);
 			assertEquals("partner", resultNode.getIp());
 			originalNode = null;
 			partnerNode = null;

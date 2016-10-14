@@ -56,7 +56,7 @@ public class BinderRunnable implements Runnable {
 		this.client = (ClientConnectionImpl) clientSessions.get(sessionId);
 		this.firstNode = node;
 		//this.nodes = balancerRunner.getLatestInvocationContext().nodes;
-		this.nodes = (CopyOnWriteArrayList<SIPNode>) balancerRunner.getLatestInvocationContext().sipNodeMap.values();
+		this.nodes = (CopyOnWriteArrayList<SIPNode>) balancerRunner.getLatestInvocationContext().sipNodeMap(false).values();
 		this.index = this.nodes.indexOf(node);
 		this.serverSessions = serverSessions;
 		this.clientSessions = clientSessions;

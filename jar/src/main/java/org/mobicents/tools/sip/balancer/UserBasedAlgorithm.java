@@ -39,6 +39,7 @@ import javax.sip.address.SipURI;
 import javax.sip.address.TelURL;
 import javax.sip.address.URI;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 /**
@@ -62,7 +63,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	@Override
-	public void processInternalResponse(Response response) {
+	public void processInternalResponse(Response response,Boolean isIpV6) {
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
@@ -70,10 +71,9 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		boolean found = false;
 
 		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
-		
-		if(senderNode != null&&invocationContext.sipNodeMap.containsValue(senderNode))
+		if(senderNode != null&&invocationContext.sipNodeMap(isIpV6).containsValue(senderNode))
 			found = true;
-		else if	(invocationContext.sipNodeMap.containsKey(new KeySip(host, port)))
+		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
 		
 //		for(SIPNode node : invocationContext.nodes) {
@@ -105,7 +105,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			
 			SIPNode node = userToMap.get(user);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
-			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
+			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, user);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
@@ -128,7 +128,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	@Override
-	public SIPNode processExternalRequest(Request request) {
+	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
 		URI currURI=((HeaderAddress)request.getHeader(headerName)).getAddress().getURI();
 		String user;
 		if(currURI.isSipURI())
@@ -141,7 +141,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		headerToTimestamps.put(user, System.currentTimeMillis());
 
 		if(node == null) { //
-			node = nextAvailableNode();
+			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			userToMap.put(user, node);
 			if(logger.isDebugEnabled()) {
@@ -149,7 +149,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	    	}
 		} else {
 			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
-			if(!invocationContext.sipNodeMap.containsValue(node)) { // If the assigned node is now dead
+			if(!invocationContext.sipNodeMap(isIpV6).containsValue(node)) { // If the assigned node is now dead
 				node = selectNewNode(node, user);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
@@ -163,7 +163,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	@Override
-	public void processExternalResponse(Response response) {
+	public void processExternalResponse(Response response,Boolean isIpV6) {
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
@@ -176,7 +176,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 //				}
 //			}
 //		}
-		if(invocationContext.sipNodeMap.containsKey(new KeySip(host, port)))
+		if(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
 		if(logger.isDebugEnabled()) {
 			logger.debug("external response node found ? " + found);
@@ -192,7 +192,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			
 			SIPNode node = userToMap.get(user);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
-			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
+			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, user);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
@@ -318,24 +318,24 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	protected synchronized SIPNode nextAvailableNode() {
+	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
 //		if(invocationContext.nodes.size() == 0) return null;
 //		int nextNode = nextNodeCounter.incrementAndGet();
 //		nextNode %= invocationContext.nodes.size();
 //		return invocationContext.nodes.get(nextNode);
-		if(invocationContext.sipNodeMap.size() == 0) return null;
+		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
 		if(it==null)
-			it = invocationContext.sipNodeMap.entrySet().iterator();
+			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		Map.Entry pair = null;
 		if(it.hasNext())
 		{
 			pair = (Map.Entry)it.next();
 			if(!it.hasNext())
-				it = invocationContext.sipNodeMap.entrySet().iterator();
+				it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
 		else
 		{
-			it = invocationContext.sipNodeMap.entrySet().iterator();
+			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
 		return (SIPNode) pair.getValue();
 	}
@@ -352,7 +352,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
 		} else {
-			node = nextAvailableNode();
+			Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            							
+			node = nextAvailableNode(isIpV6);
 			if(node == null) {
 				if(logger.isDebugEnabled()) {
 		    		logger.debug("no nodes available return null");

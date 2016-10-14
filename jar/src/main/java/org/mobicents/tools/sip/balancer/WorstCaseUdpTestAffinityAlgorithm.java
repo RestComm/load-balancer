@@ -36,6 +36,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -66,6 +67,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	static int y =0;
 	public SIPNode processAssignedExternalRequest(Request request,
 			SIPNode assignedNode) {
+		
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(assignedNode.getIp());        	            				
 		//if((y++)%2==0) if(request.getHeader("CSeq").toString().contains("1")) return assignedNode;
 		String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
 		CSeqHeader cs = (CSeqHeader) request.getHeader(CSeqHeader.NAME);
@@ -87,10 +90,10 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			SIPNode node;
 			if(!request.getMethod().equalsIgnoreCase("ACK")) {
 				//Gvag: new transaction should go to a new node
-				SIPNode newNode = nextAvailableNode();//getNodeA(callId+cseq);
+				SIPNode newNode = nextAvailableNode(isIpV6);//getNodeA(callId+cseq);
 				if(newNode == null) {
 					//for(SIPNode currNode:invocationContext.nodes) {
-					for(SIPNode currNode:invocationContext.sipNodeMap.values()) {
+					for(SIPNode currNode:invocationContext.sipNodeMap(isIpV6).values()) {
 						if(!currNode.equals(assignedNode)) {
 							newNode = currNode;
 						}
@@ -157,13 +160,13 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		logger.debug("internal response");
 	}
 	
-	public void processExternalResponse(Response response) {
+	public void processExternalResponse(Response response,Boolean isIpV6) {
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
 		String host = via.getHost();
 		boolean found = false;
 		//for(SIPNode node : invocationContext.nodes) {
-		for(SIPNode node : invocationContext.sipNodeMap.values()) {
+		for(SIPNode node : invocationContext.sipNodeMap(isIpV6).values()) {
 			if(node.getIp().equals(host)) found = true;
 		}
 		if(!found) {
@@ -171,7 +174,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			.getValue();
 			SIPNode node = callIdMap.get(callId);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
-			if(node == null || !invocationContext.sipNodeMap.containsValue(node)) {
+			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, callId);
 				try {
 					via.setHost(node.getIp());
@@ -213,7 +216,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		}
 	}	
 	
-	public SIPNode processExternalRequest(Request request) {
+	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
 		String callId = ((SIPHeader) request.getHeader(headerName))
 		.getValue();
 		SIPNode node;
@@ -223,7 +226,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		callIdTimestamps.put(callId, System.currentTimeMillis());
 
 		if(node == null) { //
-			node = nextAvailableNode();
+			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			callIdMap.put(callId, node);
 			if(logger.isDebugEnabled()) {
@@ -231,7 +234,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	    	}
 		} else {
 			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
-			if(!invocationContext.sipNodeMap.containsValue(node)) { // If the assigned node is now dead
+			if(!invocationContext.sipNodeMap(isIpV6).containsValue(node)) { // If the assigned node is now dead
 				node = selectNewNode(node, callId);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
@@ -240,7 +243,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		    	}
 				if(!request.getMethod().equals("ACK")) {
 					//for(SIPNode n:invocationContext.nodes) {
-					for(SIPNode n:invocationContext.sipNodeMap.values()) {
+					for(SIPNode n:invocationContext.sipNodeMap(isIpV6).values()) {
 						if(!n.equals(node)) node = n;
 						break;
 					}
@@ -272,7 +275,8 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
 		} else {
-			node = nextAvailableNode();
+			Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            							
+			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			callIdMap.put(callId, node);
 		}
@@ -283,25 +287,25 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		return node;
 	}
 	
-	protected synchronized SIPNode nextAvailableNode() {
+	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
 		BalancerContext balancerContext = getBalancerContext();
 //		if(invocationContext.nodes.size() == 0) return null;
 //		int nextNode = nextNodeCounter.incrementAndGet();
 //		nextNode %= invocationContext.nodes.size();
 //		return invocationContext.nodes.get(nextNode);
-		if(invocationContext.sipNodeMap.size() == 0) return null;
+		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
 		if(it==null)
-			it = invocationContext.sipNodeMap.entrySet().iterator();
+			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		Map.Entry pair = null;
 		if(it.hasNext())
 		{
 			pair = (Map.Entry)it.next();
 			if(!it.hasNext())
-				it = invocationContext.sipNodeMap.entrySet().iterator();
+				it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
 		else
 		{
-			it = invocationContext.sipNodeMap.entrySet().iterator();
+			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
 		return (SIPNode) pair.getValue();
 		

@@ -59,10 +59,10 @@ public class RingingFailoverTest {
 		algorithm.balancerContext.algorithmClassName = CallIDAffinityBalancerAlgorithm.class.getName();
 		InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
 		//ctx.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
-		ctx.sipNodeMap.put(new KeySip(adNode), adNode); 
+		ctx.sipNodeMap(false).put(new KeySip(adNode), adNode); 
 				
 		algorithm.invocationContext = ctx;
-		algorithm.processExternalResponse(response);
+		algorithm.processExternalResponse(response,false);
 		
 		algorithm.stop();
 		assertTrue(response.toString().contains(node+":" + port));			

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 import org.jboss.cache.Cache;
 import org.jboss.cache.CacheFactory;
@@ -65,12 +66,18 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 
 	public synchronized void nodeAdded(SIPNode node) {
-		addNode(node);
-		syncNodes();
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());		
+		addNode(node,isIpV6);
+		syncNodes(isIpV6);
 	}
 	
-	private void addNode(SIPNode node) {
-		Fqn nodes = Fqn.fromString("/BALANCER" + invocationContext.version + "/NODES");
+	private void addNode(SIPNode node,Boolean isIpV6) {	
+		Fqn nodes;
+		if(isIpV6)
+			nodes = Fqn.fromString("/BALANCER" + invocationContext.version + "/NODES6");
+		else
+			nodes = Fqn.fromString("/BALANCER" + invocationContext.version + "/NODES4");
+		
 		cache.put(nodes, node, "");
 		dumpNodes();
 	}
@@ -80,12 +87,18 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 	
 	private void dumpNodes() {
-		String nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + nodesArray.length + "):\n";
+		String nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + (nodesArrayV6.length + nodesArrayV4.length) + "):\n";
 		
-		for(Object object : nodesArray) {
+		for(Object object : nodesArrayV4) {
 			SIPNode node = (SIPNode) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]\n";
 		}
+		
+		for(Object object : nodesArrayV6) {
+			SIPNode node = (SIPNode) object;
+			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]\n";
+		}
+		
 		logger.info(nodes);
 	}
 	
@@ -130,13 +143,22 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 	
 	@Override
-	protected void syncNodes() {
-		Set nodes = cache.getKeys("/BALANCER" + invocationContext.version + "/NODES");
+	protected void syncNodes(Boolean isIpV6) {
+		Set nodes;
+		if(isIpV6)
+			nodes = cache.getKeys("/BALANCER" + invocationContext.version + "/NODES6");
+		else
+			nodes = cache.getKeys("/BALANCER" + invocationContext.version + "/NODES4");
+		
 		if(nodes != null) {
 			ArrayList nodeList = new ArrayList();
 			nodeList.addAll(nodes);
 			Collections.sort(nodeList);
-			this.nodesArray = nodeList.toArray();
+			
+			if(isIpV6)
+				this.nodesArrayV6 = nodeList.toArray();
+			else
+				this.nodesArrayV4 = nodeList.toArray();
 		}
 		dumpNodes();
 	}

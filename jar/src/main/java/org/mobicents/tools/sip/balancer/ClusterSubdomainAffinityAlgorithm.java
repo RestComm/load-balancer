@@ -25,6 +25,8 @@ package org.mobicents.tools.sip.balancer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlgorithm {
@@ -39,7 +41,8 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 		SIPNode oldNode = node;
 		List<String> alternativeNodes = nodeToNodeGroup.get(oldNode.getIp());
 		//for(SIPNode check : invocationContext.nodes)  { 
-		for(SIPNode check : invocationContext.sipNodeMap.values())  {
+		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            						
+		for(SIPNode check : invocationContext.sipNodeMap(isIpV6).values())  {
 			for(String alt : alternativeNodes)
 				if(check.getIp().equals(alt)) {
 					groupedFailover(oldNode, check);
