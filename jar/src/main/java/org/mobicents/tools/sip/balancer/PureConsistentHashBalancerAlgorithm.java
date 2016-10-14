@@ -22,9 +22,6 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.header.SIPHeader;
-import gov.nist.javax.sip.header.Via;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -36,20 +33,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Level;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
-import javax.sip.ListeningPoint;
-import javax.sip.address.SipURI;
-import javax.sip.header.FromHeader;
-import javax.sip.header.ToHeader;
-import javax.sip.message.Message;
 import javax.sip.message.Request;
-import javax.sip.message.Response;
-
-import org.jboss.netty.handler.codec.http.HttpRequest;
 
 /**
  * Pure Consistent Hash algorithm - see http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm Example algorithms section
@@ -86,7 +74,6 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 		if(nodeIndex<0) {
 			return null;
 		} else {
-			BalancerContext balancerContext = getBalancerContext();
 			try {
 				SIPNode node = (SIPNode) nodesArray(isIpV6)[nodeIndex];
 				return node;

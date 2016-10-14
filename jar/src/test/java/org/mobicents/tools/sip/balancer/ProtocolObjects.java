@@ -39,7 +39,6 @@
 package org.mobicents.tools.sip.balancer;
 
 import gov.nist.javax.sip.ListeningPointExt;
-import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
 
 import java.util.HashSet;

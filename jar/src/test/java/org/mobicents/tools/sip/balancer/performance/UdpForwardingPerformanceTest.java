@@ -22,19 +22,14 @@
 
 package org.mobicents.tools.sip.balancer.performance;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.BlackholeAppServer;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
@@ -160,6 +155,7 @@ public class UdpForwardingPerformanceTest
 				}
 			}
 			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + server.numUnitsReceived/((double)(timespan)/1000.) + " initial requests per second)");
+			socket.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -185,6 +181,7 @@ public class UdpForwardingPerformanceTest
 				}
 			}
 			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + server.numUnitsReceived/((double)(timespan)/1000.) + " initial requests per second)");
+			socket.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

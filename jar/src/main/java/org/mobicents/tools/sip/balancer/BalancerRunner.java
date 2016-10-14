@@ -25,16 +25,12 @@ package org.mobicents.tools.sip.balancer;
 import gov.nist.javax.sip.stack.StatsRetreiver;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -530,7 +526,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	}
 
 	public List<SIPNode> getNodes() {
-		return new LinkedList(balancerContext.aliveNodes);
+		return new LinkedList<SIPNode>(balancerContext.aliveNodes);
 	}
 	
 	public String[] getNodeList() {
@@ -573,8 +569,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 }
 
 class SipBalancerShutdownHook extends Thread {
-	private static Logger logger = Logger.getLogger(SipBalancerShutdownHook.class
-			.getCanonicalName());
 	BalancerRunner balancerRunner;
 	
 	public SipBalancerShutdownHook(BalancerRunner balancerRunner) {

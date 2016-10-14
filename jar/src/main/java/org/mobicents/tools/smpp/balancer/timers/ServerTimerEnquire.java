@@ -20,7 +20,6 @@
 package org.mobicents.tools.smpp.balancer.timers;
 
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
-import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)

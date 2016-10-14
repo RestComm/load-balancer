@@ -22,21 +22,14 @@
 
 package org.mobicents.tools.sip.balancer.operation;
 
-import gov.nist.javax.sip.ClientTransactionExt;
 import gov.nist.javax.sip.ListeningPointExt;
-import gov.nist.javax.sip.SipStackImpl;
-import gov.nist.javax.sip.TlsSecurityPolicy;
-import gov.nist.javax.sip.message.SIPRequest;
-import gov.nist.javax.sip.stack.MessageChannel;
 import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
-import gov.nist.javax.sip.stack.SIPMessageValve;
 
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Random;
-import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.sip.ClientTransaction;
@@ -100,8 +93,6 @@ public class Shootist implements SipListener {
 
     private Dialog dialog;
 
-    private boolean byeTaskRunning;
-    
     public boolean callerSendsBye;
     
     public Request inviteRequest;
@@ -460,7 +451,7 @@ public class Shootist implements SipListener {
 
             // Create ViaHeaders
 
-            ArrayList viaHeaders = new ArrayList();
+            ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
             String ipAddress = listeningPoint.getIPAddress();
             ViaHeader viaHeader = headerFactory.createViaHeader(ipAddress,
                     sipProvider.getListeningPoint(transport).getPort(),

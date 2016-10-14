@@ -19,7 +19,6 @@
 
 package org.mobicents.tools.smpp.balancer.impl;
 
-import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.net.ssl.SSLEngine;

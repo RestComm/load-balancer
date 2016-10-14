@@ -32,7 +32,7 @@ import gov.nist.javax.sip.header.SIPHeader;
 import gov.nist.javax.sip.message.ResponseExt;
 import gov.nist.javax.sip.message.SIPMessage;
 import gov.nist.javax.sip.message.SIPResponse;
-import gov.nist.javax.sip.stack.LoadBalancerNioMessageProcessorFactory;
+import gov.nist.javax.sip.stack.SIPMessageValve;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

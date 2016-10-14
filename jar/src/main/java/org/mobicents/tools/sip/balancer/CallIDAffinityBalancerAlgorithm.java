@@ -29,13 +29,12 @@ import gov.nist.javax.sip.message.ResponseExt;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -263,18 +262,18 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		//return invocationContext.nodes.get(nextNode);
 		if(it==null)
 			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		Map.Entry pair = null;
+		Entry<KeySip, SIPNode> pair = null;
 		while(it.hasNext())
 		{
-			pair = (Map.Entry)it.next();
+			pair = it.next();
 			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey()))
-				return (SIPNode) pair.getValue();
+				return pair.getValue();
 		}
 		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		if(it.hasNext())
 		{
-			pair = (Map.Entry)it.next();
-			return (SIPNode) pair.getValue();
+			pair = it.next();
+			return pair.getValue();
 		}
 		else
 			return null;

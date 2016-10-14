@@ -39,7 +39,6 @@ import org.mobicents.tools.smpp.balancer.impl.ServerConnectionImpl;
 
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.pdu.Pdu;
-import com.cloudhopper.smpp.ssl.SslConfiguration;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)

@@ -19,7 +19,6 @@
 
 package org.mobicents.tools.smpp.multiplexer;
 
-import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.net.ssl.SSLEngine;
@@ -31,10 +30,6 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
-import org.mobicents.tools.smpp.balancer.core.BalancerServer;
-import org.mobicents.tools.smpp.balancer.impl.ServerConnectionHandlerImpl;
-import org.mobicents.tools.smpp.balancer.impl.ServerConnectionImpl;
 
 import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.channel.SmppChannelConstants;

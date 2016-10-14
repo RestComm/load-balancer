@@ -22,7 +22,6 @@ package org.mobicents.tools.smpp.multiplexer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
-import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 
 import com.cloudhopper.smpp.pdu.Pdu;
 

@@ -22,7 +22,6 @@ package org.mobicents.tools.smpp.balancer.impl;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -94,8 +93,7 @@ public class ClientConnectionImpl implements ClientConnection{
     
     //private ScheduledFuture<?> connectionCheckServerSideTimer;    
     private ServerTimerConnectionCheck connectionCheck;
-    
-    private long timeoutConnectionCheckServerSide;
+
     
     public boolean isEnquireLinkSent() {
 		return isEnquireLinkSent;
@@ -125,7 +123,6 @@ public class ClientConnectionImpl implements ClientConnection{
 		  this.node = node;
 		  this.bindPacket = bindPacket;
 		  this.timeoutResponse = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutResponse();
-		  this.timeoutConnectionCheckServerSide = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnectionCheckServerSide();
 		  this.monitorExecutor = monitorExecutor;
 		  this.sessionId = sessionId;
 		  this.config = config;

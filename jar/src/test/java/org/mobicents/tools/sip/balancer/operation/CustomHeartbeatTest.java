@@ -25,7 +25,6 @@ package org.mobicents.tools.sip.balancer.operation;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
-import java.util.Properties;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;

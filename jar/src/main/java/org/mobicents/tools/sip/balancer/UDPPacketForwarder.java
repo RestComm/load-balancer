@@ -76,14 +76,11 @@ public class UDPPacketForwarder {
 							}
 							int size = list.size();
 							String dest = list.get((int) ((next++)%size));
-							String host;
 							String port;
 							int semi = dest.indexOf(':');
 							if(semi>0) {
-								host = dest.substring(0, semi);
 								port = dest.substring(semi+1);
 							} else {
-								host = dest;
 								port = "5060";
 							}
 							packet.setPort(Integer.parseInt(port));

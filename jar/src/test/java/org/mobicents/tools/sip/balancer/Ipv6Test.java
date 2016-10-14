@@ -1,21 +1,15 @@
 package org.mobicents.tools.sip.balancer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-
-import java.util.Properties;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.message.Response;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
-import org.mobicents.tools.smpp.balancer.ConfigInit;
 
 public class Ipv6Test {
 	

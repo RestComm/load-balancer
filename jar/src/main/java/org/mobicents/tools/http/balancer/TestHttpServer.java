@@ -22,12 +22,6 @@
 
 package org.mobicents.tools.http.balancer;
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.Executors;
-
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-
 /**
  * An HTTP server that sends back the content of the received HTTP request
  * in a pretty plaintext form.

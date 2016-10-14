@@ -25,8 +25,6 @@ package org.mobicents.tools.sip.balancer;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.sip.SipFactory;
 import javax.sip.message.Response;

@@ -101,7 +101,7 @@ public class RouterImpl implements Router {
 		return hop;
 	}
 
-	public ListIterator getNextHops(Request request) {
+	public ListIterator<HopImpl> getNextHops(Request request) {
 
 		SIPNode node = null;
 		for (int i = 0; i < 5 && node == null; i++) {
@@ -115,7 +115,7 @@ public class RouterImpl implements Router {
 			return null;
 		} else {
 			String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
-			LinkedList retval = new LinkedList();
+			LinkedList<HopImpl> retval = new LinkedList<HopImpl>();
 			Integer port = (Integer) node.getProperties().get(transport + "Port");
 			if(port == null) {
 				throw new RuntimeException("No port available for transport " + transport + " for node " + node);

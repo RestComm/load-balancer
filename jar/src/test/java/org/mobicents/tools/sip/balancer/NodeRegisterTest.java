@@ -41,7 +41,6 @@ package org.mobicents.tools.sip.balancer;
 import static org.junit.Assert.assertEquals;
 
 import java.rmi.RemoteException;
-import java.util.Properties;
 
 import javax.sip.ListeningPoint;
 

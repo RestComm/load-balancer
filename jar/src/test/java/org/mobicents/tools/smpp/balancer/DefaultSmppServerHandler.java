@@ -22,7 +22,6 @@ package org.mobicents.tools.smpp.balancer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
-import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl;
 
 import com.cloudhopper.smpp.SmppServerHandler;
 import com.cloudhopper.smpp.SmppServerSession;

@@ -27,9 +27,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import gov.nist.javax.sip.ListeningPointExt;
-import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
-
-import java.util.Properties;
 
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
@@ -44,7 +41,6 @@ import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.SinglePointTest;
 import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
-import org.mobicents.tools.smpp.balancer.ConfigInit;
 
 public class WssWorstCaseAffinityTest{
 	BalancerRunner balancer;

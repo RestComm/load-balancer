@@ -28,8 +28,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Properties;
-
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
@@ -41,7 +39,6 @@ import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
-import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 
 public class NoInternalAddressTest{
 	BalancerRunner balancer;

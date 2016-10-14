@@ -27,9 +27,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import gov.nist.javax.sip.ListeningPointExt;
-import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
-
-import java.util.Properties;
 
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;

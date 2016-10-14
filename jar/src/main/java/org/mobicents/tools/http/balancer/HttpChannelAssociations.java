@@ -31,7 +31,6 @@ import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 
 public class HttpChannelAssociations {
-	private static final Logger logger = Logger.getLogger(HttpChannelAssociations.class.getCanonicalName());
 	static Executor executor;
     static ServerBootstrap serverBootstrap;
     static ServerBootstrap serverSecureBootstrap;

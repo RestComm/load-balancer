@@ -25,11 +25,9 @@ package org.mobicents.tools.sip.balancer.performance;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.BlackholeAppServer;

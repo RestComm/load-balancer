@@ -142,6 +142,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		this.sipHeaderAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	protected void syncNodes(Boolean isIpV6) {
 		Set nodes;

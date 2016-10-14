@@ -1,7 +1,5 @@
 package org.mobicents.tools.configuration;
 
-import java.util.Properties;
-
 public class LoadBalancerConfiguration {
 
     private final CommonConfiguration commonConfiguration;

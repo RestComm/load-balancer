@@ -19,10 +19,6 @@
 
 package org.mobicents.tools.smpp.multiplexer;
 
-import java.util.List;
-
-import org.mobicents.tools.smpp.balancer.impl.ServerConnectionImpl;
-
 import com.cloudhopper.smpp.pdu.Pdu;
 
 /**

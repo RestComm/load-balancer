@@ -38,13 +38,9 @@
  */
 package org.mobicents.tools.sip.balancer;
 
-import gov.nist.javax.sip.ListeningPointExt;
-import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.address.SipUri;
 import gov.nist.javax.sip.header.HeaderFactoryExt;
 import gov.nist.javax.sip.header.SIPETag;
-import gov.nist.javax.sip.header.SIPHeaderNames;
-import gov.nist.javax.sip.header.WWWAuthenticate;
 import gov.nist.javax.sip.header.extensions.JoinHeader;
 import gov.nist.javax.sip.header.extensions.ReplacesHeader;
 
@@ -64,7 +60,6 @@ import javax.sip.RequestEvent;
 import javax.sip.ResponseEvent;
 import javax.sip.ServerTransaction;
 import javax.sip.SipException;
-import javax.sip.SipFactory;
 import javax.sip.SipListener;
 import javax.sip.SipProvider;
 import javax.sip.TransactionDoesNotExistException;
@@ -184,12 +179,6 @@ public class TestSipListener implements SipListener {
 
 	private String peerHostPort;
 
-	private int dialogTerminatedCount;
-
-	private int transctionTerminatedCount;
-
-	private int transactionCount;
-
 	private int dialogCount;
 
 	public int getDialogCount() {
@@ -208,8 +197,6 @@ public class TestSipListener implements SipListener {
 	
 	private boolean byeReceived;
 
-	private boolean redirectReceived;
-			
 	private boolean joinRequestReceived;
 	
 	private boolean replacesRequestReceived;
@@ -228,8 +215,6 @@ public class TestSipListener implements SipListener {
 	
 	private Response informationalResponse;
 	
-	private boolean cancelSent;
-
 	private boolean waitForCancel;
 	
 	private String lastMessageContent;
@@ -494,7 +479,6 @@ public class TestSipListener implements SipListener {
 						referResponseToSend, request);
 			sipETag = Integer.toString(new Random().nextInt(10000000));
 			st.sendResponse(response);
-			this.transactionCount++;
 			logger.info("shootist:  Sending " + referResponseToSend);			
 			
 			List<Header> headers = new ArrayList<Header>();
@@ -572,13 +556,11 @@ public class TestSipListener implements SipListener {
 				response.addHeader(sipTagHeader);
 				response.addHeader(request.getHeader(ExpiresHeader.NAME));
 				st.sendResponse(response);
-				this.transactionCount++;
 				logger.info("shootist:  Sending OK.");
 			} else {
 				Response response = protocolObjects.messageFactory.createResponse(
 						500, request);
-				serverTransactionId.sendResponse(response);
-				this.transactionCount++;
+				serverTransactionId.sendResponse(response);				
 			}
 		
 		} catch (Exception ex) {
@@ -602,7 +584,6 @@ public class TestSipListener implements SipListener {
 			Response response = protocolObjects.messageFactory.createResponse(
 					200, request);
 			serverTransactionId.sendResponse(response);
-			this.transactionCount++;
 			logger.info("shootist:  Sending OK.");
 			logger.info("Dialog State = " + dialog.getState());
 		
@@ -1099,7 +1080,6 @@ public class TestSipListener implements SipListener {
 			Response response = protocolObjects.messageFactory.createResponse(
 					200, request);
 			serverTransactionId.sendResponse(response);
-			this.transactionCount++;
 			logger.info("shootist:  Sending OK.");
 		
 		} catch (Exception ex) {
@@ -1313,7 +1293,6 @@ public class TestSipListener implements SipListener {
 				}
 			} else if  (response.getStatusCode() == Response.MOVED_TEMPORARILY) {
 				// Dialog dies as soon as you get an error response.
-				this.redirectReceived = true;
 				if (cseq.getMethod().equals(Request.INVITE)) {
 					// lookup the contact header
 					ContactHeader contHdr = (ContactHeader) response
@@ -1334,7 +1313,7 @@ public class TestSipListener implements SipListener {
 					CSeqHeader cseqNew = protocolObjects.headerFactory
 							.createCSeqHeader(++seqNo, "INVITE");
 					// Create ViaHeaders (either use tcp or udp)
-					ArrayList viaHeaders = new ArrayList();
+					ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 					ViaHeader viaHeader = null;
 					if(!isIpv6)
 						viaHeader = protocolObjects.headerFactory.createViaHeader("127.0.0.1", sipProvider
@@ -1381,7 +1360,6 @@ public class TestSipListener implements SipListener {
 					logger.info("Sending INVITE to "
 							+ contHdr.getAddress().getURI().toString());
 					inviteClientTid = sipProvider.getNewClientTransaction(invRequest);
-					this.transactionCount++;
 					
 					logger.info("New TID = " + inviteClientTid);
 					inviteClientTid.sendRequest();
@@ -1746,8 +1724,6 @@ public class TestSipListener implements SipListener {
 		// send the request out.
 		inviteClientTid.sendRequest();
 
-		this.transactionCount ++;
-		
 		logger.info("client tx = " + inviteClientTid);
 		if(!Request.MESSAGE.equalsIgnoreCase(method)) {
 			dialog = inviteClientTid.getDialog();
@@ -1882,8 +1858,6 @@ public class TestSipListener implements SipListener {
 		// send the request out.
 		inviteClientTid.sendRequest();
 		
-		this.transactionCount ++;
-		
 		logger.info("client tx = " + inviteClientTid);
 		if(!Request.MESSAGE.equalsIgnoreCase(method)) {
 			dialog = inviteClientTid.getDialog();			
@@ -1952,14 +1926,12 @@ public class TestSipListener implements SipListener {
 	public void processTransactionTerminated(
 			TransactionTerminatedEvent transactionTerminatedEvent) {
 		logger.info("Transaction terminated event recieved for " + 
-				transactionTerminatedEvent.getClientTransaction());
-		this.transctionTerminatedCount++;
+				transactionTerminatedEvent.getClientTransaction());		
 	}
 
 	public void processDialogTerminated(
-			DialogTerminatedEvent dialogTerminatedEvent) {
-		this.dialogTerminatedCount++;
-
+			DialogTerminatedEvent dialogTerminatedEvent) 
+	{
 	}
 
 	public boolean getOkToByeReceived() {
@@ -1977,8 +1949,7 @@ public class TestSipListener implements SipListener {
 			Request cancelRequest = inviteClientTid.createCancel();
 			ClientTransaction cancelTid = sipProvider
 					.getNewClientTransaction(cancelRequest);
-			cancelTid.sendRequest();
-			cancelSent = true;
+			cancelTid.sendRequest();			
 		} catch (Exception ex) {
 			ex.printStackTrace();						
 		}

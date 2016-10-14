@@ -30,7 +30,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -287,8 +287,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		return node;
 	}
 	
-	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
-		BalancerContext balancerContext = getBalancerContext();
+	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {		
 //		if(invocationContext.nodes.size() == 0) return null;
 //		int nextNode = nextNodeCounter.incrementAndGet();
 //		nextNode %= invocationContext.nodes.size();
@@ -296,10 +295,10 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
 		if(it==null)
 			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		Map.Entry pair = null;
+		Entry<KeySip, SIPNode> pair = null;
 		if(it.hasNext())
 		{
-			pair = (Map.Entry)it.next();
+			pair = it.next();
 			if(!it.hasNext())
 				it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
@@ -307,12 +306,11 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 		{
 			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
-		return (SIPNode) pair.getValue();
+		return pair.getValue();
 		
 	}
 	
 	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {
-		BalancerContext balancerContext = getBalancerContext();
 		HashMap<SIPNode, Integer> nodeUtilization = new HashMap<SIPNode, Integer>();
 		for(SIPNode node : callIdMap.values()) {
 			Integer n = nodeUtilization.get(node);

@@ -20,8 +20,6 @@ package org.mobicents.tools.sip.balancer;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.Properties;
-
 import javax.sip.ListeningPoint;
 import javax.sip.message.Response;
 

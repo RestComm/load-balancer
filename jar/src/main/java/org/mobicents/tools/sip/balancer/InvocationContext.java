@@ -23,12 +23,14 @@
 package org.mobicents.tools.sip.balancer;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.apache.log4j.Logger;
 
 public class InvocationContext {
 	Logger logger = Logger.getLogger(InvocationContext.class.getCanonicalName());
 	public DefaultBalancerAlgorithm balancerAlgorithm;
+	
+	@SuppressWarnings("rawtypes")
 	public InvocationContext(String version, BalancerContext balancerContext) {
 		this.version = version;
 		try {

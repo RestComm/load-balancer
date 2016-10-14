@@ -20,7 +20,6 @@
 package org.mobicents.tools.sip.balancer.operation;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
 

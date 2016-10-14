@@ -22,16 +22,12 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.util.Properties;
-
-import javax.sip.SipProvider;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 /**

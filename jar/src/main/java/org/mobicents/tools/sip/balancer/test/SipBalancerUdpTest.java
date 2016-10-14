@@ -147,6 +147,7 @@ public class SipBalancerUdpTest {
 				}
 			}
 			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + sentPackets/((double)(timespan)/1000.) + " initial requests per second)");
+			socket.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -173,6 +174,7 @@ public class SipBalancerUdpTest {
 				}
 			}
 			System.out.println("Packets sent in " + timespan + " ms are " + sentPackets + "(making " + sentPackets/((double)(timespan)/1000.) + " initial requests per second)");
+			socket.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

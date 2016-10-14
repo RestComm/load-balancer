@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlgorithm {
@@ -34,14 +33,13 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 	
 	protected ConcurrentHashMap<String, List<String>> nodeToNodeGroup = new ConcurrentHashMap<String, List<String>>();
 	
-	protected SIPNode selectNewNode(SIPNode node, String callId) {
+	protected SIPNode selectNewNode(SIPNode node, String callId,Boolean isIpV6) {
 		if(logger.isDebugEnabled()) {
     		logger.debug("The assigned node has died. This is the dead node: " + node);
     	}
 		SIPNode oldNode = node;
 		List<String> alternativeNodes = nodeToNodeGroup.get(oldNode.getIp());
 		//for(SIPNode check : invocationContext.nodes)  { 
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            						
 		for(SIPNode check : invocationContext.sipNodeMap(isIpV6).values())  {
 			for(String alt : alternativeNodes)
 				if(check.getIp().equals(alt)) {
@@ -52,7 +50,7 @@ public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlg
 		}
 		logger.info("No alternatives found for " + oldNode + " from " + alternativeNodes);
 		
-		return super.selectNewNode(oldNode, callId);
+		return super.selectNewNode(oldNode, callId, isIpV6);
 	}
 
 	public void init() {

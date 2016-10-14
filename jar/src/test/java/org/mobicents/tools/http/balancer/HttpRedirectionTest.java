@@ -20,9 +20,7 @@
 package org.mobicents.tools.http.balancer;
 
 import static org.junit.Assert.assertEquals;
-import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
 
-import java.util.Properties;
 import java.util.concurrent.Semaphore;
 
 import org.junit.AfterClass;

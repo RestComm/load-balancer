@@ -25,7 +25,6 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
-import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 
 import com.cloudhopper.smpp.pdu.Pdu;
 

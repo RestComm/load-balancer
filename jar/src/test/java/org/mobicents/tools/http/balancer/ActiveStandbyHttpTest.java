@@ -21,7 +21,6 @@ package org.mobicents.tools.http.balancer;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Properties;
 import java.util.concurrent.Semaphore;
 
 import org.junit.AfterClass;
@@ -30,7 +29,6 @@ import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.ActiveStandbyAlgorithm;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
 import com.meterware.httpunit.GetMethodWebRequest;

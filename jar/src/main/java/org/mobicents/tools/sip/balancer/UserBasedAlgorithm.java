@@ -25,7 +25,7 @@ import gov.nist.javax.sip.message.ResponseExt;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -326,10 +326,10 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
 		if(it==null)
 			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		Map.Entry pair = null;
+		Entry<KeySip, SIPNode> pair = null;
 		if(it.hasNext())
 		{
-			pair = (Map.Entry)it.next();
+			pair = it.next();
 			if(!it.hasNext())
 				it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
@@ -337,7 +337,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		{
 			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
-		return (SIPNode) pair.getValue();
+		return pair.getValue();
 	}
 	
 	protected SIPNode selectNewNode(SIPNode node, String user) {

@@ -25,10 +25,8 @@ package org.mobicents.tools.sip.balancer;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -41,11 +39,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
-import org.jboss.util.propertyeditor.InetAddressEditor;
 
 /**
  * <p>
@@ -71,8 +67,7 @@ public class NodeRegisterImpl  implements NodeRegister {
     private InetAddress serverAddress = null;
 
     private String latestVersion = Integer.MIN_VALUE + "";
-    private int numberOfOldServers, numberOfNewServers;
-
+    
     BalancerRunner balancerRunner;
 
 
@@ -136,7 +131,12 @@ public class NodeRegisterImpl  implements NodeRegister {
     // ********* CLASS TO BE EXPOSED VIA RMI
     private class RegisterRMIStub extends UnicastRemoteObject implements NodeRegisterRMIStub {
 
-        protected RegisterRMIStub(int port) throws RemoteException {
+        /**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		protected RegisterRMIStub(int port) throws RemoteException {
             super(port);
         }
 
@@ -167,7 +167,11 @@ public class NodeRegisterImpl  implements NodeRegister {
     public static class BindingAddressCorrectnessSocketFactory extends RMISocketFactory implements
     Serializable
     {
-        private InetAddress bindingAddress = null;
+        /**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+		private InetAddress bindingAddress = null;
         public BindingAddressCorrectnessSocketFactory() {}
         public BindingAddressCorrectnessSocketFactory(InetAddress ipInterface) {
             this.bindingAddress = ipInterface;
