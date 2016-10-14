@@ -100,7 +100,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			SIPNode node = callIdMap.get(callId);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
-				node = selectNewNode(node, callId);
+				node = selectNewNode(node, callId, isIpV6);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
@@ -149,7 +149,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			SIPNode node = callIdMap.get(callId);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
-				node = selectNewNode(node, callId);
+				node = selectNewNode(node, callId, isIpV6);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
@@ -208,7 +208,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		} else {
 			if(!invocationContext.sipNodeMap(isIpV6).containsValue(node)) { // If the assigned node is now dead
 			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
-				node = selectNewNode(node, callId);
+				node = selectNewNode(node, callId, isIpV6);
 			} else { // ..else it's alive and we can route there
 				//.. and we just leave it like that
 				if(logger.isDebugEnabled()) {
@@ -226,7 +226,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		
 	}
 	
-	protected SIPNode selectNewNode(SIPNode node, String callId) {
+	protected SIPNode selectNewNode(SIPNode node, String callId,Boolean isIpV6) {
 		if(logger.isDebugEnabled()) {
     		logger.debug("The assigned node has died. This is the dead node: " + node);
     	}
@@ -238,7 +238,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
 		} else {
-			Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            				
+			//Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            				
 			node = nextAvailableNode(isIpV6);
 			if(node == null) {
 				if(logger.isDebugEnabled()) {

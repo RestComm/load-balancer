@@ -148,7 +148,7 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 			SIPNode node = (SIPNode) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]" + " [HASH:" + absDigest(node.toStringWithoutJvmroute()) + "]"+ "\n";
 		}
-		
+		if(nodesArrayV6!=null)
 		for(Object object : nodesArrayV6) {
 			SIPNode node = (SIPNode) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]" + " [HASH:" + absDigest(node.toStringWithoutJvmroute()) + "]"+ "\n";
