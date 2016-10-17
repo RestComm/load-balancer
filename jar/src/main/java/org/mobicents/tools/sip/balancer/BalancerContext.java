@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import javax.sip.ListeningPoint;
 import javax.sip.SipProvider;
@@ -184,6 +185,8 @@ public class BalancerContext {
 	
 	public boolean useIpLoadBalancerAddressInViaHeaders;
 	public String sipHeaderAffinityKey;
+	public Pattern sipHeaderAffinityKeyExclusionPattern;
+	public String sipHeaderAffinityFallbackKey;
 	
 	public String publicIP;
 	public String publicIPv6;

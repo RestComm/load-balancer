@@ -410,18 +410,22 @@ public class Shootist implements SipListener {
     }
 
     public void sendInitialInvite(){
-    	sendInitial("INVITE",null);
+    	sendInitial("BigGuy", "here.com", "INVITE",null);
     }
     
     public void sendInitial(String method) {
-    	sendInitial(method,null);
+    	sendInitial("BigGuy", "here.com", method,null);
     }
     
     public void sendInitial(String method,RouteHeader route) {
+    	sendInitial("BigGuy", "here.com", method, route);
+    }
+    
+    public void sendInitial(String fromUser, String fromHost, String method,RouteHeader route) {
     	try{
     		if(!started) start();
-    		String fromName = "BigGuy";
-    		String fromSipAddress = "here.com";
+    		String fromName = fromUser;
+    		String fromSipAddress = fromHost;
     		String fromDisplayName = "The Master Blaster";
 
     		String toSipAddress = "there.com";

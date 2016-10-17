@@ -50,7 +50,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	protected AtomicInteger nextNodeCounter = new AtomicInteger(0);
 	protected int maxCallIdleTime = 500;
 	protected boolean groupedFailover = false;
-	
+
 	protected Timer cacheEvictionTimer = new Timer();
 	
 	public void processInternalRequest(Request request) {

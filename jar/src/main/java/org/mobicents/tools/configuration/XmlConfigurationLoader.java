@@ -100,6 +100,10 @@ public class XmlConfigurationLoader{
         	alg.setAlgorithmClass(src.getString("algorithm.algorithmClass",AlgorithmConfiguration.ALGORITHM_CLASS));
         if(!src.getString("algorithm.sipHeaderAffinityKey").equals(""))
         	alg.setSipHeaderAffinityKey(src.getString("algorithm.sipHeaderAffinityKey",AlgorithmConfiguration.SIP_HEADER_AFFINITY_KEY));
+        if(!src.getString("algorithm.sipHeaderAffinityExclusionPattern").equals(""))
+        	alg.setSipHeaderAffinityKeyExclusionPattern(src.getString("algorithm.sipHeaderAffinityExclusionPattern"));
+        if(!src.getString("algorithm.sipHeaderAffinityFallbackKey").equals(""))
+        	alg.setSipHeaderAffinityFallbackKey(src.getString("algorithm.sipHeaderAffinityFallbackKey"));
         alg.setCallIdAffinityGroupFailover(src.getBoolean("algorithm.callIdAffinityGroupFailover",AlgorithmConfiguration.CALL_ID_AFFINITY_GROUP_FAILOVER));
         alg.setCallIdAffinityMaxTimeInCache(src.getInteger("algorithm.callIdAffinityMaxTimeInCache",AlgorithmConfiguration.CALL_ID_AFFINITY_MAX_TIME_IN_CACHE));
         alg.setHttpAffinityKey(src.getString("algorithm.httpAffinityKey",AlgorithmConfiguration.HTTP_AFFINITY_KEY));
@@ -132,27 +136,27 @@ public class XmlConfigurationLoader{
         	ex.setIpLoadBalancerWssPort(src.getInteger("external.ipLoadBalancerWssPort",ExternalLegConfiguration.IP_LOAD_BALANCER_WSS_PORT));
         //external ipv6
         ex.setIpv6Host(src.getString("external.ipv6Host",ExternalLegConfiguration.IPV6_HOST));
-        if(!src.getString("external.ipv6LoadBalancerAddress").equals(""))
+        if(src.getString("external.ipv6LoadBalancerAddress") != null && !src.getString("external.ipv6LoadBalancerAddress").equals(""))
         	ex.setIpv6LoadBalancerAddress(src.getString("external.ipv6LoadBalancerAddress", ExternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS));
-        if(!src.getString("external.ipv6UdpPort").equals(""))
+        if(src.getString("external.ipv6UdpPort") != null && !src.getString("external.ipv6UdpPort").equals(""))
         	ex.setIpv6UdpPort(src.getInteger("external.ipv6UdpPort", ExternalLegConfiguration.IPV6_UDP_PORT));
-        if(!src.getString("external.ipv6TcpPort").equals(""))
+        if(src.getString("external.ipv6TcpPort") != null && !src.getString("external.ipv6TcpPort").equals(""))
         	ex.setIpv6TcpPort(src.getInteger("external.ipv6TcpPort", ExternalLegConfiguration.IPV6_TCP_PORT));
-        if(!src.getString("external.ipv6TlsPort").equals(""))
+        if(src.getString("external.ipv6TlsPort") != null && !src.getString("external.ipv6TlsPort").equals(""))
         	ex.setIpv6TlsPort(src.getInteger("external.ipv6TlsPort", ExternalLegConfiguration.IPV6_TLS_PORT));
-        if(!src.getString("external.ipv6WsPort").equals(""))
+        if(src.getString("external.ipv6WsPort") != null && !src.getString("external.ipv6WsPort").equals(""))
         	ex.setIpv6WsPort(src.getInteger("external.ipv6WsPort", ExternalLegConfiguration.IPV6_WS_PORT));
-        if(!src.getString("external.ipv6WssPort").equals(""))
+        if(src.getString("external.ipv6WssPort") != null && !src.getString("external.ipv6WssPort").equals(""))
         	ex.setIpv6WssPort(src.getInteger("external.ipv6WssPort", ExternalLegConfiguration.IPV6_WSS_PORT));
-        if(!src.getString("external.ipv6LoadBalancerUdpPort").equals(""))
+        if(src.getString("external.ipv6LoadBalancerUdpPort") != null && !src.getString("external.ipv6LoadBalancerUdpPort").equals(""))
         	ex.setIpv6LoadBalancerUdpPort(src.getInteger("external.ipv6LoadBalancerUdpPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_UDP_PORT));
-        if(!src.getString("external.ipv6LoadBalancerTcpPort").equals(""))
+        if(src.getString("external.ipv6LoadBalancerTcpPort") != null && !src.getString("external.ipv6LoadBalancerTcpPort").equals(""))
         	ex.setIpv6LoadBalancerTcpPort(src.getInteger("external.ipv6LoadBalancerTcpPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_TCP_PORT));
-        if(!src.getString("external.ipv6LoadBalancerTlsPort").equals(""))
+        if(src.getString("external.ipv6LoadBalancerTlsPort") != null && !src.getString("external.ipv6LoadBalancerTlsPort").equals(""))
         	ex.setIpv6LoadBalancerTlsPort(src.getInteger("external.ipv6LoadBalancerTlsPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_TLS_PORT));
-        if(!src.getString("external.ipv6LoadBalancerWsPort").equals(""))
+        if(src.getString("external.ipv6LoadBalancerWsPort") != null && !src.getString("external.ipv6LoadBalancerWsPort").equals(""))
         	ex.setIpv6LoadBalancerWsPort(src.getInteger("external.ipv6LoadBalancerWsPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_WS_PORT));
-        if(!src.getString("external.ipv6LoadBalancerWssPort").equals(""))
+        if(src.getString("external.ipv6LoadBalancerWssPort") != null && !src.getString("external.ipv6LoadBalancerWssPort").equals(""))
         	ex.setIpv6LoadBalancerWssPort(src.getInteger("external.ipv6LoadBalancerWssPort",ExternalLegConfiguration.IPV6_LOAD_BALANCER_WSS_PORT));
         
         //internal leg configuration
@@ -182,27 +186,27 @@ public class XmlConfigurationLoader{
         	in.setIpLoadBalancerWssPort(src.getInteger("internal.ipLoadBalancerWssPort",InternalLegConfiguration.IP_LOAD_BALANCER_WSS_PORT));
         //ipv6
         in.setIpv6Host(src.getString("internal.ipv6Host",InternalLegConfiguration.IPV6_HOST));
-        if(!src.getString("internal.ipv6LoadBalancerAddress").equals(""))
+        if(src.getString("internal.ipv6LoadBalancerAddress") != null && !src.getString("internal.ipv6LoadBalancerAddress").equals(""))
         	in.setIpv6LoadBalancerAddress(src.getString("internal.ipv6LoadBalancerAddress", InternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS));
-        if(!src.getString("internal.ipv6UdpPort").equals(""))
+        if(src.getString("internal.ipv6UdpPort") != null && !src.getString("internal.ipv6UdpPort").equals(""))
         	in.setIpv6UdpPort(src.getInteger("internal.ipv6UdpPort", InternalLegConfiguration.IPV6_UDP_PORT));
-        if(!src.getString("internal.ipv6TcpPort").equals(""))
+        if(src.getString("internal.ipv6TcpPort") != null && !src.getString("internal.ipv6TcpPort").equals(""))
         	in.setIpv6TcpPort(src.getInteger("internal.ipv6TcpPort", InternalLegConfiguration.IPV6_TCP_PORT));
-        if(!src.getString("internal.ipv6TlsPort").equals(""))
+        if(src.getString("internal.ipv6TlsPort") != null && !src.getString("internal.ipv6TlsPort").equals(""))
         	in.setIpv6TlsPort(src.getInteger("internal.ipv6TlsPort", InternalLegConfiguration.IPV6_TLS_PORT));
-        if(!src.getString("internal.ipv6WsPort").equals(""))
+        if(src.getString("internal.ipv6WsPort") != null && !src.getString("internal.ipv6WsPort").equals(""))
         	in.setIpv6WsPort(src.getInteger("internal.ipv6WsPort", InternalLegConfiguration.IPV6_WS_PORT));
-        if(!src.getString("internal.ipv6WssPort").equals(""))
+        if(src.getString("internal.ipv6WssPort") != null && !src.getString("internal.ipv6WssPort").equals(""))
         	in.setIpv6WssPort(src.getInteger("internal.ipv6WssPort", InternalLegConfiguration.IPV6_WSS_PORT));
-        if(!src.getString("internal.ipv6LoadBalancerUdpPort").equals(""))
+        if(src.getString("internal.ipv6LoadBalancerUdpPort") != null && !src.getString("internal.ipv6LoadBalancerUdpPort").equals(""))
         	in.setIpv6LoadBalancerUdpPort(src.getInteger("internal.ipv6LoadBalancerUdpPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_UDP_PORT));
-        if(!src.getString("internal.ipv6LoadBalancerTcpPort").equals(""))
+        if(src.getString("internal.ipv6LoadBalancerTcpPort") != null && !src.getString("internal.ipv6LoadBalancerTcpPort").equals(""))
         	in.setIpv6LoadBalancerTcpPort(src.getInteger("internal.ipv6LoadBalancerTcpPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_TCP_PORT));
-        if(!src.getString("internal.ipv6LoadBalancerTlsPort").equals(""))
+        if(src.getString("internal.ipv6LoadBalancerTlsPort") != null && !src.getString("internal.ipv6LoadBalancerTlsPort").equals(""))
         	in.setIpv6LoadBalancerTlsPort(src.getInteger("internal.ipv6LoadBalancerTlsPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_TLS_PORT));
-        if(!src.getString("internal.ipv6LoadBalancerWsPort").equals(""))
+        if(src.getString("internal.ipv6LoadBalancerWsPort") != null && !src.getString("internal.ipv6LoadBalancerWsPort").equals(""))
         	in.setIpv6LoadBalancerWsPort(src.getInteger("internal.ipv6LoadBalancerWsPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_WS_PORT));
-        if(!src.getString("internal.ipv6LoadBalancerWssPort").equals(""))
+        if(src.getString("internal.ipv6LoadBalancerWssPort") != null && !src.getString("internal.ipv6LoadBalancerWssPort").equals(""))
         	in.setIpv6LoadBalancerWssPort(src.getInteger("internal.ipv6LoadBalancerWssPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_WSS_PORT));
     }
 

@@ -25,6 +25,7 @@ package org.mobicents.tools.sip.balancer;
 import gov.nist.javax.sip.ListeningPointExt;
 import gov.nist.javax.sip.SipStackImpl;
 import gov.nist.javax.sip.address.SipUri;
+import gov.nist.javax.sip.header.HeaderExt;
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
 import gov.nist.javax.sip.header.Route;
 import gov.nist.javax.sip.header.RouteList;
@@ -51,6 +52,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
@@ -73,6 +75,7 @@ import javax.sip.address.TelURL;
 import javax.sip.address.URI;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
+import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
 import javax.sip.header.HeaderAddress;
 import javax.sip.header.HeaderFactory;
@@ -151,6 +154,11 @@ public class SIPBalancerForwarder implements SipListener {
 		balancerRunner.balancerContext.isSend5xxResponseReasonHeader = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsSend5xxResponseReasonHeader();
 		balancerRunner.balancerContext.isSend5xxResponseSatusCode = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsSend5xxResponseSatusCode();
     	balancerRunner.balancerContext.sipHeaderAffinityKey = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
+    	balancerRunner.balancerContext.sipHeaderAffinityFallbackKey = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityFallbackKey();
+    	balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern = null;
+    	if(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern() != null && !balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern().trim().isEmpty()) {
+    		Pattern p = Pattern.compile(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern());
+    	}
     	balancerRunner.balancerContext.isUseWithNexmo = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsUseWithNexmo();
     	balancerRunner.balancerContext.responseReasonNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponseReasonNodeRemoval();
     	balancerRunner.balancerContext.responseStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponseStatusCodeNodeRemoval();
@@ -1852,18 +1860,31 @@ public class SIPBalancerForwarder implements SipListener {
 
         if(hints.serverAssignedNode !=null) {
         	String headerKey = null;
-        	if(balancerRunner.balancerContext.sipHeaderAffinityKey=="To")
+        	if(balancerRunner.balancerContext.sipHeaderAffinityKey.equalsIgnoreCase(ToHeader.NAME))
         	{
         		URI currURI=((HeaderAddress)request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityKey)).getAddress().getURI();
         		if(currURI.isSipURI())
         			headerKey = ((SipURI)currURI).getUser();
         		else
         			headerKey = ((TelURL)currURI).getPhoneNumber();
+        		
+        		if(balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern != null && balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
+        			headerKey = ((HeaderExt) request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityFallbackKey)).getValue();
+        		}
+        	}
+        	else if(balancerRunner.balancerContext.sipHeaderAffinityKey.equalsIgnoreCase(FromHeader.NAME)) {
+        		headerKey = ((HeaderAddress) request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityKey)).getAddress().getURI().toString();
+        		if(balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern != null && balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
+        			headerKey = ((HeaderExt) request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityFallbackKey)).getValue();
+        		}
         	}
         	else
         	{
-        		headerKey = ((SIPHeader) request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityKey)).getValue();
+        		headerKey = ((HeaderExt) request.getHeader(balancerRunner.balancerContext.sipHeaderAffinityKey)).getValue();
         	}
+        	if(logger.isDebugEnabled()) {
+         		logger.debug("headerKey " + headerKey);
+         	}
         	ctx.balancerAlgorithm.assignToNode(headerKey, hints.serverAssignedNode);
             if(logger.isDebugEnabled()) {
                 logger.debug("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);

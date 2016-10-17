@@ -17,6 +17,8 @@ public class AlgorithmConfiguration {
 	private Integer callIdAffinityMaxTimeInCache;
 	private Boolean	callIdAffinityGroupFailover;
 	private String sipHeaderAffinityKey;
+	private String sipHeaderAffinityKeyExclusionPattern;
+	private String sipHeaderAffinityFallbackKey;
 	private String httpAffinityKey;
 	private String persistentConsistentHashCacheConfiguration;
 	private String subclusterMap;
@@ -28,6 +30,7 @@ public class AlgorithmConfiguration {
 		this.callIdAffinityMaxTimeInCache = CALL_ID_AFFINITY_MAX_TIME_IN_CACHE;
 		this.callIdAffinityGroupFailover = CALL_ID_AFFINITY_GROUP_FAILOVER;
 		this.sipHeaderAffinityKey = SIP_HEADER_AFFINITY_KEY;
+		this.setSipHeaderAffinityFallbackKey(SIP_HEADER_AFFINITY_KEY);
 		this.httpAffinityKey = HTTP_AFFINITY_KEY;
 		this.persistentConsistentHashCacheConfiguration = PERSISTENT_CONSISTENT_HASH_CACHE_CONFIG;
 		this.subclusterMap = SUBCLUSTER_MAP;
@@ -109,6 +112,36 @@ public class AlgorithmConfiguration {
 
 	public void setEarlyDialogWorstCase(Boolean earlyDialogWorstCase) {
 		this.earlyDialogWorstCase = earlyDialogWorstCase;
+	}
+
+	/**
+	 * @return the sipHeaderAffinityKeyExclusionPattern
+	 */
+	public String getSipHeaderAffinityKeyExclusionPattern() {
+		return sipHeaderAffinityKeyExclusionPattern;
+	}
+
+	/**
+	 * @param sipHeaderAffinityKeyExclusionPattern the sipHeaderAffinityKeyExclusionPattern to set
+	 */
+	public void setSipHeaderAffinityKeyExclusionPattern(
+			String sipHeaderAffinityKeyExclusionPattern) {
+		this.sipHeaderAffinityKeyExclusionPattern = sipHeaderAffinityKeyExclusionPattern;
+	}
+
+	/**
+	 * @return the sipHeaderAffinityFallbackKey
+	 */
+	public String getSipHeaderAffinityFallbackKey() {
+		return sipHeaderAffinityFallbackKey;
+	}
+
+	/**
+	 * @param sipHeaderAffinityFallbackKey the sipHeaderAffinityFallbackKey to set
+	 */
+	public void setSipHeaderAffinityFallbackKey(
+			String sipHeaderAffinityFallbackKey) {
+		this.sipHeaderAffinityFallbackKey = sipHeaderAffinityFallbackKey;
 	}
 	
 }

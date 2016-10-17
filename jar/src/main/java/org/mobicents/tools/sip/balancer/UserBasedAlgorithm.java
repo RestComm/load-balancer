@@ -19,6 +19,7 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.header.HeaderExt;
 import gov.nist.javax.sip.header.Via;
 import gov.nist.javax.sip.message.ResponseExt;
 
@@ -32,14 +33,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sip.ListeningPoint;
-import javax.sip.message.Request;
-import javax.sip.message.Response;
-import javax.sip.header.HeaderAddress;
 import javax.sip.address.SipURI;
 import javax.sip.address.TelURL;
 import javax.sip.address.URI;
+import javax.sip.header.FromHeader;
+import javax.sip.header.HeaderAddress;
+import javax.sip.header.ToHeader;
+import javax.sip.message.Message;
+import javax.sip.message.Request;
+import javax.sip.message.Response;
 
-import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 /**
@@ -55,6 +58,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	protected AtomicInteger nextNodeCounter = new AtomicInteger(0);
 	protected int maxCallIdleTime = 500;
 	protected boolean groupedFailover = false;
+	
 	protected Timer cacheEvictionTimer = new Timer();
 	
 	@Override
@@ -69,13 +73,19 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		String host = via.getHost();
 		Integer port = via.getPort();
 		boolean found = false;
-
 		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("internal response checking sendernode " + senderNode + " or Via host:port " + host + ":" + port);
+		} 
 		if(senderNode != null&&invocationContext.sipNodeMap(isIpV6).containsValue(senderNode))
 			found = true;
 		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
-		
+		else if(response.getStatusCode()==balancerContext.responseStatusCodeNodeRemoval
+				&& response.getReasonPhrase() != null
+    			&& response.getReasonPhrase().equalsIgnoreCase(balancerContext.responseReasonNodeRemoval))
+			return;
 //		for(SIPNode node : invocationContext.nodes) {
 //			if(logger.isDebugEnabled()) {
 //				logger.debug("internal response checking sendernode " + senderNode + " against node " + node + " or Via host:port " + host + ":" + port);
@@ -95,18 +105,18 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 		if(!found) {
 			//String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
-			URI currURI=((HeaderAddress)response.getHeader(headerName)).getAddress().getURI();
-			String user;
-			if(currURI.isSipURI())
-				user = ((SipURI)currURI).getUser();
-			else
-				user = ((TelURL)currURI).getPhoneNumber();
+//			URI currURI=((HeaderAddress)response.getHeader(headerName)).getAddress().getURI();
+//			String user;
+//			if(currURI.isSipURI())
+//				user = ((SipURI)currURI).getUser();
+//			else
+//				user = ((TelURL)currURI).getPhoneNumber();
+			String headerKey = extractHeaderKey(response);
 			
-			
-			SIPNode node = userToMap.get(user);
+			SIPNode node = userToMap.get(headerKey);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
-				node = selectNewNode(node, user);
+				node = selectNewNode(node, headerKey, isIpV6);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
@@ -127,39 +137,31 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	@Override
-	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
-		URI currURI=((HeaderAddress)request.getHeader(headerName)).getAddress().getURI();
-		String user;
-		if(currURI.isSipURI())
-			user = ((SipURI)currURI).getUser();
-		else
-			user = ((TelURL)currURI).getPhoneNumber();
-		
-		SIPNode node;
-		node = userToMap.get(user);
-		headerToTimestamps.put(user, System.currentTimeMillis());
-
-		if(node == null) { //
-			node = nextAvailableNode(isIpV6);
-			if(node == null) return null;
-			userToMap.put(user, node);
-			if(logger.isDebugEnabled()) {
-	    		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
-	    	}
-		} else {
-			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
-			if(!invocationContext.sipNodeMap(isIpV6).containsValue(node)) { // If the assigned node is now dead
-				node = selectNewNode(node, user);
-			} else { // ..else it's alive and we can route there
-				//.. and we just leave it like that
-				if(logger.isDebugEnabled()) {
-		    		logger.debug("The assigned node in the affinity map is still alive: " + node);
-		    	}
-			}
-		}
-		
-		return node;
+	private String extractHeaderKey(Message message) {
+		String headerKey;
+		if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKey.equalsIgnoreCase(ToHeader.NAME))
+    	{
+    		URI currURI=((HeaderAddress)message.getHeader(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKey)).getAddress().getURI();
+    		if(currURI.isSipURI())
+    			headerKey = ((SipURI)currURI).getUser();
+    		else
+    			headerKey = ((TelURL)currURI).getPhoneNumber();
+    		
+    		if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
+    			headerKey = ((HeaderExt) message.getHeader(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityFallbackKey)).getValue();
+    		}
+    	}
+    	else if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKey.equalsIgnoreCase(FromHeader.NAME)) {
+    		headerKey = ((HeaderAddress) message.getHeader(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKey)).getAddress().getURI().toString();
+    		if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern != null && invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
+    			headerKey = ((HeaderExt) message.getHeader(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityFallbackKey)).getValue();
+    		}
+    	}
+    	else
+    	{
+    		headerKey = ((HeaderExt) message.getHeader(balancerContext.sipHeaderAffinityKey)).getValue();
+    	}
+		return headerKey;
 	}
 	
 	@Override
@@ -183,17 +185,18 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 		if(!found) {
 			//String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
-			URI currURI=((HeaderAddress)response.getHeader(headerName)).getAddress().getURI();
-			String user;
-			if(currURI.isSipURI())
-				user = ((SipURI)currURI).getUser();
-			else
-				user = ((TelURL)currURI).getPhoneNumber();
+//			URI currURI=((HeaderAddress)response.getHeader(headerName)).getAddress().getURI();
+//			String user;
+//			if(currURI.isSipURI())
+//				user = ((SipURI)currURI).getUser();
+//			else
+//				user = ((TelURL)currURI).getPhoneNumber();
+			String headerKey = extractHeaderKey(response);
 			
-			SIPNode node = userToMap.get(user);
+			SIPNode node = userToMap.get(headerKey);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
-				node = selectNewNode(node, user);
+				node = selectNewNode(node, headerKey, isIpV6);
 				String transportProperty = transport + "Port";
 				port = (Integer) node.getProperties().get(transportProperty);
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
@@ -235,6 +238,127 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 
+	@Override
+	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
+		String headerKey = extractHeaderKey(request);
+		
+//		URI currURI=((HeaderAddress)request.getHeader(headerName)).getAddress().getURI();
+//		String user;
+//		if(currURI.isSipURI())
+//			user = ((SipURI)currURI).getUser();
+//		else
+//			user = ((TelURL)currURI).getPhoneNumber();
+//		
+		SIPNode node;
+		node = userToMap.get(headerKey);
+		headerToTimestamps.put(headerKey, System.currentTimeMillis());
+
+		if(node == null) { //
+			node = nextAvailableNode(isIpV6);
+			if(node == null) return null;
+			userToMap.put(headerKey, node);
+			if(logger.isDebugEnabled()) {
+	    		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
+	    	}
+		} else {
+			//if(!invocationContext.nodes.contains(node)) { // If the assigned node is now dead
+			if(!invocationContext.sipNodeMap(isIpV6).containsValue(node)) { // If the assigned node is now dead
+				node = selectNewNode(node, headerKey,isIpV6);
+			} else { // ..else it's alive and we can route there
+				//.. and we just leave it like that
+				if(logger.isDebugEnabled()) {
+		    		logger.debug("The assigned node in the affinity map is still alive: " + node);
+		    	}
+			}
+		}
+		
+		return node;
+	}
+	
+	protected SIPNode selectNewNode(SIPNode node, String user,Boolean isIpV6) {
+		if(logger.isDebugEnabled()) {
+    		logger.debug("The assigned node has died. This is the dead node: " + node);
+    	}
+		if(groupedFailover) {
+			// This will occur very rarely because we re-assign all calls from the dead node in
+			// a single operation
+			SIPNode oldNode = node;
+			node = leastBusyTargetNode(oldNode);
+			if(node == null) return null;
+			groupedFailover(oldNode, node);
+		} else {
+			//Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            							
+			node = nextAvailableNode(isIpV6);
+			if(node == null) {
+				if(logger.isDebugEnabled()) {
+		    		logger.debug("no nodes available return null");
+		    	}
+				return null;
+			}
+			userToMap.put(user, node);
+		}
+		
+		if(logger.isDebugEnabled()) {
+    		logger.debug("So, we must select new node: " + node);
+    	}
+		return node;
+	}
+	
+	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
+//		if(invocationContext.nodes.size() == 0) return null;
+		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
+//		int nextNode = nextNodeCounter.incrementAndGet();
+//		nextNode %= invocationContext.nodes.size();
+//		return invocationContext.nodes.get(nextNode);
+		if(it==null)
+			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+		Entry<KeySip, SIPNode> pair = null;
+		while(it.hasNext())
+		{
+			pair = it.next();
+			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey()))
+				return pair.getValue();
+		}
+		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+		if(it.hasNext())
+		{
+			pair = it.next();
+			return pair.getValue();
+		}
+		else
+			return null;
+	}
+	
+	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {
+		HashMap<SIPNode, Integer> nodeUtilization = new HashMap<SIPNode, Integer>();
+		for(SIPNode node : userToMap.values()) {
+			Integer n = nodeUtilization.get(node);
+			if(n == null) {
+				nodeUtilization.put(node, 0);
+			} else {
+				nodeUtilization.put(node, n+1);
+			}
+		}
+		int minUtil = Integer.MAX_VALUE;
+		SIPNode minUtilNode = null;
+		for(SIPNode node : nodeUtilization.keySet()) {
+			Integer util = nodeUtilization.get(node);
+			if(!node.equals(deadNode) && (util < minUtil)) {
+				minUtil = util;
+				minUtilNode = node;
+			}
+		}
+
+		logger.info("Least busy node selected " + minUtilNode + " with " + minUtil + " calls");
+		
+		return minUtilNode;
+	}
+	
+	@Override
+	public void stop() {
+		this.cacheEvictionTimer.cancel();
+	}
+	
 	@Override
 	public void init() {
 		if(getConfiguration() != null) {
@@ -283,8 +407,16 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	@Override
-	public void stop() {
+	public void configurationChanged() {
 		this.cacheEvictionTimer.cancel();
+		this.cacheEvictionTimer = new Timer();
+		init();
+	}
+	
+	@Override
+	public void assignToNode(String id, SIPNode node) {
+		userToMap.put(id, node);
+		headerToTimestamps.put(id, System.currentTimeMillis());
 	}
 	
 	@Override
@@ -318,87 +450,6 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
-//		if(invocationContext.nodes.size() == 0) return null;
-//		int nextNode = nextNodeCounter.incrementAndGet();
-//		nextNode %= invocationContext.nodes.size();
-//		return invocationContext.nodes.get(nextNode);
-		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
-		if(it==null)
-			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		Entry<KeySip, SIPNode> pair = null;
-		if(it.hasNext())
-		{
-			pair = it.next();
-			if(!it.hasNext())
-				it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		}
-		else
-		{
-			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		}
-		return pair.getValue();
-	}
-	
-	protected SIPNode selectNewNode(SIPNode node, String user) {
-		if(logger.isDebugEnabled()) {
-    		logger.debug("The assigned node has died. This is the dead node: " + node);
-    	}
-		if(groupedFailover) {
-			// This will occur very rarely because we re-assign all calls from the dead node in
-			// a single operation
-			SIPNode oldNode = node;
-			node = leastBusyTargetNode(oldNode);
-			if(node == null) return null;
-			groupedFailover(oldNode, node);
-		} else {
-			Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            							
-			node = nextAvailableNode(isIpV6);
-			if(node == null) {
-				if(logger.isDebugEnabled()) {
-		    		logger.debug("no nodes available return null");
-		    	}
-				return null;
-			}
-			userToMap.put(user, node);
-		}
-		
-		if(logger.isDebugEnabled()) {
-    		logger.debug("So, we must select new node: " + node);
-    	}
-		return node;
-	}
-	
-	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {
-		HashMap<SIPNode, Integer> nodeUtilization = new HashMap<SIPNode, Integer>();
-		for(SIPNode node : userToMap.values()) {
-			Integer n = nodeUtilization.get(node);
-			if(n == null) {
-				nodeUtilization.put(node, 0);
-			} else {
-				nodeUtilization.put(node, n+1);
-			}
-		}
-		int minUtil = Integer.MAX_VALUE;
-		SIPNode minUtilNode = null;
-		for(SIPNode node : nodeUtilization.keySet()) {
-			Integer util = nodeUtilization.get(node);
-			if(!node.equals(deadNode) && (util < minUtil)) {
-				minUtil = util;
-				minUtilNode = node;
-			}
-		}
-
-		logger.info("Least busy node selected " + minUtilNode + " with " + minUtil + " calls");
-		
-		return minUtilNode;
-	}
-	
-	@Override
-	public void assignToNode(String id, SIPNode node) {
-		userToMap.put(id, node);
-		headerToTimestamps.put(id, System.currentTimeMillis());
-	}
 	
 	synchronized public void groupedFailover(SIPNode oldNode, SIPNode newNode) {
 		try {
@@ -428,11 +479,4 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	@Override
-	public void configurationChanged() {
-		this.cacheEvictionTimer.cancel();
-		this.cacheEvictionTimer = new Timer();
-		init();
-	}
-
 }
