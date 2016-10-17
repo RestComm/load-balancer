@@ -54,6 +54,7 @@ public class Response5xxTest {
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
 		lbConfig.getSipConfiguration().setIsSend5xxResponse(true);
 		lbConfig.getSipConfiguration().setIsSend5xxResponseReasonHeader("Destination not available");
 		lbConfig.getSipConfiguration().setIsSend5xxResponseSatusCode(503);

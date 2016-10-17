@@ -2269,18 +2269,8 @@ public class SIPBalancerForwarder implements SipListener {
         	if(balancerRunner.balancerContext.isSend5xxResponse)
         		try {
         			Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.SERVICE_UNAVAILABLE, request);
-        			RouteList routeList = ((SIPMessage)request).getRouteHeaders();
-        			if (routeList != null) {
-        				Route route = (Route)routeList.getFirst();
-        				SipUri sipUri = (SipUri)route.getAddress().getURI();
-        				if (sipUri.toString().contains("node_host") || sipUri.toString().contains("node_port")) {
-        					String nodeHost = sipUri.getParameter("node_host");
-        					int nodePort = Integer.parseInt(sipUri.getParameter("node_port"));
-        					ViaHeader viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
-        					viaHeader.setHost(nodeHost);
-        					viaHeader.setPort(nodePort);
-        				}
-        			}
+					response.removeFirst(ViaHeader.NAME);
+					response.removeFirst(ViaHeader.NAME);
         			if(balancerRunner.balancerContext.isSend5xxResponseReasonHeader!=null)
         			{
         				HeaderFactory hf=SipFactory.getInstance().createHeaderFactory();
