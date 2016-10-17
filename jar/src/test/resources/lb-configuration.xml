@@ -23,6 +23,8 @@
   <algorithm>
     <algorithmClass></algorithmClass>
     <sipHeaderAffinityKey></sipHeaderAffinityKey>
+    <sipHeaderAffinityExclusionPattern></sipHeaderAffinityExclusionPattern>
+    <sipHeaderAffinityFallbackKey></sipHeaderAffinityFallbackKey>
     <callIdAffinityGroupFailover>false</callIdAffinityGroupFailover>
     <callIdAffinityMaxTimeInCache>0</callIdAffinityMaxTimeInCache>
     <httpAffinityKey></httpAffinityKey>
