@@ -23,6 +23,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import javax.net.ssl.SSLEngine;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -45,6 +46,8 @@ import com.cloudhopper.smpp.transcoder.DefaultPduTranscoderContext;
 
 public class MServerChannelConnector extends SimpleChannelUpstreamHandler {
 
+	private static final Logger logger = Logger.getLogger(MServerChannelConnector.class);
+	
     private ChannelGroup channels;
     private MServer server;
     private MBalancerDispatcher lbServerListener;
@@ -86,6 +89,9 @@ public class MServerChannelConnector extends SimpleChannelUpstreamHandler {
     @Override
     public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception 
     {
+    	if(logger.isDebugEnabled())
+    		logger.error("channel Disconnected " + e.getChannel().getRemoteAddress());
+    	((MServerConnectionHandlerImpl) e.getChannel().getPipeline().getLast()).getListener().closeChannel();
     	channels.remove(e.getChannel());
     	this.server.getCounters().incrementChannelDisconnectsAndGet();
     }

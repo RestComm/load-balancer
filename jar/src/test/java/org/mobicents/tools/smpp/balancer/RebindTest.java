@@ -152,9 +152,12 @@ public class RebindTest {
 				if(testNumber == 1)
 				{
 					session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false),new DefaultSmppClientHandler());
+					logger.info("stopping server 0");
 					serverArray[0].stop();
+					logger.info("stopping server 1");
 					serverArray[1].stop();
 					sleep(1000);
+					
 					session.submit(ConfigInit.getSubmitSm(), 12000);
 					sleep(1000);
 					session.unbind(5000);

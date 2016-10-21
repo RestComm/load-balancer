@@ -299,22 +299,27 @@ public class UserSpace {
 			customers.get(key).updateLastTimeSMPPLinkUpdated();
 	}
 	
-	public void unbindRequestedFromServer(Unbind packet, Long serverSessioId)
+	public void unbindRequestedFromServer(Unbind packet, Long serverSessionId)
 	{
 		if(logger.isDebugEnabled())
-			logger.debug("LB got unbind request form server with serverSessionId :" + serverSessioId+". LB removed it from list of nodes");
+			logger.debug("LB got unbind request from server with serverSessionId :" + serverSessionId+". LB removed it from list of nodes");
 		
-		connectionsToServers.remove(serverSessioId);
+		connectionsToServers.remove(serverSessionId);
 		
 		if(connectionsToServers.isEmpty())
 		{
 			if(logger.isDebugEnabled())
-				logger.debug("LB hasn't had nodes already : " + serverSessioId+". LB sent unbind to all clients and unbind response to server");
+				logger.debug("LB hasn't had nodes already : " + serverSessionId+". LB sent unbind to all clients and unbind response to server");
 			
 			for(Long key:customers.keySet())
 				customers.get(key).sendUnbindRequest(packet);
 		
-			connectionsToServers.get(serverSessioId).sendUnbindResponse(packet.createResponse());
+			MClientConnectionImpl mClientConnectionImpl = connectionsToServers.get(serverSessionId);
+			if(logger.isDebugEnabled())
+				logger.debug("clientConnection " + mClientConnectionImpl + " for session " + serverSessionId);
+			if(mClientConnectionImpl != null) {
+				mClientConnectionImpl.sendUnbindResponse(packet.createResponse());
+			}
 		}
 	}
 	

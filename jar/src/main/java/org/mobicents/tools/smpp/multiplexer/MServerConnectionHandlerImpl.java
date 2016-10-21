@@ -19,7 +19,9 @@
 
 package org.mobicents.tools.smpp.multiplexer;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
 
@@ -31,19 +33,40 @@ import com.cloudhopper.smpp.pdu.Pdu;
 
 public class MServerConnectionHandlerImpl extends SimpleChannelHandler{
 
+	private static final Logger logger = Logger.getLogger(MServerConnectionHandlerImpl.class);
 	private MServerConnectionImpl listener;
+	
 	public MServerConnectionHandlerImpl(MServerConnectionImpl listener)
 	{
-		this.listener=listener;
+		this.setListener(listener);
 	}
 	
 	@Override
-     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
-	 {		 
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
+	{		 
 		if (e.getMessage() instanceof Pdu) 
 		{
-	            Pdu pdu = (Pdu)e.getMessage();
-	            this.listener.packetReceived(pdu);
+            Pdu pdu = (Pdu)e.getMessage();
+            this.getListener().packetReceived(pdu);
  	    }
-     }
+    }
+	
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
+	{
+		logIssue(ctx, e);
+	}
+	    
+    public void logIssue(ChannelHandlerContext ctx, ExceptionEvent e) {
+        logger.error("Exeption in Channel " + e.getChannel().getRemoteAddress(), e.getCause());
+        e.getChannel().close();
+    }
+
+	public MServerConnectionImpl getListener() {
+		return listener;
+	}
+
+	public void setListener(MServerConnectionImpl listener) {
+		this.listener = listener;
+	}
 }

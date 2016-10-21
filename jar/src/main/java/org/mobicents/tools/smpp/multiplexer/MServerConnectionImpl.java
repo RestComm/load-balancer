@@ -94,6 +94,9 @@ public class MServerConnectionImpl implements ServerConnection {
 	private AtomicInteger lastSequenceNumberSent = new AtomicInteger(1);
 
 	private long lastTimeSMPPLinkUpdated = System.currentTimeMillis();
+	
+	// When Kos wrote this, only God and him understood what he was doing
+	// Now, God only knows
 //	private boolean isClientSideOk;
 //	private boolean isServerSideOk;
 
@@ -114,9 +117,17 @@ public class MServerConnectionImpl implements ServerConnection {
     	this.connectionRunnable = new CustomerTimerConnection(this, sessionId);
     	this.connectionTimer =  monitorExecutor.schedule(connectionRunnable,timeoutConnection,TimeUnit.MILLISECONDS);
     	this.connectionCheckRunnable=new CustomerTimerConnectionCheck(this, sessionId);
-    	this.connectionCheckTimer = monitorExecutor.scheduleWithFixedDelay(connectionCheckRunnable, timeoutConnectionCheckClientSide, timeoutConnectionCheckClientSide, TimeUnit.MILLISECONDS);
+    	this.connectionCheckTimer = monitorExecutor.scheduleWithFixedDelay(connectionCheckRunnable, timeoutConnection, timeoutConnection, TimeUnit.MILLISECONDS);
     	this.enquireRunnable=new CustomerTimerEnquire(this);
     	this.enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
+    	
+    	if(logger.isDebugEnabled()) {
+    		logger.debug("timeoutConnectionCheckClientSide " + timeoutConnectionCheckClientSide);
+    		logger.debug("timeoutConnectionCheckServerSide " + timeoutConnectionCheckServerSide);
+    		logger.debug("timeoutConnection " + timeoutConnection);
+    		logger.debug("timeoutEnquire " + timeoutEnquire);
+    		logger.debug("channel " + channel.getRemoteAddress().toString());
+    	}
     }
     
     public Long getSessionId() {
@@ -169,6 +180,7 @@ public class MServerConnectionImpl implements ServerConnection {
 					logger.debug("LB received bind request (" + packet + ") from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 				serverState = ServerState.BINDING;
 				
+				// TODO Do it on the response instead as if we can't bind, we will still enquire 
 				enquireRunnable=new CustomerTimerEnquire(this);
 				enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
 				
@@ -526,13 +538,15 @@ public class MServerConnectionImpl implements ServerConnection {
 	@Override
 	public void enquireLinkTimerCheck() 
 	{
+		long currentTime = System.currentTimeMillis(); 
+		long timeDiff = currentTime - lastTimeSMPPLinkUpdated; 
 		if(logger.isDebugEnabled())
-			logger.debug("<<enquireTimeout>> LB should check connection to server " + channel.getRemoteAddress().toString() + ". session ID: "+ sessionId + ". LB must generate enquire_link.");
+			logger.debug("<<enquireTimeout>> LB should check connection to serevr " + channel.getRemoteAddress().toString() + ". session ID : "+ sessionId + ". LB must generate enquire_link.");
 		if(logger.isDebugEnabled())
-			logger.debug("Current time " + System.currentTimeMillis() + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + (System.currentTimeMillis() - lastTimeSMPPLinkUpdated) + " ms");
+			logger.debug("Current time " + currentTime + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + timeDiff + " ms");
 //		isServerSideOk = false;
 //		isClientSideOk = false;
-		if(System.currentTimeMillis() - lastTimeSMPPLinkUpdated > timeoutConnectionCheckClientSide)
+		if(timeDiff > timeoutConnectionCheckServerSide)
 			// generates enquire link to server only if we didn't receive any as a last attempt. 
 			generateEnquireLink();
 	}
@@ -561,24 +575,27 @@ public class MServerConnectionImpl implements ServerConnection {
 	@Override
 	public void connectionCheck(Long sessionId) 
 	{		
+		long currentTime = System.currentTimeMillis(); 
+		long timeDiff = currentTime - lastTimeSMPPLinkUpdated; 
 		if(logger.isDebugEnabled())
-			logger.debug("Current time " + System.currentTimeMillis() + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + (System.currentTimeMillis() - lastTimeSMPPLinkUpdated) + " ms");
-		if(System.currentTimeMillis() - lastTimeSMPPLinkUpdated > timeoutConnectionCheckClientSide)
+			logger.debug("Current time " + currentTime + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + timeDiff + " ms, timeoutConnectionCheck " + timeoutConnectionCheckServerSide );
+		if(timeDiff < timeoutConnectionCheckServerSide)
 		{
 			if(logger.isDebugEnabled())
 				logger.debug("Connection to server " + channel.getRemoteAddress().toString() + " is OK. session ID : " + sessionId);
 		}
 		else 
 		{
-			if(logger.isDebugEnabled())
-				logger.debug("Connection to server " + channel.getRemoteAddress().toString() + " will be closed. session ID " + sessionId + " . LB did not receive enquire response from client or servers");
-			//remove client form userspase and close connection to client
-			enquireRunnable.cancel();
-			enquireTimer.cancel(false);
-			connectionCheckRunnable.cancel();
-			connectionCheckTimer.cancel(false);
-			userSpace.getCustomers().remove(sessionId);
-			closeChannel();
+			if(timeDiff < (timeoutConnectionCheckServerSide * 3)) {
+				if(logger.isDebugEnabled())
+					logger.debug("Current time " + currentTime + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + timeDiff + " ms, timeoutConnectionCheck * 3 = " + timeoutConnectionCheckServerSide *3 );
+				generateEnquireLink();
+			} else {
+				if(logger.isDebugEnabled())
+					logger.debug("Connection to server " + channel.getRemoteAddress().toString() + " will be closed. session ID " + sessionId + " . LB did not receive enquire response from client or servers");
+				//remove client form userspase and close connection to client
+				closeChannel();
+			}
 		
 		}		
 	}
@@ -594,12 +611,19 @@ public class MServerConnectionImpl implements ServerConnection {
 			logger.debug("Updated Last Server " + channel.getRemoteAddress().toString() + " Enquire Link time update " + lastTimeSMPPLinkUpdated);
 	}
 	
-	private  void closeChannel() 
+	public void closeChannel() 
 	{
 		if(channel.getPipeline().getLast()!=null)
 			channel.getPipeline().removeLast();
 		
-		channel.close();	
+		channel.close();
+		
+		enquireRunnable.cancel();
+		enquireTimer.cancel(false);
+		connectionCheckRunnable.cancel();
+		connectionCheckTimer.cancel(false);
+		userSpace.getCustomers().remove(sessionId);
+		
 		logger.info("Connection to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId + " closed");
 	}
 
@@ -608,4 +632,8 @@ public class MServerConnectionImpl implements ServerConnection {
 		
 	}
 
+	public void startEnquireTime() {
+		enquireRunnable=new CustomerTimerEnquire(this);
+		enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
+	}
 }

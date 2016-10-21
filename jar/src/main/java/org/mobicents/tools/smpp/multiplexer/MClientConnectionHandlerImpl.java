@@ -55,8 +55,13 @@ public class MClientConnectionHandlerImpl extends SimpleChannelHandler{
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 	{
-		logger.error(e.getCause().getMessage());		
+	    logIssue(ctx, e);
 	}
+	    
+    public void logIssue(ChannelHandlerContext ctx, ExceptionEvent e) {
+        logger.error("Exeption in Channel " + e.getChannel().getRemoteAddress(), e.getCause());
+        e.getChannel().close();
+    }
 	
 	@Override
 	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e)

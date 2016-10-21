@@ -39,9 +39,9 @@ import org.jboss.netty.util.internal.ConcurrentHashMap;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
+import org.mobicents.tools.smpp.balancer.timers.ServerTimerConnectionCheck;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerEnquire;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerResponse;
-import org.mobicents.tools.smpp.balancer.timers.ServerTimerConnectionCheck;
 import org.mobicents.tools.smpp.balancer.timers.TimerData;
 
 import com.cloudhopper.smpp.SmppBindType;
@@ -97,7 +97,7 @@ public class MClientConnectionImpl implements ClientConnection{
     private ScheduledExecutorService monitorExecutor;
     private long timeoutResponse;
     private long timeoutEnquire;
-
+    private long timeoutConnection;
     
     private ScheduledFuture<?> connectionCheckServerSideTimer;    
     private ServerTimerConnectionCheck connectionCheck;
@@ -130,6 +130,7 @@ public class MClientConnectionImpl implements ClientConnection{
 		  this.serverSessionID = serverSessionID;
 		  this.timeoutResponse = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutResponse();
 		  this.timeoutEnquire = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutEnquire();
+		  this.timeoutConnection = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnection();
 		  this.timeoutConnectionCheckServerSide = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnectionCheckServerSide();
 		  this.timeoutConnectionCheckClientSide = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnectionCheckClientSide();
 		  this.isSslConnection = isSslConnection;
@@ -144,7 +145,7 @@ public class MClientConnectionImpl implements ClientConnection{
           this.clientBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_CLIENT_CONNECTOR_NAME, this.clientConnectionHandler);
           
           connectionCheck=new ServerTimerConnectionCheck(this);
-          connectionCheckServerSideTimer = monitorExecutor.scheduleAtFixedRate(connectionCheck,timeoutConnectionCheckServerSide, timeoutConnectionCheckServerSide,TimeUnit.MILLISECONDS);
+          connectionCheckServerSideTimer = monitorExecutor.scheduleAtFixedRate(connectionCheck,timeoutConnection, timeoutConnection,TimeUnit.MILLISECONDS);
 	}
 
 	@Override
@@ -152,6 +153,9 @@ public class MClientConnectionImpl implements ClientConnection{
 		ChannelFuture channelFuture = null;
 		try 
 		{
+			if(logger.isDebugEnabled())
+				logger.debug("LB trying to connect to server " + config.getHost() + " " + config.getPort());
+			
 			channelFuture = clientBootstrap.connect(new InetSocketAddress(config.getHost(), config.getPort())).sync();
 			channel = channelFuture.getChannel();
 			if (config.isUseSsl()) 
@@ -188,34 +192,35 @@ public class MClientConnectionImpl implements ClientConnection{
 	@Override
 	public void bind()
 	{
-		 BaseBind packet = null;
-	        if (config.getType() == SmppBindType.TRANSCEIVER) 
-	        	packet = new BindTransceiver();
-	        else if (config.getType() == SmppBindType.RECEIVER)
-	        	packet = new BindReceiver();
-	        else if (config.getType() == SmppBindType.TRANSMITTER)
-	        	packet = new BindTransmitter();
+		BaseBind packet = null;
+        if (config.getType() == SmppBindType.TRANSCEIVER) { 
+        	packet = new BindTransceiver();
+        } else if (config.getType() == SmppBindType.RECEIVER) {
+        	packet = new BindReceiver();
+        } else if (config.getType() == SmppBindType.TRANSMITTER){
+        	packet = new BindTransmitter();
+        }
 	       
-
-	        packet.setSystemId(config.getSystemId());
-	        packet.setPassword(config.getPassword());
-	        packet.setSystemType(config.getSystemType());
-	        packet.setInterfaceVersion(config.getInterfaceVersion());
-	        packet.setAddressRange(config.getAddressRange());
-	        packet.setSequenceNumber(lastSequenceNumberSent.incrementAndGet());
+	    packet.setSystemId(config.getSystemId());
+	    packet.setPassword(config.getPassword());
+	    packet.setSystemType(config.getSystemType());
+	    packet.setInterfaceVersion(config.getInterfaceVersion());
+	    packet.setAddressRange(config.getAddressRange());
+	    packet.setSequenceNumber(lastSequenceNumberSent.incrementAndGet());
   
-	        ChannelBuffer buffer = null;
-			try {
-				buffer = transcoder.encode(packet);
-				
-			} catch (UnrecoverablePduException e) {			
+	    ChannelBuffer buffer = null;
+		try {
+			buffer = transcoder.encode(packet);
+		} catch (UnrecoverablePduException e) {			
 				logger.error("Encode error: ", e);
-			} catch(RecoverablePduException e) {
-				logger.error("Encode error: ", e);
-			}
-			if(clientState!=ClientState.REBINDING)
-			    clientState=ClientState.BINDING;
-			channel.write(buffer);
+		} catch(RecoverablePduException e) {
+			logger.error("Encode error: ", e);
+		}
+		if(clientState!=ClientState.REBINDING)
+		    clientState=ClientState.BINDING;
+		if(logger.isDebugEnabled())
+			logger.debug("LB trying to bind to server " + config.getHost() + " " + config.getPort() + ": client state " + clientState);
+		channel.write(buffer);
 	}
 
 	@Override
@@ -513,8 +518,12 @@ public class MClientConnectionImpl implements ClientConnection{
 		if(logger.isDebugEnabled())
 			logger.debug("LB tried to rebind to client " + channel.getRemoteAddress().toString() + ". client session ID : " + serverSessionID);
 		
-		enquireRunnable.cancel();			
-		enquireTimer.cancel(false);
+		if(enquireRunnable != null) {
+			enquireRunnable.cancel();	
+		}
+		if(enquireTimer != null) {
+			enquireTimer.cancel(false);
+		}
 		
 		clientState = ClientState.REBINDING;		
 		userSpace.connectionLost(serverSessionID);
@@ -571,6 +580,10 @@ public class MClientConnectionImpl implements ClientConnection{
 	@Override
 	public void closeChannel() 
 	{
+		connectionCheckServerSideTimer.cancel(false);
+		enquireTimer.cancel(false);
+		enquireRunnable.cancel();
+		
 		if(channel.getPipeline().getLast()!=null)
 			channel.getPipeline().removeLast();
 		
@@ -584,11 +597,13 @@ public class MClientConnectionImpl implements ClientConnection{
 	@Override
 	public void enquireLinkTimerCheck() 
 	{
+		long currentTime = System.currentTimeMillis(); 
+		long timeDiff = currentTime - lastTimeSMPPLinkUpdated; 
 		if(logger.isDebugEnabled())
 			logger.debug("<<enquireTimeout>> LB should check connection to client " + channel.getRemoteAddress().toString() + ". client session ID : "+ serverSessionID + ". LB must generate enquire_link.");
 		if(logger.isDebugEnabled())
-			logger.debug("Current time " + System.currentTimeMillis() + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + (System.currentTimeMillis() - lastTimeSMPPLinkUpdated) + " ms");
-		if(System.currentTimeMillis() - lastTimeSMPPLinkUpdated > timeoutConnectionCheckClientSide)
+			logger.debug("Current time " + currentTime + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + timeDiff + " ms");
+		if(timeDiff > timeoutConnectionCheckClientSide)
 			//generates enquire link to client and waits for response
 			generateEnquireLink();
 	}
@@ -596,28 +611,37 @@ public class MClientConnectionImpl implements ClientConnection{
 	@Override
 	public void connectionCheckClientSide() 
 	{
+		long currentTime = System.currentTimeMillis(); 
+		long timeDiff = currentTime - lastTimeSMPPLinkUpdated; 
 		if(logger.isDebugEnabled())
-			logger.debug("Current time " + System.currentTimeMillis() + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + (System.currentTimeMillis() - lastTimeSMPPLinkUpdated) + " ms");
-		if(System.currentTimeMillis() - lastTimeSMPPLinkUpdated > timeoutConnectionCheckClientSide)
+			logger.debug("Current time " + currentTime + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + timeDiff + " ms, timeoutConnectionCheck " + timeoutConnectionCheckClientSide );
+		
+		if(timeDiff < timeoutConnectionCheckClientSide)
 		{
 			if(logger.isDebugEnabled())
-				logger.debug("Connection to server " + channel.getRemoteAddress().toString() + " is OK. session ID : " + serverSessionID);
+				logger.debug("Connection to client " + channel.getRemoteAddress().toString() + " is OK. session ID : " + serverSessionID);
 		}
 		else 
 		{
-			if(logger.isDebugEnabled())
-				logger.debug("Connection to server " + channel.getRemoteAddress().toString() + " will be rebound. session ID " + serverSessionID + " . LB did not receive enquire response from client");
-			//remove client form userspase and close connection to client
-			enquireRunnable.cancel();
-			enquireTimer.cancel(false);
-//			connectionCheckRunnable.cancel();
-//			connectionCheckTimer.cancel(false);
-//			userSpace.getCustomers().remove(serverSessionID);
-			//if we here we should rebind because of lost connection
-			rebind();
-		
+			if(timeDiff < (timeoutConnectionCheckClientSide * 3)) {
+				if(logger.isDebugEnabled())
+					logger.debug("Current time " + currentTime + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + timeDiff + " ms, timeoutConnectionCheck * 3 = " + timeoutConnectionCheckClientSide *3 );
+				generateEnquireLink();
+			} else {
+				if(logger.isDebugEnabled())
+					logger.debug("Connection to client " + channel.getRemoteAddress().toString() + " will be rebound. session ID " + serverSessionID + " . LB did not receive enquire response from client");
+				//remove client form userspase and close connection to client
+				enquireRunnable.cancel();
+				enquireTimer.cancel(false);
+	//			connectionCheckRunnable.cancel();
+	//			connectionCheckTimer.cancel(false);
+	//			userSpace.getCustomers().remove(serverSessionID);
+				//if we here we should rebind because of lost connection
+				rebind();
+			}
 		}	
 	}
+	
 	@Override
 	public void sendSmppRequest(Pdu packet) {
 

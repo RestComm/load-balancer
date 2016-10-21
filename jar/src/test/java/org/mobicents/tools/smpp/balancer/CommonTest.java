@@ -73,6 +73,9 @@ public class CommonTest{
 		boolean terminateTLSTraffic = true;
 		//start lb
 		balancer = new BalancerRunner();
+		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnection(2000);
+		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckClientSide(5000);
+		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckServerSide(5000);
         balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
@@ -139,10 +142,10 @@ public class CommonTest{
 	    locker.waitForClients();
 	    
 	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertEquals(3,serverHandler.getEnqLinkNumber().get());
+	    	assertEquals(6, serverHandler.getEnqLinkNumber().get());
 
 	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
-	    	assertEquals(3,clientHandler.getEnqLinkNumber().get());
+	    	assertEquals(6, clientHandler.getEnqLinkNumber().get());
 
     }
 	//tests work of session initialization timer

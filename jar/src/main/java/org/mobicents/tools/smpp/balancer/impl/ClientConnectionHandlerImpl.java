@@ -56,12 +56,13 @@ public class ClientConnectionHandlerImpl extends SimpleChannelHandler{
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 	{
-		logger.error(e.getCause().getMessage());		
+		logger.error("Exception in channel " + e.getChannel().getRemoteAddress(), e.getCause());		
 	}
 	
 	@Override
 	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e)
 	{
+		logger.info("channel " + e.getChannel().getRemoteAddress() + " disconnected, will try to rebind");
 		listener.rebind();
 	}
 }
