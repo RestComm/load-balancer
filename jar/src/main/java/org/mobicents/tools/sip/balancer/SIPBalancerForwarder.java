@@ -1462,6 +1462,10 @@ public class SIPBalancerForwarder implements SipListener {
         final Request request = requestEvent.getRequest();
         final String requestMethod = request.getMethod();
 
+        if(logger.isDebugEnabled()) {
+            logger.debug("got request:\n"+request);
+        }
+        
         if((requestMethod.equals(Request.OPTIONS) ||
                 requestMethod.equals(Request.INFO)) &&
                 request.getHeader("Mobicents-Heartbeat") != null &&

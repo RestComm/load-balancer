@@ -88,12 +88,14 @@ public class MServerConnectionImpl implements ServerConnection {
 	private long timeoutConnection;
 	private long timeoutEnquire;
 	private long timeoutConnectionCheckClientSide;
+	private long timeoutConnectionCheckServerSide;
 	private ScheduledExecutorService monitorExecutor;
 	
 	private AtomicInteger lastSequenceNumberSent = new AtomicInteger(1);
 
-	private boolean isClientSideOk;
-	private boolean isServerSideOk;
+	private long lastTimeSMPPLinkUpdated = System.currentTimeMillis();
+//	private boolean isClientSideOk;
+//	private boolean isServerSideOk;
 
     
     public MServerConnectionImpl(Long sessionId, Channel channel, MBalancerDispatcher lbServerListener, BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor, boolean useSsl)
@@ -107,9 +109,14 @@ public class MServerConnectionImpl implements ServerConnection {
     	this.timeoutConnection = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnection();
     	this.timeoutEnquire = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutEnquire();
     	this.timeoutConnectionCheckClientSide = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnectionCheckClientSide();
+    	this.timeoutConnectionCheckServerSide = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutConnectionCheckServerSide();
     	this.monitorExecutor = monitorExecutor;
     	this.connectionRunnable = new CustomerTimerConnection(this, sessionId);
     	this.connectionTimer =  monitorExecutor.schedule(connectionRunnable,timeoutConnection,TimeUnit.MILLISECONDS);
+    	this.connectionCheckRunnable=new CustomerTimerConnectionCheck(this, sessionId);
+    	this.connectionCheckTimer = monitorExecutor.scheduleWithFixedDelay(connectionCheckRunnable, timeoutConnectionCheckClientSide, timeoutConnectionCheckClientSide, TimeUnit.MILLISECONDS);
+    	this.enquireRunnable=new CustomerTimerEnquire(this);
+    	this.enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
     }
     
     public Long getSessionId() {
@@ -152,14 +159,14 @@ public class MServerConnectionImpl implements ServerConnection {
 
 			if (!correctPacket) 
 			{
-				logger.error("Unable to convert a BaseBind request of client. session ID: " + sessionId);
+				logger.error("Unable to convert a BaseBind request of server " + channel.getRemoteAddress().toString() + ". session ID: " + sessionId);
 				sendGenericNack(packet);
 				channel.close();
 				serverState = ServerState.CLOSED;
 			} else {
 				
 				if(logger.isDebugEnabled())
-					logger.debug("LB received bind request (" + packet + ") from client. session ID : " + sessionId);
+					logger.debug("LB received bind request (" + packet + ") from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 				serverState = ServerState.BINDING;
 				
 				enquireRunnable=new CustomerTimerEnquire(this);
@@ -198,7 +205,7 @@ public class MServerConnectionImpl implements ServerConnection {
 			case SmppConstants.CMD_ID_UNBIND:
 				
 				if(logger.isDebugEnabled()) 
-					logger.debug("LB received unbind request from client. session ID : " + sessionId);
+					logger.debug("LB received unbind request from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 				
 				correctPacket = true;
 
@@ -221,7 +228,7 @@ public class MServerConnectionImpl implements ServerConnection {
 			case SmppConstants.CMD_ID_GENERIC_NACK:
 				
 				if(logger.isDebugEnabled())
-					logger.debug("LB received SMPP request (" + packet + ") from client. session ID : " + sessionId);
+					logger.debug("LB received SMPP request (" + packet + ") from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 				
 				correctPacket = true;
 				
@@ -230,8 +237,9 @@ public class MServerConnectionImpl implements ServerConnection {
 			case SmppConstants.CMD_ID_ENQUIRE_LINK:
 				
 				if(logger.isDebugEnabled())
-					logger.debug("LB received enquire_link request from client. session ID : " + sessionId);
+					logger.debug("LB received enquire_link request from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 				
+				updateLastTimeSMPPLinkUpdated();
 				correctPacket = true;
 				EnquireLinkResp resp=new EnquireLinkResp();
 				resp.setSequenceNumber(packet.getSequenceNumber());
@@ -241,7 +249,7 @@ public class MServerConnectionImpl implements ServerConnection {
 			case SmppConstants.CMD_ID_DELIVER_SM_RESP:
 				
 				if(logger.isDebugEnabled())
-					logger.debug("LB received SMPP response (" + packet + ") from client. session ID : " + sessionId);
+					logger.debug("LB received SMPP response (" + packet + ") from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 				
 				CustomerPacket originalSequence=sequenceMap.remove(packet.getSequenceNumber());
 				if(originalSequence!=null)
@@ -255,10 +263,10 @@ public class MServerConnectionImpl implements ServerConnection {
 			case SmppConstants.CMD_ID_ENQUIRE_LINK_RESP:
 				
 				if(logger.isDebugEnabled())
-					logger.debug("LB received enquire_link response from client. session ID : " + sessionId);
+					logger.debug("LB received enquire_link response from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 
 				correctPacket = true;
-				isClientSideOk = true;
+				updateLastTimeSMPPLinkUpdated();
 				break;
 			}
 
@@ -270,7 +278,7 @@ public class MServerConnectionImpl implements ServerConnection {
 		case REBINDING:
 			
 			if(logger.isDebugEnabled())
-				logger.debug("LB received packet (" + packet + ") in REBINDING state from client. session ID : " + sessionId+". LB sent SYSERR responses!" );
+				logger.debug("LB received packet (" + packet + ") in REBINDING state from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId+". LB sent SYSERR responses!" );
 			
 			PduResponse pduResponse = ((PduRequest<?>) packet).createResponse();
 			pduResponse.setCommandStatus(SmppConstants.STATUS_SYSERR);
@@ -282,11 +290,11 @@ public class MServerConnectionImpl implements ServerConnection {
 				correctPacket = true;
 
 			if (!correctPacket)
-				logger.error("LB received invalid packet in unbinding state from client. session ID : " + sessionId +". packet : " + packet);
+				logger.error("LB received invalid packet in unbinding state from serevr " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId +". packet : " + packet);
 			else {
 				
 				if(logger.isDebugEnabled())
-					logger.debug("LB received unbind response from client. session ID : " + sessionId);
+					logger.debug("LB received unbind response from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 
 				enquireRunnable.cancel();
 				enquireTimer.cancel(false);				
@@ -297,7 +305,7 @@ public class MServerConnectionImpl implements ServerConnection {
 			}
 			break;
 		case CLOSED:
-			logger.error("LB received packet in incorrect state (CLOSED) from client. session ID : " + sessionId +". packet : " + packet);
+			logger.error("LB received packet in incorrect state (CLOSED) from serevr " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId +". packet : " + packet);
 			break;
 		}
 	}
@@ -326,7 +334,7 @@ public class MServerConnectionImpl implements ServerConnection {
 		}
 		
 		if(logger.isDebugEnabled())
-			logger.debug("LB  sent response (" + packet + ") to client. session ID : " + sessionId);
+			logger.debug("LB  sent response (" + packet + ") to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 		
 		serverState = ServerState.BOUND;
 		channel.write(buffer);
@@ -360,7 +368,7 @@ public class MServerConnectionImpl implements ServerConnection {
 		packetMap.clear();
 		sequenceMap.clear();
 		if(logger.isDebugEnabled())
-			logger.debug("LB sent  unbind response ("+ packet +") to client. session ID : " + sessionId);
+			logger.debug("LB sent  unbind response ("+ packet +") to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 		
 		channel.write(buffer);
 		
@@ -389,7 +397,7 @@ public class MServerConnectionImpl implements ServerConnection {
 		}
 		
 		if(logger.isDebugEnabled())
-			logger.debug("LB sent SMPP response ("+ packet +") to client. session ID : " + sessionId);
+			logger.debug("LB sent SMPP response ("+ packet +") to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 		channel.write(buffer);
 	}
 
@@ -412,7 +420,7 @@ public class MServerConnectionImpl implements ServerConnection {
 		
 		serverState = ServerState.UNBINDING;
 		if(logger.isDebugEnabled()) 
-			logger.debug("LB sent unbind request ("+ packet +") to client. session ID : " + sessionId);
+			logger.debug("LB sent unbind request ("+ packet +") to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 
 		channel.write(buffer);		
 	}
@@ -439,7 +447,7 @@ public class MServerConnectionImpl implements ServerConnection {
 		}
 		
 		if(logger.isDebugEnabled())
-			logger.debug("LB sent generic_nack response for packet ("+ packet +") to client. session ID : " + sessionId);
+			logger.debug("LB sent generic_nack response for packet ("+ packet +") to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 		channel.write(buffer);
 	}
 	
@@ -461,7 +469,7 @@ public class MServerConnectionImpl implements ServerConnection {
 			logger.error("Encode error: ", e);
 		}
 		if(logger.isDebugEnabled())
-			logger.debug("LB sent SMPP request ("+ packet +") to client. session ID : " + sessionId);
+			logger.debug("LB sent SMPP request ("+ packet +") to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 		channel.write(buffer);
 	}
 	@Override
@@ -491,12 +499,12 @@ public class MServerConnectionImpl implements ServerConnection {
 		if (!packetMap.containsKey(packet.getSequenceNumber()))
 		{
 			if(logger.isDebugEnabled())
-				logger.debug("<<requestTimeout>> LB received SMPP response from server in time for client. session ID : " + sessionId);	
+				logger.debug("<<requestTimeout>> LB received SMPP response from client in time for server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);	
 		}	
 		else 
 		{
 			if(logger.isDebugEnabled())
-				logger.info("<<requestTimeout>> LB did NOT receive SMPP response from server in time for client. session ID : " + sessionId);
+				logger.info("<<requestTimeout>> LB did NOT receive SMPP response from client in time for server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 			lbServerListener.getNotRespondedPackets().incrementAndGet();
 			packetMap.remove(packet.getSequenceNumber());
 			PduResponse pduResponse = ((PduRequest<?>) packet).createResponse();
@@ -509,22 +517,24 @@ public class MServerConnectionImpl implements ServerConnection {
 	public void connectionTimeout(Long sessionId) 
 	{
 		if(logger.isDebugEnabled())
-			logger.debug("<<connectionTimeout>> Session initialization failed and will be closed. session ID: " + sessionId);
+			logger.debug("<<connectionTimeout>> Session initialization failed and will be closed " + channel.getRemoteAddress().toString() + ". session ID: " + sessionId);
 		
-			lbServerListener.getNotBindClients().incrementAndGet();
-			channel.close();
+		lbServerListener.getNotBindClients().incrementAndGet();
+		channel.close();
 	}
 
 	@Override
-	public void enquireTimeout() 
+	public void enquireLinkTimerCheck() 
 	{
 		if(logger.isDebugEnabled())
-			logger.debug("<<enquireTimeout>> LB should check connection to client. session ID: "+ sessionId + ". LB must generate enquire_link.");
-
-		isServerSideOk = false;
-		isClientSideOk = false;	
-		//generates enquire link to client and waits for response
-		generateEnquireLink();
+			logger.debug("<<enquireTimeout>> LB should check connection to server " + channel.getRemoteAddress().toString() + ". session ID: "+ sessionId + ". LB must generate enquire_link.");
+		if(logger.isDebugEnabled())
+			logger.debug("Current time " + System.currentTimeMillis() + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + (System.currentTimeMillis() - lastTimeSMPPLinkUpdated) + " ms");
+//		isServerSideOk = false;
+//		isClientSideOk = false;
+		if(System.currentTimeMillis() - lastTimeSMPPLinkUpdated > timeoutConnectionCheckClientSide)
+			// generates enquire link to server only if we didn't receive any as a last attempt. 
+			generateEnquireLink();
 	}
 	
 	@Override
@@ -542,10 +552,7 @@ public class MServerConnectionImpl implements ServerConnection {
 			logger.error("Encode error: ", e);
 		}
 		if(logger.isDebugEnabled())
-			logger.debug("LB sent enquire_link request ("+ packet +") to client. session ID : " + sessionId);
-		
-		connectionCheckRunnable=new CustomerTimerConnectionCheck(this, sessionId);
-		connectionCheckTimer = monitorExecutor.schedule(connectionCheckRunnable, timeoutConnectionCheckClientSide, TimeUnit.MILLISECONDS);
+			logger.debug("LB sent enquire_link request ("+ packet +") to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId);
 		
 		channel.write(buffer);		
 	}
@@ -554,29 +561,37 @@ public class MServerConnectionImpl implements ServerConnection {
 	@Override
 	public void connectionCheck(Long sessionId) 
 	{		
-		connectionCheckRunnable.cancel();
-		connectionCheckTimer.cancel(false);
-		if(isServerSideOk && isClientSideOk)
+		if(logger.isDebugEnabled())
+			logger.debug("Current time " + System.currentTimeMillis() + " lastTimeSMPPLinkUpdated " + lastTimeSMPPLinkUpdated + " diff: " + (System.currentTimeMillis() - lastTimeSMPPLinkUpdated) + " ms");
+		if(System.currentTimeMillis() - lastTimeSMPPLinkUpdated > timeoutConnectionCheckClientSide)
 		{
 			if(logger.isDebugEnabled())
-				logger.debug("Connection to client is OK. session ID : " + sessionId);
+				logger.debug("Connection to server " + channel.getRemoteAddress().toString() + " is OK. session ID : " + sessionId);
 		}
 		else 
 		{
 			if(logger.isDebugEnabled())
-				logger.debug("Connection to client will be closed. session ID " + sessionId + " . LB did not receive enquire response from client or servers");
+				logger.debug("Connection to server " + channel.getRemoteAddress().toString() + " will be closed. session ID " + sessionId + " . LB did not receive enquire response from client or servers");
 			//remove client form userspase and close connection to client
 			enquireRunnable.cancel();
 			enquireTimer.cancel(false);
+			connectionCheckRunnable.cancel();
+			connectionCheckTimer.cancel(false);
 			userSpace.getCustomers().remove(sessionId);
 			closeChannel();
 		
 		}		
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.mobicents.tools.smpp.balancer.api.ServerConnection#updateLastEnquireLinkTimeReceived()
+	 */
 	@Override
-	public void serverSideOk() {
-		isServerSideOk = true;
+	public void updateLastTimeSMPPLinkUpdated() {
+		lastTimeSMPPLinkUpdated = System.currentTimeMillis();
+		if(logger.isDebugEnabled())
+			logger.debug("Updated Last Server " + channel.getRemoteAddress().toString() + " Enquire Link time update " + lastTimeSMPPLinkUpdated);
 	}
 	
 	private  void closeChannel() 
@@ -585,7 +600,7 @@ public class MServerConnectionImpl implements ServerConnection {
 			channel.getPipeline().removeLast();
 		
 		channel.close();	
-		logger.info("Connection to  client. session ID : " + sessionId + " closed");
+		logger.info("Connection to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId + " closed");
 	}
 
 	@Override

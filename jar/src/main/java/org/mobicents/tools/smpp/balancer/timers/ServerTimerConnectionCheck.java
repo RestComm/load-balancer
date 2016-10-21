@@ -44,6 +44,6 @@ public class ServerTimerConnectionCheck implements CancellableRunnable
 	public void run() 
 	{
 		if(!cancelled)
-			client.connectionCheckServerSide();		
+			client.connectionCheckClientSide();		
 	}
 }

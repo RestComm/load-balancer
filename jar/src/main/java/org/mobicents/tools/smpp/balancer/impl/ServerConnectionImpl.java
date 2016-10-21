@@ -503,7 +503,7 @@ public class ServerConnectionImpl implements ServerConnection {
 	}
 
 	@Override
-	public void enquireTimeout() 
+	public void enquireLinkTimerCheck() 
 	{
 		if(logger.isDebugEnabled())
 			logger.debug("(enquireTimeout)We should check connection for  sessionId: "+ sessionId + ". We must generate enquire_link.");
@@ -555,8 +555,12 @@ public class ServerConnectionImpl implements ServerConnection {
 		}		
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.mobicents.tools.smpp.balancer.api.ServerConnection#updateLastTimeSMPPLinkUpdated()
+	 */
 	@Override
-	public void serverSideOk() {
+	public void updateLastTimeSMPPLinkUpdated() {
 		isServerSideOk = true;
 	}
 

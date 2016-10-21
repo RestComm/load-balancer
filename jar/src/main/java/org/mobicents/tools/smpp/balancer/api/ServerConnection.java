@@ -71,7 +71,7 @@ public interface ServerConnection {
 	*Send enquire_link to client and server for checking connection 
 	*@param sessionId session(client) id
 	*/
-	public void enquireTimeout();
+	public void enquireLinkTimerCheck();
 	/**
 	*Close connection if enquire response does not receive from client or server in time
 	*@param sessionId session(client) id
@@ -92,9 +92,8 @@ public interface ServerConnection {
 	*/
 	public void generateEnquireLink();
 	/**
-	*Signals that server side connection is ok after enquire link request
-	*if it is true
+	* Updates the time at which either a last enquire_link request was received or enquire_link response was received
 	*/
-	public void serverSideOk();
+	public void updateLastTimeSMPPLinkUpdated();
 
 }

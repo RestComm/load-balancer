@@ -94,10 +94,10 @@ public class ConfigInit {
 		lbConfig.getSmppConfiguration().setDefaultSessionCountersEnabled(true);
 		lbConfig.getSmppConfiguration().setTimeoutResponse(3000);
 		lbConfig.getSmppConfiguration().setTimeoutConnection(1000);
-		lbConfig.getSmppConfiguration().setTimeoutEnquire(5000);
+		lbConfig.getSmppConfiguration().setTimeoutEnquire(1000);
 		lbConfig.getSmppConfiguration().setReconnectPeriod(500);
-		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckClientSide(1000);
-		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckServerSide(1000);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckClientSide(2000);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckServerSide(2000);
 		if(isSsl)
 		{
 			lbConfig.getSslConfiguration().setKeyStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());

@@ -68,17 +68,17 @@ public class MBalancerDispatcher implements MLbServerListener {
 		//balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
 		synchronized (userSpaces) {
 			
-		UserSpace userSpace = userSpaces.get(((BaseBind)packet).getSystemId());
-		if(userSpace==null)
-		{
-			userSpace = new UserSpace(((BaseBind)packet).getSystemId(),((BaseBind)packet).getPassword(), nodes, this.balancerRunner, monitorExecutor, this);
-			userSpaces.put(((BaseBind)packet).getSystemId(), userSpace);
-			return userSpace;
-		}
-		else
-		{
-			return userSpace;
-		} 
+			UserSpace userSpace = userSpaces.get(((BaseBind)packet).getSystemId());
+			if(userSpace==null)
+			{
+				userSpace = new UserSpace(((BaseBind)packet).getSystemId(),((BaseBind)packet).getPassword(), nodes, this.balancerRunner, monitorExecutor, this);
+				userSpaces.put(((BaseBind)packet).getSystemId(), userSpace);
+				return userSpace;
+			}
+			else
+			{
+				return userSpace;
+			} 
 		}
 	}
 

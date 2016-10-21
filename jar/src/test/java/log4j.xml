@@ -18,6 +18,14 @@
       <param name="ConversionPattern" value="%d %p %t - %m%n"/> 
     </layout> 
   </appender> 
+  
+  <category name="org.mobicents">
+     <priority value="DEBUG" />
+   </category>
+   <category name="gov.nist">
+     <priority value="DEBUG" />
+   </category>
+   
   <root> 
     <priority value ="DEBUG" />     
     <appender-ref ref="console" />

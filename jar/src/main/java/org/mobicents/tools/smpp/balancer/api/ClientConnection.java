@@ -73,7 +73,7 @@ public interface ClientConnection {
 	/**
 	*Try to rebind if did not get enquire link response in time
 	*/
-	public void connectionCheckServerSide();
+	public void connectionCheckClientSide();
 	/**
 	*Send enquire_link to client for checking connection 
 	*/
@@ -84,6 +84,6 @@ public interface ClientConnection {
 	public void closeChannel();
 	
 	void sendSmppRequest(Long sessionId, Pdu packet);
-	void enquireTimeout();	
+	void enquireLinkTimerCheck();	
 
 }

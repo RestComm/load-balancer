@@ -288,7 +288,7 @@ public class UserSpace {
 		if(logger.isDebugEnabled())
 			logger.debug("LB sending response form server to client with sequence : " + packet.getSequenceNumber());
 			if(packet.getCommandId()==SmppConstants.CMD_ID_ENQUIRE_LINK_RESP)
-				customers.get(customerPacket.getSessionId()).serverSideOk();
+				customers.get(customerPacket.getSessionId()).updateLastTimeSMPPLinkUpdated();
 			else
 				customers.get(customerPacket.getSessionId()).sendResponse(packet);
 	}
@@ -296,7 +296,7 @@ public class UserSpace {
 	public void enquireLinkReceivedFromServer()
 	{
 		for(Long key:customers.keySet())
-			customers.get(key).serverSideOk();
+			customers.get(key).updateLastTimeSMPPLinkUpdated();
 	}
 	
 	public void unbindRequestedFromServer(Unbind packet, Long serverSessioId)

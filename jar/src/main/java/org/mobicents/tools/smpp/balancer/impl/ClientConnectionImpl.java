@@ -549,7 +549,7 @@ public class ClientConnectionImpl implements ClientConnection{
 	}
 
 	@Override
-	public void connectionCheckServerSide() 
+	public void connectionCheckClientSide() 
 	{
 		rebind();		
 	}
@@ -559,7 +559,7 @@ public class ClientConnectionImpl implements ClientConnection{
 		
 	}
 	@Override
-	public void enquireTimeout() {
+	public void enquireLinkTimerCheck() {
 		// TODO Auto-generated method stub
 		
 	}

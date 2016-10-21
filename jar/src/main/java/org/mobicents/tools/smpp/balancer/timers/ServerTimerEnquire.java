@@ -39,7 +39,7 @@ public class ServerTimerEnquire implements CancellableRunnable
 	public void run() 
 	{
 		if(!cancelled)
-			client.enquireTimeout();
+			client.enquireLinkTimerCheck();
 	}
 
 	@Override

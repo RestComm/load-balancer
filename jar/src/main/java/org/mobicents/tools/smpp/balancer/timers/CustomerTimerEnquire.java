@@ -40,7 +40,7 @@ public class CustomerTimerEnquire implements CancellableRunnable
 	public void run() 
 	{
 		if(!cancelled)
-			server.enquireTimeout();
+			server.enquireLinkTimerCheck();
 	}
 
 	@Override

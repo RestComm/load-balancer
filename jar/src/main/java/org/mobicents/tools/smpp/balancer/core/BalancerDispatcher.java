@@ -226,7 +226,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	@Override
 	public void enquireLinkReceivedFromServer(Long sessionId) 
 	{
-		serverSessions.get(sessionId).serverSideOk();		
+		serverSessions.get(sessionId).updateLastTimeSMPPLinkUpdated();		
 	}
 
 	@Override
