@@ -18,8 +18,8 @@
   <isSend5xxResponse>false</isSend5xxResponse>
   <isSend5xxResponseReasonHeader>Destination not available</isSend5xxResponseReasonHeader>
   <isSend5xxResponseSatusCode>503</isSend5xxResponseSatusCode>
-  <responseStatusCodeNodeRemoval>503</responseStatusCodeNodeRemoval>
-  <responseReasonNodeRemoval>Unable to setup media services</responseReasonNodeRemoval>
+  <responsesStatusCodeNodeRemoval>503</responsesStatusCodeNodeRemoval>
+  <!--responsesReasonNodeRemoval>Unable to setup media services</responsesReasonNodeRemoval-->
   <algorithm>
     <algorithmClass></algorithmClass>
     <sipHeaderAffinityKey></sipHeaderAffinityKey>

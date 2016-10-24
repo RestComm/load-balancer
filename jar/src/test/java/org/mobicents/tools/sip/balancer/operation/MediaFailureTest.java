@@ -58,7 +58,7 @@ public class MediaFailureTest {
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");	
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
-		lbConfig.getSipConfiguration().setResponseReasonNodeRemoval("Unable to setup media services");
+		lbConfig.getSipConfiguration().setResponsesReasonNodeRemoval("Unable to setup media services");
 
 		balancer.start(lbConfig);
 		

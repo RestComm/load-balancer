@@ -160,8 +160,8 @@ public class SIPBalancerForwarder implements SipListener {
     		Pattern p = Pattern.compile(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern());
     	}
     	balancerRunner.balancerContext.isUseWithNexmo = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsUseWithNexmo();
-    	balancerRunner.balancerContext.responseReasonNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponseReasonNodeRemoval();
-    	balancerRunner.balancerContext.responseStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponseStatusCodeNodeRemoval();
+    	balancerRunner.balancerContext.responsesReasonNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesReasonNodeRemoval();
+    	balancerRunner.balancerContext.responsesStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesStatusCodeNodeRemoval();
     	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMatchingHostnameForRoute();
     	balancerRunner.balancerContext.isFilterSubdomain = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsFilterSubdomain();
 
@@ -3116,8 +3116,8 @@ public class SIPBalancerForwarder implements SipListener {
     {
     	Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	        
     	KeySip keySip = new KeySip(node);
-    	if(response.getStatusCode()==balancerRunner.balancerContext.responseStatusCodeNodeRemoval 
-    			&& response.getReasonPhrase().equals(balancerRunner.balancerContext.responseReasonNodeRemoval))
+    	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
+//    			&& response.getReasonPhrase().equals(balancerRunner.balancerContext.responsesReasonNodeRemoval))
     		if(ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2)
     			{
 					if(ctx.sipNodeMap(isIpV6).size()>1) 

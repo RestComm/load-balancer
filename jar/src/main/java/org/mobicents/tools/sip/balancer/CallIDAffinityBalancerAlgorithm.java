@@ -72,8 +72,8 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			found = true;
 		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
-		else if(response.getStatusCode()==balancerContext.responseStatusCodeNodeRemoval 
-    			&& response.getReasonPhrase().equals(balancerContext.responseReasonNodeRemoval))
+		else if(balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
+//    			&& response.getReasonPhrase().equals(balancerContext.responsesReasonNodeRemoval))
 			return;
 		
 //		for(SIPNode node : invocationContext.nodes) {

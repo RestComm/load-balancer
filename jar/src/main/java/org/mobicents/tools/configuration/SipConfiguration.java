@@ -1,5 +1,9 @@
 package org.mobicents.tools.configuration;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 public class SipConfiguration {
 	
 	private final AlgorithmConfiguration algorithmConfiguration;
@@ -17,8 +21,8 @@ public class SipConfiguration {
 	public static final Boolean IS_SEND_5XX_RESPONSE = false;
 	public static final String IS_SEND_5XX_RESPONSE_REASON_HEADER = null;
 	public static final Integer IS_SEND_5XX_RESPONSE_STATUS_CODE = 503;
-	public static final Integer RESPONSE_STATUS_CODE_NODE_REMOVAL = 503;
-	public static final String RESPONSE_REASON_NODE_REMOVAL = null;
+	public static final String RESPONSES_STATUS_CODE_NODE_REMOVAL = "503";
+	public static final String RESPONSES_REASON_NODE_REMOVAL = null;
 	public static final Boolean IS_USE_WITH_NEXMO = false;
 	public static final String MATCHING_HOSTNAME_FOR_ROUTE = null;
 	public static final Boolean IS_FILTER_SUBDOMAIN = false;
@@ -34,8 +38,8 @@ public class SipConfiguration {
 	private Boolean isSend5xxResponse;
 	private String isSend5xxResponseReasonHeader;
 	private Integer isSend5xxResponseSatusCode;
-	private Integer responseStatusCodeNodeRemoval;
-	private String responseReasonNodeRemoval;
+	private List<Integer> responsesStatusCodeNodeRemoval;
+	private String responsesReasonNodeRemoval;
 	private Boolean isUseWithNexmo;
 	private String matchingHostnameForRoute;
 	private Boolean isFilterSubdomain;
@@ -57,8 +61,8 @@ public class SipConfiguration {
         this.isSend5xxResponse = IS_SEND_5XX_RESPONSE;
         this.isSend5xxResponseReasonHeader = IS_SEND_5XX_RESPONSE_REASON_HEADER;
         this.isSend5xxResponseSatusCode = IS_SEND_5XX_RESPONSE_STATUS_CODE;
-        this.responseStatusCodeNodeRemoval = RESPONSE_STATUS_CODE_NODE_REMOVAL;
-        this.responseReasonNodeRemoval = RESPONSE_REASON_NODE_REMOVAL;
+        this.responsesStatusCodeNodeRemoval = new ArrayList<Integer>();
+        this.responsesReasonNodeRemoval = RESPONSES_REASON_NODE_REMOVAL;
         this.isUseWithNexmo = IS_USE_WITH_NEXMO;
         this.matchingHostnameForRoute = MATCHING_HOSTNAME_FOR_ROUTE;
         this.isFilterSubdomain = IS_FILTER_SUBDOMAIN;
@@ -176,20 +180,20 @@ public class SipConfiguration {
 		this.isSend5xxResponseSatusCode = isSend5xxResponseSatusCode;
 	}
 
-	public Integer getResponseStatusCodeNodeRemoval() {
-		return responseStatusCodeNodeRemoval;
+	public List<Integer> getResponsesStatusCodeNodeRemoval() {
+		return responsesStatusCodeNodeRemoval;
 	}
 
-	public void setResponseStatusCodeNodeRemoval(Integer responseStatusCodeNodeRemoval) {
-		this.responseStatusCodeNodeRemoval = responseStatusCodeNodeRemoval;
+	public void setResponseStatusCodeNodeRemoval(List<Integer> responsesStatusCodeNodeRemoval) {
+		this.responsesStatusCodeNodeRemoval = responsesStatusCodeNodeRemoval;
 	}
 
-	public String getResponseReasonNodeRemoval() {
-		return responseReasonNodeRemoval;
+	public String getResponsesReasonNodeRemoval() {
+		return responsesReasonNodeRemoval;
 	}
 
-	public void setResponseReasonNodeRemoval(String responseReasonNodeRemoval) {
-		this.responseReasonNodeRemoval = responseReasonNodeRemoval;
+	public void setResponsesReasonNodeRemoval(String responsesReasonNodeRemoval) {
+		this.responsesReasonNodeRemoval = responsesReasonNodeRemoval;
 	}
 
 	public Boolean getIsUseWithNexmo() {

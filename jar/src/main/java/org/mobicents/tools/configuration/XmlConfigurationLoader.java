@@ -1,7 +1,9 @@
 package org.mobicents.tools.configuration;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
@@ -9,6 +11,8 @@ import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+
+import sun.util.locale.StringTokenIterator;
 
 public class XmlConfigurationLoader{
     
@@ -90,8 +94,17 @@ public class XmlConfigurationLoader{
         dst.setIsSend5xxResponse(src.getBoolean("isSend5xxResponse", SipConfiguration.IS_SEND_5XX_RESPONSE));
         dst.setIsSend5xxResponseSatusCode(src.getInteger("isSend5xxResponseSatusCode", SipConfiguration.IS_SEND_5XX_RESPONSE_STATUS_CODE));
         dst.setIsSend5xxResponseReasonHeader(src.getString("isSend5xxResponseReasonHeader", SipConfiguration.IS_SEND_5XX_RESPONSE_REASON_HEADER));
-        dst.setResponseStatusCodeNodeRemoval(src.getInteger("responseStatusCodeNodeRemoval", SipConfiguration.RESPONSE_STATUS_CODE_NODE_REMOVAL));
-        dst.setResponseReasonNodeRemoval(src.getString("responseReasonNodeRemoval", SipConfiguration.RESPONSE_REASON_NODE_REMOVAL));
+        String responsesStatusCodeNodeRemoval = src.getString("responsesStatusCodeNodeRemoval", SipConfiguration.RESPONSES_STATUS_CODE_NODE_REMOVAL);
+        if(responsesStatusCodeNodeRemoval != null) {
+        	List<Integer> responsesStatusCodeNodeRemovalList = new ArrayList<Integer>();
+        	StringTokenizer tokens = new StringTokenizer(responsesStatusCodeNodeRemoval, ",");
+        	while (tokens.hasMoreTokens()) {
+				String token = tokens.nextToken();
+				responsesStatusCodeNodeRemovalList.add(Integer.parseInt(token));
+			}
+        	dst.setResponseStatusCodeNodeRemoval(responsesStatusCodeNodeRemovalList);
+        }
+        dst.setResponsesReasonNodeRemoval(src.getString("responsesReasonNodeRemoval", SipConfiguration.RESPONSES_REASON_NODE_REMOVAL));
         dst.setIsUseWithNexmo(src.getBoolean("isUseWithNexmo",SipConfiguration.IS_USE_WITH_NEXMO));
         dst.setMatchingHostnameForRoute(src.getString("matchingHostnameForRoute", SipConfiguration.MATCHING_HOSTNAME_FOR_ROUTE));
         dst.setIsFilterSubdomain(src.getBoolean("isFilterSubdomain", SipConfiguration.IS_FILTER_SUBDOMAIN));

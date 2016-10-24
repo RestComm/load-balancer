@@ -28,6 +28,7 @@ import gov.nist.javax.sip.SipStackImpl;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -68,8 +69,8 @@ public class BalancerContext {
 	public String isSend5xxResponseReasonHeader;
 	public int isSend5xxResponseSatusCode;
 	public boolean isUseWithNexmo;
-	public String responseReasonNodeRemoval;
-	public int responseStatusCodeNodeRemoval;
+	public String responsesReasonNodeRemoval;
+	public List<Integer> responsesStatusCodeNodeRemoval;
 	public String matchingHostnameForRoute;
 	public boolean isFilterSubdomain;
 	

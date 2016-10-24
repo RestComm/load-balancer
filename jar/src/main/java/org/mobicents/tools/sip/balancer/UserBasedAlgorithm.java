@@ -82,9 +82,9 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			found = true;
 		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
-		else if(response.getStatusCode()==balancerContext.responseStatusCodeNodeRemoval
-				&& response.getReasonPhrase() != null
-    			&& response.getReasonPhrase().equalsIgnoreCase(balancerContext.responseReasonNodeRemoval))
+		else if(balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode()))
+//				&& response.getReasonPhrase() != null
+//    			&& response.getReasonPhrase().equalsIgnoreCase(balancerContext.responsesReasonNodeRemoval))
 			return;
 //		for(SIPNode node : invocationContext.nodes) {
 //			if(logger.isDebugEnabled()) {
