@@ -3118,15 +3118,14 @@ public class SIPBalancerForwarder implements SipListener {
     	KeySip keySip = new KeySip(node);
     	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
 //    			&& response.getReasonPhrase().equals(balancerRunner.balancerContext.responsesReasonNodeRemoval))
-    		if(ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2)
-    			{
-					if(ctx.sipNodeMap(isIpV6).size()>1) 
-						{
-							ctx.sipNodeMap(isIpV6).remove(keySip);
-							ctx.badSipNodeMap(isIpV6).put(keySip, node);
-							ctx.balancerAlgorithm.nodeRemoved(node);
-						}
-    			}
+    		if(ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
+				if(ctx.sipNodeMap(isIpV6).size()>1) {
+					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
+					ctx.sipNodeMap(isIpV6).remove(keySip);
+					ctx.badSipNodeMap(isIpV6).put(keySip, node);
+					ctx.balancerAlgorithm.nodeRemoved(node);
+				}
+    		}
     }
 
     //need to verify that comes from external in case of single leg

@@ -321,13 +321,13 @@ public class NodeRegisterImpl  implements NodeRegister {
                     Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	                    
                     ctx.sipNodeMap(isIpV6).remove(new KeySip(node));
                     ctx.balancerAlgorithm.nodeRemoved(node);
-                    if(logger.isInfoEnabled()) {
-                        logger.info("NodeExpirationTimerTask Run NSync["
+                    //if(logger.isWEnabled()) {
+                        logger.warn("NodeExpirationTimerTask Run NSync["
                                 + node + "] removed. Last timestamp: " + node.getTimeStamp() + 
                                 ", current: " + System.currentTimeMillis()
                                 + " diff=" + ((double)System.currentTimeMillis()-node.getTimeStamp() ) +
                                 "ms and tolerance=" + nodeExpiration + " ms");
-                    }
+                    //}
                 } else {
                     if(logger.isTraceEnabled()) {
                         logger.trace("node time stamp : " + expirationTime + " , current time : "
