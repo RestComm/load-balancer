@@ -157,7 +157,7 @@ public class SIPBalancerForwarder implements SipListener {
     	balancerRunner.balancerContext.sipHeaderAffinityFallbackKey = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityFallbackKey();
     	balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern = null;
     	if(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern() != null && !balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern().trim().isEmpty()) {
-    		Pattern p = Pattern.compile(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern());
+    		balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern = Pattern.compile(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern());
     	}
     	balancerRunner.balancerContext.isUseWithNexmo = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsUseWithNexmo();
     	balancerRunner.balancerContext.responsesReasonNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesReasonNodeRemoval();

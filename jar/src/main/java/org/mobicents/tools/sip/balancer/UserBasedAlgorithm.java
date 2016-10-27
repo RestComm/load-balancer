@@ -153,7 +153,9 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
     	}
     	else if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKey.equalsIgnoreCase(FromHeader.NAME)) {
     		headerKey = ((HeaderAddress) message.getHeader(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKey)).getAddress().getURI().toString();
-    		if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern != null && invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
+    		
+    		if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern != null && 
+    				invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
     			headerKey = ((HeaderExt) message.getHeader(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityFallbackKey)).getValue();
     		}
     	}
