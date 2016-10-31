@@ -69,4 +69,9 @@ public class KeySip {
 		}
 		
 	}
+	
+	public String toString() 
+	{
+		return "SIP key: " + ip + " : " + ports;
+	}
 }
