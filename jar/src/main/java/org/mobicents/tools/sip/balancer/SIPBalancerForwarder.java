@@ -3119,12 +3119,10 @@ public class SIPBalancerForwarder implements SipListener {
     	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
 //    			&& response.getReasonPhrase().equals(balancerRunner.balancerContext.responsesReasonNodeRemoval))
     		if(ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
-				if(ctx.sipNodeMap(isIpV6).size()>1) {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
 					ctx.sipNodeMap(isIpV6).remove(keySip);
 					ctx.badSipNodeMap(isIpV6).put(keySip, node);
 					ctx.balancerAlgorithm.nodeRemoved(node);
-				}
     		}
     }
 
