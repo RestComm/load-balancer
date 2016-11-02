@@ -42,22 +42,10 @@
 	</dependencyManagement>
 
 	<dependencies>
-
-		<dependency>
-			<groupId>org.jboss.cache</groupId>
-			<artifactId>jbosscache-core</artifactId>
-			<version>3.2.1.GA</version><!--$NO-MVN-MAN-VER$-->
-		</dependency>
 		<dependency>
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
 			<scope>runtime</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.jboss.cache</groupId>
-			<artifactId>jbosscache-pojo</artifactId>
-			<version>3.0.0.GA</version>
 		</dependency>
 		<dependency>
 			<groupId>jgroups</groupId>
@@ -181,6 +169,11 @@
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-simple</artifactId>
 		    <version>${slf4j.version}</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.infinispan</groupId>
+    		<artifactId>infinispan-core</artifactId>
+    		<version>5.1.2.FINAL</version>
 		</dependency>
 	</dependencies>
 

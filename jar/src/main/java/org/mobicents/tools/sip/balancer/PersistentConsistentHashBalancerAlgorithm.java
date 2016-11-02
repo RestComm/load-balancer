@@ -24,6 +24,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,27 +32,27 @@ import java.util.Set;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
-import org.jboss.cache.Cache;
-import org.jboss.cache.CacheFactory;
-import org.jboss.cache.DefaultCacheFactory;
-import org.jboss.cache.Fqn;
-import org.jboss.cache.notifications.annotation.CacheListener;
-import org.jboss.cache.notifications.annotation.NodeModified;
-import org.jboss.cache.notifications.annotation.ViewChanged;
-import org.jboss.cache.notifications.event.Event;
-import org.jboss.cache.notifications.event.ViewChangedEvent;
+import org.infinispan.Cache;
+import org.infinispan.manager.DefaultCacheManager;
+import org.infinispan.manager.EmbeddedCacheManager;
+import org.infinispan.notifications.Listener;
+import org.infinispan.notifications.cachelistener.annotation.CacheEntryModified;
+import org.infinispan.notifications.cachelistener.event.Event;
+import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
+import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
+
 
 /**
  * Persistent Consistent Hash algorithm - see http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm Example algorithms section
  * @author vralev
  *
  */
-@CacheListener
+@Listener
 public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentHashBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(PersistentConsistentHashBalancerAlgorithm.class.getCanonicalName());
 	
 	
-	protected Cache cache;
+	protected Cache<SIPNode,String> cache;
 	
 	public PersistentConsistentHashBalancerAlgorithm() {
 	}
@@ -60,8 +61,8 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		this.sipHeaderAffinityKey = headerName;
 	}
 	
-	@NodeModified
-	public void modified(Event event) {
+	@CacheEntryModified
+	public void modified(Event <SIPNode,String> event) {
 		logger.debug(event.toString());
 	}
 
@@ -72,13 +73,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 	
 	private void addNode(SIPNode node,Boolean isIpV6) {	
-		Fqn nodes;
-		if(isIpV6)
-			nodes = Fqn.fromString("/BALANCER" + invocationContext.version + "/NODES6");
-		else
-			nodes = Fqn.fromString("/BALANCER" + invocationContext.version + "/NODES4");
-		
-		cache.put(nodes, node, "");
+		cache.put(node, "");
 		dumpNodes();
 	}
 
@@ -110,7 +105,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 	
 	public void init() {
-		CacheFactory cacheFactory = new DefaultCacheFactory();
+		EmbeddedCacheManager manager = null;
 		InputStream configurationInputStream = null;
 		String configFile = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getPersistentConsistentHashCacheConfiguration();
 		if(configFile != null) {
@@ -127,11 +122,15 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 			if(configurationInputStream == null) throw new RuntimeException("Problem loading resource META-INF/PHA-balancer-cache.xml");
 		}
 
-		Cache cache = cacheFactory.createCache(configurationInputStream);
-		cache.addCacheListener(this);
-		cache.create();
+		try {
+			manager = new DefaultCacheManager(configurationInputStream);
+		} catch (IOException e) 
+		{
+			logger.error("Error while creating cache manager ");
+		}
+		cache = manager.getCache();
+		cache.addListener(this);
 		cache.start();
-		this.cache = cache;
 		/*
 		for (SIPNode node : getBalancerContext().nodes) {
 			addNode(node);
@@ -145,12 +144,9 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	protected void syncNodes(Boolean isIpV6) {
-		Set nodes;
-		if(isIpV6)
-			nodes = cache.getKeys("/BALANCER" + invocationContext.version + "/NODES6");
-		else
-			nodes = cache.getKeys("/BALANCER" + invocationContext.version + "/NODES4");
 		
+		Set nodes = cache.keySet();
+
 		if(nodes != null) {
 			ArrayList nodeList = new ArrayList();
 			nodeList.addAll(nodes);
