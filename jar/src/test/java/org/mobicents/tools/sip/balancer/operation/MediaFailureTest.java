@@ -21,6 +21,7 @@ package org.mobicents.tools.sip.balancer.operation;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Properties;
 
 import javax.sip.ListeningPoint;
@@ -58,8 +59,9 @@ public class MediaFailureTest {
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED", "false");	
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
-		lbConfig.getSipConfiguration().setResponsesReasonNodeRemoval("Unable to setup media services");
-
+		ArrayList <Integer> statusRemoval = new ArrayList <Integer>();
+		statusRemoval.add(503);
+		lbConfig.getSipConfiguration().setResponseStatusCodeNodeRemoval(statusRemoval);
 		balancer.start(lbConfig);
 		
 		goodServer = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
@@ -106,6 +108,12 @@ public class MediaFailureTest {
 			if(res.getStatusCode() == Response.OK)
 				okCounter++;
 		}
+		System.out.println("==================================================================");
+		System.out.println(serviceAnavaible);
+		System.out.println(okCounter);
+		System.out.println(badServer.getTestSipListener().getDialogCount());
+		System.out.println(goodServer.getTestSipListener().getDialogCount());
+		System.out.println("==================================================================");
 		assertEquals(3,serviceAnavaible);
 		assertEquals(5,okCounter);
 		assertEquals(1,badServer.getTestSipListener().getDialogCount());
