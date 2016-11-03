@@ -36,7 +36,7 @@ import com.cloudhopper.smpp.pdu.Pdu;
 
 public class MBalancerDispatcher implements MLbServerListener {
 
-	private Map<String, UserSpace> userSpaces = new ConcurrentHashMap<String, UserSpace>();
+	private ConcurrentHashMap<String, UserSpace> userSpaces = new ConcurrentHashMap<String, UserSpace>();
 	private AtomicInteger notBindClients = new AtomicInteger(0);
 	private AtomicInteger notRespondedPackets = new AtomicInteger(0);
 	private SIPNode [] nodes;
