@@ -147,7 +147,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
     		else
     			headerKey = ((TelURL)currURI).getPhoneNumber();
     		
-    		if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
+    		if(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern != null && 
+    				invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityKeyExclusionPattern.matcher(headerKey).matches()) {
     			headerKey = ((HeaderExt) message.getHeader(invocationContext.balancerAlgorithm.balancerContext.sipHeaderAffinityFallbackKey)).getValue();
     		}
     	}
