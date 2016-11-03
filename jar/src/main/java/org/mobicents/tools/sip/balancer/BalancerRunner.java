@@ -36,6 +36,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.LogManager;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -81,12 +82,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		String logLevel = System.getProperty("logLevel", "INFO");
 		String logConfigFile = System.getProperty("logConfigFile");
 
-		if(logConfigFile == null) {
+		if (logConfigFile != null)
+		{
+		    DOMConfigurator.configure(logConfigFile);
+		}
+		else if(!LogManager.getLogManager().getLoggerNames().hasMoreElements())
+		{
 			Logger.getRootLogger().addAppender(new ConsoleAppender(
 					new PatternLayout("%r (%t) %p [%c{1}%x] %m%n")));
 			Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
-		} else {
-		    DOMConfigurator.configure(logConfigFile);
 		}
 	}
 
