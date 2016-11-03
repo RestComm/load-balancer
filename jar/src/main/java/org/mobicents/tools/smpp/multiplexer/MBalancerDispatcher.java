@@ -66,7 +66,7 @@ public class MBalancerDispatcher implements MLbServerListener {
 		balancerRunner.balancerContext.smppRequestsProcessedById.get(packet.getCommandId()).incrementAndGet();
 		//only first bind sends to server we not add it to statistic
 		//balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
-		synchronized (userSpaces) {
+		synchronized (this) {
 			
 			UserSpace userSpace = userSpaces.get(((BaseBind)packet).getSystemId());
 			if(userSpace==null)
