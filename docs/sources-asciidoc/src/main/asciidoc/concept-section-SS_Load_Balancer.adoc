@@ -58,14 +58,25 @@ If the Load Balancer doesn't receive the keepalive information from a node after
 
 The websocket client (e.g. TelScale Olympus) can connect to Load balancer
 on port which should be set in lb-configuration.properties externalWsPort and
-internalWsPort if needed. To work with secure websocket it is necessary to set
-externalWssPort and internalWssPort. When websocket client connects to the
+internal.wsPort if needed. To work with secure websocket it is necessary to set
+external.wssPort and internal.wssPort. When websocket client connects to the
 {this-platform} Load balancer, then the LB opens connection to a node from the
 list of nodes which is based on keepalives got from the server. During the further
 connections of the client, each time LB opens the new connection to the node
 from the list of connected nodes according to chosen algorithm. If the
 connection has already been established to this node, then LB reuses this
 connection. The same goes for other connection-oriented transport protocols.
+
+=== {this-platform} Load Balancer supports IPv6 protocol
+You should set at least next tags in lb-configuration.xml file for enabling IPv6:
+
+in common section
+<ipv6Host>::1</ipv6Host>
+
+in external section
+ <ipv6UdpPort>5070<ipv6UdpPort>
+
+Other tags you can see in example of lb-configuration.xml below. 
 
 == HTTP Load Balancing Basics
 
@@ -280,6 +291,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
 <load-balancer-properties>
 <common>
   <host>172.21.0.105</host>
+  <ipv6Host></ipv6Host>
   <rmiRegistryPort>2000</rmiRegistryPort>
   <rmiRemoteObjectPort>2001</rmiRemoteObjectPort>
   <nodeTimeout>8400</nodeTimeout>
@@ -289,6 +301,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
 </common>
 <sip>
   <publicIp></publicIp>
+  <publicIpv6></publicIpv6>
   <isSendTrying>false</isSendTrying>
   <useIpLoadBalancerAddressInViaHeaders>false</useIpLoadBalancerAddressInViaHeaders>
   <performanceTestingMode>false</performanceTestingMode>
@@ -311,31 +324,55 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   </algorithm>
   <external>
     <host></host>
+    <ipv6Host></ipv6Host>
     <ipLoadBalancerAddress>50.17.127.170</ipLoadBalancerAddress>
+    <ipv6LoadBalancerAddress></ipv6LoadBalancerAddress>
     <udpPort>5060</udpPort>
+    <ipv6UdpPort></ipv6UdpPort>
     <tcpPort>5060</tcpPort>
+    <ipv6TcpPort></ipv6TcpPort>
     <tlsPort>5061</tlsPort>
+    <ipv6TlsPort></ipv6TlsPort>
     <wsPort>5062</wsPort>
+    <ipv6WsPort></ipv6WsPort>
     <wssPort>5063</wssPort>
+    <ipv6WssPort></ipv6WssPort>
     <ipLoadBalancerUdpPort>5060</ipLoadBalancerUdpPort>
+    <ipv6LoadBalancerUdpPort></ipv6LoadBalancerUdpPort>
     <ipLoadBalancerTcpPort>5060</ipLoadBalancerTcpPort>
+    <ipv6LoadBalancerTcpPort></ipv6LoadBalancerTcpPort>
     <ipLoadBalancerTlsPort>5061</ipLoadBalancerTlsPort>
+    <ipv6LoadBalancerTlsPort></ipv6LoadBalancerTlsPort>
     <ipLoadBalancerWsPort>5062</ipLoadBalancerWsPort>
+    <ipv6LoadBalancerWsPort></ipv6LoadBalancerWsPort>
     <ipLoadBalancerWssPort>5063</ipLoadBalancerWssPort>
+    <ipv6LoadBalancerWssPort></ipv6LoadBalancerWssPort>
   </external>
   <internal>
     <host></host>
+    <ipv6Host></ipv6Host>
     <ipLoadBalancerAddress>172.21.0.105</ipLoadBalancerAddress>
+    <ipv6LoadBalancerAddress></ipv6LoadBalancerAddress>
     <udpPort>5080</udpPort>
+    <ipv6UdpPort></ipv6UdpPort>
     <tcpPort>5080</tcpPort>
+    <ipv6TcpPort></ipv6TcpPort>
     <tlsPort>5081</tlsPort>
+    <ipv6TlsPort></ipv6TlsPort>
     <wsPort>5082</wsPort>
+    <ipv6WsPort></ipv6WsPort>
     <wssPort>5083</wssPort>
+    <ipv6WssPort></ipv6WssPort>
     <ipLoadBalancerUdpPort>5080</ipLoadBalancerUdpPort>
+    <ipv6LoadBalancerUdpPort></ipv6LoadBalancerUdpPort>
     <ipLoadBalancerTcpPort>5080</ipLoadBalancerTcpPort>
+    <ipv6LoadBalancerTcpPort></ipv6LoadBalancerTcpPort>
     <ipLoadBalancerTlsPort>5081</ipLoadBalancerTlsPort>
+    <ipv6LoadBalancerTlsPort></ipv6LoadBalancerTlsPort>
     <ipLoadBalancerWsPort>5082</ipLoadBalancerWsPort>
+    <ipv6LoadBalancerWsPort></ipv6LoadBalancerWsPort>
     <ipLoadBalancerWssPort>5083</ipLoadBalancerWssPort>
+    <ipv6LoadBalancerWssPort></ipv6LoadBalancerWssPort>
   </internal>
 </sip>
 <http>
@@ -513,7 +550,7 @@ if false LB will remove route with host equal matchingHostnameForRoute (restcomm
 if true LB will remove route ended with .matchingHostnameForRoute(a.restcomm.com, b.restcomm.com)
 
 isSendTrying::
-if true LB will send own Trying to sender after requests (INVITE,SUBSCRIBE,NOTIFY,MESSAGE,REFER,PUBLISH,UPDATE) 
+if true LB will send own Trying to sender after requests (INVITE,SUBSCRIBE,NOTIFY,MESSAGE,REFER,PUBLISH,UPDATE)
 
 extraServerNodes::
   Comma-separated list of hosts that are server nodes.
@@ -1197,12 +1234,12 @@ and confirm certificate.
 For WS:
 
 Login to Restcomm server http://127.0.0.2:8080/olympus/
-Fill in form: Load Balancer's ip adress (externalHost) 172.21.0.104 and port(externalWsPort) 5090
+Fill in form: Load Balancer's ip adress (external.host) 172.21.0.104 and port(external.wsPort) 5090
 
 For WSS:
 
 Login to Restcomm server https://127.0.0.2:8443/olympus/
-Fill in form: Load Balancer's ip adress (externalHost) 172.21.0.104 and port (externalWssPort) 5091
+Fill in form: Load Balancer's ip adress (external.host) 172.21.0.104 and port (external.wssPort) 5091
 
 == Integration Load Balancer SMPP with Restcomm and Nexmo
 
