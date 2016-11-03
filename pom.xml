@@ -14,7 +14,7 @@
 
 	<groupId>org.mobicents.tools</groupId>
 	<artifactId>sip-balancer</artifactId>
-	<version>8.0.0-SNAPSHOT</version>
+	<version>8.0.122</version>
 
 	<name>Restcomm Converged Load Balancer Parent</name>
 	<description>Restcomm Converged Load Balancer Parent</description>
