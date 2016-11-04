@@ -160,7 +160,6 @@ public class SIPBalancerForwarder implements SipListener {
     		balancerRunner.balancerContext.sipHeaderAffinityKeyExclusionPattern = Pattern.compile(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKeyExclusionPattern());
     	}
     	balancerRunner.balancerContext.isUseWithNexmo = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsUseWithNexmo();
-    	balancerRunner.balancerContext.responsesReasonNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesReasonNodeRemoval();
     	balancerRunner.balancerContext.responsesStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesStatusCodeNodeRemoval();
     	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMatchingHostnameForRoute();
     	balancerRunner.balancerContext.isFilterSubdomain = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsFilterSubdomain();
@@ -3117,7 +3116,6 @@ public class SIPBalancerForwarder implements SipListener {
     	Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	        
     	KeySip keySip = new KeySip(node);
     	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
-//    			&& response.getReasonPhrase().equals(balancerRunner.balancerContext.responsesReasonNodeRemoval))
     		if(ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
 					ctx.sipNodeMap(isIpV6).remove(keySip);

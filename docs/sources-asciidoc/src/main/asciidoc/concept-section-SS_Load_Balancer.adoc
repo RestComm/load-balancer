@@ -76,7 +76,7 @@ in common section
 in external section
  <ipv6UdpPort>5070<ipv6UdpPort>
 
-Other tags you can see in example of lb-configuration.xml below. 
+Other tags you can see in example of lb-configuration.xml below.
 
 == HTTP Load Balancing Basics
 
@@ -309,8 +309,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <isSend5xxResponse>true</isSend5xxResponse>
   <isSend5xxResponseReasonHeader>Destination not available</isSend5xxResponseReasonHeader>
   <isSend5xxResponseSatusCode>503</isSend5xxResponseSatusCode>
-  <responseStatusCodeNodeRemoval>503</responseStatusCodeNodeRemoval>
-  <responseReasonNodeRemoval>Unable to setup media services</responseReasonNodeRemoval>
+  <responsesStatusCodeNodeRemoval>503,504</responseStatusCodeNodeRemoval>
   <matchingHostnameForRoute>restcomm.com</matchingHostnameForRoute>
   <isFilterSubdomain>true</isFilterSubdomain>
   <algorithm>
@@ -536,9 +535,8 @@ isSend5xxResponseReasonHeader::
 isSend5xxResponseSatusCode::
   Code of error. You can manage it.
 
-responseStatusCodeNodeRemoval::
-responseReasonNodeRemoval::
-  if LB gets response from the node with this status code and reason more than three times,
+responsesStatusCodeNodeRemoval::
+  if LB gets response from the node with this status code more than three times,
   it removes this node from the node's map until the node will be restarted
 
 matchingHostnameForRoute::

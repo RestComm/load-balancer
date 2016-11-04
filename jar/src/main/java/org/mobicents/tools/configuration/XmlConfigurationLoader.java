@@ -104,7 +104,6 @@ public class XmlConfigurationLoader{
 			}
         	dst.setResponseStatusCodeNodeRemoval(responsesStatusCodeNodeRemovalList);
         }
-        dst.setResponsesReasonNodeRemoval(src.getString("responsesReasonNodeRemoval", SipConfiguration.RESPONSES_REASON_NODE_REMOVAL));
         dst.setIsUseWithNexmo(src.getBoolean("isUseWithNexmo",SipConfiguration.IS_USE_WITH_NEXMO));
         dst.setMatchingHostnameForRoute(src.getString("matchingHostnameForRoute", SipConfiguration.MATCHING_HOSTNAME_FOR_ROUTE));
         dst.setIsFilterSubdomain(src.getBoolean("isFilterSubdomain", SipConfiguration.IS_FILTER_SUBDOMAIN));
