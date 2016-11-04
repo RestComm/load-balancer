@@ -410,18 +410,18 @@ public class Shootist implements SipListener {
     }
 
     public void sendInitialInvite(){
-    	sendInitial("BigGuy", "here.com", "INVITE",null);
+    	sendInitial("BigGuy", "here.com", "INVITE",null, null, null);
     }
     
     public void sendInitial(String method) {
-    	sendInitial("BigGuy", "here.com", method,null);
+    	sendInitial("BigGuy", "here.com", method, null, null, null);
     }
     
     public void sendInitial(String method,RouteHeader route) {
-    	sendInitial("BigGuy", "here.com", method, route);
+    	sendInitial("BigGuy", "here.com", method, route, null, null);
     }
     
-    public void sendInitial(String fromUser, String fromHost, String method,RouteHeader route) {
+    public void sendInitial(String fromUser, String fromHost, String method, RouteHeader route, String[] headerNames, String[] headerContents) {
     	try{
     		if(!started) start();
     		String fromName = fromUser;
@@ -503,13 +503,24 @@ public class Shootist implements SipListener {
             contactHeader = headerFactory.createContactHeader(contactAddress);
             request.addHeader(contactHeader);
 
-            // You can add extension headers of your own making
+            
             // to the outgoing SIP request.
             // Add the extension header.
             Header extensionHeader = headerFactory.createHeader("My-Header",
                     "my header value");
             request.addHeader(extensionHeader);
-
+            
+            if(headerNames != null) {
+    			for(int q=0; q<headerNames.length; q++) {
+    				Header h = headerFactory.createHeader(headerNames[q], headerContents[q]);
+//    				if(setHeader) {
+    					request.setHeader(h);
+//    				} else {
+//    					request.addHeader(h);
+//    				}
+    			}
+    		}
+            
             if(route!=null)
             	request.addHeader(route);
             

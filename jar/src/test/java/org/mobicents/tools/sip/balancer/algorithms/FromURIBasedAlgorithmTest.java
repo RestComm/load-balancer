@@ -30,9 +30,11 @@ import javax.sip.message.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mobicents.ext.javax.sip.congestion.CongestionControlMessageValve;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.SIPBalancerValveProcessor;
 import org.mobicents.tools.sip.balancer.UserBasedAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
@@ -57,6 +59,10 @@ public class FromURIBasedAlgorithmTest {
 			}
 			balancer = new BalancerRunner();
 			LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+			lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", 
+					CongestionControlMessageValve.class.getName() + "," + SIPBalancerValveProcessor.class.getName());
+			lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("org.mobicents.ext.javax.sip.congestion.SIP_SCANNERS", 
+					"sipx");
 			lbConfig.getSipConfiguration().getInternalLegConfiguration().setUdpPort(5065);
 			lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(UserBasedAlgorithm.class.getName());
 			lbConfig.getSipConfiguration().getAlgorithmConfiguration().setSipHeaderAffinityKey("From");
@@ -120,7 +126,7 @@ public class FromURIBasedAlgorithmTest {
 //				if(i % 2 == 0) {
 //					fromUri = "Restricted";
 //				}
-				shootists[i].sendInitial(fromUri, "sip.nexmo.com", "INVITE", null);
+				shootists[i].sendInitial(fromUri, "sip.nexmo.com", "INVITE", null, null, null);
 				Thread.sleep(6000);
 				shootists[i].sendBye();
 				Thread.sleep(2000);
@@ -143,6 +149,44 @@ public class FromURIBasedAlgorithmTest {
 				}
 				assertTrue(wasOk);
 				assertTrue(wasRinging);
+			}
+		}
+		@Test
+		public void testCongestionControl() throws Exception {
+//			balancer.balancerContext.sipHeaderAffinityKeyExclusionPattern = Pattern.compile(".*sip.nexmo.com");
+			for(int i = 0; i < shootists.length; i++)
+			{
+				String fromUri = "Anonymous";
+//				if(i % 2 == 0) {
+//					fromUri = "Restricted";
+//				}
+				shootists[i].sendInitial(fromUri, "sip.nexmo.com", "INVITE", null, new String[]{"User-Agent"}, new String[]{"sipx"});
+				Thread.sleep(6000);
+				assertFalse(servers[0].getTestSipListener().isInviteReceived());
+				assertFalse(servers[1].getTestSipListener().isInviteReceived());
+				//shootists[i].sendBye();
+				//Thread.sleep(2000);
+			}
+			
+			
+			
+			assertEquals(servers[0].getTestSipListener().isInviteReceived(),servers[1].getTestSipListener().isInviteReceived());
+			assertEquals(servers[0].getTestSipListener().isAckReceived(),servers[1].getTestSipListener().isAckReceived());
+			assertEquals(servers[0].getTestSipListener().getByeReceived(),servers[1].getTestSipListener().getByeReceived());
+			
+			for(Shootist s :shootists)
+			{
+				boolean wasRinging = false;
+				boolean wasOk = false;
+				for(Response res : s.responses)
+				{
+					if(res.getStatusCode() != Response.RINGING)
+						wasRinging = true;
+					if(res.getStatusCode() != Response.OK)
+						wasOk = true;
+				}
+				assertFalse(wasOk);
+				assertFalse(wasRinging);
 			}
 		}
 }

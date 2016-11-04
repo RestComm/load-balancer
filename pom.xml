@@ -19,9 +19,6 @@
 	<name>Restcomm Converged Load Balancer Parent</name>
 	<description>Restcomm Converged Load Balancer Parent</description>
 	<url>https://github.com/Restcomm/load-balancer</url>
-	<properties>
-		<jain-sip-ri.version>1.2.308</jain-sip-ri.version>
-	</properties>
 
 	<modules>
 		<module>docs</module>

@@ -501,7 +501,9 @@ public class SIPBalancerForwarder implements SipListener {
         try {
             // Create SipStack object
             sipFactory = SipFactory.getInstance();
-            sipFactory.setPathName("gov.nist");
+            String pathName = balancerRunner.balancerContext.lbConfig.getSipStackConfiguration().getSipStackProperies().getProperty("pathName", "org.mobicents.ext");
+            logger.info("SIP Stack pathName " + pathName);
+            sipFactory.setPathName(pathName);
 
             balancerRunner.balancerContext.sipStack = (SipStackImpl) sipFactory.createSipStack(balancerRunner.balancerContext.lbConfig.getSipStackConfiguration().getSipStackProperies());
 
@@ -1366,8 +1368,12 @@ public class SIPBalancerForwarder implements SipListener {
 			balancerRunner.balancerContext.blockedList = new ArrayList<String>(Arrays.asList(blockedValues.split(",")));
 
 			balancerRunner.balancerContext.sipStack.start();
-			SIPBalancerValveProcessor valve = (SIPBalancerValveProcessor) balancerRunner.balancerContext.sipStack.sipMessageValve;
-			valve.balancerRunner = balancerRunner;
+
+			for(SIPMessageValve valve : balancerRunner.balancerContext.sipStack.sipMessageValves) {
+				if(valve instanceof SIPBalancerValveProcessor) {
+					((SIPBalancerValveProcessor)valve).balancerRunner = balancerRunner;
+				}
+			}
         } catch (Exception ex) {
             throw new IllegalStateException("Can't create sip objects and lps due to["+ex.getMessage()+"]", ex);
         }

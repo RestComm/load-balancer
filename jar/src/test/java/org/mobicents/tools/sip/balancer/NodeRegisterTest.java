@@ -45,6 +45,7 @@ import java.rmi.RemoteException;
 import javax.sip.ListeningPoint;
 
 import org.junit.Test;
+import org.mobicents.ext.javax.sip.congestion.CongestionControlMessageValve;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 
 /**
@@ -58,6 +59,41 @@ public class NodeRegisterTest{
 	public void testNodeTimeouts() throws RemoteException, Exception {
 		BalancerRunner balancerRunner = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		balancerRunner.start(lbConfig);
+		Thread.sleep(1000);
+		int numNodes = 2;
+		AppServer[] servers = new AppServer[numNodes];
+		try {
+			for(int q=0;q<servers.length;q++) {
+				servers[q] = new AppServer("node" + q,15060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
+				servers[q].start();
+			}
+			
+			Thread.sleep(8000);
+			String[] nodes = balancerRunner.getNodeList();
+			assertEquals(numNodes, nodes.length);
+			servers[0].sendHeartbeat = false;
+			Thread.sleep(14000);
+			nodes = balancerRunner.getNodeList();
+			assertEquals(numNodes-1, nodes.length);
+		}
+		finally {
+			for(int q=0;q<servers.length;q++) {
+				servers[q].stop();
+			}
+			
+			balancerRunner.stop();
+		}
+
+		
+	}
+	
+	@Test
+	public void testNodeTimeouts2ValvesDrop() throws RemoteException, Exception {
+		BalancerRunner balancerRunner = new BalancerRunner();
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", 
+				CongestionControlMessageValve.class.getName() + "," + SIPBalancerValveProcessor.class.getName());
 		balancerRunner.start(lbConfig);
 		Thread.sleep(1000);
 		int numNodes = 2;
