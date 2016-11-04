@@ -115,7 +115,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.mobicents.javax.sip</groupId>
-			<artifactId>mobicents-jain-sip-ext</artifactId>
+			<artifactId>restcomm-jain-sip-ext</artifactId>
 			<version>${jain.sip.ext.version}</version>
 		</dependency>
 		<dependency>
