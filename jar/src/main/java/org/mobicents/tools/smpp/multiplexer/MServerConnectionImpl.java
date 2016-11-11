@@ -623,8 +623,13 @@ public class MServerConnectionImpl implements ServerConnection {
 		connectionCheckRunnable.cancel();
 		connectionCheckTimer.cancel(false);
 		userSpace.getCustomers().remove(sessionId);
-		
 		logger.info("Connection to server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId + " closed");
+		if(userSpace.getCustomers().isEmpty())
+		{
+			logger.info("We did not have connection to Node so we should disconnect from SMPP provider");
+			userSpace.disconnectFromServer();
+
+		}
 	}
 
 	@Override

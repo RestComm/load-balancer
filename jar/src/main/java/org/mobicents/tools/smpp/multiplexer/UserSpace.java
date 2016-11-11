@@ -208,6 +208,14 @@ public class UserSpace {
 			dispatcher.getUserSpaces().remove(systemId);
 		}
 	}
+	
+	public void disconnectFromServer()
+	{
+		for(Long serverSessionID :connectionsToServers.keySet())
+			connectionsToServers.get(serverSessionID).sendUnbindRequest(new Unbind());
+
+		dispatcher.getUserSpaces().remove(systemId);
+	}
 
 	public void sendRequestToServer(Long sessionId, Pdu packet)
 	{
@@ -229,14 +237,21 @@ public class UserSpace {
 		}
 		else
 		{
-		requestToServer.compareAndSet(Long.MAX_VALUE, 0);
-		MClientConnectionImpl[] currItems=new MClientConnectionImpl[connectionsToServers.size()];
-		currItems=connectionsToServers.values().toArray(currItems);
-		while(currItems[(int)(requestToServer.get()%connectionsToServers.size())].getClientState() != ClientState.BOUND)
-		{
-			requestToServer.getAndIncrement();
-		}
-			currItems[(int)(requestToServer.getAndIncrement()%connectionsToServers.size())].sendSmppRequest(sessionId, packet);
+			requestToServer.compareAndSet(Long.MAX_VALUE, 0);
+			MClientConnectionImpl[] currItems=new MClientConnectionImpl[connectionsToServers.size()];
+			currItems=connectionsToServers.values().toArray(currItems);
+			if(!connectionsToServers.isEmpty())
+			{	
+				while(currItems[(int)(requestToServer.get()%connectionsToServers.size())].getClientState() != ClientState.BOUND)
+				{
+					requestToServer.getAndIncrement();
+				}
+				currItems[(int)(requestToServer.getAndIncrement()%connectionsToServers.size())].sendSmppRequest(sessionId, packet);
+			}
+			else
+			{
+				logger.warn("Map connections to SMPP prividers is empty, but we trying to send request them");
+			}
 		}
 	}
 	
@@ -254,7 +269,14 @@ public class UserSpace {
 		{
 			//sends using RR algorithm
 			requestToClient.compareAndSet(Long.MAX_VALUE, 0);
-			customers.get(requestToClient.getAndIncrement()%customers.size()).sendRequest(serverSessionId,packet);
+			if(!customers.isEmpty())
+			{
+				customers.get(requestToClient.getAndIncrement()%customers.size()).sendRequest(serverSessionId,packet);
+			}
+			else
+			{
+				logger.warn("LB does not have connected Nodes, but someone trying send them request");
+			}
 		}
 		else
 		{
