@@ -291,10 +291,19 @@ public class MServerConnectionImpl implements ServerConnection {
 			
 			if(logger.isDebugEnabled())
 				logger.debug("LB received packet (" + packet + ") in REBINDING state from server " + channel.getRemoteAddress().toString() + ". session ID : " + sessionId+". LB sent SYSERR responses!" );
-			
-			PduResponse pduResponse = ((PduRequest<?>) packet).createResponse();
-			pduResponse.setCommandStatus(SmppConstants.STATUS_SYSERR);
-			sendResponse(pduResponse);
+
+			if(packet instanceof PduRequest<?>) {
+				updateLastTimeSMPPLinkUpdated();
+				
+				correctPacket = true;
+				EnquireLinkResp resp=new EnquireLinkResp();
+				resp.setSequenceNumber(packet.getSequenceNumber());
+				sendResponse(resp);
+			} else {
+				PduResponse pduResponse = ((PduRequest<?>) packet).createResponse();
+				pduResponse.setCommandStatus(SmppConstants.STATUS_SYSERR);
+				sendResponse(pduResponse);
+			}
 			break;
 		case UNBINDING:
 			correctPacket = false;

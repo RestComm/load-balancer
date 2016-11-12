@@ -1,5 +1,6 @@
 package org.mobicents.tools.smpp.multiplexer;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -271,7 +272,18 @@ public class UserSpace {
 			requestToClient.compareAndSet(Long.MAX_VALUE, 0);
 			if(!customers.isEmpty())
 			{
-				customers.get(requestToClient.getAndIncrement()%customers.size()).sendRequest(serverSessionId,packet);
+				MServerConnectionImpl connection = customers.get(requestToClient.getAndIncrement()%customers.size());
+				if(connection == null) {
+					Iterator<MServerConnectionImpl> connectionIt = customers.values().iterator();
+					if(connectionIt.hasNext()) {
+						connection = connectionIt.next();
+					}
+				}
+				if(connection == null) {
+					logger.warn("LB does not have connected Nodes, but someone trying send them request");
+				} else {
+					connection.sendRequest(serverSessionId,packet);
+				}
 			}
 			else
 			{
