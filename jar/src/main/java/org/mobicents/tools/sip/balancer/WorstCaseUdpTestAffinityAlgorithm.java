@@ -105,7 +105,10 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 				node=assignedNode;
 			
 			uri.setHost(node.getIp());
-            if(balancerContext.terminateTLSTraffic)
+			if(balancerContext.internalTransport!=null)
+			{
+				transport = balancerContext.internalTransport.toLowerCase();
+			}else if(balancerContext.terminateTLSTraffic)
                 if(transport.equalsIgnoreCase(ListeningPoint.TLS))
                     transport=ListeningPoint.TCP.toLowerCase();
                     else if (transport.equalsIgnoreCase(ListeningPointExt.WSS))

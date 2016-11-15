@@ -25,6 +25,7 @@ public class SipConfiguration {
 	public static final Boolean IS_USE_WITH_NEXMO = false;
 	public static final String MATCHING_HOSTNAME_FOR_ROUTE = null;
 	public static final Boolean IS_FILTER_SUBDOMAIN = false;
+	public static final String INTERNAL_TRANSPORT = null;
 
 	private Boolean isSendTrying;
 	private String publicIp;
@@ -41,6 +42,7 @@ public class SipConfiguration {
 	private Boolean isUseWithNexmo;
 	private String matchingHostnameForRoute;
 	private Boolean isFilterSubdomain;
+	private String internalTransport;
 	
 	public SipConfiguration() 
     {
@@ -63,6 +65,7 @@ public class SipConfiguration {
         this.isUseWithNexmo = IS_USE_WITH_NEXMO;
         this.matchingHostnameForRoute = MATCHING_HOSTNAME_FOR_ROUTE;
         this.isFilterSubdomain = IS_FILTER_SUBDOMAIN;
+        this.internalTransport = INTERNAL_TRANSPORT;
     }
 
 	public AlgorithmConfiguration getAlgorithmConfiguration() {
@@ -207,6 +210,14 @@ public class SipConfiguration {
 
 	public void setIsFilterSubdomain(Boolean isFilterSubdomain) {
 		this.isFilterSubdomain = isFilterSubdomain;
+	}
+
+	public String getInternalTransport() {
+		return internalTransport;
+	}
+
+	public void setInternalTransport(String internalTransport) {
+		this.internalTransport = internalTransport;
 	}
 	
 }

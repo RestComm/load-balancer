@@ -312,6 +312,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <responsesStatusCodeNodeRemoval>503,504</responseStatusCodeNodeRemoval>
   <matchingHostnameForRoute>restcomm.com</matchingHostnameForRoute>
   <isFilterSubdomain>true</isFilterSubdomain>
+  <internalTransport></internalTransport>
   <algorithm>
     <algorithmClass></algorithmClass>
     <sipHeaderAffinityKey></sipHeaderAffinityKey>
@@ -546,6 +547,9 @@ for example restcomm.com
 isFilterSubdomain::
 if false LB will remove route with host equal matchingHostnameForRoute (restcomm.com),
 if true LB will remove route ended with .matchingHostnameForRoute(a.restcomm.com, b.restcomm.com)
+
+internalTransport::
+if set, all external transport will switch to this internal(e.g. WSS,WS,TLS,UDP -> TCP)
 
 isSendTrying::
 if true LB will send own Trying to sender after requests (INVITE,SUBSCRIBE,NOTIFY,MESSAGE,REFER,PUBLISH,UPDATE)

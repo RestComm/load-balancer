@@ -107,6 +107,8 @@ public class XmlConfigurationLoader{
         dst.setIsUseWithNexmo(src.getBoolean("isUseWithNexmo",SipConfiguration.IS_USE_WITH_NEXMO));
         dst.setMatchingHostnameForRoute(src.getString("matchingHostnameForRoute", SipConfiguration.MATCHING_HOSTNAME_FOR_ROUTE));
         dst.setIsFilterSubdomain(src.getBoolean("isFilterSubdomain", SipConfiguration.IS_FILTER_SUBDOMAIN));
+        if(src.getString("internalTransport")!=null&&!src.getString("internalTransport").equals(""))
+        	dst.setInternalTransport(src.getString("internalTransport", SipConfiguration.INTERNAL_TRANSPORT));
         //Algorithm configuration
         if(src.getString("algorithm.algorithmClass") != null && !src.getString("algorithm.algorithmClass").equals(""))
         	alg.setAlgorithmClass(src.getString("algorithm.algorithmClass",AlgorithmConfiguration.ALGORITHM_CLASS));

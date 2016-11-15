@@ -73,6 +73,7 @@ public class BalancerContext {
 	public List<Integer> responsesStatusCodeNodeRemoval;
 	public String matchingHostnameForRoute;
 	public boolean isFilterSubdomain;
+	public String internalTransport;
 	
 	public Object parameters;
 	

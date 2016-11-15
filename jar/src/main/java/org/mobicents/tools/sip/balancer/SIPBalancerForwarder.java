@@ -163,6 +163,7 @@ public class SIPBalancerForwarder implements SipListener {
     	balancerRunner.balancerContext.responsesStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesStatusCodeNodeRemoval();
     	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMatchingHostnameForRoute();
     	balancerRunner.balancerContext.isFilterSubdomain = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsFilterSubdomain();
+    	balancerRunner.balancerContext.internalTransport = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalTransport();
 
         SipFactory sipFactory = null;
         balancerRunner.balancerContext.sipStack = null;
@@ -1617,7 +1618,13 @@ public class SIPBalancerForwarder implements SipListener {
         ViaHeader viaHeader = ((ViaHeader)request.getHeader(ViaHeader.NAME));
         String host = viaHeader.getHost();
         String transport = viaHeader.getTransport();
-		if(balancerRunner.balancerContext.terminateTLSTraffic)
+        if(balancerRunner.balancerContext.internalTransport!=null)
+        {
+        	if(logger.isDebugEnabled()) {
+				logger.debug("Set internal transport for Via checking (is from server): " +  balancerRunner.balancerContext.internalTransport);
+			}
+        	transport = balancerRunner.balancerContext.internalTransport;
+        }else if(balancerRunner.balancerContext.terminateTLSTraffic)
 		{
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
 				transport = ListeningPoint.TCP;
@@ -1667,15 +1674,25 @@ public class SIPBalancerForwarder implements SipListener {
         ViaHeader viaHeader = ((ViaHeader)response.getHeader(ViaHeader.NAME));
 		String currentTransport = viaHeader.getTransport();
 		String transport = null;
-		if (!balancerRunner.balancerContext.terminateTLSTraffic) {
-			transport = currentTransport;
-		} else {
-			if (currentTransport.equalsIgnoreCase(ListeningPoint.TLS))
+		if(balancerRunner.balancerContext.internalTransport!=null)
+        {
+			if(logger.isDebugEnabled()) {
+				logger.debug("Set internal transport for getting sender Node: " +  balancerRunner.balancerContext.internalTransport);
+			}
+        	transport = balancerRunner.balancerContext.internalTransport;
+        }
+		else if (balancerRunner.balancerContext.terminateTLSTraffic) 
+        {
+        	if (currentTransport.equalsIgnoreCase(ListeningPoint.TLS))
 				transport = ListeningPoint.TCP;
 			else if (currentTransport.equalsIgnoreCase(ListeningPointExt.WSS))
 				transport = ListeningPointExt.WS;
 			else
 				transport = currentTransport;
+		} 
+		else 
+		{
+			transport = currentTransport;
 		}
         if(transport == null) transport = ListeningPoint.UDP;
         int port = resp.getRemotePort();
@@ -1847,11 +1864,16 @@ public class SIPBalancerForwarder implements SipListener {
         final String callID = ((CallIdHeader) request.getHeader(CallIdHeader.NAME)).getCallId();
 
 		String transport = null;
-		if (!balancerRunner.balancerContext.terminateTLSTraffic)
-			transport = ((ViaHeader) request.getHeader(ViaHeader.NAME))
-					.getTransport().toLowerCase();
-		else {
-			switch (((ViaHeader) request.getHeader(ViaHeader.NAME))
+		
+		if(balancerRunner.balancerContext.internalTransport!=null)
+        {
+			if(logger.isDebugEnabled()) {
+				logger.debug("Set internal transport for NODE looking: " +  balancerRunner.balancerContext.internalTransport);
+			}
+        	transport = balancerRunner.balancerContext.internalTransport.toLowerCase();
+        }else if (balancerRunner.balancerContext.terminateTLSTraffic)
+		{
+        	switch (((ViaHeader) request.getHeader(ViaHeader.NAME))
 					.getTransport()) {
 				case ListeningPoint.TLS:
 					transport = ListeningPoint.TCP.toLowerCase();
@@ -1862,14 +1884,17 @@ public class SIPBalancerForwarder implements SipListener {
 				case ListeningPointExt.WS:
 				case ListeningPointExt.TCP:
 				case ListeningPointExt.UDP:
-					transport = ((ViaHeader) request.getHeader(ViaHeader.NAME))
-							.getTransport().toLowerCase();
+					transport = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 			} 
 			if(logger.isDebugEnabled()) {
          		logger.debug("Terminate TLS traffic, isRequestFromServer: " + isRequestFromServer + 
          				" transport before " + ((ViaHeader) request.getHeader(ViaHeader.NAME))
 						.getTransport() + ", transport after " + transport);
          	}
+		}
+		else 
+		{
+			transport = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 		}
 
         if(hints.serverAssignedNode !=null) {
@@ -2211,7 +2236,15 @@ public class SIPBalancerForwarder implements SipListener {
 					externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(outerTransport,isIpv6),outerTransport, newBranch + "_" + version);
 
 			String innerTransport = transport;
-			if (balancerRunner.balancerContext.terminateTLSTraffic) {
+			if(balancerRunner.balancerContext.internalTransport!=null)
+			{
+				if(logger.isDebugEnabled()) {
+					logger.debug("Set internal transport for for creating Via header : " +  balancerRunner.balancerContext.internalTransport);
+				}
+				innerTransport = balancerRunner.balancerContext.internalTransport;
+			}
+			else if (balancerRunner.balancerContext.terminateTLSTraffic) 
+			{
 				if(logger.isDebugEnabled()) {
 	         		logger.debug("Terminate TLS traffic, isRequestFromServer: " + isRequestFromServer + 
 	         				" transport before " + innerTransport);
@@ -2477,30 +2510,68 @@ public class SIPBalancerForwarder implements SipListener {
 		String transport = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 
 		if (sipProvider.equals(balancerRunner.balancerContext.externalSipProvider) || sipProvider.equals(balancerRunner.balancerContext.externalIpv6SipProvider)) {
-			int transportIndex = TLS;
-			int internalTransportIndex = TLS;
-			if (balancerRunner.balancerContext.terminateTLSTraffic) {
-				internalTransportIndex = TCP;
-			}
-
-			if (transport.equalsIgnoreCase(ListeningPoint.UDP)) {
-				transportIndex = UDP;
-				internalTransportIndex = UDP;
-			} else if (transport.equalsIgnoreCase(ListeningPoint.TCP)) {
-				transportIndex = TCP;
-				internalTransportIndex = TCP;
-			} else if (transport.equalsIgnoreCase(ListeningPointExt.WS)) {
-				transportIndex = WS;
-				internalTransportIndex = WS;
-			} else if (transport.equalsIgnoreCase(ListeningPointExt.WSS)) {
-				transportIndex = WSS;
+			
+			int transportIndex = 0;
+			int internalTransportIndex = 0;
+			if(balancerRunner.balancerContext.internalTransport!=null)
+			{
+				if(logger.isDebugEnabled()) {
+					logger.debug("Set internal transport for adding Record Route): " +  balancerRunner.balancerContext.internalTransport);
+				}
+				String currExternalTransport = transport.toUpperCase();
+				switch (currExternalTransport) 
+				{
+	            case ListeningPoint.UDP:  transportIndex = UDP;
+	            break;
+	            case ListeningPoint.TCP:  transportIndex = TCP;
+        		break;
+	            case ListeningPoint.TLS:  transportIndex = TLS;
+        		break;
+	            case ListeningPointExt.WS:  transportIndex = WS;
+        		break;
+	            case ListeningPointExt.WSS:  transportIndex = WSS;
+        		break;
+				}
+				String currInternalTransport = balancerRunner.balancerContext.internalTransport.toUpperCase();
+				switch (currInternalTransport) 
+				{
+	            case ListeningPoint.UDP:  internalTransportIndex = UDP;
+	            break;
+	            case ListeningPoint.TCP:  internalTransportIndex = TCP;
+        		break;
+	            case ListeningPoint.TLS:  internalTransportIndex = TLS;
+        		break;
+	            case ListeningPointExt.WS:  internalTransportIndex = WS;
+        		break;
+	            case ListeningPointExt.WSS:  internalTransportIndex = WSS;
+        		break;
+				}
+			}else
+			{
+				transportIndex = TLS;
+				internalTransportIndex = TLS;
 				if (balancerRunner.balancerContext.terminateTLSTraffic) {
+					internalTransportIndex = TCP;
+				}
+
+				if (transport.equalsIgnoreCase(ListeningPoint.UDP)) {
+					transportIndex = UDP;
+					internalTransportIndex = UDP;
+				} else if (transport.equalsIgnoreCase(ListeningPoint.TCP)) {
+					transportIndex = TCP;
+					internalTransportIndex = TCP;
+				} else if (transport.equalsIgnoreCase(ListeningPointExt.WS)) {
+					transportIndex = WS;
 					internalTransportIndex = WS;
-				} else {
-					internalTransportIndex = WSS;
+				} else if (transport.equalsIgnoreCase(ListeningPointExt.WSS)) {
+					transportIndex = WSS;
+					if (balancerRunner.balancerContext.terminateTLSTraffic) {
+						internalTransportIndex = WS;
+					} else {
+						internalTransportIndex = WSS;
+					}
 				}
 			}
-
 			// comes from client
 			if(!isIpv6)
 				addTwoRecordRoutes(request,balancerRunner.balancerContext.activeExternalHeader[transportIndex],
