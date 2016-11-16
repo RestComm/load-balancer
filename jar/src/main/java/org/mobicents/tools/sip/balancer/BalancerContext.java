@@ -60,6 +60,8 @@ public class BalancerContext {
 	public CopyOnWriteArrayList<SIPNode> aliveNodes = null;
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
 	public String algorithmClassName;
+	public String smppToNodeAlgorithmClassName;
+	public String smppToProviderAlgorithmClassName;
 	
 	public AtomicInteger numberHttpRequest = new AtomicInteger(0);
 	

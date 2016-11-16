@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
 
@@ -32,11 +33,11 @@ public class UserSpace {
 	private String password;
 	private String systemType;
 	private ConcurrentLinkedQueue<MServerConnectionImpl> pendingCustomers;
-	private Map<Long, MServerConnectionImpl> customers;
-	private Map<Long, MClientConnectionImpl> connectionsToServers;
+	private ConcurrentHashMap<Long, MServerConnectionImpl> customers;
+	private ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToServers;
 	private AtomicLong requestToServer = new AtomicLong(0);
 	private AtomicLong requestToClient = new AtomicLong(0);
-	private boolean isUseRrSendSmppRequestToClient;
+	private InvocationContext ctx = null;
 	
 	private SIPNode [] nodes;
 	private Long serverSessionID = new Long(0);
@@ -53,13 +54,13 @@ public class UserSpace {
 		this.password = password;
 		this.balancerRunner = balancerRunner;
 		this.customers = new ConcurrentHashMap<Long, MServerConnectionImpl>();
+		this.ctx = balancerRunner.getLatestInvocationContext(); 
 		this.pendingCustomers = new ConcurrentLinkedQueue<MServerConnectionImpl>();
 		this.connectionsToServers = new ConcurrentHashMap<Long, MClientConnectionImpl>();
 		this.nodes = nodes;
 		this.monitorExecutor = monitorExecutor;
 		this.dispatcher = dispatcher;
 		this.reconnectPeriod = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getReconnectPeriod();
-		this.isUseRrSendSmppRequestToClient = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getIsUseRrSendSmppRequestToClient();
 	}
 	
 	public synchronized void bind(MServerConnectionImpl customer,Pdu bindPdu) {
@@ -227,33 +228,9 @@ public class UserSpace {
 		balancerRunner.balancerContext.smppBytesToServer.addAndGet(packet.getCommandLength());
 		
 		if(logger.isDebugEnabled())
-			logger.debug("LB sending message form customer with sessionId : " + sessionId + " to server ");
-		
-		if(balancerRunner.algorithClassName.endsWith("ActiveStandbyAlgorithm"))
-		{
-			if(connectionsToServers.get(0l)!=null&&connectionsToServers.get(0l).getClientState()==ClientState.BOUND)
-				connectionsToServers.get(0l).sendSmppRequest(sessionId, packet);
-			else
-				connectionsToServers.get(1l).sendSmppRequest(sessionId, packet);
-		}
-		else
-		{
-			requestToServer.compareAndSet(Long.MAX_VALUE, 0);
-			MClientConnectionImpl[] currItems=new MClientConnectionImpl[connectionsToServers.size()];
-			currItems=connectionsToServers.values().toArray(currItems);
-			if(!connectionsToServers.isEmpty())
-			{	
-				while(currItems[(int)(requestToServer.get()%connectionsToServers.size())].getClientState() != ClientState.BOUND)
-				{
-					requestToServer.getAndIncrement();
-				}
-				currItems[(int)(requestToServer.getAndIncrement()%connectionsToServers.size())].sendSmppRequest(sessionId, packet);
-			}
-			else
-			{
-				logger.warn("Map connections to SMPP prividers is empty, but we trying to send request them");
-			}
-		}
+			logger.debug("LB sending message form customer with sessionId : " + sessionId + " to provider ");
+
+		ctx.smppToProviderBalancerAlgorithm.processSubmitToProvider(connectionsToServers, sessionId, packet);
 	}
 	
 	public void sendRequestToClient(Pdu packet, Long serverSessionId)
@@ -264,38 +241,9 @@ public class UserSpace {
 		balancerRunner.balancerContext.smppBytesToClient.addAndGet(packet.getCommandLength());
 		
 		if(logger.isDebugEnabled())
-			logger.debug("LB sending request from server with sessionId : " + serverSessionId + " to client. via RR algorithm? : " + isUseRrSendSmppRequestToClient);
+			logger.debug("LB sending request from SMPP provider with sessionId : " + serverSessionId + " to Node.");
 		
-		if(isUseRrSendSmppRequestToClient)
-		{
-			//sends using RR algorithm
-			requestToClient.compareAndSet(Long.MAX_VALUE, 0);
-			if(!customers.isEmpty())
-			{
-				MServerConnectionImpl connection = customers.get(requestToClient.getAndIncrement()%customers.size());
-				if(connection == null) {
-					Iterator<MServerConnectionImpl> connectionIt = customers.values().iterator();
-					if(connectionIt.hasNext()) {
-						connection = connectionIt.next();
-					}
-				}
-				if(connection == null) {
-					logger.warn("LB does not have connected Nodes, but someone trying send them request");
-				} else {
-					connection.sendRequest(serverSessionId,packet);
-				}
-			}
-			else
-			{
-				logger.warn("LB does not have connected Nodes, but someone trying send them request");
-			}
-		}
-		else
-		{
-			//sends to all clients
-			for(Long clientSessionID : customers.keySet())
-				customers.get(clientSessionID).sendRequest(serverSessionId,packet);
-		}
+		ctx.smppToNodeBalancerAlgorithm.processSubmitToNode(customers,serverSessionId,packet);
 	}
 	
 	public void sendResponseToServer(Long sessionId, Pdu packet,Long serverSessionId)

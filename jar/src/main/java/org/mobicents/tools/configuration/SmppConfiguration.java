@@ -1,5 +1,8 @@
 package org.mobicents.tools.configuration;
 
+import org.mobicents.tools.smpp.multiplexer.SmppToNodeRoundRobinAlgorithm;
+import org.mobicents.tools.smpp.multiplexer.SmppToProviderRoundRobinAlgorithm;
+
 public class SmppConfiguration {
 	
 	public static final String SMPP_HOST = null;
@@ -15,7 +18,8 @@ public class SmppConfiguration {
 	public static final Integer RECONNECT_PERIOD = 500;
 	public static final Integer TIMEOUT_CONNECTION_CHECK_CLIENT_SIDE = 3000;
 	public static final Integer TIMEOUT_CONNECTION_CHECK_SERVER_SIDE = 3000;
-	public static final Boolean IS_USE_RR_SEND_SMPP_REQUEST_TO_CLIENT = false;
+	public static final String SMPP_TO_NODE_ALGORITHM_CLASS = SmppToNodeRoundRobinAlgorithm.class.getCanonicalName();
+	public static final String SMPP_TO_PROVIDER_ALGORITHM_CLASS = SmppToProviderRoundRobinAlgorithm.class.getCanonicalName();
 	
 	private String smppHost;	
 	private Integer smppPort;
@@ -30,7 +34,8 @@ public class SmppConfiguration {
 	private Integer reconnectPeriod;
 	private Integer timeoutConnectionCheckClientSide;
 	private Integer timeoutConnectionCheckServerSide;
-	private Boolean isUseRrSendSmppRequestToClient;
+	private String smppToNodeAlgorithmClass;
+	private String smppToProviderAlgorithmClass;
 	
 	 public SmppConfiguration() 
 	    {
@@ -47,7 +52,8 @@ public class SmppConfiguration {
 	        this.reconnectPeriod = RECONNECT_PERIOD;
 	        this.timeoutConnectionCheckClientSide = TIMEOUT_CONNECTION_CHECK_CLIENT_SIDE;
 	        this.timeoutConnectionCheckServerSide = TIMEOUT_CONNECTION_CHECK_SERVER_SIDE;
-	        this.isUseRrSendSmppRequestToClient = IS_USE_RR_SEND_SMPP_REQUEST_TO_CLIENT;
+			this.smppToNodeAlgorithmClass = SMPP_TO_NODE_ALGORITHM_CLASS;
+			this.smppToProviderAlgorithmClass = SMPP_TO_PROVIDER_ALGORITHM_CLASS;
 	    }
 
 	 
@@ -175,12 +181,23 @@ public class SmppConfiguration {
 	public void setRemoteServers(String remoteServers) {
 		this.remoteServers = remoteServers;
 	}
-
-	public Boolean getIsUseRrSendSmppRequestToClient() {
-		return isUseRrSendSmppRequestToClient;
+	public String getSmppToNodeAlgorithmClass() 
+	{
+		return smppToNodeAlgorithmClass;
 	}
 
-	public void setIsUseRrSendSmppRequestToClient(Boolean isUseRrSendSmppRequestToClient) {
-		this.isUseRrSendSmppRequestToClient = isUseRrSendSmppRequestToClient;
+	public void setSmppToNodeAlgorithmClass(String smppToNodeAlgorithmClass) 
+	{
+		this.smppToNodeAlgorithmClass = smppToNodeAlgorithmClass;
+	}
+
+	public String getSmppToProviderAlgorithmClass() 
+	{
+		return smppToProviderAlgorithmClass;
+	}
+
+	public void setSmppToProviderAlgorithmClass(String smppToProviderAlgorithmClass) 
+	{
+		this.smppToProviderAlgorithmClass = smppToProviderAlgorithmClass;
 	}
 }

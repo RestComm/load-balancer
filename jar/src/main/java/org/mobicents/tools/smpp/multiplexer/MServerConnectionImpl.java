@@ -181,8 +181,8 @@ public class MServerConnectionImpl implements ServerConnection {
 				serverState = ServerState.BINDING;
 				
 				// TODO Do it on the response instead as if we can't bind, we will still enquire 
-				enquireRunnable=new CustomerTimerEnquire(this);
-				enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
+//				enquireRunnable=new CustomerTimerEnquire(this);
+//				enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
 				
 				if(connectionTimer!=null)
 				{

@@ -258,7 +258,10 @@ public class XmlConfigurationLoader{
     		dst.setTimeoutConnectionCheckClientSide(src.getInteger("timeoutConnectionCheckClientSide",SmppConfiguration.TIMEOUT_CONNECTION_CHECK_CLIENT_SIDE));
     		dst.setTimeoutConnectionCheckServerSide(src.getInteger("timeoutConnectionCheckServerSide",SmppConfiguration.TIMEOUT_CONNECTION_CHECK_SERVER_SIDE));
     		dst.setRemoteServers(src.getString("remoteServers",SmppConfiguration.REMOTE_SERVERS));
-    		dst.setIsUseRrSendSmppRequestToClient(src.getBoolean("isUseRrSendSmppRequestToClient",SmppConfiguration.IS_USE_RR_SEND_SMPP_REQUEST_TO_CLIENT));
+    		if(src.getString("toNodeAlgorithmClass") != null && !src.getString("toNodeAlgorithmClass").equals(""))
+    			dst.setSmppToNodeAlgorithmClass(src.getString("toNodeAlgorithmClass",SmppConfiguration.SMPP_TO_NODE_ALGORITHM_CLASS));
+    	    if(src.getString("toProviderAlgorithmClass") != null && !src.getString("toProviderAlgorithmClass").equals(""))
+    	    	dst.setSmppToProviderAlgorithmClass(src.getString("toProviderAlgorithmClass",SmppConfiguration.SMPP_TO_PROVIDER_ALGORITHM_CLASS));
     	}
     }
     private static void configureSsl(HierarchicalConfiguration<ImmutableNode> src, SslConfiguration dst) 

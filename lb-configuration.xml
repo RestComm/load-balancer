@@ -78,7 +78,6 @@
   <reconnectPeriod>1000</reconnectPeriod>
   <timeoutConnectionCheckClientSide>1000</timeoutConnectionCheckClientSide>
   <timeoutConnectionCheckServerSide>1000</timeoutConnectionCheckServerSide>
-  <isUseRrSendSmppRequestToClient></isUseRrSendSmppRequestToClient>
   
 </smpp>
 <ssl>

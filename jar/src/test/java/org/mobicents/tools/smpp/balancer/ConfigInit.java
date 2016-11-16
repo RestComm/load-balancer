@@ -20,8 +20,11 @@
 package org.mobicents.tools.smpp.balancer;
 
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-
 import org.mobicents.tools.sip.balancer.ActiveStandbyAlgorithm;
+import org.mobicents.tools.smpp.multiplexer.SmppToNodeRoundRobinAlgorithm;
+import org.mobicents.tools.smpp.multiplexer.SmppToNodeSubmitToAllAlgorithm;
+import org.mobicents.tools.smpp.multiplexer.SmppToProviderActiveStandbyAlgorithm;
+
 import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.smpp.SmppBindType;
 import com.cloudhopper.smpp.SmppServerConfiguration;
@@ -71,12 +74,12 @@ public class ConfigInit {
 		if(isOneServer)
 		{
 			lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021");
-			lbConfig.getSmppConfiguration().setIsUseRrSendSmppRequestToClient(true);
+			lbConfig.getSmppConfiguration().setSmppToNodeAlgorithmClass(SmppToNodeRoundRobinAlgorithm.class.getName());
 		}
 		else
 		{
 			lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021,127.0.0.1:10022");
-			lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(ActiveStandbyAlgorithm.class.getName());
+			lbConfig.getSmppConfiguration().setSmppToProviderAlgorithmClass(SmppToProviderActiveStandbyAlgorithm.class.getName());
 		}
 		return lbConfig;
 	}
@@ -98,6 +101,7 @@ public class ConfigInit {
 		lbConfig.getSmppConfiguration().setReconnectPeriod(500);
 		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckClientSide(2000);
 		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckServerSide(2000);
+		lbConfig.getSmppConfiguration().setSmppToNodeAlgorithmClass(SmppToNodeSubmitToAllAlgorithm.class.getName());
 		if(isSsl)
 		{
 			lbConfig.getSslConfiguration().setKeyStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());

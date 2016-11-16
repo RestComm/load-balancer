@@ -119,6 +119,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public BalancerContext balancerContext = new BalancerContext();
 	
 	public String algorithClassName = null;
+	public String smppToNodeAlgorithClassName = null;
+	public String smppToProviderAlgorithClassName = null;
 
 	/**
 	 * @param args
@@ -170,7 +172,11 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	    remoteObjectPort = lbConfig.getCommonConfiguration().getRmiRemoteObjectPort();
 		
 		this.algorithClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
+		this.smppToNodeAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
+		this.smppToProviderAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToProviderAlgorithmClass();
 		balancerContext.algorithmClassName = this.algorithClassName;
+		balancerContext.smppToNodeAlgorithmClassName = this.smppToNodeAlgorithClassName;
+		balancerContext.smppToProviderAlgorithmClassName = this.smppToProviderAlgorithClassName;
 		balancerContext.terminateTLSTraffic = lbConfig.getSslConfiguration().getTerminateTLSTraffic();
 		
 		try {
@@ -287,6 +293,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 						for(InvocationContext ctx : contexts.values()) {
 							balancerContext.lbConfig = configLoader.load(conf);
 							ctx.balancerAlgorithm.configurationChanged();
+							ctx.smppToNodeBalancerAlgorithm.configurationChanged();
+							ctx.smppToProviderBalancerAlgorithm.configurationChanged();
 						}
 					} catch (Exception e) {
 						logger.warn("Problem reloading configuration " + e);
@@ -381,8 +389,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				
 				cs = null;
 				
-				for(InvocationContext ctx : contexts.values()) 
+				for(InvocationContext ctx : contexts.values())
+				{
 					ctx.balancerAlgorithm.stop();
+					ctx.smppToNodeBalancerAlgorithm.stop();
+					ctx.smppToProviderBalancerAlgorithm.stop();
+				}
 				
 				logger.info("Stopping the node registry");
 				adapter.stop();
