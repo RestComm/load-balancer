@@ -21,10 +21,10 @@
   </appender> 
   
   <category name="org.mobicents">
-     <priority value="DEBUG" />
+     <priority value="INFO" />
    </category>
    <category name="gov.nist">
-     <priority value="DEBUG" />
+     <priority value="INFO" />
    </category>
    
   <root> 

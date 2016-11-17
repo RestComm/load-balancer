@@ -91,6 +91,8 @@ public class ClusterSubdomainAffinityAlgorithmTest{
 			algorithm.balancerContext = new BalancerContext();
 			algorithm.balancerContext.lbConfig = new LoadBalancerConfiguration();
 			algorithm.balancerContext.lbConfig.getSipConfiguration().getAlgorithmConfiguration().setSubclusterMap(failoverGroup);
+			algorithm.balancerContext.smppToNodeAlgorithmClassName = algorithm.balancerContext.lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
+			algorithm.balancerContext.smppToProviderAlgorithmClassName = algorithm.balancerContext.lbConfig.getSmppConfiguration().getSmppToProviderAlgorithmClass();
 			
 			algorithm.balancerContext.algorithmClassName = ClusterSubdomainAffinityAlgorithm.class.getName();
 			InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
