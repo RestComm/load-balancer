@@ -148,6 +148,7 @@ public class SslBalancerNoSslServerTest {
 			SmppSession session = null;
 			try {
 				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,isSslClient),clientHandlerArray[i]);
+				Thread.sleep(1000);
 				session.submit(ConfigInit.getSubmitSm(), 12000);
 				sleep(100);
 				session.unbind(5000);

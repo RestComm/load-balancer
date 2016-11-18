@@ -207,6 +207,7 @@ public class CommonTest{
 			{
 			 clientHandlerArray[i] = new  DefaultSmppClientHandler();
 			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i,false), clientHandlerArray[i]);
+			 Thread.sleep(1000);
 			 for(int j = 0; j < smsNumber; j++)
 			 {
 				 session.submit(ConfigInit.getSubmitSm(), 12000); 

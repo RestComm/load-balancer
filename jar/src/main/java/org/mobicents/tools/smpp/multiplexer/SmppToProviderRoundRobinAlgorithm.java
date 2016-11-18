@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.sql.rowset.spi.SyncResolver;
+
 import com.cloudhopper.smpp.pdu.Pdu;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
@@ -37,7 +39,7 @@ public class SmppToProviderRoundRobinAlgorithm extends DefaultSmppAlgorithm
 	}
 
 	@Override
-	public void processSubmitToProvider(ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToProviders, Long sessionId, Pdu packet) 
+	public synchronized void processSubmitToProvider(ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToProviders, Long sessionId, Pdu packet) 
 	{
 		if(connectionToProviderIterator==null)
 			connectionToProviderIterator = connectionsToProviders.entrySet().iterator();

@@ -35,7 +35,7 @@ public class SmppToNodeRoundRobinAlgorithm extends DefaultSmppAlgorithm
 	
 
 	@Override
-	public void processSubmitToNode(ConcurrentHashMap<Long, MServerConnectionImpl> customers, Long serverSessionId, Pdu packet) 
+	public synchronized void processSubmitToNode(ConcurrentHashMap<Long, MServerConnectionImpl> customers, Long serverSessionId, Pdu packet) 
 	{
 		
 		if(connectionToNodeIterator==null)
