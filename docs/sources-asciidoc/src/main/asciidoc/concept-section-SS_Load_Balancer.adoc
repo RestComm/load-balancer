@@ -237,7 +237,7 @@ The following is a list of the built-in algorithms for SMPP:
 
  This algorithm allows to send all requests to the active SMPP provider.
  If the active SMPP provider will disconnected in some way then
- the Load balancer will send requests to the passive SMPP provider. 
+ the Load balancer will send requests to the passive SMPP provider.
 
   - to Node side:
   org.mobicents.tools.smpp.multiplexer.SmppToNodeRoundRobinAlgorithm::
@@ -977,6 +977,7 @@ For enabling TLS support for SMPP load balancer, you should correctly specify ne
 * trustStorePassword.
 * enabledCipherSuites;
 * tlsClientProtocols;
+
 == Getting statistic
 
 Load balancers provide some statistic by Java Management Extensions and JSON.
