@@ -581,8 +581,11 @@ public class MClientConnectionImpl implements ClientConnection{
 	public void closeChannel() 
 	{
 		connectionCheckServerSideTimer.cancel(false);
-		enquireTimer.cancel(false);
-		enquireRunnable.cancel();
+		if(enquireTimer!=null)
+		{
+			enquireTimer.cancel(false);
+			enquireRunnable.cancel();
+		}
 		
 		if(channel.getPipeline().getLast()!=null)
 			channel.getPipeline().removeLast();
