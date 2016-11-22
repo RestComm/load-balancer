@@ -175,7 +175,6 @@ public class XmlConfigurationLoader{
         
         //internal leg configuration
         in.setHost(src.getString("internal.host",InternalLegConfiguration.HOST));
-        in.setHost(src.getString("internal.ipv6Host",InternalLegConfiguration.IPV6_HOST));
         if(src.getString("internal.ipLoadBalancerAddress") != null && !src.getString("internal.ipLoadBalancerAddress").equals(""))
         	in.setIpLoadBalancerAddress(src.getString("internal.ipLoadBalancerAddress", InternalLegConfiguration.IP_LOAD_BALANCER_ADRESS));
         if(src.getString("internal.udpPort") != null && !src.getString("internal.udpPort").equals(""))
