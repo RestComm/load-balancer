@@ -20,6 +20,8 @@ package org.mobicents.tools.smpp.balancer.api;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.mobicents.tools.sip.balancer.KeySmpp;
+import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl;
 import org.mobicents.tools.smpp.multiplexer.MServerConnectionImpl;
 
@@ -32,6 +34,8 @@ public interface SmppAlgorithm {
 	void processSubmitToNode(ConcurrentHashMap<Long, MServerConnectionImpl> connectionsToNodes, Long serverSessionId, Pdu packet);
 	
 	void processSubmitToProvider(ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToProviders,Long sessionId, Pdu packet);
+	
+	SIPNode processBindToProvider();
 	/**
 	 * Lifecycle method. Notifies the algorithm when it's initialized with properties and balancer context.
 	 */

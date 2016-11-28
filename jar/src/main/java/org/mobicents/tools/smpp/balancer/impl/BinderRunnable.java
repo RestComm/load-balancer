@@ -19,13 +19,16 @@
 
 package org.mobicents.tools.smpp.balancer.impl;
 
+import java.util.ArrayList;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 import org.mobicents.tools.smpp.balancer.impl.ClientConnectionImpl.ClientState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.pdu.BaseBind;
@@ -39,7 +42,9 @@ import com.cloudhopper.smpp.tlv.Tlv;
  */
 
 public class BinderRunnable implements Runnable {
-
+	
+	private static final Logger logger = LoggerFactory.getLogger(BinderRunnable.class);
+	
 	private int index;
 	private Pdu packet;
 	private ClientConnectionImpl client;
@@ -47,7 +52,7 @@ public class BinderRunnable implements Runnable {
 	private Map<Long, ClientConnection> clientSessions;
 	private Long sessionId;
 	private SIPNode firstNode;
-	private CopyOnWriteArrayList<SIPNode> nodes;
+	private ArrayList<SIPNode> nodes;
 
 	public BinderRunnable(Long sessionId, Pdu packet, Map<Long, ServerConnection> serverSessions, Map<Long, ClientConnection> clientSessions, SIPNode node, BalancerRunner balancerRunner)
 	{
@@ -55,9 +60,8 @@ public class BinderRunnable implements Runnable {
 		this.packet = packet;
 		this.client = (ClientConnectionImpl) clientSessions.get(sessionId);
 		this.firstNode = node;
-		//this.nodes = balancerRunner.getLatestInvocationContext().nodes;
-		this.nodes = (CopyOnWriteArrayList<SIPNode>) balancerRunner.getLatestInvocationContext().sipNodeMap(false).values();
-		this.index = this.nodes.indexOf(node);
+		this.nodes = new ArrayList<SIPNode>(balancerRunner.getLatestInvocationContext().smppNodeMap.values());
+		//this.index = this.nodes.indexOf(node);
 		this.serverSessions = serverSessions;
 		this.clientSessions = clientSessions;
 	}
@@ -66,19 +70,23 @@ public class BinderRunnable implements Runnable {
 	@Override
 	public void run() {
 		boolean connectSuccesful = true;
+		System.out.println();
 		while (!client.connect()) {
+			logger.warn("Connection to " + client.getConfig().getHost() + ":" + client.getConfig().getPort() + " failed we will try next server");
 			index ++;
 			if (index == nodes.size())	index = 0;
 			if (index == nodes.indexOf(firstNode)) {
 				connectSuccesful = false;
 				break;
 			}
-
 			client.getConfig().setHost(nodes.get(index).getIp());
+			
 			if(!client.getConfig().isUseSsl())
-				client.getConfig().setPort((Integer) nodes.get(index).getProperties().get("smppPort"));
+				client.getConfig().setPort(Integer.parseInt((String) nodes.get(index).getProperties().get("smppPort")));
 			else
-				client.getConfig().setPort((Integer) nodes.get(index).getProperties().get("smppSslPort"));
+				client.getConfig().setPort(Integer.parseInt((String)nodes.get(index).getProperties().get("smppSslPort")));
+			
+			logger.warn("Next server : " + client.getConfig().getHost() + ":" + client.getConfig().getPort());
 		}
 		
 		if (connectSuccesful) 

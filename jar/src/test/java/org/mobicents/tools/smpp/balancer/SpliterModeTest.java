@@ -34,7 +34,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
+import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,9 +47,9 @@ import com.cloudhopper.smpp.type.SmppChannelException;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class CommonTest{
+public class SpliterModeTest{
 	
-	private static final Logger logger = LoggerFactory.getLogger(CommonTest.class);
+	private static final Logger logger = LoggerFactory.getLogger(SpliterModeTest.class);
 	
 	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 
@@ -74,10 +74,7 @@ public class CommonTest{
 		boolean terminateTLSTraffic = true;
 		//start lb
 		balancer = new BalancerRunner();
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnection(2000);
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckClientSide(5000);
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckServerSide(5000);
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        balancer.start(ConfigInit.getLbSpliterProperties(enableSslLbPort,terminateTLSTraffic));
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
@@ -117,42 +114,47 @@ public class CommonTest{
 		
 	    locker.waitForClients();
 	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertNotEquals(0, serverHandler.smsNumber);
-	    	//assertEquals(sms*clientNumbers/serverNumbers,serverHandler.smsNumber);
-
+	    	assertEquals(sms,serverHandler.smsNumber);
+	    
+	    for(DefaultSmppServer server: serverArray)
+	    	assertEquals(clientNumbers/serverNumbers, server.getBindRequested());
+	    
 	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
 	    	assertEquals(sms,clientHandler.getReponsesNumber().get());
 	    
-	    assertTrue(((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getUserSpaces().isEmpty());
+	    assertTrue(((BalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getClientSessions().isEmpty());
+	    assertTrue(((BalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getServerSessions().isEmpty());
     }
 	//tests work of enquire link timer
 	@Test
     public void testEnquireLinkTimer() 
     {
-		int clientNumbers = 3;
+		int clientNumbers = 1;
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int sms= 0;
+		int smsNumberFromClient = 0;
 		Locker locker=new Locker(clientNumbers);
 		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
 		for(int i = 0; i < clientNumbers; i++)
-			processors.add(new Load(i, sms, locker));
+			processors.add(new Load(i, smsNumberFromClient, locker));
 		
 		for(int i = 0; i < clientNumbers; i++)
 			processors.get(i).start();
 		
 	    locker.waitForClients();
-	    
-	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertTrue(5<=serverHandler.getEnqLinkNumber().get());
-
-	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
-	    	assertTrue(5<=clientHandler.getEnqLinkNumber().get());
-
+	    boolean isCorrectEnqLinkRequest = false;
+	    for(DefaultSmppServerHandler handler : serverHandlerArray)
+	    	if(handler.getEnqLinkNumber().get()==3)
+	    		isCorrectEnqLinkRequest = true;
+		assertTrue(isCorrectEnqLinkRequest);
+		assertEquals(3,clientHandlerArray[0].getEnqLinkNumber().get());
+	    assertTrue(((BalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getClientSessions().isEmpty());
+	  	assertTrue(((BalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getServerSessions().isEmpty());
     }
+	
 	//tests work of session initialization timer
 	@Test
-    public void testSessionInitTimer() 
-    {
+	public void testSessionInitTimer() 
+	{
 		ClientConnectOnly dummyClient = new ClientConnectOnly();
 		try {
 			dummyClient.bind(ConfigInit.getSmppSessionConfiguration(0,false));
@@ -160,8 +162,9 @@ public class CommonTest{
 		} catch (Exception e) {
 			logger.error("", e);
 		} 
-		assertEquals(1,((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getNotBindClients().get());
-    }
+		assertEquals(1,((BalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getNotBindClients().get());
+	 }
+	
 	@After
 	public void resetCounters()
 	{

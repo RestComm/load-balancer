@@ -34,6 +34,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +131,7 @@ public class SmppStatisticTest{
 		assertEquals(clientNumbers, balancer.smppBalancerRunner.getSmppRequestsProcessedById(SmppConstants.CMD_ID_SUBMIT_SM));
 		assertEquals(clientNumbers, balancer.smppBalancerRunner.getSmppResponsesProcessedById(SmppConstants.CMD_ID_SUBMIT_SM_RESP));
 		assertEquals(clientNumbers+1, activeConnections);
-		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
+		assertTrue(((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getUserSpaces().isEmpty());
     }
 	
 	@After

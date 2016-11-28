@@ -1,27 +1,6 @@
-/*
- * TeleStax, Open Source Cloud Communications
- * Copyright 2011-2015, Telestax Inc and individual contributors
- * by the @authors tag.
- *
- * This program is free software: you can redistribute it and/or modify
- * under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation; either version 3 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
- */
-
 package org.mobicents.tools.smpp.balancer;
 
-import static org.junit.Assert.*;
-
-import java.util.ArrayList;
+import static org.junit.Assert.assertEquals;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -34,22 +13,18 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 
-/**
- * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
- */
+public class SpliterModeStatisticTest {
 
-public class CommonTest{
-	
-	private static final Logger logger = LoggerFactory.getLogger(CommonTest.class);
+private static final Logger logger = LoggerFactory.getLogger(SpliterModeTest.class);
 	
 	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 
@@ -66,6 +41,7 @@ public class CommonTest{
     private static DefaultSmppServer [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
+    private static long activeConnections;
 
 	
 	@BeforeClass
@@ -74,10 +50,7 @@ public class CommonTest{
 		boolean terminateTLSTraffic = true;
 		//start lb
 		balancer = new BalancerRunner();
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnection(2000);
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckClientSide(5000);
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckServerSide(5000);
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        balancer.start(ConfigInit.getLbSpliterProperties(enableSslLbPort,terminateTLSTraffic));
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
@@ -101,67 +74,7 @@ public class CommonTest{
 			e.printStackTrace();
 		}
 	}
-	@Test
-	public void testTransfer() 
-    {
-		int clientNumbers = 9;
-		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int sms = 99;
-		Locker locker=new Locker(clientNumbers);
-		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
-		for(int i = 0; i < clientNumbers; i++)
-			processors.add(new Load(i, sms, locker));
-		
-		for(int i = 0; i < clientNumbers; i++)
-			processors.get(i).start();
-		
-	    locker.waitForClients();
-	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertNotEquals(0, serverHandler.smsNumber);
-	    	//assertEquals(sms*clientNumbers/serverNumbers,serverHandler.smsNumber);
-
-	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
-	    	assertEquals(sms,clientHandler.getReponsesNumber().get());
-	    
-	    assertTrue(((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getUserSpaces().isEmpty());
-    }
-	//tests work of enquire link timer
-	@Test
-    public void testEnquireLinkTimer() 
-    {
-		int clientNumbers = 3;
-		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int sms= 0;
-		Locker locker=new Locker(clientNumbers);
-		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
-		for(int i = 0; i < clientNumbers; i++)
-			processors.add(new Load(i, sms, locker));
-		
-		for(int i = 0; i < clientNumbers; i++)
-			processors.get(i).start();
-		
-	    locker.waitForClients();
-	    
-	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertTrue(5<=serverHandler.getEnqLinkNumber().get());
-
-	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
-	    	assertTrue(5<=clientHandler.getEnqLinkNumber().get());
-
-    }
-	//tests work of session initialization timer
-	@Test
-    public void testSessionInitTimer() 
-    {
-		ClientConnectOnly dummyClient = new ClientConnectOnly();
-		try {
-			dummyClient.bind(ConfigInit.getSmppSessionConfiguration(0,false));
-			Thread.sleep(2000);
-		} catch (Exception e) {
-			logger.error("", e);
-		} 
-		assertEquals(1,((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getNotBindClients().get());
-    }
+	
 	@After
 	public void resetCounters()
 	{
@@ -188,7 +101,33 @@ public class CommonTest{
         logger.info("Done. Exiting");
 
 	}
-	
+	//tests statistic of SMPP load balancer
+		@Test
+	    public void testStatisticVariable() 
+	    {   
+			int clientNumbers = 3;
+			clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
+			int smsNumber = 1;
+			Locker locker=new Locker(clientNumbers);
+
+			for(int i = 0; i < clientNumbers; i++)
+				new Load(i, smsNumber, locker).start();
+			
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			activeConnections = balancer.getNumberOfActiveSmppConnections();
+			locker.waitForClients();
+			assertEquals(348, balancer.getNumberOfSmppBytesToServer());
+			assertEquals(198, balancer.getNumberOfSmppBytesToClient());
+			assertEquals(clientNumbers*3, balancer.getNumberOfSmppRequestsToServer());
+			assertEquals(clientNumbers, balancer.getSmppRequestsProcessedById(SmppConstants.CMD_ID_SUBMIT_SM));
+			assertEquals(clientNumbers, balancer.getSmppResponsesProcessedById(SmppConstants.CMD_ID_SUBMIT_SM_RESP));
+			assertEquals(clientNumbers*2, activeConnections);
+	    }
 	private class Load extends Thread{
 		private int i;
 		private ClientListener listener;
@@ -208,19 +147,12 @@ public class CommonTest{
 			{
 			 clientHandlerArray[i] = new  DefaultSmppClientHandler();
 			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i,false), clientHandlerArray[i]);
-			 Thread.sleep(1000);
 			 for(int j = 0; j < smsNumber; j++)
 			 {
-				 session.submit(ConfigInit.getSubmitSm(), 12000); 
+				 session.submit(ConfigInit.getSubmitSm(), 12000);
 			 }
-			 
-			 if(smsNumber == 0)
-			 	 sleep(14000);
-			 
-			 sleep(2000);
+			 sleep(3000);
 		     session.unbind(5000);
-		     sleep(200);
-		     
 		        }catch(Exception e){
 		        	logger.error("", e);
 		        }
@@ -233,6 +165,7 @@ public class CommonTest{
 	        logger.info("Shutting down client bootstrap and executors...");
 	        client.destroy();
 	        listener.clientCompleted();
+
 		}
 		
 		public void sleep(int time)

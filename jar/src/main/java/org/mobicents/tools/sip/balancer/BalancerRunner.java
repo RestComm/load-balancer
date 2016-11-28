@@ -172,12 +172,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	    remoteObjectPort = lbConfig.getCommonConfiguration().getRmiRemoteObjectPort();
 		
 		this.algorithClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
-		this.smppToNodeAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
-		this.smppToProviderAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToProviderAlgorithmClass();
 		balancerContext.algorithmClassName = this.algorithClassName;
-		balancerContext.smppToNodeAlgorithmClassName = this.smppToNodeAlgorithClassName;
-		balancerContext.smppToProviderAlgorithmClassName = this.smppToProviderAlgorithClassName;
 		balancerContext.terminateTLSTraffic = lbConfig.getSslConfiguration().getTerminateTLSTraffic();
+		this.smppToProviderAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToProviderAlgorithmClass();
+		balancerContext.smppToProviderAlgorithmClassName = this.smppToProviderAlgorithClassName;
+		if(lbConfig.getSmppConfiguration().isMuxMode())
+		{
+			this.smppToNodeAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
+			balancerContext.smppToNodeAlgorithmClassName = this.smppToNodeAlgorithClassName;
+		}
 		
 		try {
 			
@@ -293,7 +296,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 						for(InvocationContext ctx : contexts.values()) {
 							balancerContext.lbConfig = configLoader.load(conf);
 							ctx.balancerAlgorithm.configurationChanged();
-							ctx.smppToNodeBalancerAlgorithm.configurationChanged();
+							if(ctx.smppToNodeBalancerAlgorithm!=null)
+								ctx.smppToNodeBalancerAlgorithm.configurationChanged();
 							ctx.smppToProviderBalancerAlgorithm.configurationChanged();
 						}
 					} catch (Exception e) {
@@ -392,7 +396,8 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				for(InvocationContext ctx : contexts.values())
 				{
 					ctx.balancerAlgorithm.stop();
-					ctx.smppToNodeBalancerAlgorithm.stop();
+					if(ctx.smppToNodeBalancerAlgorithm!=null)
+						ctx.smppToNodeBalancerAlgorithm.stop();
 					ctx.smppToProviderBalancerAlgorithm.stop();
 				}
 				

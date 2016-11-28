@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.SIPNode;
+import org.mobicents.tools.smpp.balancer.api.Dispatcher;
 
 import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.Pdu;
@@ -34,7 +35,7 @@ import com.cloudhopper.smpp.pdu.Pdu;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class MBalancerDispatcher implements MLbServerListener {
+public class MBalancerDispatcher extends Dispatcher implements MLbServerListener {
 
 	private ConcurrentHashMap<String, UserSpace> userSpaces = new ConcurrentHashMap<String, UserSpace>();
 	private AtomicInteger notBindClients = new AtomicInteger(0);

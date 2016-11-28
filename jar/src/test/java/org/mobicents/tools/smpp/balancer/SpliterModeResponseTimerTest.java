@@ -19,9 +19,8 @@
 
 package org.mobicents.tools.smpp.balancer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -29,12 +28,11 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
+import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,11 +45,11 @@ import com.cloudhopper.smpp.type.SmppChannelException;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ActiveStandbySmppTest{
+public class SpliterModeResponseTimerTest {
+
+	private static final Logger logger = LoggerFactory.getLogger(SpliterModeResponseTimerTest.class);
 	
-	private static final Logger logger = LoggerFactory.getLogger(ActiveStandbySmppTest.class);
-	
-	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
+	private static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(16);
 
     private static ScheduledThreadPoolExecutor monitorExecutor = (ScheduledThreadPoolExecutor)Executors.newScheduledThreadPool(1, new ThreadFactory() {
          private AtomicInteger sequence = new AtomicInteger(0);
@@ -61,26 +59,26 @@ public class ActiveStandbySmppTest{
              return t;
          }
      }); 
-    private static BalancerRunner balancer;
-    private static int serverNumbers = 2;
+    
+    private static int clientNumbers = 1;
+    private static int serverNumbers = 1;
     private static DefaultSmppServer [] serverArray;
-    private static DefaultSmppServerHandler [] serverHandlerArray;
-    private static DefaultSmppClientHandler [] clientHandlerArray;
+    private static BalancerRunner balancer;
 
 	
 	@BeforeClass
 	public static void initialization() {
+
+		//start lb
 		boolean enableSslLbPort = false;
 		boolean terminateTLSTraffic = true;
-		//start lb
 		balancer = new BalancerRunner();
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic,false));
+        balancer.start(ConfigInit.getLbSpliterProperties(enableSslLbPort,terminateTLSTraffic,true));
+        
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
-        serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
-			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor,monitorExecutor);
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),new ServerHandlerForResponseTimer(), executor,monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -91,86 +89,53 @@ public class ActiveStandbySmppTest{
 
 			logger.info("SMPP server started");
 		}
-			sleep(2000);
-
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
-	
+	//tests work of response timer
 	@Test
-	public void testTransfer() 
-    {
-		int clientNumbers = 1;
-		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int sms = 100;
+    public void testResponseTimer() 
+    {   
 		Locker locker=new Locker(clientNumbers);
-		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
-		for(int i = 0; i < clientNumbers; i++)
-			processors.add(new Load(i, sms, locker));
-		for(int i = 0; i < clientNumbers; i++)
-			processors.get(i).start();
-	    locker.waitForClients();
-	    
-	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertEquals(sms/2, serverHandler.smsNumber);
+		//start client
+		new Load(locker).start();
+		locker.waitForClients();
+		assertEquals(1,((BalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getNotRespondedPackets().get());
 
-	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
-	    	assertEquals(sms,clientHandler.getReponsesNumber().get());
-	    
-	    assertTrue(((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getUserSpaces().isEmpty());
     }
-	
-	@After
-	public void resetCounters()
-	{
-		  for(int i = 0; i < serverNumbers; i++)
-		    {
-		    	serverArray[i].resetCounters();
-		    	serverHandlerArray[i].resetCounters();
-		    }
-	}
 
 	@AfterClass
-	public static void finalization()
-	{
+	public static void finalization() {
 
-			logger.info("Stopping SMPP server "+ 1 +" ...");
-			serverArray[1].destroy();
-			logger.info("SMPP server "+ 1 +" stopped");
+		for(int i = 0; i < serverNumbers; i++)
+		{
+			logger.info("Stopping SMPP server "+ i +" ...");
+			serverArray[i].destroy();
+			logger.info("SMPP server "+ i +"stopped");
+		}
 		executor.shutdownNow();
         monitorExecutor.shutdownNow();
         balancer.stop();
         logger.info("Done. Exiting");
 
 	}
-	
 	private class Load extends Thread{
-		private int i;
 		private ClientListener listener;
-		private int smsNumber;
-		Load (int i, int smsNumber, ClientListener listener)
-		{
-			this.i =i;
+		Load (ClientListener listener){
 			this.listener = listener;
-			this.smsNumber = smsNumber;
 		}
-		
-		public void run()
-		{
+		public void run(){
 			DefaultSmppClient client = new DefaultSmppClient();
 			SmppSession session = null; 
-			try
-			{
-			 clientHandlerArray[i] = new  DefaultSmppClientHandler();
-			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i,false), clientHandlerArray[i]);
-			 for(int j = 0; j < smsNumber; j++)
-			 {
-				 session.submit(ConfigInit.getSubmitSm(), 12000);
-				 if(j==smsNumber/2-1)
-					 serverArray[0].stop();
-			 }
-			 sleep(1000);
+			try{
+			 session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false), new  DefaultSmppClientHandler());
+		     session.submit(ConfigInit.getSubmitSm(), 12000);
 		     session.unbind(5000);
-		     sleep(200);
-		     
+			
 		        }catch(Exception e){
 		        	logger.error("", e);
 		        }
@@ -179,13 +144,11 @@ public class ActiveStandbySmppTest{
 	            logger.info("Cleaning up session...");
 	            session.destroy();
 	        }
-			
 	        logger.info("Shutting down client bootstrap and executors...");
 	        client.destroy();
 	        listener.clientCompleted();
 		}
-
-	}	
+	}
 	
 	private class Locker implements ClientListener{
     	private Semaphore clientsSemaphore;
@@ -199,6 +162,7 @@ public class ActiveStandbySmppTest{
 		{
 			clientsSemaphore.release();
 		}
+    	
     	public void waitForClients()
     	{
     		try
@@ -211,15 +175,4 @@ public class ActiveStandbySmppTest{
     		}
     	}
     }
-	private static void sleep(int time)
-	{
-		try
-		{
-			Thread.sleep(time);
-		}
-		catch(InterruptedException ex)
-		{
-			
-		}
-	}
 }

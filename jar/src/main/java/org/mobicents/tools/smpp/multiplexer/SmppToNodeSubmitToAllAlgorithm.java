@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.mobicents.tools.sip.balancer.SIPNode;
+
 import com.cloudhopper.smpp.pdu.Pdu;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
@@ -63,6 +65,12 @@ public class SmppToNodeSubmitToAllAlgorithm extends DefaultSmppAlgorithm{
 	{
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public SIPNode processBindToProvider() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 

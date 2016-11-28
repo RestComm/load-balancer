@@ -33,6 +33,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +116,7 @@ public class SslBalancerSslServerTest {
 		assertEquals(clientNumbers, smsToServers);
 		for(DefaultSmppClientHandler clientHandler : clientHandlerArray)
 			assertEquals(1,clientHandler.getReponsesNumber().get());
-		assertTrue(balancer.smppBalancerRunner.getBalancerDispatcher().getUserSpaces().isEmpty());
+		assertTrue(((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getUserSpaces().isEmpty());
 		
 	}
 

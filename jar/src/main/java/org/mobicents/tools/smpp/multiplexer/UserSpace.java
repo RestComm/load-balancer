@@ -1,20 +1,16 @@
 package org.mobicents.tools.smpp.multiplexer;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.SIPNode;
-import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
-
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
@@ -35,8 +31,6 @@ public class UserSpace {
 	private ConcurrentLinkedQueue<MServerConnectionImpl> pendingCustomers;
 	private ConcurrentHashMap<Long, MServerConnectionImpl> customers;
 	private ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToServers;
-	private AtomicLong requestToServer = new AtomicLong(0);
-	private AtomicLong requestToClient = new AtomicLong(0);
 	private InvocationContext ctx = null;
 	
 	private SIPNode [] nodes;
@@ -176,8 +170,6 @@ public class UserSpace {
 		//INITIAL CONNECTION TO ALL SERVERS
 		for(SIPNode node: nodes)
 		{
-			
-	
 			if(balancerRunner.balancerContext.terminateTLSTraffic)
 				isSslConnection = false;
 				

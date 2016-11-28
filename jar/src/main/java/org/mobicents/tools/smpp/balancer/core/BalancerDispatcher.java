@@ -26,10 +26,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
+import org.mobicents.tools.sip.balancer.KeySmpp;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
+import org.mobicents.tools.smpp.balancer.api.Dispatcher;
 import org.mobicents.tools.smpp.balancer.api.LbClientListener;
 import org.mobicents.tools.smpp.balancer.api.LbServerListener;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
@@ -44,7 +47,7 @@ import com.cloudhopper.smpp.pdu.Pdu;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class BalancerDispatcher implements LbClientListener, LbServerListener {
+public class BalancerDispatcher extends Dispatcher implements LbClientListener, LbServerListener {
 	
 
 	private Map<Long, ServerConnection> serverSessions = new ConcurrentHashMap<Long, ServerConnection>();
@@ -55,14 +58,24 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	private ExecutorService handlerService = Executors.newCachedThreadPool();
 	private long reconnectPeriod;
 	private BalancerRunner balancerRunner;
-	private SIPNode node = new SIPNode();
 	private AtomicInteger counterConnections = new AtomicInteger(0);
+	private InvocationContext ctx;
 
 	public BalancerDispatcher(BalancerRunner balancerRunner, ScheduledExecutorService monitorExecutor)
 	{
 		this.balancerRunner = balancerRunner;
 		this.reconnectPeriod = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getReconnectPeriod();
 		this.monitorExecutor = monitorExecutor;
+		this.ctx = balancerRunner.getLatestInvocationContext();
+		String [] s = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getRemoteServers().split(",");
+		String [] sTmp = new String[2];
+		for(int i = 0; i < s.length; i++)
+		{
+			sTmp = s[i].split(":");
+			SIPNode currNode = new SIPNode("SMPP server " + i, sTmp[0].trim());
+			currNode.getProperties().put("smppPort", sTmp[1].trim());
+			this.ctx.smppNodeMap.put(new KeySmpp(sTmp[0].trim(),Integer.parseInt(sTmp[1].trim())),currNode);
+		}
 	}
 	
 	public AtomicInteger getNotBindClients() 
@@ -91,7 +104,7 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 	@Override
 	public void bindRequested(Long sessionId, ServerConnectionImpl serverConnection, Pdu packet)  
 	{
-		InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
+		//InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
 		
 		balancerRunner.balancerContext.smppRequestsToServer.getAndIncrement();
 		balancerRunner.incMessages();
@@ -106,18 +119,13 @@ public class BalancerDispatcher implements LbClientListener, LbServerListener {
 			sessionConfig.setUseSsl(!balancerRunner.balancerContext.terminateTLSTraffic);
 		
 		counterConnections.compareAndSet(Integer.MAX_VALUE, 0);
-		synchronized (node) 
-		{
-			//node = invocationContext.nodes.get(counterConnections.getAndIncrement() % invocationContext.nodes.size());
-			node = invocationContext.sipNodeMap(false).elements().nextElement();//(counterConnections.getAndIncrement() % invocationContext.sipNodeMap.size());
-			sessionConfig.setHost(node.getIp());
-			if(!sessionConfig.isUseSsl())
-				sessionConfig.setPort((Integer) node.getProperties().get("smppPort"));
-			else
-				sessionConfig.setPort((Integer) node.getProperties().get("smppSslPort"));
-		}
-		clientSessions.put(sessionId, new ClientConnectionImpl(sessionId, sessionConfig, this, monitorExecutor, balancerRunner , packet, node));
-		handlerService.execute(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, node, balancerRunner));
+	
+		SIPNode currNode = ctx.smppToProviderBalancerAlgorithm.processBindToProvider();
+		sessionConfig.setHost(currNode.getIp());
+		sessionConfig.setPort(Integer.parseInt((String) currNode.getProperties().get("smppPort")));
+		
+		clientSessions.put(sessionId, new ClientConnectionImpl(sessionId, sessionConfig, this, monitorExecutor, balancerRunner , packet, currNode));
+		handlerService.execute(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, currNode, balancerRunner));
 
 	}
 

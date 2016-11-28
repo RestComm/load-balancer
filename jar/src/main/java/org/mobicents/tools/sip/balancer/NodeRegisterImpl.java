@@ -314,9 +314,13 @@ public class NodeRegisterImpl  implements NodeRegister {
                             (String) node.getProperties().get("version"));
                     balancerRunner.balancerContext.aliveNodes.remove(node);
                     //ctx.nodes.remove(node);
-                    String instanceId = (String) node.getProperties().get("instanceId");
+                    Integer instanceId = (Integer) node.getProperties().get("instanceId");
                     if(instanceId!=null)
                     	ctx.httpNodeMap.remove(instanceId);
+                    
+                    Integer smppPort = (Integer) node.getProperties().get("smppPort");
+                    if(smppPort!=null)
+                    	ctx.smppNodeMap.remove(new KeySmpp(node));
                     
                     Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	                    
                     ctx.sipNodeMap(isIpV6).remove(new KeySip(node));
@@ -411,7 +415,9 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    Integer instanceId = (Integer) pingNode.getProperties().get("instanceId");
 	                    if(instanceId!=null)
 	                    	ctx.httpNodeMap.put(new KeyHttp(instanceId), pingNode);
-	                   // ctx.nodes.add(pingNode);
+	                    Integer smppPort = (Integer) pingNode.getProperties().get("smppPort");
+	                    if(smppPort!=null)
+	                    	ctx.smppNodeMap.put(new KeySmpp(pingNode), pingNode);
 	                    
 	                    ctx.balancerAlgorithm.nodeAdded(pingNode);
 	                    balancerRunner.balancerContext.allNodesEver.add(pingNode);
@@ -438,9 +444,13 @@ public class NodeRegisterImpl  implements NodeRegister {
             InvocationContext ctx = balancerRunner.getInvocationContext(
                     (String) pingNode.getProperties().get("version"));
             //ctx.nodes.remove(pingNode);
-            String instanceId = (String) pingNode.getProperties().get("instanceId");
+            Integer instanceId = (Integer) pingNode.getProperties().get("instanceId");
             if(instanceId!=null)
             	ctx.httpNodeMap.remove(instanceId);
+            
+            Integer smppPort = (Integer) pingNode.getProperties().get("smppPort");
+            if(smppPort!=null)
+            	ctx.smppNodeMap.remove(new KeySmpp(pingNode));
             
             Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(pingNode.getIp());        	
             ctx.sipNodeMap(isIpV6).remove(new KeySip(pingNode));

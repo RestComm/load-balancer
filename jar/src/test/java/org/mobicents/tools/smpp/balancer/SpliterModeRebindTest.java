@@ -1,27 +1,8 @@
-/*
- * TeleStax, Open Source Cloud Communications
- * Copyright 2011-2015, Telestax Inc and individual contributors
- * by the @authors tag.
- *
- * This program is free software: you can redistribute it and/or modify
- * under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation; either version 3 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
- */
 package org.mobicents.tools.smpp.balancer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
@@ -33,7 +14,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,14 +21,12 @@ import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
-/**
- * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
- */
-public class SslBalancerNoSslServerTest {
-	private static final Logger logger = LoggerFactory
-			.getLogger(CommonTest.class);
 
-	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.	newCachedThreadPool();
+public class SpliterModeRebindTest {
+	
+	private static final Logger logger = LoggerFactory.getLogger(SpliterModeRebindTest.class);
+	
+	private static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 
 	private static ScheduledThreadPoolExecutor monitorExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1, new ThreadFactory() {
 				private AtomicInteger sequence = new AtomicInteger(0);
@@ -59,26 +37,27 @@ public class SslBalancerNoSslServerTest {
 				}
 			});
 
-	private static int clientNumbers = 6;
-	private static int serverNumbers = 3;
-	private static DefaultSmppServer [] serverArray;
 	private static BalancerRunner balancer;
-    private static DefaultSmppServerHandler [] serverHandlerArray = new DefaultSmppServerHandler[serverNumbers];
-    private static DefaultSmppClientHandler [] clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
+	private static int clientNumbers = 1;
+	private static int serverNumbers = 3;
+	private static DefaultSmppServer[] serverArray;
+	private static DefaultSmppServerHandler [] serverHandlerArray = new DefaultSmppServerHandler[serverNumbers];
+	
 
 	@BeforeClass
 	public static void initialization() {
-		
-		boolean enableSslLbPort = true;
+
+		boolean enableSslLbPort = false;
 		boolean terminateTLSTraffic = true;
 		//start lb
 		balancer = new BalancerRunner();
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        balancer.start(ConfigInit.getLbSpliterProperties(enableSslLbPort,terminateTLSTraffic));
+        
 		// start servers
 		serverArray = new DefaultSmppServer[serverNumbers];
 		for (int i = 0; i < serverNumbers; i++) {
 			serverHandlerArray[i] = new DefaultSmppServerHandler();
-			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false),serverHandlerArray[i], executor, monitorExecutor);
+			serverArray[i] = new DefaultSmppServer(ConfigInit.getSmppServerConfiguration(i,false), serverHandlerArray[i], executor, monitorExecutor);
 			logger.info("Starting SMPP server...");
 			try {
 				serverArray[i].start();
@@ -86,6 +65,7 @@ public class SslBalancerNoSslServerTest {
 				logger.info("SMPP server does not started");
 				e.printStackTrace();
 			}
+
 			logger.info("SMPP server started");
 		}
 		try {
@@ -95,26 +75,32 @@ public class SslBalancerNoSslServerTest {
 			e.printStackTrace();
 		}
 	}
-	// tests SSL client connection to noSSL server
+	//tests situation with dropped connection to server(rebind check)
 	@Test
-	public void testNoSslClient() {
+	public void testDisconnectServers() {
 		Locker locker = new Locker(clientNumbers);
 		// start client
-		ArrayList<Load> customers = new ArrayList<>();
-		for(int i = 0; i < clientNumbers; i++)
-			customers.add(new Load(i,locker,true));
-		for(int i = 0; i < clientNumbers; i++)
-			customers.get(i).start();
-
-		
+		new Load(locker, 1).start();
 		locker.waitForClients();
-		long smsToServers = 0;
-		for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-			smsToServers+=serverHandler.smsNumber;
-		assertEquals(clientNumbers, smsToServers);
-		for(DefaultSmppClientHandler clientHandler : clientHandlerArray)
-			assertEquals(1,clientHandler.getReponsesNumber().get());
-		assertTrue(((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getUserSpaces().isEmpty());
+		
+		boolean isCorrectEnqLinkRequest = false;
+	    for(DefaultSmppServerHandler handler : serverHandlerArray)
+	    	if(handler.getSmsNumber()==1)
+	    		isCorrectEnqLinkRequest = true;
+		assertTrue(isCorrectEnqLinkRequest);
+	}
+	
+	@Test
+	public void testRebind() {
+		Locker locker = new Locker(clientNumbers);
+		// start client
+		new Load(locker, 2).start();
+		locker.waitForClients();
+		boolean isCorrectEnqLinkRequest = false;
+	    for(DefaultSmppServerHandler handler : serverHandlerArray)
+	    	if(handler.getSmsNumber()==6)
+	    		isCorrectEnqLinkRequest = true;
+		assertTrue(isCorrectEnqLinkRequest);
 	}
 
 	@AfterClass
@@ -133,27 +119,48 @@ public class SslBalancerNoSslServerTest {
 	}
 
 	private class Load extends Thread {
-		private int i;
 		private ClientListener listener;
-		private boolean isSslClient;
+		private int testNumber; 
 
-		Load(int i, ClientListener listener, boolean isSslClient) {
-			this.i = i;
+		Load(ClientListener listener, int testNumber) {
 			this.listener = listener;
-			this.isSslClient = isSslClient;
+			this.testNumber = testNumber;
 		}
 
 		public void run() {
 			DefaultSmppClient client = new DefaultSmppClient();
-			clientHandlerArray[i] = new DefaultSmppClientHandler();
 			SmppSession session = null;
 			try {
-				session = client.bind(ConfigInit.getSmppSessionConfiguration(1,isSslClient),clientHandlerArray[i]);
-				Thread.sleep(1000);
-				session.submit(ConfigInit.getSubmitSm(), 12000);
-				sleep(100);
-				session.unbind(5000);
-				sleep(100);
+
+				if(testNumber == 1)
+				{
+					session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false),new DefaultSmppClientHandler());
+					logger.info("stopping server 1");
+					serverArray[1].stop();
+					logger.info("stopping server 2");
+					serverArray[2].stop();
+					sleep(5000);
+					
+					session.submit(ConfigInit.getSubmitSm(), 12000);
+					sleep(1000);
+					session.unbind(5000);
+					serverArray[1].start();
+					serverArray[2].start();
+				}
+				if(testNumber == 2)
+				{
+					session = client.bind(ConfigInit.getSmppSessionConfiguration(1,false),new DefaultSmppClientHandler());
+					serverArray[2].stop();
+					serverArray[2].start();
+					sleep(2000);
+					 for(int j = 0; j < 6; j++)
+					 {
+						 session.submit(ConfigInit.getSubmitSm(), 12000); 
+					 }
+					 sleep(1000);
+				     session.unbind(5000);
+				}
+
 			} catch (Exception e) {
 				logger.error("", e);
 			}

@@ -32,6 +32,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +104,7 @@ public class ResponseTimerTest {
 		//start client
 		new Load(locker).start();
 		locker.waitForClients();
-		assertEquals(1,balancer.smppBalancerRunner.getBalancerDispatcher().getNotRespondedPackets().get());
+		assertEquals(1,((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getNotRespondedPackets().get());
 
     }
 

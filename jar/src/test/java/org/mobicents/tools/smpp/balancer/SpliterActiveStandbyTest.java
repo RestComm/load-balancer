@@ -34,7 +34,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,9 +46,9 @@ import com.cloudhopper.smpp.type.SmppChannelException;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class CommonTest{
+public class SpliterActiveStandbyTest{
 	
-	private static final Logger logger = LoggerFactory.getLogger(CommonTest.class);
+	private static final Logger logger = LoggerFactory.getLogger(SpliterActiveStandbyTest.class);
 	
 	private static ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 
@@ -62,7 +61,7 @@ public class CommonTest{
          }
      }); 
     private static BalancerRunner balancer;
-    private static int serverNumbers = 3;
+    private static int serverNumbers = 2;
     private static DefaultSmppServer [] serverArray;
     private static DefaultSmppServerHandler [] serverHandlerArray;
     private static DefaultSmppClientHandler [] clientHandlerArray;
@@ -74,10 +73,7 @@ public class CommonTest{
 		boolean terminateTLSTraffic = true;
 		//start lb
 		balancer = new BalancerRunner();
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnection(2000);
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckClientSide(5000);
-		ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic).getSmppConfiguration().setTimeoutConnectionCheckServerSide(5000);
-        balancer.start(ConfigInit.getLbProperties(enableSslLbPort,terminateTLSTraffic));
+        balancer.start(ConfigInit.getLbSpliterProperties(enableSslLbPort,terminateTLSTraffic,false));
 		//start servers
         serverArray = new DefaultSmppServer[serverNumbers];
         serverHandlerArray = new DefaultSmppServerHandler [serverNumbers];
@@ -94,74 +90,32 @@ public class CommonTest{
 
 			logger.info("SMPP server started");
 		}
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			sleep(2000);
+
 	}
+	
 	@Test
 	public void testTransfer() 
     {
-		int clientNumbers = 9;
+		int clientNumbers = 3;
 		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int sms = 99;
+		int sms = 10;
 		Locker locker=new Locker(clientNumbers);
 		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
 		for(int i = 0; i < clientNumbers; i++)
 			processors.add(new Load(i, sms, locker));
-		
 		for(int i = 0; i < clientNumbers; i++)
-			processors.get(i).start();
-		
+			processors.get(i).run();
 	    locker.waitForClients();
-	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertNotEquals(0, serverHandler.smsNumber);
-	    	//assertEquals(sms*clientNumbers/serverNumbers,serverHandler.smsNumber);
+	    
+    	assertEquals(2, serverArray[0].getBindRequested());
+    	assertEquals(2, serverArray[1].getBindRequested());
 
 	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
 	    	assertEquals(sms,clientHandler.getReponsesNumber().get());
 	    
-	    assertTrue(((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getUserSpaces().isEmpty());
     }
-	//tests work of enquire link timer
-	@Test
-    public void testEnquireLinkTimer() 
-    {
-		int clientNumbers = 3;
-		clientHandlerArray = new DefaultSmppClientHandler[clientNumbers];
-		int sms= 0;
-		Locker locker=new Locker(clientNumbers);
-		ArrayList<Load> processors=new ArrayList<Load>(clientNumbers);
-		for(int i = 0; i < clientNumbers; i++)
-			processors.add(new Load(i, sms, locker));
-		
-		for(int i = 0; i < clientNumbers; i++)
-			processors.get(i).start();
-		
-	    locker.waitForClients();
-	    
-	    for(DefaultSmppServerHandler serverHandler:serverHandlerArray)
-	    	assertTrue(5<=serverHandler.getEnqLinkNumber().get());
-
-	    for(DefaultSmppClientHandler clientHandler:clientHandlerArray)
-	    	assertTrue(5<=clientHandler.getEnqLinkNumber().get());
-
-    }
-	//tests work of session initialization timer
-	@Test
-    public void testSessionInitTimer() 
-    {
-		ClientConnectOnly dummyClient = new ClientConnectOnly();
-		try {
-			dummyClient.bind(ConfigInit.getSmppSessionConfiguration(0,false));
-			Thread.sleep(2000);
-		} catch (Exception e) {
-			logger.error("", e);
-		} 
-		assertEquals(1,((MBalancerDispatcher)balancer.smppBalancerRunner.getBalancerDispatcher()).getNotBindClients().get());
-    }
+	
 	@After
 	public void resetCounters()
 	{
@@ -176,12 +130,9 @@ public class CommonTest{
 	public static void finalization()
 	{
 
-		for(int i = 0; i < serverNumbers; i++)
-		{
-			logger.info("Stopping SMPP server "+ i +" ...");
-			serverArray[i].destroy();
-			logger.info("SMPP server "+ i +"stopped");
-		}
+			logger.info("Stopping SMPP server "+ 1 +" ...");
+			serverArray[1].destroy();
+			logger.info("SMPP server "+ 1 +" stopped");
 		executor.shutdownNow();
         monitorExecutor.shutdownNow();
         balancer.stop();
@@ -208,15 +159,12 @@ public class CommonTest{
 			{
 			 clientHandlerArray[i] = new  DefaultSmppClientHandler();
 			 session = client.bind(ConfigInit.getSmppSessionConfiguration(i,false), clientHandlerArray[i]);
-			 Thread.sleep(1000);
 			 for(int j = 0; j < smsNumber; j++)
 			 {
-				 session.submit(ConfigInit.getSubmitSm(), 12000); 
+				 session.submit(ConfigInit.getSubmitSm(), 12000);
+				 if(i==1&&j==smsNumber/2-1)
+					 serverArray[0].stop();
 			 }
-			 
-			 if(smsNumber == 0)
-			 	 sleep(14000);
-			 
 			 sleep(2000);
 		     session.unbind(5000);
 		     sleep(200);
@@ -234,18 +182,7 @@ public class CommonTest{
 	        client.destroy();
 	        listener.clientCompleted();
 		}
-		
-		public void sleep(int time)
-		{
-			try
-			{
-				Thread.sleep(time);
-			}
-			catch(InterruptedException ex)
-			{
-				
-			}
-		}
+
 	}	
 	
 	private class Locker implements ClientListener{
@@ -272,4 +209,15 @@ public class CommonTest{
     		}
     	}
     }
+	private static void sleep(int time)
+	{
+		try
+		{
+			Thread.sleep(time);
+		}
+		catch(InterruptedException ex)
+		{
+			
+		}
+	}
 }

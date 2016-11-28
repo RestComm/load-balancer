@@ -24,9 +24,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.log4j.Logger;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.smpp.balancer.api.Dispatcher;
 import org.mobicents.tools.smpp.multiplexer.MBalancerDispatcher;
 import org.mobicents.tools.smpp.multiplexer.MServer;
+import org.mobicents.tools.smpp.multiplexer.UserSpace;
 
 import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.ssl.SslConfiguration;
@@ -37,11 +40,15 @@ import com.cloudhopper.smpp.ssl.SslConfiguration;
 
 public class SmppBalancerRunner {
 	
-	private MBalancerDispatcher balancerDispatcher;
+	private static final Logger logger = Logger.getLogger(SmppBalancerRunner.class);
+	
+	private Dispatcher dispatcher;
 	private ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 	private ScheduledExecutorService monitorExecutor  = Executors.newScheduledThreadPool(4);
-	private MServer smppLbServer;
+	private MServer mSmppLbServer;
+	private BalancerServer smppLbServer;
 	private BalancerRunner balancerRunner;
+	
 
 	/**
 	 * Start load balancer
@@ -92,21 +99,36 @@ public class SmppBalancerRunner {
 	        }
 	        securedConfiguration.setSslConfiguration(sslConfig);        
         } 
+        //TODO manage MUX or LB
+        if(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().isMuxMode())
+        {
+        	logger.info("MUX mode enabled for SMPP");
+        	dispatcher = new MBalancerDispatcher(balancerRunner,monitorExecutor);
+			mSmppLbServer = new MServer(regularConfiguration, securedConfiguration, executor, balancerRunner, (MBalancerDispatcher)dispatcher, monitorExecutor);
+			mSmppLbServer.start();
+        }
+        else
+        {
+        	logger.info("Load balance mode enabled for SMPP");
+        	dispatcher = new BalancerDispatcher(balancerRunner,monitorExecutor);
+			smppLbServer = new BalancerServer(regularConfiguration, securedConfiguration, executor, balancerRunner, (BalancerDispatcher)dispatcher, monitorExecutor);
+			smppLbServer.start();
+        }
         
-        balancerDispatcher = new MBalancerDispatcher(balancerRunner,monitorExecutor);
-		smppLbServer = new MServer(regularConfiguration, securedConfiguration, executor, balancerRunner, balancerDispatcher, monitorExecutor);
-        smppLbServer.start();
 	}
 	public void stop()
 	{
-		smppLbServer.stop();
+		if(smppLbServer!=null)
+			smppLbServer.stop();
+		if(mSmppLbServer!=null)
+			mSmppLbServer.stop();
         executor.shutdown();
         monitorExecutor.shutdown();
 	}
 
-	public MBalancerDispatcher getBalancerDispatcher() 
+	public Dispatcher getBalancerDispatcher() 
 	{
-		return balancerDispatcher;
+		return dispatcher;
 	}
 	//Statistic
 	/**
@@ -171,12 +193,19 @@ public class SmppBalancerRunner {
 	{
 		//int userSpaces = balancerDispatcher.getUserSpaces().size();
 		int customers = 0;
-		for(String key : balancerDispatcher.getUserSpaces().keySet())
-			customers +=balancerDispatcher.getUserSpaces().get(key).getCustomers().size();
-		if(customers==0)
-			return customers;
-			else
-				return customers + 1;
+		if(dispatcher instanceof MBalancerDispatcher)
+		{
+			for(String key : ((MBalancerDispatcher)dispatcher).getUserSpaces().keySet())
+				customers +=((MBalancerDispatcher)dispatcher).getUserSpaces().get(key).getCustomers().size();
+			if(customers==0)
+				return customers;
+				else
+					return customers + 1;
+		}
+		else
+		{
+			return ((BalancerDispatcher)dispatcher).getClientSessions().size() + ((BalancerDispatcher)dispatcher).getServerSessions().size();
+		}
 	}
 
 }

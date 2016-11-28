@@ -109,6 +109,17 @@ of nodes connected to the Load balancer. If the Load balancer finds the correspo
 
 == SMPP multiplexing basics
 
+=== Modes of SMPP
+The SMPP Load balancer has two working modes:
+
+* Mux mode
+* Regular mode
+
+You can choose it by property muxMode. If it's true, the Load balancer will work in Mux mode.
+If it's false, in regular mode.
+
+==== Mux mode
+
 SMPP providers (e.g.NEXMO) offer limited numbers of connections to their services
 but sometimes we need more than one client connections to it. So you can use our
 load balancer as SMPP multiplexer for multiplexing connections from several clients
@@ -125,7 +136,7 @@ Load balancer will send requests from the server to clients by using
 isUseRrSendSmppRequestToClient property. If true, Load balancer uses
 round robin algorithm; if false, LB sends each request to all clients.
 
-.SMPP load balancer diagram
+.SMPP load balancer diagram mux mode
 image::images/SMPP-lb-diagram.png[]
 
 Main goal is to reuse connection to the servers (SMSC) and simply transfer packets
@@ -136,6 +147,24 @@ When connection to server drops, SMPP load balancer can reconnect (rebind) to th
 server. During this process (reconnect) it turns back all received packets until
 the new connection is established. If there are no established connection with
 the server, all connections will be closed.
+
+==== Regular mode
+
+The regular mode is used for balancing load from SMPP clients (ESME) to SMPP servers
+(SMSC) based on round-robin algorithm by default. When new clients connect to SMPP load balancer,
+application creates new connection to SMPP server (SMSC). When connection established it can
+be used in both directions: ESME and SMSC can send messages.
+
+.SMPP load balancer diagram regular mode
+image::images/SMPP-lb-regular-diagram.png[]
+
+Main goal of application is reducing the load on servers (SMSC) and simply transfer packets
+between client (ESME) and server(SMSC). But also it can inspect the received packets for
+correct command ID and will not send incorrect packets forward instead turn them back.
+
+When connection to server drops, SMPP load balancer can reconnect (rebind) to the next working server.
+During this process (reconnect) it turns back all received packets until the new connection is established.
+If there are no established connections with the servers, the client connection is closed and vice versa.
 
 [[_sslb_smpp_load_balancer_implementation]]
 === Implementation of the SMPP Load Balancer
@@ -239,7 +268,7 @@ The following is a list of the built-in algorithms for SMPP:
  If the active SMPP provider will disconnected in some way then
  the Load balancer will send requests to the passive SMPP provider.
 
-  - to Node side:
+  - to Node side (only for Mux mode):
   org.mobicents.tools.smpp.multiplexer.SmppToNodeRoundRobinAlgorithm::
 
   It's default algorithm. The Load balancer uses round-robin algorithm
@@ -421,6 +450,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <timeoutConnectionCheckServerSide>1000</timeoutConnectionCheckServerSide>
   <toNodeAlgorithmClass></toNodeAlgorithmClass>
   <toProviderAlgorithmClass></toProviderAlgorithmClass>
+  <muxMode>true</muxMode>
 </smpp>
 <ssl>
   <terminateTLSTraffic>true</terminateTLSTraffic>
@@ -652,6 +682,9 @@ timeoutConnectionCheckServerSide::
 
   SMPP algorithms to Node side and to SMPP provider side. By default LB uses
   round-robin algorithm to both sides.
+
+muxMode::
+  Boolean property. If true the LB will work in mux mode, if false in regular.
 
 javax.net.ssl.keyStore::
   Points to the keystore file we generated before.

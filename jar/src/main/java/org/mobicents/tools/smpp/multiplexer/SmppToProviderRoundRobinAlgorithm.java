@@ -22,15 +22,19 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.sql.rowset.spi.SyncResolver;
-
+import org.apache.log4j.Logger;
+import org.mobicents.tools.sip.balancer.KeySmpp;
+import org.mobicents.tools.sip.balancer.SIPNode;
 import com.cloudhopper.smpp.pdu.Pdu;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 public class SmppToProviderRoundRobinAlgorithm extends DefaultSmppAlgorithm
 {
+	private static final Logger logger = Logger.getLogger(SmppToProviderRoundRobinAlgorithm.class);
+	
 	protected Iterator<Entry<Long, MClientConnectionImpl>> connectionToProviderIterator = null;
+	protected Iterator<Entry<KeySmpp, SIPNode>> nodeIterator = null;
 
 	@Override
 	public void processSubmitToNode(ConcurrentHashMap<Long, MServerConnectionImpl> connectionsToNodes, Long serverSessionId, Pdu packet) {
@@ -63,6 +67,29 @@ public class SmppToProviderRoundRobinAlgorithm extends DefaultSmppAlgorithm
 	}
 
 	@Override
+	public synchronized SIPNode processBindToProvider()
+	{
+
+		if(invocationContext.smppNodeMap.size() == 0) return null;
+		if(nodeIterator==null)
+			nodeIterator = invocationContext.smppNodeMap.entrySet().iterator();
+		Entry<KeySmpp, SIPNode> pair = null;
+		while(nodeIterator.hasNext())
+		{
+			pair = nodeIterator.next();
+			if(invocationContext.smppNodeMap.containsKey(pair.getKey()))
+				return pair.getValue();
+		}
+		nodeIterator = invocationContext.smppNodeMap.entrySet().iterator();
+		if(nodeIterator.hasNext())
+		{
+			pair = nodeIterator.next();
+			return pair.getValue();
+		}
+		else
+			return null;
+	}
+	@Override
 	public void init() {
 		// TODO Auto-generated method stub
 		
@@ -76,8 +103,31 @@ public class SmppToProviderRoundRobinAlgorithm extends DefaultSmppAlgorithm
 
 	@Override
 	public void configurationChanged() {
-		// TODO Auto-generated method stub
-		
+		ConcurrentHashMap<KeySmpp, SIPNode> newSmppNodeMap = new ConcurrentHashMap<KeySmpp, SIPNode>();
+		String [] s = balancerContext.lbConfig.getSmppConfiguration().getRemoteServers().split(",");
+		String [] sTmp = new String[2];
+		for(int i = 0; i < s.length; i++)
+		{
+			sTmp = s[i].split(":");
+			SIPNode currNode = new SIPNode("SMPP server " + i, sTmp[0].trim());
+			currNode.getProperties().put("smppPort", sTmp[1].trim());
+			newSmppNodeMap.put(new KeySmpp(sTmp[0].trim(),Integer.parseInt(sTmp[1].trim())),currNode);
+		}
+		ConcurrentHashMap<KeySmpp, SIPNode> removedSmppNodes = null; 
+		ConcurrentHashMap<KeySmpp, SIPNode> addedSmppNodes = null;
+	    logger.info("Nodes removed : " + (removedSmppNodes = mapDifference(newSmppNodeMap, invocationContext.smppNodeMap)).values());
+	    for(KeySmpp key:removedSmppNodes.keySet())
+	    	invocationContext.smppNodeMap.remove(key);
+	    logger.info("Nodes added : " + (addedSmppNodes = mapDifference(invocationContext.smppNodeMap, newSmppNodeMap)).values());
+	    invocationContext.smppNodeMap.putAll(addedSmppNodes);
+	    logger.info("Updated SMPP node map after changing config file : " + invocationContext.smppNodeMap.values());
 	}
-
+	 private ConcurrentHashMap<KeySmpp, SIPNode> mapDifference(ConcurrentHashMap<KeySmpp, SIPNode> left, ConcurrentHashMap<KeySmpp, SIPNode> right) {
+		 	ConcurrentHashMap<KeySmpp, SIPNode> difference = new ConcurrentHashMap<>();
+	        difference.putAll(left);
+	        difference.putAll(right);
+	        difference.entrySet().removeAll(left.entrySet());
+	        return difference;
+	    }
+ 
 }

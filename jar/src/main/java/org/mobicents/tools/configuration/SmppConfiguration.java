@@ -20,6 +20,7 @@ public class SmppConfiguration {
 	public static final Integer TIMEOUT_CONNECTION_CHECK_SERVER_SIDE = 3000;
 	public static final String SMPP_TO_NODE_ALGORITHM_CLASS = SmppToNodeRoundRobinAlgorithm.class.getCanonicalName();
 	public static final String SMPP_TO_PROVIDER_ALGORITHM_CLASS = SmppToProviderRoundRobinAlgorithm.class.getCanonicalName();
+	public static final Boolean MUX_MODE = true;
 	
 	private String smppHost;	
 	private Integer smppPort;
@@ -36,6 +37,7 @@ public class SmppConfiguration {
 	private Integer timeoutConnectionCheckServerSide;
 	private String smppToNodeAlgorithmClass;
 	private String smppToProviderAlgorithmClass;
+	private Boolean muxMode;
 	
 	 public SmppConfiguration() 
 	    {
@@ -54,6 +56,7 @@ public class SmppConfiguration {
 	        this.timeoutConnectionCheckServerSide = TIMEOUT_CONNECTION_CHECK_SERVER_SIDE;
 			this.smppToNodeAlgorithmClass = SMPP_TO_NODE_ALGORITHM_CLASS;
 			this.smppToProviderAlgorithmClass = SMPP_TO_PROVIDER_ALGORITHM_CLASS;
+			this.muxMode = MUX_MODE;
 	    }
 
 	 
@@ -200,4 +203,15 @@ public class SmppConfiguration {
 	{
 		this.smppToProviderAlgorithmClass = smppToProviderAlgorithmClass;
 	}
+
+	public Boolean isMuxMode() 
+	{
+		return muxMode;
+	}
+
+	public void setMuxMode(Boolean muxMode) 
+	{
+		this.muxMode = muxMode;
+	}
+	
 }

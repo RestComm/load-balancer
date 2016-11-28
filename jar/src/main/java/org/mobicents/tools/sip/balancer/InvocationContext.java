@@ -22,11 +22,9 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
-import org.mobicents.tools.smpp.balancer.api.SmppAlgorithm;
 import org.mobicents.tools.smpp.multiplexer.DefaultSmppAlgorithm;
 import org.mobicents.tools.smpp.multiplexer.MServerConnectionImpl;
 
@@ -50,21 +48,27 @@ public class InvocationContext {
 					" for cluster version = " + version);
 			balancerAlgorithm.init();
 			//SMPP algorithm to Node init
-			clazz = Class.forName(balancerContext.smppToNodeAlgorithmClassName);
-			smppToNodeBalancerAlgorithm = (DefaultSmppAlgorithm) clazz.newInstance();
-			smppToNodeBalancerAlgorithm.setBalancerContext(balancerContext);
-			smppToNodeBalancerAlgorithm.setConfiguration(balancerContext.lbConfig);
-			smppToNodeBalancerAlgorithm.setInvocationContext(this);
-			logger.info("SMPP algorithm to Node side " + balancerContext.smppToNodeAlgorithmClassName + " loaded succesfully");
-			smppToNodeBalancerAlgorithm.init();
+			if(balancerContext.smppToNodeAlgorithmClassName!=null)
+			{
+				clazz = Class.forName(balancerContext.smppToNodeAlgorithmClassName);
+				smppToNodeBalancerAlgorithm = (DefaultSmppAlgorithm) clazz.newInstance();
+				smppToNodeBalancerAlgorithm.setBalancerContext(balancerContext);
+				smppToNodeBalancerAlgorithm.setConfiguration(balancerContext.lbConfig);
+				smppToNodeBalancerAlgorithm.setInvocationContext(this);
+				logger.info("SMPP algorithm to Node side " + balancerContext.smppToNodeAlgorithmClassName + " loaded succesfully");
+				smppToNodeBalancerAlgorithm.init();
+			}
 			//SMPP algorithm to Provider init
-			clazz = Class.forName(balancerContext.smppToProviderAlgorithmClassName);
-			smppToProviderBalancerAlgorithm = (DefaultSmppAlgorithm) clazz.newInstance();
-			smppToProviderBalancerAlgorithm.setBalancerContext(balancerContext);
-			smppToProviderBalancerAlgorithm.setConfiguration(balancerContext.lbConfig);
-			smppToProviderBalancerAlgorithm.setInvocationContext(this);
-			logger.info("SMPP algorithm to provider side " + balancerContext.smppToProviderAlgorithmClassName + " loaded succesfully");
-			smppToProviderBalancerAlgorithm.init();
+			if(balancerContext.smppToProviderAlgorithmClassName!=null)
+			{
+				clazz = Class.forName(balancerContext.smppToProviderAlgorithmClassName);
+				smppToProviderBalancerAlgorithm = (DefaultSmppAlgorithm) clazz.newInstance();
+				smppToProviderBalancerAlgorithm.setBalancerContext(balancerContext);
+				smppToProviderBalancerAlgorithm.setConfiguration(balancerContext.lbConfig);
+				smppToProviderBalancerAlgorithm.setInvocationContext(this);
+				logger.info("SMPP algorithm to provider side " + balancerContext.smppToProviderAlgorithmClassName + " loaded succesfully");
+				smppToProviderBalancerAlgorithm.init();
+			}
 			
 		} catch (Exception e) {
 			throw new RuntimeException("Error loading the algorithm class: " + balancerContext.algorithmClassName, e);
@@ -86,6 +90,10 @@ public class InvocationContext {
 	public ConcurrentHashMap<Long, MServerConnectionImpl> customers;
 	
 	public ConcurrentHashMap<KeyHttp, SIPNode> httpNodeMap = new ConcurrentHashMap<KeyHttp, SIPNode>();
+	
+	public ConcurrentHashMap<KeySmpp, SIPNode> smppNodeMap = new ConcurrentHashMap<KeySmpp, SIPNode>();
+	public KeySmpp activeNodeKey = null;
+	
 	public String version;
 	private ConcurrentHashMap<String, Object> attribs = new ConcurrentHashMap<String, Object>();
 	public Object getAttribute(String name) {
