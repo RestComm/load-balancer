@@ -383,18 +383,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    balancerRunner.balancerContext.jvmRouteToSipNode.put(
 	                            (String)pingNode.getProperties().get("jvmRoute"), pingNode);				
 	                }
-	                
-	                
-	//                SIPNode nodePresent = null;
-	//                Iterator<SIPNode> nodesIterator = ctx.nodes.iterator();
-	//                while (nodesIterator.hasNext() && nodePresent == null) 
-	//                {
-	//                    SIPNode node = (SIPNode) nodesIterator.next();
-	//                    if (node.equals(pingNode)) 
-	//                    {
-	//                        nodePresent = node;
-	//                    }
-	//                }
+
 	                SIPNode nodePresent = ctx.sipNodeMap(isIpV6).get(keySip);
 	                
 	                // adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
@@ -404,8 +393,24 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    if(logger.isTraceEnabled()) {
 	                        logger.trace("Ping " + nodePresent.getTimeStamp());
 	                    }
+
+	                    if(pingNode.getProperties().get("GRACEFUL_SHUTDOWN")!=null&&
+	                    		pingNode.getProperties().get("GRACEFUL_SHUTDOWN").equals("true"))
+	                    {
+	                    	logger.info(" LB will remove node "+nodePresent+"  because of GRACEFUL_SHUTDOWN");
+	                    	//remove node from all maps
+	                    	ArrayList<SIPNode> tmpList = new ArrayList<SIPNode>();
+	                    	tmpList.add(nodePresent);
+	                    	forceRemovalInRegister(tmpList);
+	                    }
 	                } 
-	                else 
+	                else if(pingNode.getProperties().get("GRACEFUL_SHUTDOWN")!=null&&
+	                		pingNode.getProperties().get("GRACEFUL_SHUTDOWN").equals("true"))
+	                {
+	                	if(logger.isDebugEnabled())
+	                        logger.debug("Ping from node which LB removes because of  GRACEFUL_SHUTDOWN : " + pingNode);
+	                }
+	                else
 	                {
 	                    Integer current = Integer.parseInt(version);
 	                    Integer latest = Integer.parseInt(latestVersion);

@@ -224,4 +224,9 @@ public class AppServer {
 		return appServerNode;
 	}
 
+	public void gracefulShutdown()
+	{
+		appServerNode.getProperties().put("GRACEFUL_SHUTDOWN", "true");
+	}
+
 }
