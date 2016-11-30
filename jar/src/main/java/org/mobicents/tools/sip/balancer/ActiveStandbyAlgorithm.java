@@ -141,10 +141,13 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 	protected SIPNode selectNewNode(Boolean isIpV6)
 	{		
 		SIPNode node = currNode.get();		
-		//Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            			
-		if(node!=null && invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(node)))
-			return node;
-		
+		//Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());
+		if(node!=null)
+		{
+			KeySip keyNode = new KeySip(node);
+			if(invocationContext.sipNodeMap(isIpV6).containsKey(keyNode)&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(keyNode))
+				return node;
+		}
 		try
 		{
 			selectionSemaphore.acquire();

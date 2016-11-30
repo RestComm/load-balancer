@@ -83,6 +83,8 @@ public class InvocationContext {
 	}
 	
 	//public CopyOnWriteArrayList<SIPNode> nodes = new CopyOnWriteArrayList<SIPNode>();
+	private ConcurrentHashMap<KeySip, SIPNode> gracefulShutdownSipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
+	private ConcurrentHashMap<KeySip, SIPNode> gracefulShutdownSipNodeMapV6 = new ConcurrentHashMap<KeySip, SIPNode>();
 	private ConcurrentHashMap<KeySip, SIPNode> badSipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
 	private ConcurrentHashMap<KeySip, SIPNode> sipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
 	private ConcurrentHashMap<KeySip, SIPNode> badSipNodeMapV6 = new ConcurrentHashMap<KeySip, SIPNode>();
@@ -120,5 +122,13 @@ public class InvocationContext {
 			return badSipNodeMapV6;
 		else
 			return badSipNodeMap;
+	}
+	
+	public ConcurrentHashMap<KeySip, SIPNode> gracefulShutdownSipNodeMap(Boolean isIpV6)
+	{
+		if(isIpV6)
+			return gracefulShutdownSipNodeMapV6;
+		else
+			return gracefulShutdownSipNodeMap;
 	}
 }

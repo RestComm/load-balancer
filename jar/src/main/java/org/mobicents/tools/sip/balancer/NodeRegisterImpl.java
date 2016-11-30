@@ -397,18 +397,15 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    if(pingNode.getProperties().get("GRACEFUL_SHUTDOWN")!=null&&
 	                    		pingNode.getProperties().get("GRACEFUL_SHUTDOWN").equals("true"))
 	                    {
-	                    	logger.info(" LB will remove node "+nodePresent+"  because of GRACEFUL_SHUTDOWN");
-	                    	//remove node from all maps
-	                    	ArrayList<SIPNode> tmpList = new ArrayList<SIPNode>();
-	                    	tmpList.add(nodePresent);
-	                    	forceRemovalInRegister(tmpList);
+	                    	logger.info("LB will exclude node " + nodePresent + " for new calls because of GRACEFUL_SHUTDOWN");
+	                    	ctx.gracefulShutdownSipNodeMap(isIpV6).put(keySip, pingNode);
 	                    }
 	                } 
 	                else if(pingNode.getProperties().get("GRACEFUL_SHUTDOWN")!=null&&
 	                		pingNode.getProperties().get("GRACEFUL_SHUTDOWN").equals("true"))
 	                {
 	                	if(logger.isDebugEnabled())
-	                        logger.debug("Ping from node which LB removes because of  GRACEFUL_SHUTDOWN : " + pingNode);
+	                        logger.debug("Ping from node which LB exclude because of  GRACEFUL_SHUTDOWN : " + pingNode);
 	                }
 	                else
 	                {
@@ -459,6 +456,7 @@ public class NodeRegisterImpl  implements NodeRegister {
             
             Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(pingNode.getIp());        	
             ctx.sipNodeMap(isIpV6).remove(new KeySip(pingNode));
+            ctx.gracefulShutdownSipNodeMap(isIpV6).remove(new KeySip(pingNode));
             boolean nodePresent = false;
             Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
             while (nodesIterator.hasNext() && !nodePresent) {

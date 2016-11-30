@@ -256,7 +256,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		node = userToMap.get(headerKey);
 		headerToTimestamps.put(headerKey, System.currentTimeMillis());
 
-		if(node == null) { //
+		if(node == null||invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(new KeySip(node))) { //
 			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			userToMap.put(headerKey, node);
@@ -319,11 +319,13 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		while(it.hasNext())
 		{
 			pair = it.next();
-			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey()))
+			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
+					&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
 				return pair.getValue();
 		}
 		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		if(it.hasNext())
+		if(it.hasNext()
+				&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
 		{
 			pair = it.next();
 			return pair.getValue();

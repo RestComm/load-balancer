@@ -266,11 +266,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		while(it.hasNext())
 		{
 			pair = it.next();
-			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey()))
+			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
+					&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
 				return pair.getValue();
 		}
 		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		if(it.hasNext())
+		if(it.hasNext()&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
 		{
 			pair = it.next();
 			return pair.getValue();

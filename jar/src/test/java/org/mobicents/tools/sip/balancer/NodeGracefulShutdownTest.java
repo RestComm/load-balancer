@@ -20,9 +20,9 @@
 package org.mobicents.tools.sip.balancer;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
+import static org.junit.Assert.assertNotNull;
 import javax.sip.ListeningPoint;
+import javax.sip.message.Response;
 
 import org.junit.After;
 import org.junit.Before;
@@ -38,19 +38,22 @@ import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 public class NodeGracefulShutdownTest{
 	BalancerRunner balancer;
-	int numNodes = 1;
+	int numNodes = 2;
 	AppServer[] servers = new AppServer[numNodes];
-	Shootist shootist;
+	Shootist shootist1, shootist2;
 	int activeConnections;
 
 
 	@Before
 	public void setUp() throws Exception {
-		shootist = new Shootist(ListeningPoint.TCP,5060);
+		shootist1 = new Shootist(ListeningPoint.TCP,5060,5033);
+		shootist2 = new Shootist(ListeningPoint.TCP,5060,5034);
 		balancer = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setUdpPort(5060);
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
+		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(UserBasedAlgorithm.class.getCanonicalName());
+		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setSipHeaderAffinityKey("To");
 		balancer.start(lbConfig);
 		
 		for(int q=0;q<servers.length;q++) {
@@ -63,7 +66,8 @@ public class NodeGracefulShutdownTest{
 
 	@After
 	public void tearDown() throws Exception {
-		shootist.stop();
+		shootist1.stop();
+		shootist2.stop();
 		for(int q=0;q<servers.length;q++) {
 			servers[q].stop();
 		}
@@ -73,13 +77,32 @@ public class NodeGracefulShutdownTest{
 	@Test
 	public void testGracefulRemovingNode() throws Exception {
 
+		int okNumber1 = 0;
+		int okNumber2 = 0;
+		shootist1.sendInitialInvite();
+		Thread.sleep(500);
+		for(AppServer server : servers)
+			if(server.sipListener.getInviteRequest()!=null)
+				server.gracefulShutdown();
 		Thread.sleep(5000);
-		servers[0].gracefulShutdown();
+		shootist1.sendBye();
+		Thread.sleep(2000);
+		shootist2.sendInitialInvite();
 		Thread.sleep(5000);
-		assertTrue(balancer.getLatestInvocationContext().sipNodeMap(false).isEmpty());
-				
+		shootist2.sendBye();
+		Thread.sleep(2000);
+		for(Response res : shootist1.responses)
+			if(res.getStatusCode() == Response.OK)
+				okNumber1++;
+		for(Response res : shootist2.responses)
+			if(res.getStatusCode() == Response.OK)
+				okNumber2++;
+		
+		for(AppServer server : servers)
+			assertNotNull(server.sipListener.getInviteRequest());
+		assertEquals(2, okNumber1);
+		assertEquals(2, okNumber2);
 	}
-
 }
 
 
