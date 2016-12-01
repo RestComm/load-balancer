@@ -61,6 +61,7 @@ import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.GracefulShutdown;
 import org.mobicents.tools.sip.balancer.InvocationContext;
+import org.mobicents.tools.sip.balancer.NodesInfoObject;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.sip.balancer.StatisticObject;
 
@@ -106,22 +107,23 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 				{
 					URI uri = new URI(request.getUri());
 					if (((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort() == statisticPort) {
-						if (uri.getPath().equalsIgnoreCase("/lbstat")) {
-							writeStatisticResponse(e);
-							return;
-						} 
-						else
-							if(uri.getPath().equalsIgnoreCase("/lbstop"))
-							{
-								writeResponse(e,  HttpResponseStatus.LOCKED, IOUtils.toString(this.getClass().getClassLoader().getResourceAsStream("bye.html")));
+						String currUriPath = uri.getPath().toLowerCase();
+						switch(currUriPath)
+						{
+							case "/lbstat":
+								writeStatisticResponse(e);
+								return;
+							case "/lbinfo":
+								writeInfoResponse(e);
+								return;
+							case "/lbstop":
+								writeResponse(e, HttpResponseStatus.LOCKED, IOUtils.toString(this.getClass().getClassLoader().getResourceAsStream("bye.html")));
 								new GracefulShutdown(balancerRunner).start();
 								return;
-							}
-							else 
-							{
+							default:
 								writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Server error");
 								return;
-							}
+						}
 					}
 				} catch (URISyntaxException e1) 
 				{
@@ -392,6 +394,21 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		String output=jo.toString();
     	HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK);
     	response.setHeader(HttpHeaders.Names.CONTENT_TYPE, APPLICATION_JSON);
+    	ChannelBuffer buf = ChannelBuffers.copiedBuffer(output, Charset.forName("UTF-8"));
+    	response.setContent(buf);
+    	ChannelFuture future = e.getChannel().write(response);
+    	future.addListener(ChannelFutureListener.CLOSE);
+    }
+    
+    private void writeInfoResponse(MessageEvent e)
+    {
+     	GsonBuilder builder = new GsonBuilder();
+		Gson gson = builder.setPrettyPrinting().create();
+		JsonElement je = gson.toJsonTree(new NodesInfoObject(balancerRunner));
+		JsonObject jo = new JsonObject();
+		jo.add("Nodes info", je);
+		String output=jo.toString();
+    	HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK);
     	ChannelBuffer buf = ChannelBuffers.copiedBuffer(output, Charset.forName("UTF-8"));
     	response.setContent(buf);
     	ChannelFuture future = e.getChannel().write(response);
