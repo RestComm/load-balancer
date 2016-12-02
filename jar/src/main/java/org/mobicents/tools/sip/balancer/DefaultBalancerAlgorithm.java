@@ -86,7 +86,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
 	public synchronized SIPNode processHttpRequest(HttpRequest request) {
 		if(invocationContext.sipNodeMap(false).size()>0) {
-			String instanceId = getInstanceId(request.getUri());
+			String instanceId = getInstanceId(request);
 			if(instanceId!=null)
 				return getNodeByInstanceId(instanceId);
 			
@@ -185,15 +185,20 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
     	return parameters;
     }
 	
-	private String getInstanceId(String url)
+	private String getInstanceId(HttpRequest request)
 	{
+		String url = request.getUri();
 		String[] tokens = url.split("/");
-		if(tokens.length>6)
+		if(tokens.length>6&&tokens[3].equals("Accounts"))
 		{
-			if(tokens[3].equals("Accounts")&&tokens[6].split("-").length>1)
+			if(tokens[6].split("-").length>1)
 				return tokens[6].split("-")[0];
 			else
-				return null;
+			{
+				url = url.replace("/"+tokens[6], "");
+				request.setUri(url);
+				return tokens[6];
+			}
 		}	
 		return null;
 	}

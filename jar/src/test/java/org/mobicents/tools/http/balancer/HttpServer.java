@@ -97,7 +97,7 @@ public class HttpServer
 			appServerNode.getProperties().put("udpPort", udpPort);
 			appServerNode.getProperties().put("sslPort", sslPort);
 			if(instanceId!=-1)
-				appServerNode.getProperties().put("instanceId", instanceId);
+				appServerNode.getProperties().put("Restcomm-Instance-Id", instanceId);
 			
 			
 			timer.schedule(new TimerTask() {
