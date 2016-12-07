@@ -44,7 +44,8 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
 	protected BalancerContext balancerContext;
 	protected InvocationContext invocationContext;
-	protected Iterator<Entry<KeySip, SIPNode>> it = null;
+	protected Iterator<Entry<KeySip, SIPNode>> ipv4It = null;
+	protected Iterator<Entry<KeySip, SIPNode>> ipv6It = null;
 	protected Iterator<SIPNode> httpRequestIterator = null;
 	protected Iterator <SIPNode> instanceIdIterator = null;
 	protected LoadBalancerConfiguration lbConfig; 

@@ -255,26 +255,37 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
-		//if(invocationContext.nodes.size() == 0) return null;
+
 		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
-		//int nextNode = nextNodeCounter.incrementAndGet();
-		//nextNode %= invocationContext.nodes.size();
-		//return invocationContext.nodes.get(nextNode);
-		if(it==null)
-			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+		Iterator<Entry<KeySip, SIPNode>> currIt = null; 
+		if(isIpV6)
+			currIt = ipv6It;
+		else
+			currIt = ipv4It;
+		if(currIt==null)
+			{
+			currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+			if(isIpV6)
+				ipv6It = currIt;
+			else
+				ipv4It = currIt;
+			}
 		Entry<KeySip, SIPNode> pair = null;
-		while(it.hasNext())
+		while(currIt.hasNext())
 		{
-			pair = it.next();
+			pair = currIt.next();
 			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
 					&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
 				return pair.getValue();
 		}
-		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		if(it.hasNext()&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
+		currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+		if(currIt.hasNext())
 		{
-			pair = it.next();
-			return pair.getValue();
+			pair = currIt.next();
+			if(!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
+				return pair.getValue();
+			else 
+				return null;
 		}
 		else
 			return null;

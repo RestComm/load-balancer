@@ -296,18 +296,30 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 //		nextNode %= invocationContext.nodes.size();
 //		return invocationContext.nodes.get(nextNode);
 		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
-		if(it==null)
-			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		Entry<KeySip, SIPNode> pair = null;
-		if(it.hasNext())
+		Iterator<Entry<KeySip, SIPNode>> currIt = null; 
+		if(isIpV6)
+			currIt = ipv6It;
+		else
+			currIt = ipv4It;
+		if(currIt==null)
 		{
-			pair = it.next();
-			if(!it.hasNext())
-				it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+			currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+			if(isIpV6)
+				ipv6It = currIt;
+			else
+				ipv4It = currIt;
+		}
+		Entry<KeySip, SIPNode> pair = null;
+		if(currIt.hasNext())
+		{
+			pair = currIt.next();
+			if(!currIt.hasNext())
+				currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+			
 		}
 		else
 		{
-			it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+			currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
 		}
 		return pair.getValue();
 		

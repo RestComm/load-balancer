@@ -25,6 +25,7 @@ package org.mobicents.tools.sip.balancer;
 import gov.nist.javax.sip.header.Via;
 import gov.nist.javax.sip.message.ResponseExt;
 
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -173,18 +174,30 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 	
 	protected SIPNode nextAvailableNode(Boolean isIpV6)
 	{
-		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		Entry<KeySip, SIPNode> pair = null;
-		while(it.hasNext())
+		Iterator<Entry<KeySip, SIPNode>> currIt = null; 
+		if(isIpV6)
+			currIt = ipv6It;
+		else
+			currIt = ipv4It;
+		if(currIt==null)
 		{
-			pair = it.next();
+			currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+			if(isIpV6)
+				ipv6It = currIt;
+			else
+				ipv4It = currIt;
+		}
+		Entry<KeySip, SIPNode> pair = null;
+		while(currIt.hasNext())
+		{
+			pair = currIt.next();
 			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey()))
 				return pair.getValue();
 		}
-		it = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		if(it.hasNext())
+		currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+		if(currIt.hasNext())
 		{
-			pair = it.next();
+			pair = currIt.next();
 			return pair.getValue();
 		}
 		else
