@@ -3190,7 +3190,7 @@ public class SIPBalancerForwarder implements SipListener {
 
     private void mediaFailureDetection(Response response, InvocationContext ctx, SIPNode node)
     {
-    	Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	        
+    	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	        
     	KeySip keySip = new KeySip(node);
     	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
     		if(ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {

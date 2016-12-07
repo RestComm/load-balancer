@@ -290,7 +290,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
 		} else {
-			//Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            							
+			//Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            							
 			node = nextAvailableNode(isIpV6);
 			if(node == null) {
 				if(logger.isDebugEnabled()) {

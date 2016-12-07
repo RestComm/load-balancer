@@ -68,7 +68,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 	public SIPNode processAssignedExternalRequest(Request request,
 			SIPNode assignedNode) {
 		
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(assignedNode.getIp());        	            				
+		Boolean isIpV6=LbUtils.isValidInet6Address(assignedNode.getIp());        	            				
 		//if((y++)%2==0) if(request.getHeader("CSeq").toString().contains("1")) return assignedNode;
 		String callId = ((SIPHeader) request.getHeader(headerName)).getValue();
 		CSeqHeader cs = (CSeqHeader) request.getHeader(CSeqHeader.NAME);
@@ -278,7 +278,7 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
 		} else {
-			Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            							
+			Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            							
 			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			callIdMap.put(callId, node);

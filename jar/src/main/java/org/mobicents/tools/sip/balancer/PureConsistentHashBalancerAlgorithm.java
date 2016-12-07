@@ -92,20 +92,20 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	}
 	
 	public synchronized void nodeAdded(SIPNode node, InvocationContext context) {
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            			
+		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            			
 		addNode(node);
 		syncNodes(isIpV6);
 	}
 	
 	private synchronized void addNode(SIPNode node) {
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            			
+		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            			
 		tmpNodes.add(node);
 		syncNodes(isIpV6);
 		dumpNodes();
 	}
 
 	public synchronized void nodeRemoved(SIPNode node) {
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            			
+		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            			
 		tmpNodes.remove(node);
 		syncNodes(isIpV6);
 		dumpNodes();

@@ -67,7 +67,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 
 	public synchronized void nodeAdded(SIPNode node) {
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());		
+		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());		
 		addNode(node,isIpV6);
 		syncNodes(isIpV6);
 	}

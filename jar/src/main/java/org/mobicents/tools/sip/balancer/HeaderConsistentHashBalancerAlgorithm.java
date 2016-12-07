@@ -109,7 +109,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 
 	@Override
 	public synchronized void nodeAdded(SIPNode node) {
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());		
+		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());		
 		nodes(isIpV6).add(node);
 		
 		if(isIpV6)
@@ -122,7 +122,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 
 	@Override
 	public synchronized void nodeRemoved(SIPNode node) {
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());				
+		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());				
 		nodes(isIpV6).remove(node);
 		
 		if(isIpV6)
@@ -161,7 +161,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 	
 	protected boolean isAlive(SIPNode node) {
 		//if(invocationContext.nodes.contains(node)) return true;
-		Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	            						
+		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            						
 		if(invocationContext.sipNodeMap(isIpV6).containsValue(node)) return true;
 		return false;
 	}

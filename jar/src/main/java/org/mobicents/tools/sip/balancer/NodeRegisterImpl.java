@@ -322,7 +322,7 @@ public class NodeRegisterImpl  implements NodeRegister {
                     if(smppPort!=null)
                     	ctx.smppNodeMap.remove(new KeySmpp(node));
                     
-                    Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(node.getIp());        	                    
+                    Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	                    
                     ctx.sipNodeMap(isIpV6).remove(new KeySip(node));
                     ctx.balancerAlgorithm.nodeRemoved(node);
                     //if(logger.isWEnabled()) {
@@ -355,7 +355,7 @@ public class NodeRegisterImpl  implements NodeRegister {
                 // https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address 
                 logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");			   
             } else {
-            	Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(pingNode.getIp());
+            	Boolean isIpV6=LbUtils.isValidInet6Address(pingNode.getIp());
             	Boolean isIpV4=InetAddressValidator.getInstance().isValidInet4Address(pingNode.getIp());
             	if(!isIpV4 && !isIpV6)
             		logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");
@@ -454,7 +454,7 @@ public class NodeRegisterImpl  implements NodeRegister {
             if(smppPort!=null)
             	ctx.smppNodeMap.remove(new KeySmpp(pingNode));
             
-            Boolean isIpV6=InetAddressValidator.getInstance().isValidInet6Address(pingNode.getIp());        	
+            Boolean isIpV6=LbUtils.isValidInet6Address(pingNode.getIp());        	
             ctx.sipNodeMap(isIpV6).remove(new KeySip(pingNode));
             ctx.gracefulShutdownSipNodeMap(isIpV6).remove(new KeySip(pingNode));
             boolean nodePresent = false;
