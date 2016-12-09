@@ -284,4 +284,44 @@ public class InternalLegConfiguration {
 		this.ipv6LoadBalancerWssPort = ipv6LoadBalancerWssPort;
 	}
 	
+	public int [] getPorts()
+	{
+		int [] internalPorts = new int[5];
+		Integer [] currPorts = {udpPort, tcpPort, tlsPort, wsPort, wssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				internalPorts[i] = currPorts[i]; 
+		
+		return internalPorts;
+	}
+	public int [] getIpv6Ports()
+	{
+		int [] internalPorts = new int[5];
+		Integer [] currPorts = {ipv6UdpPort, ipv6TcpPort, ipv6TlsPort, ipv6WsPort, ipv6WssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				internalPorts[i] = currPorts[i]; 
+		
+		return internalPorts;
+	}
+	public int [] getIPLoadBalancerPorts()
+	{
+		int [] internalPorts = new int[5];
+		Integer [] currPorts = {ipLoadBalancerUdpPort, ipLoadBalancerTcpPort, ipLoadBalancerTlsPort, ipLoadBalancerWsPort, ipLoadBalancerWssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				internalPorts[i] = currPorts[i]; 
+		
+		return internalPorts;
+	}
+	public int [] getIpv6LoadBalancerPorts()
+	{
+		int [] internalPorts = new int[5];
+		Integer [] currPorts = {ipv6LoadBalancerUdpPort, ipv6LoadBalancerTcpPort, ipv6LoadBalancerTlsPort, ipv6LoadBalancerWsPort, ipv6LoadBalancerWssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				internalPorts[i] = currPorts[i]; 
+		
+		return internalPorts;
+	}
 }

@@ -1,5 +1,7 @@
 package org.mobicents.tools.configuration;
 
+import java.util.ArrayList;
+
 public class ExternalLegConfiguration {
 
 	public static final String HOST = null;
@@ -282,7 +284,47 @@ public class ExternalLegConfiguration {
 
 	public void setIpv6LoadBalancerWssPort(Integer ipv6LoadBalancerWssPort) {
 		this.ipv6LoadBalancerWssPort = ipv6LoadBalancerWssPort;
-	} 
+	}
 	
+	public int [] getPorts()
+	{
+		int [] externalPorts = new int[5];
+		Integer [] currPorts = {udpPort, tcpPort, tlsPort, wsPort, wssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				externalPorts[i] = currPorts[i]; 
+		
+		return externalPorts;
+	}
+	public int [] getIpv6Ports()
+	{
+		int [] externalPorts = new int[5];
+		Integer [] currPorts = {ipv6UdpPort, ipv6TcpPort, ipv6TlsPort, ipv6WsPort, ipv6WssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				externalPorts[i] = currPorts[i]; 
+		
+		return externalPorts;
+	}
+	public int [] getIPLoadBalancerPorts()
+	{
+		int [] externalPorts = new int[5];
+		Integer [] currPorts = {ipLoadBalancerUdpPort, ipLoadBalancerTcpPort, ipLoadBalancerTlsPort, ipLoadBalancerWsPort, ipLoadBalancerWssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				externalPorts[i] = currPorts[i]; 
+		
+		return externalPorts;
+	}
+	public int [] getIpv6LoadBalancerPorts()
+	{
+		int [] externalPorts = new int[5];
+		Integer [] currPorts = {ipv6LoadBalancerUdpPort, ipv6LoadBalancerTcpPort, ipv6LoadBalancerTlsPort, ipv6LoadBalancerWsPort, ipv6LoadBalancerWssPort};
+		for(int i = 0; i < 5 ; i++)
+			if(currPorts[i]!=null)
+				externalPorts[i] = currPorts[i]; 
+		
+		return externalPorts;
+	}
     
 }

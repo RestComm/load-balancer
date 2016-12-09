@@ -98,30 +98,15 @@ public class BalancerContext {
 	public InetAddress externalIpv6HostAddress;
 	public InetAddress internalIpv6HostAddress;
 	
+	public int [] externalPorts;
+	public int [] externalIpv6Ports;
+	public int [] externalIpLoadBalancerPorts;
+	public int [] externalIpv6LoadBalancerPorts;
 	
-	public int externalUdpPort;
-	public int externalTcpPort;
-	public int externalTlsPort;
-	public int externalWsPort;
-	public int externalWssPort;
-	
-	public int externalIpv6UdpPort;
-	public int externalIpv6TcpPort;
-	public int externalIpv6TlsPort;
-	public int externalIpv6WsPort;
-	public int externalIpv6WssPort;
-	
-	public int internalUdpPort;
-	public int internalTcpPort;
-	public int internalTlsPort;
-	public int internalWsPort;
-	public int internalWssPort;
-	
-	public int internalIpv6UdpPort;
-	public int internalIpv6TcpPort;
-	public int internalIpv6TlsPort;
-	public int internalIpv6WsPort;
-	public int internalIpv6WssPort;
+	public int [] internalPorts;
+	public int [] internalIpv6Ports;
+	public int [] internalIpLoadBalancerPorts;
+	public int [] internalIpv6LoadBalancerPorts;
 
 	
 	public String externalViaHost;
@@ -129,65 +114,23 @@ public class BalancerContext {
 	public String internalViaHost;
 	public String internalIpv6ViaHost;
 	
-	public int externalViaUdpPort;
-	public int externalViaTcpPort;
-	public int externalViaTlsPort;
-	public int externalViaWsPort;
-	public int externalViaWssPort;
+	public int [] externalViaPorts;
+	public int [] externalIpv6ViaPorts;
 	
-	public int externalIpv6ViaUdpPort;
-	public int externalIpv6ViaTcpPort;
-	public int externalIpv6ViaTlsPort;
-	public int externalIpv6ViaWsPort;
-	public int externalIpv6ViaWssPort;
+	public int [] internalViaPorts;
+	public int [] internalIpv6ViaPorts;
 	
-	public int internalViaUdpPort;
-	public int internalViaTcpPort;
-	public int internalViaTlsPort;
-	public int internalViaWsPort;
-	public int internalViaWssPort;
-	
-	public int internalIpv6ViaUdpPort;
-	public int internalIpv6ViaTcpPort;
-	public int internalIpv6ViaTlsPort;
-	public int internalIpv6ViaWsPort;
-	public int internalIpv6ViaWssPort;
 
 	
 	public String internalIpLoadBalancerAddress;
 	public String internalIpv6LoadBalancerAddress;
-	public int internalLoadBalancerUdpPort;
-	public int internalLoadBalancerTcpPort;
-	public int internalLoadBalancerTlsPort;
-	public int internalLoadBalancerWsPort;
-	public int internalLoadBalancerWssPort;
-	
-	public int internalIpv6LoadBalancerUdpPort;
-	public int internalIpv6LoadBalancerTcpPort;
-	public int internalIpv6LoadBalancerTlsPort;
-	public int internalIpv6LoadBalancerWsPort;
-	public int internalIpv6LoadBalancerWssPort;
-	
-	
+
 	public String externalIpLoadBalancerAddress;
 	public String externalIpv6LoadBalancerAddress;
 	
 	public InetAddress internalIpv6LoadBalancerAddressHost;
 	public InetAddress externalIpv6LoadBalancerAddressHost;
 	
-	public int externalLoadBalancerUdpPort;
-	public int externalLoadBalancerTcpPort;
-	public int externalLoadBalancerTlsPort;
-	public int externalLoadBalancerWsPort;
-	public int externalLoadBalancerWssPort;
-	
-	public int externalIpv6LoadBalancerUdpPort;
-	public int externalIpv6LoadBalancerTcpPort;
-	public int externalIpv6LoadBalancerTlsPort;
-	public int externalIpv6LoadBalancerWsPort;
-	public int externalIpv6LoadBalancerWssPort;
-	
-	public boolean useIpLoadBalancerAddressInViaHeaders;
 	public String sipHeaderAffinityKey;
 	public Pattern sipHeaderAffinityKeyExclusionPattern;
 	public String sipHeaderAffinityFallbackKey;
@@ -234,11 +177,11 @@ public class BalancerContext {
 	final Map<String, AtomicLong> responsesProcessedByStatusCode = new ConcurrentHashMap<String, AtomicLong>();
     
     public boolean isTwoEntrypoints() {
-    	return (internalUdpPort>0 
-    			|| internalTcpPort>0
-    			|| internalTlsPort>0
-    			|| internalWsPort>0
-    			|| internalWssPort>0)  && internalHost != null;
+    	return (internalPorts[0]>0 
+    			|| internalPorts[1]>0
+    			|| internalPorts[2]>0
+    			|| internalPorts[3]>0
+    			|| internalPorts[4]>0)  && internalHost != null;
     }
 
     public BalancerContext() {
@@ -326,34 +269,34 @@ public class BalancerContext {
 		if(!isIpv6)
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return externalWssPort;
+				return externalPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return externalWsPort;
+				return externalPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return externalTlsPort;
+				return externalPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return externalTcpPort;
+				return externalPorts[1];
 		
-			return externalUdpPort;
+			return externalPorts[0];
 		}
 		else
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return externalIpv6WssPort;
+				return externalIpv6Ports[4];
 			
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return externalIpv6WsPort;
+				return externalIpv6Ports[3];
 			
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return externalIpv6TlsPort;
+				return externalIpv6Ports[2];
 			
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return externalIpv6TcpPort;
+				return externalIpv6Ports[1];
 			
-			return externalIpv6UdpPort;
+			return externalIpv6Ports[0];
 		}
 		
 	}
@@ -363,34 +306,34 @@ public class BalancerContext {
 		if(!isIpv6)
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return externalViaWssPort;
+				return externalViaPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return externalViaWsPort;
+				return externalViaPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return externalViaTlsPort;
+				return externalViaPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return externalViaTcpPort;
+				return externalViaPorts[1];
 		
-			return externalViaUdpPort;
+			return externalViaPorts[0];
 		}
 		else
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return externalIpv6ViaWssPort;
+				return externalIpv6ViaPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return externalIpv6ViaWsPort;
+				return externalIpv6ViaPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return externalIpv6ViaTlsPort;
+				return externalIpv6ViaPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return externalIpv6ViaTcpPort;
+				return externalIpv6ViaPorts[1];
 		
-			return externalIpv6ViaUdpPort;
+			return externalIpv6ViaPorts[0];
 		}
 	}
 	
@@ -399,34 +342,34 @@ public class BalancerContext {
 		if(!isIpv6)
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return externalLoadBalancerWssPort;
+				return externalIpLoadBalancerPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return externalLoadBalancerWsPort;
+				return externalIpLoadBalancerPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return externalLoadBalancerTlsPort;
+				return externalIpLoadBalancerPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return externalLoadBalancerTcpPort;
+				return externalIpLoadBalancerPorts[1];
 		
-			return externalLoadBalancerUdpPort;
+			return externalIpLoadBalancerPorts[0];
 		}
 		else
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return externalIpv6LoadBalancerWssPort;
+				return externalIpv6LoadBalancerPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return externalIpv6LoadBalancerWsPort;
+				return externalIpv6LoadBalancerPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return externalIpv6LoadBalancerTlsPort;
+				return externalIpv6LoadBalancerPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return externalIpv6LoadBalancerTcpPort;
+				return externalIpv6LoadBalancerPorts[1];
 		
-			return externalIpv6LoadBalancerUdpPort;
+			return externalIpv6LoadBalancerPorts[0];
 		}
 	}
 	
@@ -435,34 +378,34 @@ public class BalancerContext {
 		if(!isIpv6)
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return internalWssPort;
+				return internalPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return internalWsPort;
+				return internalPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return internalTlsPort;
+				return internalPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return internalTcpPort;
+				return internalPorts[1];
 		
-			return internalUdpPort;
+			return internalPorts[0];
 		}
 		else
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return internalIpv6WssPort;
+				return internalIpv6Ports[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return internalIpv6WsPort;
+				return internalIpv6Ports[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return internalIpv6TlsPort;
+				return internalIpv6Ports[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return internalIpv6TcpPort;
+				return internalIpv6Ports[1];
 		
-			return internalIpv6UdpPort;
+			return internalIpv6Ports[0];
 		}
 	}
 	
@@ -471,34 +414,34 @@ public class BalancerContext {
 		if(!isIpv6)
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return internalViaWssPort;
+				return internalViaPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return internalViaWsPort;
+				return internalViaPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return internalViaTlsPort;
+				return internalViaPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return internalViaTcpPort;
+				return internalViaPorts[1];
 		
-			return internalViaUdpPort;
+			return internalViaPorts[0];
 		}
 		else
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return internalIpv6ViaWssPort;
+				return internalIpv6ViaPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return internalIpv6ViaWsPort;
+				return internalIpv6ViaPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return internalIpv6ViaTlsPort;
+				return internalIpv6ViaPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return internalIpv6ViaTcpPort;
+				return internalIpv6ViaPorts[1];
 		
-			return internalIpv6ViaUdpPort;
+			return internalIpv6ViaPorts[0];
 		}
 	}
 	
@@ -507,34 +450,34 @@ public class BalancerContext {
 		if(!isIpv6)
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return internalLoadBalancerWssPort;
+				return internalIpLoadBalancerPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return internalLoadBalancerWsPort;
+				return internalIpLoadBalancerPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return internalLoadBalancerTlsPort;
+				return internalIpLoadBalancerPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return internalLoadBalancerTcpPort;
+				return internalIpLoadBalancerPorts[1];
 		
-			return internalLoadBalancerUdpPort;
+			return internalIpLoadBalancerPorts[0];
 		}
 		else
 		{
 			if(transport.equalsIgnoreCase(ListeningPointExt.WSS))
-				return internalIpv6LoadBalancerWssPort;
+				return internalIpv6LoadBalancerPorts[4];
 		
 			if(transport.equalsIgnoreCase(ListeningPointExt.WS))
-				return internalIpv6LoadBalancerWsPort;
+				return internalIpv6LoadBalancerPorts[3];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TLS))
-				return internalIpv6LoadBalancerTlsPort;
+				return internalIpv6LoadBalancerPorts[2];
 		
 			if(transport.equalsIgnoreCase(ListeningPoint.TCP))
-				return internalIpv6LoadBalancerTcpPort;
+				return internalIpv6LoadBalancerPorts[1];
 		
-			return internalIpv6LoadBalancerUdpPort;
+			return internalIpv6LoadBalancerPorts[0];
 		}
 	}
 }
