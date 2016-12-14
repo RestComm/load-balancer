@@ -190,7 +190,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	{
 		String url = request.getUri();
 		String[] tokens = url.split("/");
-		if(tokens.length>6&&tokens[3].equals("Accounts"))
+		if(tokens.length>6&&tokens[3].equals("Accounts")&&!tokens[5].equals("Applications"))
 		{
 			if(tokens[6].split("-").length>1)
 				return tokens[6].split("-")[0];
