@@ -493,37 +493,58 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	//SMPP balancer
 	public long getNumberOfSmppRequestsToServer() 
 	{
-		return smppBalancerRunner.getNumberOfSmppRequestsToServer();
+		if(smppBalancerRunner!=null)
+			return smppBalancerRunner.getNumberOfSmppRequestsToServer();
+		else
+			return 0;
 	}
 	
 	public long getNumberOfSmppRequestsToClient() 
 	{
-		return smppBalancerRunner.getNumberOfSmppRequestsToClient();
+		if(smppBalancerRunner!=null)
+			return smppBalancerRunner.getNumberOfSmppRequestsToClient();
+		else
+			return 0;
 	}
 	
 	public long getNumberOfSmppBytesToServer() 
 	{
-		return smppBalancerRunner.getNumberOfSmppBytesToServer();
+		if(smppBalancerRunner!=null)
+			return smppBalancerRunner.getNumberOfSmppBytesToServer();
+		else
+			return 0;
 	}
 	
 	public long getNumberOfSmppBytesToClient() 
 	{
-		return smppBalancerRunner.getNumberOfSmppBytesToClient();
+		if(smppBalancerRunner!=null)
+			return smppBalancerRunner.getNumberOfSmppBytesToClient();
+		else
+			return 0;
 	}
 	
 	public long getSmppRequestsProcessedById(Integer id) 
 	{
-		return smppBalancerRunner.getSmppRequestsProcessedById(id);
+		if(smppBalancerRunner!=null)
+			return smppBalancerRunner.getSmppRequestsProcessedById(id);
+		else
+			return 0;
 	}
 	
 	public long getSmppResponsesProcessedById(Integer id) 
 	{
-		return smppBalancerRunner.getSmppResponsesProcessedById(id);
+		if(smppBalancerRunner!=null)
+			return smppBalancerRunner.getSmppResponsesProcessedById(id);
+		else
+			return 0;
 	}
 	
 	public int getNumberOfActiveSmppConnections()
 	{
-		return smppBalancerRunner.getNumberOfActiveSmppConnections();
+		if(smppBalancerRunner!=null)
+			return smppBalancerRunner.getNumberOfActiveSmppConnections();
+		else
+			return 0;
 	}
 	
 	public void incCalls() {
