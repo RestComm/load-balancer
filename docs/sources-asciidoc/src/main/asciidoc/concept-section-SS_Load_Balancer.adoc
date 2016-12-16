@@ -1054,6 +1054,9 @@ You can get next data:
 .. Recent CPU usage for the Java Virtual Machine process;
 .. Amount of used memory of the heap in bytes.
 
+Also you can get info about connected nodes to the load balancer.
+You should use url http://host:statisticPort/lbinfo
+
 == Configuring Load-balancer and two Restcomm servers on the one local machine
 
 .Load balancer and Restcomm servers diagram
