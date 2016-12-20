@@ -1985,8 +1985,10 @@ public class SIPBalancerForwarder implements SipListener {
     {
     	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	        
     	KeySip keySip = new KeySip(node);
-    	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
-    		if(ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
+    	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode()))
+    		// adding null check for https://github.com/RestComm/load-balancer/issues/83
+    		if(ctx.sipNodeMap(isIpV6).get(keySip) != null && 
+    				ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
 					ctx.sipNodeMap(isIpV6).remove(keySip);
 					ctx.badSipNodeMap(isIpV6).put(keySip, node);
