@@ -279,6 +279,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 				return pair.getValue();
 		}
 		currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+		if(isIpV6)
+			 ipv6It = currIt;
+		else
+			 ipv4It = currIt;
 		if(currIt.hasNext())
 		{
 			pair = currIt.next();
