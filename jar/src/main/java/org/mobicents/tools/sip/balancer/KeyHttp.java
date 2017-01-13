@@ -2,15 +2,15 @@ package org.mobicents.tools.sip.balancer;
 
 public class KeyHttp {
 	
-	private Integer instanceId;
+	private String instanceId;
 	
-	public KeyHttp(Integer instanceId)
+	public KeyHttp(String instanceId)
 	{
 		this.instanceId = instanceId;
 	}
 	
 	
-	public Integer getInstanceId() {
+	public String getInstanceId() {
 		return instanceId;
 	}
 

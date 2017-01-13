@@ -61,10 +61,10 @@ public class HttpServer
 	private AtomicBoolean stopFlag = new AtomicBoolean(false);
 	private String lbAddress = "127.0.0.1";
 	private int lbRMIport = 2000;
-	private int instanceId;
+	private String instanceId;
 	public static int delta = 0;
 	
-	public HttpServer(int httpPort, int sslPort, int instanceId)
+	public HttpServer(int httpPort, int sslPort, String instanceId)
 	{
 		this.httpPort = httpPort;
 		this.sslPort = sslPort;
@@ -73,7 +73,7 @@ public class HttpServer
 	}
 	public HttpServer(int httpPort, int sslPort)
 	{
-		this(httpPort, sslPort, -1);
+		this(httpPort, sslPort, null);
 	}
 	
 	public void start() 
@@ -96,7 +96,7 @@ public class HttpServer
 			appServerNode.getProperties().put("httpPort", httpPort);
 			appServerNode.getProperties().put("udpPort", udpPort);
 			appServerNode.getProperties().put("sslPort", sslPort);
-			if(instanceId!=-1)
+			if(instanceId!=null)
 				appServerNode.getProperties().put("Restcomm-Instance-Id", instanceId);
 			
 			

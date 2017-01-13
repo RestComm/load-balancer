@@ -54,7 +54,7 @@ public class InstanceIdAlgorithmTest
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < numberNodes; i++)
 		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i, i);
+			serverArray[i] = new HttpServer(8080+i, 4444+i, ""+i);
 			serverArray[i].start();	
 		}
 		

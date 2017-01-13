@@ -257,7 +257,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	{
 		if(logger.isDebugEnabled())
 			logger.debug("Node by instanceId("+instanceId+") getting");
-		SIPNode node = invocationContext.httpNodeMap.get(new KeyHttp(Integer.parseInt(instanceId)));
+		SIPNode node = invocationContext.httpNodeMap.get(new KeyHttp(instanceId));
 		if(node!=null)
 		{
 			return node;

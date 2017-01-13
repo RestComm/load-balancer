@@ -314,7 +314,7 @@ public class NodeRegisterImpl  implements NodeRegister {
                             (String) node.getProperties().get("version"));
                     balancerRunner.balancerContext.aliveNodes.remove(node);
                     //ctx.nodes.remove(node);
-                    Integer instanceId = (Integer) node.getProperties().get("Restcomm-Instance-Id");
+                    String instanceId = (String) node.getProperties().get("Restcomm-Instance-Id");
                     if(instanceId!=null)
                     	ctx.httpNodeMap.remove(instanceId);
                     
@@ -414,7 +414,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    latestVersion = Math.max(current, latest) + "";
 	                    balancerRunner.balancerContext.aliveNodes.add(pingNode);
 	                    ctx.sipNodeMap(isIpV6).put(keySip, pingNode);
-	                    Integer instanceId = (Integer) pingNode.getProperties().get("Restcomm-Instance-Id");
+	                    String instanceId = (String) pingNode.getProperties().get("Restcomm-Instance-Id");
 	                    if(instanceId!=null)
 	                    	ctx.httpNodeMap.put(new KeyHttp(instanceId), pingNode);
 	                    Integer smppPort = (Integer) pingNode.getProperties().get("smppPort");
@@ -446,7 +446,7 @@ public class NodeRegisterImpl  implements NodeRegister {
             InvocationContext ctx = balancerRunner.getInvocationContext(
                     (String) pingNode.getProperties().get("version"));
             //ctx.nodes.remove(pingNode);
-            Integer instanceId = (Integer) pingNode.getProperties().get("Restcomm-Instance-Id");
+            String instanceId = (String) pingNode.getProperties().get("Restcomm-Instance-Id");
             if(instanceId!=null)
             	ctx.httpNodeMap.remove(instanceId);
             
