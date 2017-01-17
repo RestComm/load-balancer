@@ -193,7 +193,12 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		if(tokens.length>6&&tokens[3].equals("Accounts")&&tokens[5].startsWith("Calls"))
 		{
 			if(tokens[6].split("-").length>1)
-				return tokens[6].split("-")[0];
+			{
+				String instanceId = tokens[6].split("-")[0];
+				url = url.replace(instanceId+"-", "");
+				request.setUri(url);
+				return instanceId;
+			}
 			else
 			{
 				url = url.replace("/"+tokens[6], "");
