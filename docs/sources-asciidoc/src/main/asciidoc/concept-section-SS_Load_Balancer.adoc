@@ -352,6 +352,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <heartbeatInterval>150</heartbeatInterval>
   <statisticPort>2006</statisticPort>
   <jmxHtmlAdapterPort>8000</jmxHtmlAdapterPort>
+  <shutdownTimeout>10000<shutdownTimeout>
 </common>
 <sip>
   <publicIp></publicIp>
@@ -559,6 +560,10 @@ rmiRegistryPort::
 
 rmiRemoteObjectPort::
   Port on which the {this-platform} Load Balancer will use to export the RMI Remote Object.
+
+shutdownTimeout::
+  Time after which LB will shutdown completely after getting request
+  http://ip:statisticPort/lbstop
 
 httpPort::
   Port on which the {this-platform} Load Balancer will accept HTTP requests to be distributed across the nodes.
@@ -855,12 +860,11 @@ If you use
 link:http://www.keepalived.org/[keepalived] for maintaining active and standby
 Load balancers as it was described
 link:http://documentation.telestax.com/core/tutorials/high-availability/Load-Balancer_failover-keepalived.html[here]
-then you can gracefully shutdown active Load balancer by using http request
-http://host:statisticPort/lbstop for upgrades without loosing calls
-and redirect new calls to another active LB. The request will turn off the
-statistic port. The keepalived utility checks the statistic port and then
-switches traffic to the standby Load balancer if the statistic port is turned off.
-After two seconds the Load balancer finally  stops.
+then you can shutdown active Load balancer by using http request
+http://host:statisticPort/lbstop for upgrades and redirect new calls to another LB.
+The request will turn off the statistic port. The keepalived utility checks the
+statistic port and then switches traffic to the standby Load balancer if the statistic
+port is turned off. After two seconds the Load balancer finally  stops.
 .
 
 This should produce similar output to the following:
@@ -1369,3 +1373,221 @@ and you can see next line:
 
 Now you can send outbound and inbound messages. How to send messages you can find
 link:http://documentation.telestax.com/connect/configuration/Restcomm%20-%20Connecting%20SMPP%20Endpoint%20through%20Nexmo.html[here]
+
+== Active-Active setup and Graceful Upgrades of Load Balancer
+
+link:http://www.keepalived.org/[Keepalived service] provides possibility graceful
+shutdown of the Load balancer using health-checks and using virtual IP
+on which client/server from external/internal side sends message. The Load balancer
+gets this message on its real IP and transfer forward. So we can use two LBs in same
+time which controlled one keepalived service.
+
+.Active-Active Load balancer diagram
+image::images/Active-Active.png[]
+
+If LB2 will be gracefully shutdown via http request
+http://ipLoadbalancer:statisticPort/lbstop (http://10.0.0.20:2006/lbstop), than the keepalived service
+will switch virtual IPs 10.0.0.200 and 172.21.0.200 of second load balancer (LB2)
+to other active (LB1) and all traffic which client will send to virtual IP 10.0.0.200
+will be redirected to LB1.
+
+.The graceful shutdown of Load balancer diagram
+image::images/Active-Active-Graceful-Shutdown.png[]
+
+For configuring of Load balancer you need setup keepalived service and set
+additional properties in lb-configuration.xml file.
+
+First you need install keepalived service on your machines on which you have
+the Load balancers.
+
+ sudo apt-get install keepalived
+
+The service looks for its configuration files in the /etc/keepalived directory.
+Create that directory and file on both etc/keepalived/keepalived.conf.
+
+keepalived.conf on machine with LB1:
+
+ vrrp_script chk_lb_ext {
+ script  "/home/user/lbhealthcheck.sh"
+ interval 1
+ fall 1
+ rise 1
+}
+ vrrp_script chk_lb_int {
+  script  "/home/user/lbhealthcheck.sh"
+  interval 1
+  fall 10
+  rise 1
+}
+ vrrp_instance VI_1 {
+    state MASTER
+    interface eth0
+    virtual_router_id 51
+    priority 150
+    advert_int 1
+    authentication {
+    auth_type AH
+    auth_pass k@l!ve1
+    }
+    virtual_ipaddress {
+    10.0.0.100/24
+    }
+    track_script {
+     chk_lb_ext
+     }
+}
+vrrp_instance VI_2 {
+   state MASTER
+   interface eth1
+   virtual_router_id 52
+   priority 150
+   advert_int 1
+   authentication {
+   auth_type AH
+   auth_pass k@l!ve1
+   }
+   virtual_ipaddress {
+   172.21.0.100/24
+   }
+   track_script {
+    chk_lb_int
+    }
+}
+vrrp_instance VI_3 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 53
+    priority 100
+    advert_int 1
+    authentication {
+    auth_type AH
+    auth_pass k@l!ve3
+    }
+    virtual_ipaddress {
+    10.0.0.200/24
+    }
+    track_script {
+     chk_lb_ext
+     }
+}
+vrrp_instance VI_4 {
+    state BACKUP
+    interface eth1
+    virtual_router_id 54
+    priority 100
+    advert_int 1
+    authentication {
+    auth_type AH
+    auth_pass k@l!ve3
+    }
+    virtual_ipaddress {
+    172.21.0.200/24
+    }
+    track_script {
+     chk_lb_int
+     }
+}
+virtual_server 10.0.0.100 {
+    delay_loop 10
+    protocol TCP
+    lb_algo rr
+    lb_kind NAT
+    persistence_timeout 7200
+    real_server 10.0.0.10 {
+    }
+}
+virtual_server 172.21.0.100 {
+    delay_loop 10
+    protocol TCP
+    lb_algo rr
+    lb_kind NAT
+    persistence_timeout 7200
+    real_server 172.21.0.10 {
+    }
+}
+ virtual_server 10.0.0.200 {
+    delay_loop 10
+    protocol TCP
+    lb_algo rr
+    lb_kind NAT
+    persistence_timeout 7200
+    real_server 10.0.0.10 {
+    }
+}
+virtual_server 172.21.0.200 {
+   delay_loop 10
+   protocol TCP
+   lb_algo rr
+   lb_kind NAT
+   persistence_timeout 7200
+   real_server 172.21.0.10 {
+   }
+}
+
+Then we define the symmetric configuration file on second machine. VI_3 & VI_4
+are in MASTER state with a higher priority 150 to start with a stable state.
+Symmetrically VI_1 & VI_2 are in default BACKUP state with lower priority of 100.
+virtual_server should be 10.0.0.200, 172.21.0.200 and real_server 10.0.0.20,
+172.21.0.20 accordingly. Other parameters should be same.
+Also you need create file lbhealthcheck.sh somewhere(for example /home/user/),
+which will be check is opened statistic port:
+
+ port=$(nc -z 172.21.0.220 2006;echo $?)
+ if [ $port -eq 1 ]; then
+   exit 1
+ else
+   exit 0
+ fi
+
+Next you need set IP Load balancer adresses and ports for example next
+configuration for LB1:
+
+ <external>
+    <host>10.0.0.10</host>
+    <ipLoadBalancerAddress>10.0.0.100,10.0.0.200</ipLoadBalancerAddress>
+    <udpPort>5060</udpPort>
+    <tcpPort>5060</tcpPort>
+    <tlsPort>5061</tlsPort>
+    <wsPort>5062</wsPort>
+    <wssPort>5063</wssPort>
+    <ipLoadBalancerUdpPort>5060</ipLoadBalancerUdpPort>
+    <ipLoadBalancerTcpPort>5060</ipLoadBalancerTcpPort>
+    <ipLoadBalancerTlsPort>5061</ipLoadBalancerTlsPort>
+    <ipLoadBalancerWsPort>5062</ipLoadBalancerWsPort>
+    <ipLoadBalancerWssPort>5063</ipLoadBalancerWssPort>
+  </external>
+  <internal>
+    <host>172.21.0.10</host>
+    <ipLoadBalancerAddress>172.21.0.100,172.21.0.200</ipLoadBalancerAddress>
+    <udpPort>5080</udpPort>
+    <tcpPort>5080</tcpPort>
+    <tlsPort>5081</tlsPort>
+    <wsPort>5082</wsPort>
+    <wssPort>5083</wssPort>
+    <ipLoadBalancerUdpPort>5080</ipLoadBalancerUdpPort>
+    <ipLoadBalancerTcpPort>5080</ipLoadBalancerTcpPort>
+    <ipLoadBalancerTlsPort>5081</ipLoadBalancerTlsPort>
+    <ipLoadBalancerWsPort>5082</ipLoadBalancerWsPort>
+    <ipLoadBalancerWssPort>5083</ipLoadBalancerWssPort>
+  </internal>
+
+Also you need set next tags:
+in <sip> section
+
+ <useIpLoadBalancerAddressInViaHeaders>true</useIpLoadBalancerAddressInViaHeaders>
+
+in <common> section
+
+ <shutdownTimeout>10000<shutdownTimeout>
+
+in <sipStack> section
+
+	<property>
+    	<key>gov.nist.javax.sip.NEVER_ADD_RECEIVED_RPORT</key>
+		<value>true</value>
+	</property>
+
+Same property should be set for LB2.
+
+On server side you should also set
+sip stack property gov.nist.javax.sip.NEVER_ADD_RECEIVED_RPORT=true
