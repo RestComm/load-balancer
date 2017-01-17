@@ -70,7 +70,6 @@ public class BinderRunnable implements Runnable {
 	@Override
 	public void run() {
 		boolean connectSuccesful = true;
-		System.out.println();
 		while (!client.connect()) {
 			logger.warn("Connection to " + client.getConfig().getHost() + ":" + client.getConfig().getPort() + " failed we will try next server");
 			index ++;

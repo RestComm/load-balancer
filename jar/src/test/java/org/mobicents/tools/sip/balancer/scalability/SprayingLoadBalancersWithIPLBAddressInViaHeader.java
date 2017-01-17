@@ -28,6 +28,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
@@ -70,9 +72,11 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 		lbConfig.getCommonConfiguration().setJmxHtmlAdapterPort(8000+id*100);
 		lbConfig.getHttpConfiguration().setHttpPort(null);
 		lbConfig.getSmppConfiguration().setSmppPort(null);
+		ArrayList <String> ipLoadBalancerAddressList = new ArrayList<String>();
+		ipLoadBalancerAddressList.add("127.0.0.1");
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(HeaderConsistentHashBalancerAlgorithm.class.getName());
-		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerAddress("127.0.0.1");
-		lbConfig.getSipConfiguration().getInternalLegConfiguration().setIpLoadBalancerAddress("127.0.0.1");
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerAddress(ipLoadBalancerAddressList);
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setIpLoadBalancerAddress(ipLoadBalancerAddressList);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerUdpPort(9988);
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setIpLoadBalancerUdpPort(9922);
 		balancer.start(lbConfig);

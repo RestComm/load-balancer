@@ -162,10 +162,10 @@ public class SIPBalancerForwarder implements SipListener {
             ArrayList <ListeningPoint> listeningPointsIpv6 = new ArrayList<ListeningPoint>();
             createListeningPoints(balancerRunner.balancerContext.externalPorts, balancerRunner.balancerContext.externalHost, listeningPoints);
             createListeningPoints(balancerRunner.balancerContext.externalIpv6Ports, balancerRunner.balancerContext.externalIpv6Host, listeningPointsIpv6);
-            if(balancerRunner.balancerContext.externalIpLoadBalancerAddress != null)
+            if(balancerRunner.balancerContext.externalIpLoadBalancerAddresses != null)
             {
-            	createRecordRouteHeaders(balancerRunner.balancerContext.externalIpLoadBalancerPorts, balancerRunner.balancerContext.externalIpLoadBalancerAddress, balancerRunner.balancerContext.activeExternalHeader);
-            	createRecordRouteHeaders(balancerRunner.balancerContext.externalIpv6LoadBalancerPorts, balancerRunner.balancerContext.externalIpLoadBalancerAddress, balancerRunner.balancerContext.activeExternalIpv6Header);
+            	createRecordRouteHeaders(balancerRunner.balancerContext.externalIpLoadBalancerPorts, balancerRunner.balancerContext.externalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeExternalHeader);
+            	createRecordRouteHeaders(balancerRunner.balancerContext.externalIpv6LoadBalancerPorts, balancerRunner.balancerContext.externalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeExternalIpv6Header);
             }
             else
             {
@@ -183,10 +183,10 @@ public class SIPBalancerForwarder implements SipListener {
             	createListeningPoints(balancerRunner.balancerContext.internalPorts, balancerRunner.balancerContext.internalHost, listeningPoints);
                 createListeningPoints(balancerRunner.balancerContext.internalIpv6Ports, balancerRunner.balancerContext.internalIpv6Host, listeningPointsIpv6);
             	
-            	if(balancerRunner.balancerContext.internalIpLoadBalancerAddress != null)
+            	if(balancerRunner.balancerContext.internalIpLoadBalancerAddresses != null)
             	{
-            		createRecordRouteHeaders(balancerRunner.balancerContext.internalIpLoadBalancerPorts, balancerRunner.balancerContext.internalIpLoadBalancerAddress, balancerRunner.balancerContext.activeInternalHeader);
-                	createRecordRouteHeaders(balancerRunner.balancerContext.internalIpv6LoadBalancerPorts, balancerRunner.balancerContext.internalIpLoadBalancerAddress, balancerRunner.balancerContext.activeInternalIpv6Header);
+            		createRecordRouteHeaders(balancerRunner.balancerContext.internalIpLoadBalancerPorts, balancerRunner.balancerContext.internalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeInternalHeader);
+                	createRecordRouteHeaders(balancerRunner.balancerContext.internalIpv6LoadBalancerPorts, balancerRunner.balancerContext.internalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeInternalIpv6Header);
             	}
                 else
                  	if(balancerRunner.balancerContext.isTwoEntrypoints())
@@ -546,7 +546,7 @@ public class SIPBalancerForwarder implements SipListener {
         	{
         		if(uri.getHost().equals(balancerRunner.balancerContext.externalHost) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIP) 
-        				|| uri.getHost().equals(balancerRunner.balancerContext.externalIpLoadBalancerAddress))
+        				|| uri.getHost().equals(balancerRunner.balancerContext.externalIpLoadBalancerAddresses))
         		{
         			int port = uri.getPort();
         			for(int externalPort : balancerRunner.balancerContext.externalPorts)
@@ -556,7 +556,7 @@ public class SIPBalancerForwarder implements SipListener {
                 
         		if(uri.getHost().equals(balancerRunner.balancerContext.internalHost) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIP)
-        				|| uri.getHost().equals(balancerRunner.balancerContext.internalIpLoadBalancerAddress))
+        				|| uri.getHost().equals(balancerRunner.balancerContext.internalIpLoadBalancerAddresses))
         		{
         			int port = uri.getPort();
         			for(int internalPort : balancerRunner.balancerContext.internalPorts)
@@ -568,7 +568,7 @@ public class SIPBalancerForwarder implements SipListener {
         	{
         		if(uri.getHost().equals(balancerRunner.balancerContext.externalIpv6Host) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIPv6) 
-        				|| uri.getHost().equals(balancerRunner.balancerContext.externalIpv6LoadBalancerAddress))
+        				|| uri.getHost().equals(balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses))
         		{
         			int port = uri.getPort();
         			for(int externalIpv6Port : balancerRunner.balancerContext.externalIpv6Ports)
@@ -578,7 +578,7 @@ public class SIPBalancerForwarder implements SipListener {
                 
         		if(uri.getHost().equals(balancerRunner.balancerContext.internalIpv6Host) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIPv6)
-        				|| uri.getHost().equals(balancerRunner.balancerContext.internalIpv6LoadBalancerAddress))
+        				|| uri.getHost().equals(balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses))
         		{
         			int port = uri.getPort();
         			for(int internalIpv6Port : balancerRunner.balancerContext.internalIpv6Ports)
@@ -612,8 +612,6 @@ public class SIPBalancerForwarder implements SipListener {
         if(!balancerRunner.balancerContext.isTwoEntrypoints()) {
             isRequestFromServer = isViaHeaderFromServer(request);
         } else {
-        	System.out.println("!!!!!!!!!!!" + sipProvider);
-        	System.out.println("!!!!!!!!!!!" + balancerRunner.balancerContext.internalSipProvider);
             isRequestFromServer = sipProvider.equals(balancerRunner.balancerContext.internalSipProvider) || sipProvider.equals(balancerRunner.balancerContext.internalIpv6SipProvider);
         }
 
@@ -1648,7 +1646,8 @@ public class SIPBalancerForwarder implements SipListener {
     				return false;
     		}
 		
-    		if(host.equalsIgnoreCase(balancerRunner.balancerContext.externalIpLoadBalancerAddress))
+    		if(balancerRunner.balancerContext.externalIpLoadBalancerAddresses!=null&&
+    				balancerRunner.balancerContext.externalIpLoadBalancerAddresses.contains(host))
     		{
     			if(balancerRunner.balancerContext.getExternalPortByTransport(transport,false)==port)
     				return false;
@@ -1657,7 +1656,8 @@ public class SIPBalancerForwarder implements SipListener {
     				return false;
     		}
 		
-    		if(host.equalsIgnoreCase(balancerRunner.balancerContext.internalIpLoadBalancerAddress))
+    		if(balancerRunner.balancerContext.internalIpLoadBalancerAddresses!=null&&
+    				balancerRunner.balancerContext.internalIpLoadBalancerAddresses.contains(host))
     		{
     			if(balancerRunner.balancerContext.getInternalPortByTransport(transport,false)==port)
     				return false;
@@ -1724,7 +1724,7 @@ public class SIPBalancerForwarder implements SipListener {
     				return false;
     		}
     		
-    		if(address.equals(balancerRunner.balancerContext.externalIpv6LoadBalancerAddressHost))
+    		if(balancerRunner.balancerContext.externalIpv6LoadBalancerAddressHosts.contains(address))
     		{
     			if(balancerRunner.balancerContext.getExternalPortByTransport(transport,true)==port)
     				return false;
@@ -1733,7 +1733,7 @@ public class SIPBalancerForwarder implements SipListener {
     				return false;
     		}
     		
-    		if(address.equals(balancerRunner.balancerContext.internalIpv6LoadBalancerAddressHost))
+    		if(balancerRunner.balancerContext.internalIpv6LoadBalancerAddressHosts.contains(address))
     		{
     			if(balancerRunner.balancerContext.getInternalPortByTransport(transport,true)==port)
     				return false;
@@ -1888,7 +1888,7 @@ public class SIPBalancerForwarder implements SipListener {
         }
 
         if(fromServer) {
-        	if(senderNode!=null)
+        	if(senderNode!=null&&senderNode.getIp()!=null)
         		mediaFailureDetection(response, ctx, senderNode);
             /*
 			if("true".equals(balancerRunner.balancerContext.properties.getProperty("removeNodesOn500Response")) && response.getStatusCode() == 500) {
@@ -2335,27 +2335,29 @@ public class SIPBalancerForwarder implements SipListener {
         balancerRunner.balancerContext.internalPorts = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getPorts();
         balancerRunner.balancerContext.internalIpv6Ports = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpv6Ports();
         
-        balancerRunner.balancerContext.externalIpLoadBalancerAddress = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerAddress();
-        balancerRunner.balancerContext.internalIpLoadBalancerAddress = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerAddress();
-        balancerRunner.balancerContext.externalIpv6LoadBalancerAddress = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpv6LoadBalancerAddress();
-        balancerRunner.balancerContext.internalIpv6LoadBalancerAddress = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpv6LoadBalancerAddress();
+        balancerRunner.balancerContext.externalIpLoadBalancerAddresses = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpLoadBalancerAddress();
+        balancerRunner.balancerContext.internalIpLoadBalancerAddresses = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpLoadBalancerAddress();
+        balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getExternalLegConfiguration().getIpv6LoadBalancerAddress();
+        balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalLegConfiguration().getIpv6LoadBalancerAddress();
 
-        if(balancerRunner.balancerContext.externalIpv6LoadBalancerAddress!=null)
+        if(balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses!=null)
         {
         	try
         	{
-        		balancerRunner.balancerContext.externalIpv6LoadBalancerAddressHost=InetAddress.getByName(balancerRunner.balancerContext.externalIpv6LoadBalancerAddress);	
+        		for(String externalIpv6LoadBalancerAddress : balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses)
+        			balancerRunner.balancerContext.externalIpv6LoadBalancerAddressHosts.add(InetAddress.getByName(externalIpv6LoadBalancerAddress));	
         	}
         	catch(UnknownHostException ex)
         	{
         	}
         }
         
-        if(balancerRunner.balancerContext.internalIpv6LoadBalancerAddress!=null)
+        if(balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses!=null)
         {
         	try
-        	{
-        		balancerRunner.balancerContext.internalIpv6LoadBalancerAddressHost=InetAddress.getByName(balancerRunner.balancerContext.internalIpv6LoadBalancerAddress);	
+        	{	
+        		for(String internalIpv6LoadBalancerAddress : balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses)
+        			balancerRunner.balancerContext.internalIpv6LoadBalancerAddressHosts.add(InetAddress.getByName(internalIpv6LoadBalancerAddress));	
         	}
         	catch(UnknownHostException ex)
         	{
@@ -2398,19 +2400,19 @@ public class SIPBalancerForwarder implements SipListener {
         		}
         }
         int [] emptyArray = new int[5];
-        if(balancerRunner.balancerContext.externalIpLoadBalancerAddress != null)
+        if(balancerRunner.balancerContext.externalIpLoadBalancerAddresses != null)
         	if(Arrays.equals(balancerRunner.balancerContext.externalIpLoadBalancerPorts,emptyArray))
         		throw new RuntimeException("External load balancer address is specified, but none externalIpLoadBalancerPort ");
 
-        if(balancerRunner.balancerContext.externalIpv6LoadBalancerAddress != null)
+        if(balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses != null)
             if(Arrays.equals(balancerRunner.balancerContext.externalIpv6LoadBalancerPorts,emptyArray)) 
                 throw new RuntimeException("External load balancer ipv6 address is specified, but none externalIpv6LoadBalancerPort ");
 
-        if(balancerRunner.balancerContext.internalIpLoadBalancerAddress != null)
+        if(balancerRunner.balancerContext.internalIpLoadBalancerAddresses != null)
             if(Arrays.equals(balancerRunner.balancerContext.internalIpLoadBalancerPorts,emptyArray)) 
                 throw new RuntimeException("Internal load balancer address is specified, but none internalIpLoadBalancerPort");
 
-        if(balancerRunner.balancerContext.internalIpv6LoadBalancerAddress != null)
+        if(balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses != null)
             if(Arrays.equals(balancerRunner.balancerContext.internalIpv6LoadBalancerPorts,emptyArray)) 
                 throw new RuntimeException("Internal load balancer ipv6 address is specified, but none internalIpv6LoadBalancerPort");
     }
@@ -2518,12 +2520,16 @@ public class SIPBalancerForwarder implements SipListener {
     {
     	if (balancerRunner.balancerContext.lbConfig.getSipConfiguration().isUseIpLoadBalancerAddressInViaHeaders()) 
 		{
-			balancerRunner.balancerContext.externalViaHost = balancerRunner.balancerContext.externalIpLoadBalancerAddress;
-			balancerRunner.balancerContext.internalViaHost = balancerRunner.balancerContext.internalIpLoadBalancerAddress;
+    		if(balancerRunner.balancerContext.externalIpLoadBalancerAddresses!=null)
+    			balancerRunner.balancerContext.externalViaHost = balancerRunner.balancerContext.externalIpLoadBalancerAddresses.get(0);
+    		if(balancerRunner.balancerContext.internalIpLoadBalancerAddresses!=null)
+    			balancerRunner.balancerContext.internalViaHost = balancerRunner.balancerContext.internalIpLoadBalancerAddresses.get(0);
 			balancerRunner.balancerContext.externalViaPorts = balancerRunner.balancerContext.externalIpLoadBalancerPorts;
 			balancerRunner.balancerContext.internalViaPorts = balancerRunner.balancerContext.internalIpLoadBalancerPorts;
-			balancerRunner.balancerContext.externalIpv6ViaHost = balancerRunner.balancerContext.externalIpv6LoadBalancerAddress;
-			balancerRunner.balancerContext.internalIpv6ViaHost = balancerRunner.balancerContext.internalIpv6LoadBalancerAddress;
+			if(balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses!=null)
+				balancerRunner.balancerContext.externalIpv6ViaHost = balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses.get(0);
+			if(balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses!=null)
+				balancerRunner.balancerContext.internalIpv6ViaHost = balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses.get(0);
 			balancerRunner.balancerContext.externalIpv6ViaPorts = balancerRunner.balancerContext.externalIpv6LoadBalancerPorts;
 			balancerRunner.balancerContext.internalIpv6ViaPorts = balancerRunner.balancerContext.internalIpv6LoadBalancerPorts;
 		} 

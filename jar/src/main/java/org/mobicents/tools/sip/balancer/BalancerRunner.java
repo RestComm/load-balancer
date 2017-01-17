@@ -181,6 +181,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			this.smppToNodeAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
 			balancerContext.smppToNodeAlgorithmClassName = this.smppToNodeAlgorithClassName;
 		}
+		balancerContext.shutdownTimeout = lbConfig.getCommonConfiguration().getShutdownTimeout();
 		
 		try {
 			

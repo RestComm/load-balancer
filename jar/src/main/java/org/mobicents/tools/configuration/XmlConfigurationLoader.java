@@ -76,6 +76,8 @@ public class XmlConfigurationLoader{
         dst.setNodeTimeout(src.getInteger("nodeTimeout", CommonConfiguration.NODE_TIMEOUT));
         dst.setHeartbeatInterval(src.getInteger("heartbeatInterval", CommonConfiguration.HARDBEAT_INTERVAL));
         dst.setStatisticPort(src.getInteger("statisticPort", CommonConfiguration.STATISTIC_PORT));
+        if(src.getString("shutdownTimeout") != null && !src.getString("shutdownTimeout").equals(""))
+        	dst.setShutdownTimeout(src.getInteger("shutdownTimeout", CommonConfiguration.SHUTDOWN_TIMEOUT));
     }
 
     private static void configureSip(HierarchicalConfiguration<ImmutableNode> src, SipConfiguration dst) {
@@ -126,8 +128,16 @@ public class XmlConfigurationLoader{
         alg.setEarlyDialogWorstCase(src.getBoolean("earlyDialogWorstCase",AlgorithmConfiguration.EARLY_DIALOG_WORST_CASE));
         //external leg configuration
         ex.setHost(src.getString("external.host",ExternalLegConfiguration.HOST));
-        if(src.getString("external.ipLoadBalancerAddress") != null && !src.getString("external.ipLoadBalancerAddress").equals(""))
-        	ex.setIpLoadBalancerAddress(src.getString("external.ipLoadBalancerAddress", ExternalLegConfiguration.IP_LOAD_BALANCER_ADRESS));
+        String externalIpLoadBalancerAddresses = src.getString("external.ipLoadBalancerAddress", ExternalLegConfiguration.IP_LOAD_BALANCER_ADRESS);
+        if(externalIpLoadBalancerAddresses != null&&!externalIpLoadBalancerAddresses.equals("")) {
+        	ArrayList<String> externalIpLoadBalancerAddressesList = new ArrayList<String>();
+        	StringTokenizer tokens = new StringTokenizer(externalIpLoadBalancerAddresses, ",");
+        	while (tokens.hasMoreTokens()) {
+				String token = tokens.nextToken();
+				externalIpLoadBalancerAddressesList.add(token);
+			}
+        	ex.setIpLoadBalancerAddress(externalIpLoadBalancerAddressesList);
+        }
         if(src.getString("external.udpPort") != null && !src.getString("external.udpPort").equals(""))
         	ex.setUdpPort(src.getInteger("external.udpPort", ExternalLegConfiguration.UDP_PORT));
         if(src.getString("external.tcpPort") != null && !src.getString("external.tcpPort").equals(""))
@@ -150,8 +160,16 @@ public class XmlConfigurationLoader{
         	ex.setIpLoadBalancerWssPort(src.getInteger("external.ipLoadBalancerWssPort",ExternalLegConfiguration.IP_LOAD_BALANCER_WSS_PORT));
         //external ipv6
         ex.setIpv6Host(src.getString("external.ipv6Host",ExternalLegConfiguration.IPV6_HOST));
-        if(src.getString("external.ipv6LoadBalancerAddress") != null && !src.getString("external.ipv6LoadBalancerAddress").equals(""))
-        	ex.setIpv6LoadBalancerAddress(src.getString("external.ipv6LoadBalancerAddress", ExternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS));
+        String externalIpv6LoadBalancerAddresses = src.getString("external.ipv6LoadBalancerAddress", ExternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS);
+        if(externalIpv6LoadBalancerAddresses != null&&!externalIpv6LoadBalancerAddresses.equals("")) {
+        	ArrayList<String> externalIpv6LoadBalancerAddressesList = new ArrayList<String>();
+        	StringTokenizer tokens = new StringTokenizer(externalIpv6LoadBalancerAddresses, ",");
+        	while (tokens.hasMoreTokens()) {
+				String token = tokens.nextToken();
+				externalIpv6LoadBalancerAddressesList.add(token);
+			}
+        	ex.setIpv6LoadBalancerAddress(externalIpv6LoadBalancerAddressesList);
+        }
         if(src.getString("external.ipv6UdpPort") != null && !src.getString("external.ipv6UdpPort").equals(""))
         	ex.setIpv6UdpPort(src.getInteger("external.ipv6UdpPort", ExternalLegConfiguration.IPV6_UDP_PORT));
         if(src.getString("external.ipv6TcpPort") != null && !src.getString("external.ipv6TcpPort").equals(""))
@@ -175,8 +193,16 @@ public class XmlConfigurationLoader{
         
         //internal leg configuration
         in.setHost(src.getString("internal.host",InternalLegConfiguration.HOST));
-        if(src.getString("internal.ipLoadBalancerAddress") != null && !src.getString("internal.ipLoadBalancerAddress").equals(""))
-        	in.setIpLoadBalancerAddress(src.getString("internal.ipLoadBalancerAddress", InternalLegConfiguration.IP_LOAD_BALANCER_ADRESS));
+        String internalIpLoadBalancerAddresses = src.getString("internal.ipLoadBalancerAddress", InternalLegConfiguration.IP_LOAD_BALANCER_ADRESS);
+        if(internalIpLoadBalancerAddresses != null&&!internalIpLoadBalancerAddresses.equals("")) {
+        	ArrayList<String> internalIpLoadBalancerAddressesList = new ArrayList<String>();
+        	StringTokenizer tokens = new StringTokenizer(internalIpLoadBalancerAddresses, ",");
+        	while (tokens.hasMoreTokens()) {
+				String token = tokens.nextToken();
+				internalIpLoadBalancerAddressesList.add(token);
+			}
+        	in.setIpLoadBalancerAddress(internalIpLoadBalancerAddressesList);
+        }
         if(src.getString("internal.udpPort") != null && !src.getString("internal.udpPort").equals(""))
         	in.setUdpPort(src.getInteger("internal.udpPort", InternalLegConfiguration.UDP_PORT));
         if(src.getString("internal.tcpPort") != null && !src.getString("internal.tcpPort").equals(""))
@@ -199,8 +225,16 @@ public class XmlConfigurationLoader{
         	in.setIpLoadBalancerWssPort(src.getInteger("internal.ipLoadBalancerWssPort",InternalLegConfiguration.IP_LOAD_BALANCER_WSS_PORT));
         //ipv6
         in.setIpv6Host(src.getString("internal.ipv6Host",InternalLegConfiguration.IPV6_HOST));
-        if(src.getString("internal.ipv6LoadBalancerAddress") != null && !src.getString("internal.ipv6LoadBalancerAddress").equals(""))
-        	in.setIpv6LoadBalancerAddress(src.getString("internal.ipv6LoadBalancerAddress", InternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS));
+        String internalIpv6LoadBalancerAddresses = src.getString("internal.ipv6LoadBalancerAddress", InternalLegConfiguration.IPV6_LOAD_BALANCER_ADRESS);
+        if(internalIpv6LoadBalancerAddresses != null&&!internalIpv6LoadBalancerAddresses.equals("")) {
+        	ArrayList<String> internalIpv6LoadBalancerAddressesList = new ArrayList<String>();
+        	StringTokenizer tokens = new StringTokenizer(internalIpv6LoadBalancerAddresses, ",");
+        	while (tokens.hasMoreTokens()) {
+				String token = tokens.nextToken();
+				internalIpv6LoadBalancerAddressesList.add(token);
+			}
+        	in.setIpv6LoadBalancerAddress(internalIpv6LoadBalancerAddressesList);
+        };
         if(src.getString("internal.ipv6UdpPort") != null && !src.getString("internal.ipv6UdpPort").equals(""))
         	in.setIpv6UdpPort(src.getInteger("internal.ipv6UdpPort", InternalLegConfiguration.IPV6_UDP_PORT));
         if(src.getString("internal.ipv6TcpPort") != null && !src.getString("internal.ipv6TcpPort").equals(""))

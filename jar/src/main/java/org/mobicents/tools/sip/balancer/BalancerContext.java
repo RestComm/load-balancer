@@ -76,6 +76,7 @@ public class BalancerContext {
 	public String matchingHostnameForRoute;
 	public boolean isFilterSubdomain;
 	public String internalTransport;
+	public int shutdownTimeout;
 	
 	public Object parameters;
 	
@@ -122,14 +123,14 @@ public class BalancerContext {
 	
 
 	
-	public String internalIpLoadBalancerAddress;
-	public String internalIpv6LoadBalancerAddress;
+	public ArrayList <String> internalIpLoadBalancerAddresses;
+	public ArrayList <String> internalIpv6LoadBalancerAddresses;
 
-	public String externalIpLoadBalancerAddress;
-	public String externalIpv6LoadBalancerAddress;
+	public ArrayList <String> externalIpLoadBalancerAddresses;
+	public ArrayList <String> externalIpv6LoadBalancerAddresses;
 	
-	public InetAddress internalIpv6LoadBalancerAddressHost;
-	public InetAddress externalIpv6LoadBalancerAddressHost;
+	public ArrayList <InetAddress> internalIpv6LoadBalancerAddressHosts;
+	public ArrayList <InetAddress> externalIpv6LoadBalancerAddressHosts;
 	
 	public String sipHeaderAffinityKey;
 	public Pattern sipHeaderAffinityKeyExclusionPattern;

@@ -100,7 +100,6 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 		String transport = via.getTransport().toLowerCase();
 		SIPNode node = selectNewNode(isIpV6);
 		String transportProperty = transport + "Port";
-		System.out.println(transportProperty);
 		Integer port = (Integer) node.getProperties().get(transportProperty);
 		if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 		if(logger.isDebugEnabled())

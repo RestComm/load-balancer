@@ -10,6 +10,7 @@ public class CommonConfiguration {
     public static final Integer HARDBEAT_INTERVAL = 150;
     public static final Integer STATISTIC_PORT = 2006;
     public static final Integer JMX_HTML_ADAPTOR_PORT_PORT = 8000;
+    public static final Integer SHUTDOWN_TIMEOUT = 10000;
     
     private String host;
     private String ipv6Host;
@@ -19,6 +20,7 @@ public class CommonConfiguration {
     private Integer heartbeatInterval;
     private Integer statisticPort;
     private Integer jmxHtmlAdapterPort;
+    private Integer shutdownTimeout;
 
     public CommonConfiguration() 
     {
@@ -30,6 +32,7 @@ public class CommonConfiguration {
         this.heartbeatInterval = HARDBEAT_INTERVAL;
         this.statisticPort = STATISTIC_PORT;
         this.jmxHtmlAdapterPort = JMX_HTML_ADAPTOR_PORT_PORT;
+        this.shutdownTimeout = SHUTDOWN_TIMEOUT;
     }
 
     public String getHost() 
@@ -118,6 +121,14 @@ public class CommonConfiguration {
 
 	public void setJmxHtmlAdapterPort(Integer jmxHtmlAdapterPort) {
 		this.jmxHtmlAdapterPort = jmxHtmlAdapterPort;
+	}
+
+	public Integer getShutdownTimeout() {
+		return shutdownTimeout;
+	}
+
+	public void setShutdownTimeout(Integer shutdownTimeout) {
+		this.shutdownTimeout = shutdownTimeout;
 	}
 	
 }

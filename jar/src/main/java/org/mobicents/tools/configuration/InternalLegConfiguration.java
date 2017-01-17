@@ -1,5 +1,7 @@
 package org.mobicents.tools.configuration;
 
+import java.util.ArrayList;
+
 public class InternalLegConfiguration {
 
 	public static final String HOST = null;
@@ -33,8 +35,8 @@ public class InternalLegConfiguration {
 	
 	private String host;
 	private String ipv6Host;
-	private String ipLoadBalancerAddress;
-	private String ipv6LoadBalancerAddress;
+	private ArrayList<String> ipLoadBalancerAddress;
+	private ArrayList<String> ipv6LoadBalancerAddress;
 	
 	private Integer udpPort;
 	private Integer tcpPort;
@@ -64,8 +66,8 @@ public class InternalLegConfiguration {
 	{
 		this.host = HOST;
 		this.ipv6Host = IPV6_HOST;
-		this.ipLoadBalancerAddress = IP_LOAD_BALANCER_ADRESS;
-		this.ipv6LoadBalancerAddress = IPV6_LOAD_BALANCER_ADRESS;
+//		this.ipLoadBalancerAddress = new ArrayList<String>();
+//		this.ipv6LoadBalancerAddress = new ArrayList<String>();
 		
 		this.udpPort = UDP_PORT;
 		this.tcpPort = TCP_PORT;
@@ -108,11 +110,11 @@ public class InternalLegConfiguration {
 		this.ipv6Host = ipv6Host;
 	}
 
-	public String getIpLoadBalancerAddress() {
+	public ArrayList<String> getIpLoadBalancerAddress() {
 		return ipLoadBalancerAddress;
 	}
 
-	public void setIpLoadBalancerAddress(String ipLoadBalancerAddress) {
+	public void setIpLoadBalancerAddress(ArrayList<String> ipLoadBalancerAddress) {
 		this.ipLoadBalancerAddress = ipLoadBalancerAddress;
 	}
 
@@ -196,11 +198,11 @@ public class InternalLegConfiguration {
 		this.ipLoadBalancerWssPort = ipLoadBalancerWssPort;
 	}
 
-	public String getIpv6LoadBalancerAddress() {
+	public ArrayList<String> getIpv6LoadBalancerAddress() {
 		return ipv6LoadBalancerAddress;
 	}
 
-	public void setIpv6LoadBalancerAddress(String ipv6LoadBalancerAddress) {
+	public void setIpv6LoadBalancerAddress(ArrayList<String> ipv6LoadBalancerAddress) {
 		this.ipv6LoadBalancerAddress = ipv6LoadBalancerAddress;
 	}
 

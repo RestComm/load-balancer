@@ -27,6 +27,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+
 import javax.sip.ListeningPoint;
 
 import org.junit.After;
@@ -63,7 +65,9 @@ public class SprayingLoadBalancersWithNoInternalPortTest {
 		lbConfig.getHttpConfiguration().setHttpPort(null);
 		lbConfig.getSmppConfiguration().setSmppPort(null);
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(HeaderConsistentHashBalancerAlgorithm.class.getName());
-		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerAddress("127.0.0.1");
+		ArrayList <String> ipLoadBalancerAddressList = new ArrayList<String>();
+		ipLoadBalancerAddressList.add("127.0.0.1");
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerAddress(ipLoadBalancerAddressList);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setIpLoadBalancerUdpPort(9988);
 		balancer.start(lbConfig);
 		return balancer;
