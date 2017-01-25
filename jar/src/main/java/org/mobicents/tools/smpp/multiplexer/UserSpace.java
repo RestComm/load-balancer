@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -11,6 +12,7 @@ import org.apache.log4j.Logger;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.SIPNode;
+
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
@@ -32,6 +34,7 @@ public class UserSpace {
 	private ConcurrentHashMap<Long, MServerConnectionImpl> customers;
 	private ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToServers;
 	private InvocationContext ctx = null;
+	private ScheduledFuture<?> reconnectionSchedule = null;
 	
 	private SIPNode [] nodes;
 	private Long serverSessionID = new Long(0);
@@ -306,11 +309,12 @@ public class UserSpace {
 		
 		MClientConnectionImpl connection = connectionsToServers.get(serverSessionID);
 		connectionsToServers.remove(serverSessionID);
-		monitorExecutor.schedule(new MBinderRunnable(connection, systemId, password, systemType), reconnectPeriod, TimeUnit.MILLISECONDS);
+		reconnectionSchedule = monitorExecutor.scheduleAtFixedRate(new MBinderRunnable(connection, systemId, password, systemType), reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
 	}
 	
 	public void reconnectSuccesful(Long serverSessionID, MClientConnectionImpl connection)
 	{
+		reconnectionSchedule.cancel(true);
 		for(Long key:customers.keySet())
 			customers.get(key).reconnectState(false);
 		connectionsToServers.put(serverSessionID,connection);

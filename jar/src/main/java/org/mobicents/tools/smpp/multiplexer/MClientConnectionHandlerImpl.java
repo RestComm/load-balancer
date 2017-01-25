@@ -66,6 +66,7 @@ public class MClientConnectionHandlerImpl extends SimpleChannelHandler{
 	@Override
 	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e)
 	{
+		logger.warn("channel " + e.getChannel().getRemoteAddress() + " disconnected, will try to rebind");
 		listener.rebind();
 	}
 }
