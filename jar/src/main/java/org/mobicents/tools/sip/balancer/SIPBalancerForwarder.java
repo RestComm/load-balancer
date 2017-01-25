@@ -1083,7 +1083,7 @@ public class SIPBalancerForwarder implements SipListener {
 	         	}
 			}
 			viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
-							externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(outerTransport,isIpv6),outerTransport, newBranch + "zsd" + "_" + version);
+							externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(outerTransport,isIpv6),outerTransport, newBranch + "_" + version);
 		}
 
         if(logger.isDebugEnabled()) {
