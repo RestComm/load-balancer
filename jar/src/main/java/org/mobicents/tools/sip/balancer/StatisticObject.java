@@ -1,7 +1,17 @@
 package org.mobicents.tools.sip.balancer;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+import org.apache.log4j.Logger;
+
 public class StatisticObject 
 {
+	private static Logger logger = Logger.getLogger(NodesInfoObject.class);
+	private String releaseName;
+	private String releaseVersion;
+	private Integer activeNodes;
 	private Integer JvmCpuUsage;
 	private Long JvmHeapSize;
 	private Integer NumberOfActiveHttpConnections; 
@@ -19,6 +29,20 @@ public class StatisticObject
 	private Long NumberOfSmppRequestsToServer;
 	
 	public StatisticObject(BalancerRunner balancerRunner){
+		
+		Properties releaseProperties = new Properties();
+		try {
+			InputStream in = BalancerRunner.class.getResourceAsStream("release.properties");
+			if(in != null) {
+				releaseProperties.load(in);
+				in.close();
+				this.releaseVersion = releaseProperties.getProperty("release.version");
+				this.releaseName = releaseProperties.getProperty("release.name");
+			}
+		} catch (IOException e) 
+		{
+			logger.warn("Unable to extract the version of Restcomm Load Balancer currently running", e);
+		}
 		this.JvmCpuUsage = (int)(balancerRunner.getJvmCpuUsage()*100.0);
 		this.JvmHeapSize = balancerRunner.getJvmHeapSize();
 		this.NumberOfActiveHttpConnections = balancerRunner.getNumberOfActiveHttpConnections();
@@ -34,6 +58,8 @@ public class StatisticObject
 		this.NumberOfSmppBytesToServer = balancerRunner.getNumberOfSmppBytesToServer();
 		this.NumberOfSmppRequestsToClient = balancerRunner.getNumberOfSmppRequestsToClient();
 		this.NumberOfSmppRequestsToServer = balancerRunner.getNumberOfSmppRequestsToServer();
+		this.activeNodes = balancerRunner.getLatestInvocationContext().sipNodeMap(false).size() + 
+				balancerRunner.getLatestInvocationContext().sipNodeMap(true).size();
 	}
 
 	public Integer getJvmCpuUsage() {
@@ -156,6 +182,30 @@ public class StatisticObject
 
 	public void setNumberOfSmppRequestsToServer(Long numberOfSmppRequestsToServer) {
 		NumberOfSmppRequestsToServer = numberOfSmppRequestsToServer;
+	}
+
+	public String getReleaseName() {
+		return releaseName;
+	}
+
+	public void setReleaseName(String releaseName) {
+		this.releaseName = releaseName;
+	}
+
+	public String getReleaseVersion() {
+		return releaseVersion;
+	}
+
+	public void setReleaseVersion(String releaseVersion) {
+		this.releaseVersion = releaseVersion;
+	}
+
+	public Integer getActiveNodes() {
+		return activeNodes;
+	}
+
+	public void setActiveNodes(Integer activeNodes) {
+		this.activeNodes = activeNodes;
 	}
 	
 }
