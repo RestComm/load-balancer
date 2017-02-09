@@ -31,10 +31,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
+import org.apache.log4j.Level;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -110,6 +112,10 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 						String currUriPath = uri.getPath().toLowerCase();
 						switch(currUriPath)
 						{
+							case "/lbloglevel":
+								changeLogLevel(e);
+								writeResponse(e, HttpResponseStatus.OK, "Log level changed");
+								return;
 							case "/lbstat":
 								writeStatisticResponse(e);
 								return;
@@ -423,5 +429,31 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     	response.setHeader("Location", "https://"+host+request.getUri());
     	ChannelFuture future = e.getChannel().write(response);
     	future.addListener(ChannelFutureListener.CLOSE);
+    }
+    
+    private void changeLogLevel(MessageEvent e)
+    {
+    	String logLevel=getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("logLevel");
+    	Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
+    }
+    
+    private HashMap<String,String> getUrlParameters(String url) {
+		HashMap<String,String> parameters = new HashMap<String, String>();
+    	int start = url.lastIndexOf('?');
+    	if(start>0 && url.length() > start +1) {
+    		url = url.substring(start + 1);
+    	} else {
+    		return parameters;
+    	}
+    	String[] tokens = url.split("&");
+    	for(String token : tokens) {
+    		String[] params = token.split("=");
+    		if(params.length<2) {
+    			parameters.put(token, "");
+    		} else {
+    			parameters.put(params[0], params[1]);
+    		}
+    	}
+    	return parameters;
     }
 }

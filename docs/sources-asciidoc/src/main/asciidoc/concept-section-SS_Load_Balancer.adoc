@@ -738,6 +738,9 @@ The {this-platform} Load Balancer uses http://logging.apache.org/log4j[Log4J] as
 You can configure it through the typical log4j xml configuration file and specify the path as follows `-DlogConfigFile=./log4j.xml` . Please refer to Log4J documentation for more information on how to configure the logging.
 A shortcut exists if you want to switch between INFO/DEBUG/WARN logging levels.
 The JVM option `-DlogLevel=DEBUG` will allow you to switch all loggig categories to the specified log level.
+Also you can dynamically change log level of the  {this-platform} Load balancer via http request:
+
+  http://lbIpAddress:statisticPort/lbloglevel?logLevel=DEBUG
 
 
 ==== Converged Load Balancing
