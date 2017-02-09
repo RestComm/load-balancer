@@ -63,6 +63,10 @@ public class BalancerContext {
 	public String smppToNodeAlgorithmClassName;
 	public String smppToProviderAlgorithmClassName;
 	
+	public boolean securityRequired;
+	public String login;
+	public String password;
+	
 	public AtomicInteger numberHttpRequest = new AtomicInteger(0);
 	
 	public boolean terminateTLSTraffic;

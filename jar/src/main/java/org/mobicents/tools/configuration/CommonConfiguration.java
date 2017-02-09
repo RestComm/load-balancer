@@ -11,6 +11,9 @@ public class CommonConfiguration {
     public static final Integer STATISTIC_PORT = 2006;
     public static final Integer JMX_HTML_ADAPTOR_PORT_PORT = 8000;
     public static final Integer SHUTDOWN_TIMEOUT = 10000;
+    public static final Boolean SECURITY_REQUIRED = false;
+    public static final String LOGIN = null;
+    public static final String PASSWORD = null;
     
     private String host;
     private String ipv6Host;
@@ -21,6 +24,9 @@ public class CommonConfiguration {
     private Integer statisticPort;
     private Integer jmxHtmlAdapterPort;
     private Integer shutdownTimeout;
+    private Boolean securityRequired;
+    private String login;
+    private String password;
 
     public CommonConfiguration() 
     {
@@ -33,6 +39,9 @@ public class CommonConfiguration {
         this.statisticPort = STATISTIC_PORT;
         this.jmxHtmlAdapterPort = JMX_HTML_ADAPTOR_PORT_PORT;
         this.shutdownTimeout = SHUTDOWN_TIMEOUT;
+        this.securityRequired = SECURITY_REQUIRED;
+        this.login = LOGIN;
+        this.password = PASSWORD;
     }
 
     public String getHost() 
@@ -129,6 +138,30 @@ public class CommonConfiguration {
 
 	public void setShutdownTimeout(Integer shutdownTimeout) {
 		this.shutdownTimeout = shutdownTimeout;
+	}
+
+	public Boolean getSecurityRequired() {
+		return securityRequired;
+	}
+
+	public void setSecurityRequired(Boolean securityRequired) {
+		this.securityRequired = securityRequired;
+	}
+
+	public String getLogin() {
+		return login;
+	}
+
+	public void setLogin(String login) {
+		this.login = login;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
 	}
 	
 }

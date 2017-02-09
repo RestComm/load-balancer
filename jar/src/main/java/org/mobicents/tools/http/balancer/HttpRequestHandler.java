@@ -123,8 +123,16 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 								writeInfoResponse(e);
 								return;
 							case "/lbstop":
-								writeResponse(e, HttpResponseStatus.LOCKED, IOUtils.toString(this.getClass().getClassLoader().getResourceAsStream("bye.html")));
-								new GracefulShutdown(balancerRunner).start();
+								if(!balancerRunner.balancerContext.securityRequired||(balancerRunner.balancerContext.securityRequired&&checkCredentials(e)))
+								{
+									writeResponse(e, HttpResponseStatus.LOCKED, IOUtils.toString(this.getClass().getClassLoader().getResourceAsStream("bye.html")));
+									new GracefulShutdown(balancerRunner).start();
+								}
+								else
+								{
+									writeResponse(e, HttpResponseStatus.UNAUTHORIZED, "Authorization required : Incorrect login or password"
+											+ " request example : 127.0.0.1:2006/lbstop?login=daddy&password=123456");
+								}
 								return;
 							default:
 								writeResponse(e, HttpResponseStatus.INTERNAL_SERVER_ERROR, "Server error");
@@ -433,8 +441,18 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     
     private void changeLogLevel(MessageEvent e)
     {
-    	String logLevel=getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("logLevel");
+    	String logLevel = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("logLevel");
     	Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
+    }
+    
+    private boolean checkCredentials(MessageEvent e)
+    {
+    	HashMap<String, String> parameters = getUrlParameters(((HttpRequest)e.getMessage()).getUri());
+    	logger.info("check credentials for uri parameters : " + parameters);
+    	if(balancerRunner.balancerContext.login.equals(parameters.get("login"))&&balancerRunner.balancerContext.password.equals(parameters.get("password")))
+    		return true;
+    	else
+      		return false;
     }
     
     private HashMap<String,String> getUrlParameters(String url) {

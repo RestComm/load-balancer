@@ -171,6 +171,13 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		int remoteObjectPort = -1;
 	    remoteObjectPort = lbConfig.getCommonConfiguration().getRmiRemoteObjectPort();
 		
+	    balancerContext.securityRequired = lbConfig.getCommonConfiguration().getSecurityRequired();
+	    if(balancerContext.securityRequired)
+	    {
+	    	balancerContext.login = lbConfig.getCommonConfiguration().getLogin();
+	    	balancerContext.password = lbConfig.getCommonConfiguration().getPassword();
+	    }
+	    
 		this.algorithClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
 		balancerContext.algorithmClassName = this.algorithClassName;
 		balancerContext.terminateTLSTraffic = lbConfig.getSslConfiguration().getTerminateTLSTraffic();

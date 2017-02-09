@@ -12,8 +12,6 @@ import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 
-import sun.util.locale.StringTokenIterator;
-
 public class XmlConfigurationLoader{
     
     private static final Logger log = Logger.getLogger(XmlConfigurationLoader.class);
@@ -78,6 +76,10 @@ public class XmlConfigurationLoader{
         dst.setStatisticPort(src.getInteger("statisticPort", CommonConfiguration.STATISTIC_PORT));
         if(src.getString("shutdownTimeout") != null && !src.getString("shutdownTimeout").equals(""))
         	dst.setShutdownTimeout(src.getInteger("shutdownTimeout", CommonConfiguration.SHUTDOWN_TIMEOUT));
+        dst.setSecurityRequired(src.getBoolean("securityRequired", CommonConfiguration.SECURITY_REQUIRED));
+        dst.setLogin(src.getString("login", CommonConfiguration.LOGIN));
+        dst.setPassword(src.getString("password", CommonConfiguration.PASSWORD));
+        
     }
 
     private static void configureSip(HierarchicalConfiguration<ImmutableNode> src, SipConfiguration dst) {
