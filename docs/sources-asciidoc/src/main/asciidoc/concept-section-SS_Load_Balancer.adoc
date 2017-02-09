@@ -353,6 +353,9 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <statisticPort>2006</statisticPort>
   <jmxHtmlAdapterPort>8000</jmxHtmlAdapterPort>
   <shutdownTimeout>10000<shutdownTimeout>
+  <securityRequired>true</securityRequired>
+  <login>daddy</login>
+  <password>123456</password>
 </common>
 <sip>
   <publicIp></publicIp>
@@ -564,6 +567,14 @@ rmiRemoteObjectPort::
 shutdownTimeout::
   Time after which LB will shutdown completely after getting request
   http://ip:statisticPort/lbstop
+
+securityRequired::
+should we check login and password while stopping the Load balancer
+
+login::
+password::
+
+login and password for authorization for stopping the Load balancer
 
 httpPort::
   Port on which the {this-platform} Load Balancer will accept HTTP requests to be distributed across the nodes.
@@ -867,7 +878,19 @@ then you can shutdown active Load balancer by using http request
 http://host:statisticPort/lbstop for upgrades and redirect new calls to another LB.
 The request will turn off the statistic port. The keepalived utility checks the
 statistic port and then switches traffic to the standby Load balancer if the statistic
-port is turned off. After two seconds the Load balancer finally  stops.
+port is turned off. After two seconds the Load balancer finally  stops. For more security
+you can add login and password as parameters in request. You should set next properties in
+configuration file in <common> section:
+
+  <securityRequired>true</securityRequired>
+  <login>login</login>
+  <password>password</password>
+
+and use request (example) :
+
+  http://127.0.0.1:2006/lbstop?login=daddy&password=123456
+
+
 .
 
 This should produce similar output to the following:
