@@ -615,6 +615,30 @@ public class SIPBalancerForwarder implements SipListener {
             isRequestFromServer = sipProvider.equals(balancerRunner.balancerContext.internalSipProvider) || sipProvider.equals(balancerRunner.balancerContext.internalIpv6SipProvider);
         }
 
+        if(isRequestFromServer)
+        {
+        	ViaHeader viaHeader = (ViaHeader)request.getHeader(ViaHeader.NAME);
+        	String host = viaHeader.getHost();
+        	if(host.matches(".*[a-zA-Z]+.*"))
+            {
+    			try 
+            	{
+    				host = InetAddress.getByName(host).getHostAddress();
+    			} catch (UnknownHostException e) {
+    				e.printStackTrace();
+    			}
+            }
+        	int port = viaHeader.getPort();
+        	String transport = viaHeader.getTransport().toLowerCase();
+        	SIPNode node =	getNodeDeadOrAlive(host, port, transport);
+        	if(node!=null)
+        	{
+        		if(logger.isDebugEnabled())
+        			logger.debug("Updating Timestamp of node: " + node + " because of request from it");
+        		node.updateTimerStamp();
+        	}
+        }
+
         final boolean isCancel = Request.CANCEL.equals(request.getMethod());
 
         if(!isCancel) {
