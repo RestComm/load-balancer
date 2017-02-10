@@ -59,6 +59,7 @@ public class BalancerContext {
 	public HashSet<SIPNode> allNodesEver = new HashSet<SIPNode>();
 	public CopyOnWriteArrayList<SIPNode> aliveNodes = null;
 	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
+	public ConcurrentHashMap<String, KeySip> regexMap;
 	public String algorithmClassName;
 	public String smppToNodeAlgorithmClassName;
 	public String smppToProviderAlgorithmClassName;

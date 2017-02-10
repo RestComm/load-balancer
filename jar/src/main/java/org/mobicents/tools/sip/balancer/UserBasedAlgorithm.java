@@ -27,10 +27,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
@@ -83,34 +86,12 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
 		else if(balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode()))
-//				&& response.getReasonPhrase() != null
-//    			&& response.getReasonPhrase().equalsIgnoreCase(balancerContext.responsesReasonNodeRemoval))
 			return;
-//		for(SIPNode node : invocationContext.nodes) {
-//			if(logger.isDebugEnabled()) {
-//				logger.debug("internal response checking sendernode " + senderNode + " against node " + node + " or Via host:port " + host + ":" + port);
-//			} 
-//			// https://github.com/RestComm/load-balancer/issues/45 Checking sender node against list of nodes to ensure it's still available
-//			// not checking it was making the B2BUA use case fail and route back the 180 Ringing to one of the nodes instead of the sender. 
-//			if(senderNode != null && senderNode.equals(node)) {
-//				found = true;
-//			} else if (node.getIp().equals(host)) {
-//				if(port.equals(node.getProperties().get(transport+"Port"))) {
-//					found = true;
-//				}
-//			}
-//		}
+
 		if(logger.isDebugEnabled()) {
 			logger.debug("internal response node found ? " + found);
 		}
 		if(!found) {
-			//String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
-//			URI currURI=((HeaderAddress)response.getHeader(headerName)).getAddress().getURI();
-//			String user;
-//			if(currURI.isSipURI())
-//				user = ((SipURI)currURI).getUser();
-//			else
-//				user = ((TelURL)currURI).getPhoneNumber();
 			String headerKey = extractHeaderKey(response);
 			
 			SIPNode node = userToMap.get(headerKey);
@@ -174,26 +155,13 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		String host = via.getHost();
 		Integer port = via.getPort();
 		boolean found = false;
-//		for(SIPNode node : invocationContext.nodes) {
-//			if(node.getIp().equals(host)) {
-//				if(port.equals(node.getProperties().get(transport+"Port"))) {
-//					found = true;
-//				}
-//			}
-//		}
+
 		if(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 			found = true;
 		if(logger.isDebugEnabled()) {
 			logger.debug("external response node found ? " + found);
 		}
 		if(!found) {
-			//String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
-//			URI currURI=((HeaderAddress)response.getHeader(headerName)).getAddress().getURI();
-//			String user;
-//			if(currURI.isSipURI())
-//				user = ((SipURI)currURI).getUser();
-//			else
-//				user = ((TelURL)currURI).getPhoneNumber();
 			String headerKey = extractHeaderKey(response);
 			
 			SIPNode node = userToMap.get(headerKey);
@@ -242,19 +210,32 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 
 	@Override
-	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
+	public SIPNode processExternalRequest(Request request, Boolean isIpV6) {
 		String headerKey = extractHeaderKey(request);
-		
-//		URI currURI=((HeaderAddress)request.getHeader(headerName)).getAddress().getURI();
-//		String user;
-//		if(currURI.isSipURI())
-//			user = ((SipURI)currURI).getUser();
-//		else
-//			user = ((TelURL)currURI).getPhoneNumber();
-//		
-		SIPNode node;
-		node = userToMap.get(headerKey);
-		headerToTimestamps.put(headerKey, System.currentTimeMillis());
+		SIPNode node = null;
+		if (balancerContext.regexMap != null && balancerContext.regexMap.size() != 0) {
+			if (logger.isDebugEnabled())
+				logger.debug("regexMap is not empty : " + balancerContext.regexMap);
+
+			for (Entry<String, KeySip> entry : balancerContext.regexMap.entrySet()) {
+				Pattern r = Pattern.compile(entry.getKey());
+				Matcher m = r.matcher(headerKey);
+				if (m.find()) {
+					node = invocationContext.sipNodeMap(isIpV6).get(entry.getValue());
+					if (node != null) {
+						if (logger.isDebugEnabled())
+							logger.debug("Found node for pattern : " + entry.getKey() + " and key :" + entry.getValue());
+						return node;
+					} else {
+						if (logger.isDebugEnabled())
+							logger.debug("Node not found in the map of nodes. It is null. For pattern: " + entry.getKey() + " and key :" + entry.getValue());
+					}
+				}
+			}
+		} else {
+			node = userToMap.get(headerKey);
+			headerToTimestamps.put(headerKey, System.currentTimeMillis());
+		}
 
 		if(node == null||invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(new KeySip(node))) { //
 			node = nextAvailableNode(isIpV6);

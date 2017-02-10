@@ -33,6 +33,7 @@ import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
@@ -63,6 +64,7 @@ import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.GracefulShutdown;
 import org.mobicents.tools.sip.balancer.InvocationContext;
+import org.mobicents.tools.sip.balancer.KeySip;
 import org.mobicents.tools.sip.balancer.NodesInfoObject;
 import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.sip.balancer.StatisticObject;
@@ -112,6 +114,13 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 						String currUriPath = uri.getPath().toLowerCase();
 						switch(currUriPath)
 						{
+							case "/lbnoderegex":
+								if(addRegex(e))
+									writeResponse(e, HttpResponseStatus.OK, "Regex set");
+								else
+									writeResponse(e, HttpResponseStatus.BAD_REQUEST, 
+											"Regex NOT set, use : 127.0.0.1:2006/lbnoderegex?regex=(.*)(\\d+)(.*)&ip=127.0.0.1&port=5060");
+								return;
 							case "/lbloglevel":
 								changeLogLevel(e);
 								writeResponse(e, HttpResponseStatus.OK, "Log level changed");
@@ -445,10 +454,52 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     	Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
     }
     
+    private boolean addRegex(MessageEvent e)
+    {
+    	String regex = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("regex");
+    	String ip = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("ip");
+    	String port = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("port");
+    	logger.info("regex : " + regex + " IP :" + ip);
+    	
+    	if(regex!=null&&ip!=null&&port!=null)
+    	{
+    		KeySip keySip = new KeySip(ip,Integer.parseInt(port));
+    		if(balancerRunner.balancerContext.regexMap==null)
+    		{
+    			balancerRunner.balancerContext.regexMap = new ConcurrentHashMap<String,KeySip>();
+    			balancerRunner.balancerContext.regexMap.put(regex, keySip);
+    			return true;
+    		}
+    		else
+    		{
+    			balancerRunner.balancerContext.regexMap.put(regex, keySip);
+    			return true;
+    		}
+    	}
+    	else if(regex!=null)
+    	{
+  			KeySip keySip = balancerRunner.balancerContext.regexMap.remove(regex);
+  			if(keySip!=null)
+  			{
+  				logger.info("regex removed from map : " + regex);
+  				return true;
+  			}
+  			else
+  			{
+  				logger.info("regex did not remove from map : " + regex);
+  				return false;
+  			}
+    	}
+    	else
+    		return false;
+
+    }
+    
     private boolean checkCredentials(MessageEvent e)
     {
     	HashMap<String, String> parameters = getUrlParameters(((HttpRequest)e.getMessage()).getUri());
-    	logger.info("check credentials for uri parameters : " + parameters);
+    	if(logger.isInfoEnabled())
+    		logger.info("check credentials for uri parameters : " + parameters);
     	if(balancerRunner.balancerContext.login.equals(parameters.get("login"))&&balancerRunner.balancerContext.password.equals(parameters.get("password")))
     		return true;
     	else
