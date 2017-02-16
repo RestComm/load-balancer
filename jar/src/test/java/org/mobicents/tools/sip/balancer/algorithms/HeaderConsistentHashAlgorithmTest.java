@@ -66,7 +66,7 @@ public class HeaderConsistentHashAlgorithmTest {
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP, 2222+q);
 			servers[q].start();
 		}
 		Thread.sleep(5000);
@@ -95,9 +95,8 @@ public class HeaderConsistentHashAlgorithmTest {
 				if(method.equals("INVITE")) invite = source;
 				if(method.equals("ACK")) {
 					ack = source;
-					
-					ack.sendCleanShutdownToBalancers();
-			
+					//ack.sendCleanShutdownToBalancers();
+					ack.stop();
 				}
 				if(method.equals("BYE")) 
 					bye = source;																
@@ -131,8 +130,9 @@ public class HeaderConsistentHashAlgorithmTest {
 	@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
-			as.sendCleanShutdownToBalancers();
-			as.sendHeartbeat=false;
+			as.stop();
+//			as.sendCleanShutdownToBalancers();
+//			as.sendHeartbeat=false;
 		}
 		Thread.sleep(1000);
 		shootist.callerSendsBye = true;
@@ -169,7 +169,8 @@ public class HeaderConsistentHashAlgorithmTest {
 			public void uacAfterResponse(int statusCode, AppServer source) {
 				if(statusCode == 180) {
 					ringingAppServer = source;
-					source.sendCleanShutdownToBalancers();	
+					//source.sendCleanShutdownToBalancers();
+					source.stop();
 				} else {
 					okAppServer = source;
 					

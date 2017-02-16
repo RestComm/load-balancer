@@ -61,12 +61,12 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.GracefulShutdown;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.KeySip;
 import org.mobicents.tools.sip.balancer.NodesInfoObject;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.sip.balancer.StatisticObject;
 
 import com.google.gson.Gson;
@@ -89,7 +89,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     private volatile boolean wsrequest;
     private String wsVersion;
     private WebsocketModifyClientPipelineFactory websocketServerPipelineFactory;
-    private volatile SIPNode node;
+    private volatile Node node;
     private boolean isSecured;
 
     private BalancerRunner balancerRunner;
@@ -207,7 +207,6 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
             InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
 
-            //			SIPNode node = null;
             try {
                 //TODO: If WebSocket request, choose a NODE that is able to handle WebSocket requests (has a websocket connector)
                 node = invocationContext.balancerAlgorithm.processHttpRequest(request);
@@ -253,7 +252,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                         wsrequest = true;
                         wsVersion = request.getHeader(Names.SEC_WEBSOCKET_VERSION);
                         websocketServerPipelineFactory = new WebsocketModifyClientPipelineFactory();
-                        future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer)node.getProperties().get("wsPort")));
+                        future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), Integer.parseInt(node.getProperties().get("wsPort"))));
 
                     }
                 } else {
@@ -262,14 +261,14 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                     if(logger.isDebugEnabled()) {
                         logger.debug("Dispatching HTTP request to node: "+ node.getIp()+" port: "+ node.getProperties().get("httpPort"));
                     }
-                    future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer) node.getProperties().get("httpPort")));
+                    future = HttpChannelAssociations.inboundBootstrap.connect(new InetSocketAddress(node.getIp(), Integer.parseInt(node.getProperties().get("httpPort"))));
                 	}
                 	else
                 	{
                 		if(logger.isDebugEnabled()) {
                             logger.debug("Dispatching HTTPS request to node: "+ node.getIp()+" port: "+ node.getProperties().get("sslPort"));
                         }
-                        future = HttpChannelAssociations.inboundSecureBootstrap.connect(new InetSocketAddress(node.getIp(), (Integer) node.getProperties().get("sslPort")));
+                        future = HttpChannelAssociations.inboundSecureBootstrap.connect(new InetSocketAddress(node.getIp(), Integer.parseInt(node.getProperties().get("sslPort"))));
                 	}
                 }
 

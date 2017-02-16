@@ -4,13 +4,10 @@ import gov.nist.javax.sip.DialogTimeoutEvent;
 import gov.nist.javax.sip.ListeningPointExt;
 import gov.nist.javax.sip.SipListenerExt;
 
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sip.ClientTransaction;
@@ -39,19 +36,24 @@ import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
-import org.mobicents.tools.sip.balancer.NodeRegisterRMIStub;
+import org.jboss.netty.channel.MessageEvent;
+import org.mobicents.tools.heartbeat.impl.ClientController;
+import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.interfaces.IClientListener;
+import org.mobicents.tools.heartbeat.interfaces.Protocol;
 import org.mobicents.tools.sip.balancer.ProtocolObjects;
-import org.mobicents.tools.sip.balancer.SIPNode;
+
+import com.google.gson.JsonObject;
 
 
-public class BackToBackUserAgent implements SipListenerExt {
+
+public class BackToBackUserAgent implements SipListenerExt, IClientListener {
     
     private MessageFactory messageFactory;
     private ProtocolObjects protocolObjects;
     private ListeningPoint lp;
     private SipProvider sp;
-    private Timer timer;
-    private SIPNode appServerNode;
+    private Node node;
     AtomicBoolean stopFlag = new AtomicBoolean(false);
     protected String balancers;
     String lbAddress;
@@ -62,6 +64,12 @@ public class BackToBackUserAgent implements SipListenerExt {
 	
 	private Dialog incomingDialog,outgoingDialog;
 	private ClientTransaction clientTransaction;
+	
+	private ClientController clientController;
+	private int lbHBPort = 2610;
+	private int heartbeatPort = 2222;
+	private int heartbeatPeriod = 1000;
+	private ExecutorService executor = Executors.newCachedThreadPool();
 	
 	public BackToBackUserAgent(int port,String transport,String lbAddress,int lbRMI,int lbPort) 
     {
@@ -86,36 +94,22 @@ public class BackToBackUserAgent implements SipListenerExt {
             sp = protocolObjects.sipStack.createSipProvider(lp);
             sp.addSipListener(this);
             protocolObjects.start();
-            appServerNode = new SIPNode("Node", "127.0.0.1");		
-    		appServerNode.getProperties().put(transport.toLowerCase() + "Port", port);		
-    		appServerNode.getProperties().put("version", "0");
-            timer = new Timer();
-            timer.schedule(new TimerTask() {
-    			
-    			@Override
-    			public void run() {
-    				try {
-    					ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-    					nodes.add(appServerNode);
-    					appServerNode.getProperties().put("version", "0");
-    					if(!stopFlag.get())
-    						sendKeepAliveToBalancers(nodes);
-    				} catch (Exception e) {
-    					e.printStackTrace();
-    				}
-    			}
-    		}, 1000, 1000);
+            node = new Node("Node", "127.0.0.1");		
+    		node.getProperties().put(transport.toLowerCase() + "Port",""+ port);		
+    		node.getProperties().put("version", "0");
+    		node.getProperties().put(Protocol.SESSION_ID, ""+System.currentTimeMillis());
+    		node.getProperties().put(Protocol.HEARTBEAT_PORT, ""+heartbeatPort);
+            
+    		clientController = new ClientController(this, lbAddress, lbHBPort, node, 2000, heartbeatPeriod, executor);
+    		clientController.startClient();
+
         } 
         catch (Exception ex) 
         {
             
         }
     }
-    
-	public void setBalancers(String balancers) {
-		this.balancers = balancers;
-	}    
-    
+ 
     private void replyToRequestEvent(Request event, ServerTransaction st,int status) {
 		try {
 			st.sendResponse(messageFactory.createResponse(status,event));
@@ -296,8 +290,7 @@ public class BackToBackUserAgent implements SipListenerExt {
     
     public void stop()
     {
-    	stopFlag.getAndSet(true);
-		timer.cancel();
+    	clientController.stopClient(false);
 		
 		if(protocolObjects != null)
 			protocolObjects.sipStack.stop();
@@ -305,58 +298,70 @@ public class BackToBackUserAgent implements SipListenerExt {
 		protocolObjects=null;
     }
 
-	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) 
-	{
-		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
-		if(balancers != null) {
-			for(String balancer:balancers.replaceAll(" ","").split(",")) {
-				if(balancer.length()<2) continue;
-				String host;
-				String port;
-				int semi = balancer.indexOf(':');
-				if(semi>0) {
-					host = balancer.substring(0, semi);
-					port = balancer.substring(semi+1);
-				} else {
-					host = balancer;
-					port = "2000";
-				}
-				try {
-					Registry registry = LocateRegistry.getRegistry(host, Integer.parseInt(port));
-					NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-					reg.handlePing(info);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			
-		} else {
-			try {
-				Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
-				NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-				reg.handlePing(info);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+	@Override
+	public void responseReceived(JsonObject json) {
+		// TODO Auto-generated method stub
+		
 	}
+
+	@Override
+	public void stopRequestReceived(MessageEvent e, JsonObject json) {
+		// TODO Auto-generated method stub
+		
+	}
+
+//	private void sendKeepAliveToBalancers(ArrayList<Node> info) 
+//	{
+//		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
+//		if(balancers != null) {
+//			for(String balancer:balancers.replaceAll(" ","").split(",")) {
+//				if(balancer.length()<2) continue;
+//				String host;
+//				String port;
+//				int semi = balancer.indexOf(':');
+//				if(semi>0) {
+//					host = balancer.substring(0, semi);
+//					port = balancer.substring(semi+1);
+//				} else {
+//					host = balancer;
+//					port = "2000";
+//				}
+//				try {
+//					Registry registry = LocateRegistry.getRegistry(host, Integer.parseInt(port));
+//					NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
+//					reg.handlePing(info);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			
+//		} else {
+//			try {
+//				Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
+//				NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
+//				reg.handlePing(info);
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
 	
-	public void sendCleanShutdownToBalancers() {
-		ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-		nodes.add(appServerNode);
-		sendCleanShutdownToBalancers(nodes);
-	}
+//	public void sendCleanShutdownToBalancers() {
+//		ArrayList<Node> nodes = new ArrayList<Node>();
+//		nodes.add(appServerNode);
+//		sendCleanShutdownToBalancers(nodes);
+//	}
 	
-	public void sendCleanShutdownToBalancers(ArrayList<SIPNode> info) {
-		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
-		try {
-			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
-			NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-			reg.forceRemoval(info);
-			stop();
-			Thread.sleep(2000); // delay the OK for a while
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	public void sendCleanShutdownToBalancers(ArrayList<Node> info) {
+//		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
+//		try {
+//			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
+//			NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
+//			reg.forceRemoval(info);
+//			stop();
+//			Thread.sleep(2000); // delay the OK for a while
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
 }

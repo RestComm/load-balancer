@@ -35,7 +35,6 @@ import gov.nist.javax.sip.message.SIPResponse;
 import gov.nist.javax.sip.stack.SIPMessageValve;
 
 import java.io.ByteArrayInputStream;
-import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.ParseException;
@@ -92,6 +91,7 @@ import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 /**
  * A transaction stateful UDP Forwarder that listens at a port and forwards to multiple
@@ -284,11 +284,11 @@ public class SIPBalancerForwarder implements SipListener {
             Properties prop = new Properties();
             try {
                 prop.load(new ByteArrayInputStream(bytes, 0, bytes.length));
-                SIPNode node = new SIPNode(prop.getProperty("hostname"), prop.getProperty("ip"));
+                Node node = new Node(prop.getProperty("hostname"), prop.getProperty("ip"));
                 for(String id : prop.stringPropertyNames()) {
                     node.getProperties().put(id, prop.getProperty(id));
                 }
-                ArrayList<SIPNode> list = new ArrayList<SIPNode>();
+                ArrayList<Node> list = new ArrayList<Node>();
                 list.add(node);
                 this.register.handlePingInRegister(list);
                 Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.OK, request);			
@@ -392,21 +392,21 @@ public class SIPBalancerForwarder implements SipListener {
         }
     }
 
-    private SIPNode getAliveNode(String host, int port, String otherTransport, InvocationContext ctx,Boolean isIpV6) {
+    private Node getAliveNode(String host, int port, String otherTransport, InvocationContext ctx,Boolean isIpV6) {
         //return getNodeFromCollection(host, port, otherTransport, ctx.nodes);
     	return ctx.sipNodeMap(isIpV6).get(new KeySip(host,port));
     }
 
-    private SIPNode getAliveNodeAnyVersion(String host, int port, String otherTransport) {
+    private Node getAliveNodeAnyVersion(String host, int port, String otherTransport) {
         return getNodeFromCollection(host, port, otherTransport, balancerRunner.balancerContext.aliveNodes);
     }
 
-    private SIPNode getNodeFromCollection(String host, int port, String otherTransport, Collection<SIPNode> ctx) {
+    private Node getNodeFromCollection(String host, int port, String otherTransport, Collection<Node> ctx) {
     	
         otherTransport = otherTransport.toLowerCase();
-        for(SIPNode node : ctx) {
+        for(Node node : ctx) {
             if(host.equals(node.getHostName()) || host.equals(node.getIp())) {
-            	if((Integer)node.getProperties().get(otherTransport + "Port") == port) {
+            	if(Integer.parseInt(node.getProperties().get(otherTransport + "Port")) == port) {
                     return node;
                 }
             }
@@ -414,7 +414,7 @@ public class SIPBalancerForwarder implements SipListener {
         return null;
     }
 
-    private SIPNode getNodeDeadOrAlive(String host, int port, String otherTransport) {
+    private Node getNodeDeadOrAlive(String host, int port, String otherTransport) {
         return getNodeFromCollection(host, port, otherTransport, balancerRunner.balancerContext.allNodesEver);
     }
 
@@ -450,7 +450,7 @@ public class SIPBalancerForwarder implements SipListener {
         return false;
     }
 
-//    private SIPNode getTransactionSourceNode(Response response) {
+//    private Node getTransactionSourceNode(Response response) {
 //        ViaHeader viaHeader = ((ViaHeader)response.getHeader(ViaHeader.NAME));
 //        String host = viaHeader.getHost();
 //        String transport = viaHeader.getTransport();
@@ -464,14 +464,14 @@ public class SIPBalancerForwarder implements SipListener {
 //                }
 //            }
 //        }
-//        SIPNode node = getNodeDeadOrAlive(host, port, transport);
+//        Node node = getNodeDeadOrAlive(host, port, transport);
 //        if(node != null) {
 //            return node;
 //        }
 //        return null;
 //    }
 
-    private SIPNode getSenderNode(Response response) {
+    private Node getSenderNode(Response response) {
         SIPResponse resp = (SIPResponse) response;
         String host = resp.getRemoteAddress().getHostAddress();
         
@@ -507,7 +507,7 @@ public class SIPBalancerForwarder implements SipListener {
                 }
             }
         }
-        SIPNode node = getNodeDeadOrAlive(host, port, transport);
+        Node node = getNodeDeadOrAlive(host, port, transport);
         if(node != null) {
             return node;
         }
@@ -630,7 +630,7 @@ public class SIPBalancerForwarder implements SipListener {
             }
         	int port = viaHeader.getPort();
         	String transport = viaHeader.getTransport().toLowerCase();
-        	SIPNode node =	getNodeDeadOrAlive(host, port, transport);
+        	Node node =	getNodeDeadOrAlive(host, port, transport);
         	if(node!=null)
         	{
         		if(logger.isDebugEnabled())
@@ -752,7 +752,7 @@ public class SIPBalancerForwarder implements SipListener {
 //            }
         }
 
-        SIPNode nextNode = null;
+        Node nextNode = null;
 
         if(isRequestFromServer) {
         	if(logger.isDebugEnabled()) {
@@ -783,11 +783,11 @@ public class SIPBalancerForwarder implements SipListener {
         		SipURI loopbackUri = getLoopbackUri(request, isIpv6);
         		if(loopbackUri != null) {
         			loopbackUri.setHost(hints.serverAssignedNode.getIp());
-        			loopbackUri.setPort((Integer) hints.serverAssignedNode.getProperties().get(transport + "Port"));
+        			loopbackUri.setPort(Integer.parseInt(hints.serverAssignedNode.getProperties().get(transport + "Port")));
             }
         	}
             // Request is NOT from app server, first check if we have hints in Route headers
-            SIPNode assignedNode = hints.serverAssignedNode;
+            Node assignedNode = hints.serverAssignedNode;
 
             // If there are no hints see if there is route header pointing existing node
             if(assignedNode == null) {
@@ -870,7 +870,7 @@ public class SIPBalancerForwarder implements SipListener {
                             routeSipUri = assignedUri;
                         }
                         routeSipUri.setHost(nextNode.getIp());
-                        Integer port = (Integer)nextNode.getProperties().get(transport + "Port");
+                        Integer port = Integer.parseInt(nextNode.getProperties().get(transport + "Port"));
                         if(port == null) {
                             throw new RuntimeException("Port is null in the node properties for transport="
                                     + transport);
@@ -922,7 +922,7 @@ public class SIPBalancerForwarder implements SipListener {
                 	{
                         SipURI sipUri =(SipURI) request.getRequestURI();                                             
                         SipURI routeSipUri = balancerRunner.balancerContext.addressFactory.createSipURI(null, nextNode.getIp());
-                        Integer port = (Integer)nextNode.getProperties().get(transport + "Port");
+                        Integer port = Integer.parseInt(nextNode.getProperties().get(transport + "Port"));
                 	 
                         //port should not be null since it subsequent request
                         if(port != null) 
@@ -1450,8 +1450,8 @@ public class SIPBalancerForwarder implements SipListener {
      * @param routeHeader the route header to check
      * @return the corresponding Sip Node
      */
-    private SIPNode checkRouteHeaderForSipNode(SipURI routeSipUri) {
-        SIPNode node = null;
+    private Node checkRouteHeaderForSipNode(SipURI routeSipUri) {
+        Node node = null;
         String hostNode = routeSipUri.getParameter(ROUTE_PARAM_NODE_HOST);
         String hostPort = routeSipUri.getParameter(ROUTE_PARAM_NODE_PORT);
         String hostVersion = routeSipUri.getParameter(ROUTE_PARAM_NODE_VERSION);
@@ -1522,7 +1522,7 @@ public class SIPBalancerForwarder implements SipListener {
         if(logger.isDebugEnabled()) {
             logger.debug("Checking if there is any route headers meant for the LB to remove...");
         }
-        SIPNode node = null;
+        Node node = null;
         String callVersion = null;
         int numberOfRemovedRouteHeaders = 0;
         if(balancerRunner.balancerContext.matchingHostnameForRoute!=null)
@@ -1841,7 +1841,7 @@ public class SIPBalancerForwarder implements SipListener {
         updateStats(originalResponse);
 
         final Response response = (Response) originalResponse; 
-        SIPNode senderNode = getSenderNode(response);
+        Node senderNode = getSenderNode(response);
         if(senderNode != null) {
         	if(logger.isDebugEnabled()) {
     			logger.debug("Updating Timestamp of sendernode: " + senderNode);
@@ -2005,7 +2005,7 @@ public class SIPBalancerForwarder implements SipListener {
         }
     }
 
-    private void mediaFailureDetection(Response response, InvocationContext ctx, SIPNode node)
+    private void mediaFailureDetection(Response response, InvocationContext ctx, Node node)
     {
     	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	        
     	KeySip keySip = new KeySip(node);
@@ -2015,7 +2015,6 @@ public class SIPBalancerForwarder implements SipListener {
     				ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
 					ctx.sipNodeMap(isIpV6).remove(keySip);
-					ctx.badSipNodeMap(isIpV6).put(keySip, node);
 					ctx.balancerAlgorithm.nodeRemoved(node);
     		}
     }
@@ -2028,7 +2027,7 @@ public class SIPBalancerForwarder implements SipListener {
 		{
 			if(ctx.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
 				found = true;
-//			for(SIPNode node : ctx.nodes) {
+//			for(Node node : ctx.nodes) {
 //				if(node.getIp().equals(host)) {
 //					if(port.equals(node.getProperties().get(transport+"Port"))) {
 //						found = true;
@@ -2443,7 +2442,7 @@ public class SIPBalancerForwarder implements SipListener {
     
     private void setExtraServerNodes(String extraServerNodesString)
     {
-        ArrayList<SIPNode> extraServerNodes = new ArrayList<SIPNode>();
+        ArrayList<Node> extraServerNodes = new ArrayList<Node>();
         extraServerAddresses = extraServerNodesString.split(",");
         extraServerPorts = new int[extraServerAddresses.length];
         for(int q=0; q<extraServerAddresses.length; q++) {
@@ -2455,9 +2454,9 @@ public class SIPBalancerForwarder implements SipListener {
                 extraServerPorts[q] = 5060;
             }
             ExtraServerNode extraServerNode = new ExtraServerNode("ExtraServerNode"+q+"-"+extraServerAddresses[q]+":"+extraServerPorts[q], extraServerAddresses[q]);
-            HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
-            properties.put("udpPort", extraServerPorts[q]);
-            properties.put("tcpPort", extraServerPorts[q]);
+            HashMap<String, String> properties = new HashMap<String, String>();
+            properties.put("udpPort",""+ extraServerPorts[q]);
+            properties.put("tcpPort",""+ extraServerPorts[q]);
             properties.put("version","0");
             extraServerNode.setProperties(properties);
             extraServerNodes.add(extraServerNode);

@@ -28,6 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.operation.Helper;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
 import com.meterware.httpunit.GetMethodWebRequest;
@@ -51,25 +52,21 @@ public class HttpBalancerWithHttpServerTest
 	@BeforeClass
 	public static void initialization() 
 	{
-		serverArray = new HttpServer[numberNodes];
-		for(int i = 0; i < numberNodes; i++)
-		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i);
-			serverArray[i].start();	
-		}
+		
 		balancerRunner = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		balancerRunner.start(lbConfig);
-		try 
+		serverArray = new HttpServer[numberNodes];
+		for(int i = 0; i < numberNodes; i++)
 		{
-			Thread.sleep(1000);
-		} 
-		catch (InterruptedException e) 
-		{
-			e.printStackTrace();
+			serverArray[i] = new HttpServer(8080+i, 4444+i, 2222+i);
+			serverArray[i].start();
+			Helper.sleep(1000);
 		}
+		Helper.sleep(5000);
+
 	}
 
 	//tests http balancer

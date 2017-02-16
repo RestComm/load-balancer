@@ -27,20 +27,21 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(ClusterSubdomainAffinityAlgorithm.class.getCanonicalName());
 	
 	protected ConcurrentHashMap<String, List<String>> nodeToNodeGroup = new ConcurrentHashMap<String, List<String>>();
 	
-	protected SIPNode selectNewNode(SIPNode node, String callId,Boolean isIpV6) {
+	protected Node selectNewNode(Node node, String callId,Boolean isIpV6) {
 		if(logger.isDebugEnabled()) {
     		logger.debug("The assigned node has died. This is the dead node: " + node);
     	}
-		SIPNode oldNode = node;
+		Node oldNode = node;
 		List<String> alternativeNodes = nodeToNodeGroup.get(oldNode.getIp());
-		//for(SIPNode check : invocationContext.nodes)  { 
-		for(SIPNode check : invocationContext.sipNodeMap(isIpV6).values())  {
+		//for(Node check : invocationContext.nodes)  { 
+		for(Node check : invocationContext.sipNodeMap(isIpV6).values())  {
 			for(String alt : alternativeNodes)
 				if(check.getIp().equals(alt)) {
 					groupedFailover(oldNode, check);

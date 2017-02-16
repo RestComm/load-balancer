@@ -22,8 +22,9 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.io.Serializable;
 import java.util.HashMap;
+
+import org.mobicents.tools.heartbeat.impl.Node;
 
 /**
  * Instances of this class represent Application Server nodes that do not participate in the hearbeats
@@ -37,11 +38,10 @@ import java.util.HashMap;
  * @author vladimirralev
  *
  */
-public class ExtraServerNode extends SIPNode {
+public class ExtraServerNode extends Node {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 1L;
 	
 	public ExtraServerNode() {
 		super(null,null);
@@ -53,7 +53,7 @@ public class ExtraServerNode extends SIPNode {
 	
 	public static ExtraServerNode extraServerNode = new ExtraServerNode();
 
-	public void setProperties(HashMap<String, Serializable> properties){
+	public void setProperties(HashMap<String, String> properties){
 		super.getProperties().putAll(properties);
 	}
 }

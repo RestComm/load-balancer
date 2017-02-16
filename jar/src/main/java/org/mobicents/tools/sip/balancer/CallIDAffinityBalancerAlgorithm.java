@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 import javax.sip.ListeningPoint;
 import javax.sip.message.Request;
@@ -45,7 +46,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(CallIDAffinityBalancerAlgorithm.class.getCanonicalName());
 	
 	protected String headerName = "Call-ID";
-	protected ConcurrentHashMap<String, SIPNode> callIdMap = new ConcurrentHashMap<String, SIPNode>();
+	protected ConcurrentHashMap<String, Node> callIdMap = new ConcurrentHashMap<String, Node>();
 	protected ConcurrentHashMap<String, Long> callIdTimestamps = new ConcurrentHashMap<String, Long>();
 	protected AtomicInteger nextNodeCounter = new AtomicInteger(0);
 	protected int maxCallIdleTime = 500;
@@ -63,7 +64,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		String host = via.getHost();
 		Integer port = via.getPort();
 		boolean found = false;
-		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
+		Node senderNode = (Node) ((ResponseExt)response).getApplicationData();
 		
 		if(logger.isDebugEnabled()) {
 			logger.debug("internal response checking sendernode " + senderNode + " or Via host:port " + host + ":" + port);
@@ -76,7 +77,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 //    			&& response.getReasonPhrase().equals(balancerContext.responsesReasonNodeRemoval))
 			return;
 		
-//		for(SIPNode node : invocationContext.nodes) {
+//		for(Node node : invocationContext.nodes) {
 //			if(logger.isDebugEnabled()) {
 //				logger.debug("internal response checking sendernode " + senderNode + " against node " + node + " or Via host:port " + host + ":" + port);
 //			} 
@@ -96,12 +97,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 		if(!found) {
 			String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
-			SIPNode node = callIdMap.get(callId);
+			Node node = callIdMap.get(callId);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, callId, isIpV6);
 				String transportProperty = transport + "Port";
-				port = (Integer) node.getProperties().get(transportProperty);
+				port = Integer.parseInt(node.getProperties().get(transportProperty));
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 				if(logger.isDebugEnabled()) {
 					logger.debug("changing via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -128,7 +129,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		boolean found = false;
 		
 		
-//		for(SIPNode node : invocationContext.nodes) {
+//		for(Node node : invocationContext.nodes) {
 //			if(node.getIp().equals(host)) {
 //				if(port.equals(node.getProperties().get(transport+"Port"))) {
 //					found = true;
@@ -145,12 +146,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 		if(!found) {
 			String callId = ((SIPHeader) response.getHeader(headerName)).getValue();
-			SIPNode node = callIdMap.get(callId);
+			Node node = callIdMap.get(callId);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, callId, isIpV6);
 				String transportProperty = transport + "Port";
-				port = (Integer) node.getProperties().get(transportProperty);
+				port = Integer.parseInt(node.getProperties().get(transportProperty));
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 				if(logger.isDebugEnabled()) {
 					logger.debug("changing via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -168,7 +169,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 				
 			} else {
 				String transportProperty = transport + "Port";
-				port = (Integer) node.getProperties().get(transportProperty);
+				port = Integer.parseInt(node.getProperties().get(transportProperty));
 				if(via.getHost().equalsIgnoreCase(node.getIp()) || via.getPort() != port) {
 					if(logger.isDebugEnabled()) {
 						logger.debug("changing retransmission via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -190,10 +191,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
+	public Node processExternalRequest(Request request,Boolean isIpV6) {
 		String callId = ((SIPHeader) request.getHeader(headerName))
 		.getValue();
-		SIPNode node;
+		Node node;
 		node = callIdMap.get(callId);
 		callIdTimestamps.put(callId, System.currentTimeMillis());
 
@@ -225,14 +226,14 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		
 	}
 	
-	protected SIPNode selectNewNode(SIPNode node, String callId,Boolean isIpV6) {
+	protected Node selectNewNode(Node node, String callId,Boolean isIpV6) {
 		if(logger.isDebugEnabled()) {
     		logger.debug("The assigned node has died. This is the dead node: " + node);
     	}
 		if(groupedFailover) {
 			// This will occur very rarely because we re-assign all calls from the dead node in
 			// a single operation
-			SIPNode oldNode = node;
+			Node oldNode = node;
 			node = leastBusyTargetNode(oldNode);
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
@@ -254,10 +255,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		return node;
 	}
 	
-	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
+	protected synchronized Node nextAvailableNode(Boolean isIpV6) {
 
 		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
-		Iterator<Entry<KeySip, SIPNode>> currIt = null; 
+		Iterator<Entry<KeySip, Node>> currIt = null; 
 		if(isIpV6)
 			currIt = ipv6It;
 		else
@@ -270,12 +271,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			else
 				ipv4It = currIt;
 			}
-		Entry<KeySip, SIPNode> pair = null;
+		Entry<KeySip, Node> pair = null;
 		while(currIt.hasNext())
 		{
 			pair = currIt.next();
 			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
-					&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
+					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown())
 				return pair.getValue();
 		}
 		currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
@@ -286,7 +287,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		if(currIt.hasNext())
 		{
 			pair = currIt.next();
-			if(!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
+			if(!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown())
 				return pair.getValue();
 			else 
 				return null;
@@ -295,9 +296,9 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			return null;
 	}
 	
-	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {
-		HashMap<SIPNode, Integer> nodeUtilization = new HashMap<SIPNode, Integer>();
-		for(SIPNode node : callIdMap.values()) {
+	protected synchronized Node leastBusyTargetNode(Node deadNode) {
+		HashMap<Node, Integer> nodeUtilization = new HashMap<Node, Integer>();
+		for(Node node : callIdMap.values()) {
 			Integer n = nodeUtilization.get(node);
 			if(n == null) {
 				nodeUtilization.put(node, 0);
@@ -307,8 +308,8 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 		
 		int minUtil = Integer.MAX_VALUE;
-		SIPNode minUtilNode = null;
-		for(SIPNode node : nodeUtilization.keySet()) {
+		Node minUtilNode = null;
+		for(Node node : nodeUtilization.keySet()) {
 			Integer util = nodeUtilization.get(node);
 			if(!node.equals(deadNode) && (util < minUtil)) {
 				minUtil = util;
@@ -376,7 +377,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		init();
 	}
 	
-	public void assignToNode(String id, SIPNode node) {
+	public void assignToNode(String id, Node node) {
 		callIdMap.put(id, node);
 		callIdTimestamps.put(id, System.currentTimeMillis());
 	}
@@ -384,12 +385,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	@Override
 	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
 		try {
-			SIPNode oldNode = getBalancerContext().jvmRouteToSipNode.get(fromJvmRoute);
-			SIPNode newNode = getBalancerContext().jvmRouteToSipNode.get(toJvmRoute);
+			Node oldNode = getBalancerContext().jvmRouteToSipNode.get(fromJvmRoute);
+			Node newNode = getBalancerContext().jvmRouteToSipNode.get(toJvmRoute);
 			if(oldNode != null && newNode != null) {
 				int updatedRoutes = 0;
 				for(String key : callIdMap.keySet()) {
-					SIPNode n = callIdMap.get(key);
+					Node n = callIdMap.get(key);
 					if(n.equals(oldNode)) {
 						callIdMap.replace(key, newNode);
 						updatedRoutes++;
@@ -412,12 +413,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 
-	synchronized public void groupedFailover(SIPNode oldNode, SIPNode newNode) {
+	synchronized public void groupedFailover(Node oldNode, Node newNode) {
 		try {
 			if(oldNode != null && newNode != null) {
 				int updatedRoutes = 0;
 				for(String key : callIdMap.keySet()) {
-					SIPNode n = callIdMap.get(key);
+					Node n = callIdMap.get(key);
 					if(n.equals(oldNode)) {
 						callIdMap.replace(key, newNode);
 						updatedRoutes++;

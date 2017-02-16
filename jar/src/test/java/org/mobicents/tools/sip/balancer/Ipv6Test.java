@@ -37,9 +37,10 @@ public class Ipv6Test {
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setIpv6TcpPort(5075);
 		balancer = new BalancerRunner();
 		balancer.start(lbConfig);
+		Thread.sleep(2000);
 		ipv6Server = new AppServer(true , "node" ,4060 , "127.0.0.1", 2000, 5070, 5075, "0", ListeningPoint.TCP);
 		ipv6Server.start();
-		ipv4Server = new AppServer("node" ,4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
+		ipv4Server = new AppServer("node" ,4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP,2223);
 		ipv4Server.start();
 		Thread.sleep(5000);
 	}

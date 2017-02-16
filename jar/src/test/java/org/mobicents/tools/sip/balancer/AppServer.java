@@ -22,24 +22,55 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.sip.SipProvider;
 import javax.sip.message.Response;
 
-public class AppServer {
+import org.apache.log4j.Logger;
+import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
+import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.mobicents.tools.heartbeat.impl.ClientController;
+import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.interfaces.IClientListener;
+import org.mobicents.tools.heartbeat.interfaces.Protocol;
+import org.mobicents.tools.heartbeat.packets.Packet;
+import org.mobicents.tools.heartbeat.packets.StopResponsePacket;
+import org.mobicents.tools.heartbeat.server.ServerPipelineFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
+public class AppServer implements IClientListener{
+	
+	private static final Logger logger = Logger.getLogger(AppServer.class.getCanonicalName());
+	
 	public ProtocolObjects protocolObjects;
 	public TestSipListener sipListener;
-	Timer timer;
 	int port;
 	String name;
-	SIPNode appServerNode;
+	Node node;
 	public boolean sendHeartbeat = true;
+	private Gson gson = new Gson();
+	
 	String lbAddress;
 	int lbRMIport;
 	int lbSIPext;
@@ -48,13 +79,23 @@ public class AppServer {
 	protected String balancers;
 	public SipProvider sipProvider;
 	public String version;
-	AtomicBoolean stopFlag = new AtomicBoolean(false);
 	boolean isDummy;
 	boolean isMediaFailure;
 	boolean isFirstStart = true;
 	boolean isIpv6 = false;
 	
-	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) 
+	ClientController clientController;
+	ClientController [] clientControllers;
+	int lbPort = 2610;
+	int heartbeatPort = 2222; 
+	int heartbeatPeriod = 1000;
+	
+	private ServerBootstrap serverBootstrap;
+	private Channel serverChannel;
+	//private ExecutorService executor = Executors.newCachedThreadPool();
+	private String heartbeatAddress;
+	
+	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport, int heartbeatPort) 
 	{
 		this.port = port;
 		this.name = appServer;
@@ -64,22 +105,23 @@ public class AppServer {
 		this.lbSIPint = lbSIPint;
 		this.version = version;
 		this.transport=transport;
+		this.heartbeatPort = heartbeatPort;
 	}
 	public AppServer(boolean isIpv6,String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport) 
 	{
-		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport);
+		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport, 2222);
 		this.isIpv6 = true;
 	}
 	
 	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport, boolean isDummy)
 	{
-		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport);
+		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport, 2222);
 		this.isDummy = isDummy; 
 	}
 	
 	public AppServer(String appServer, int port, String lbAddress, int lbRMI, int lbSIPext, int lbSIPint, String version , String transport, boolean isDummy, boolean isMediaFailure)
 	{
-		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport);
+		this(appServer, port, lbAddress, lbRMI, lbSIPext, lbSIPint, version , transport, 2222);
 		this.isDummy = isDummy;
 		this.isMediaFailure = isMediaFailure;
 	}
@@ -94,8 +136,8 @@ public class AppServer {
 	}
 
 	public void start() {
-		timer = new Timer();
-		
+	
+		ExecutorService executor = Executors.newCachedThreadPool();
 		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, false, true);
 
 			if(!isDummy)
@@ -116,117 +158,132 @@ public class AppServer {
 			}
 
 		sipListener.appServer = this;
-		try {
+		try 
+		{
 			sipProvider = sipListener.createProvider();
 			sipProvider.addSipListener(sipListener);
 			protocolObjects.start();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		//generate node
 		if(!isIpv6)
-			appServerNode = new SIPNode(name, "127.0.0.1");
+			node = new Node(name, "127.0.0.1");
 		else
-			appServerNode = new SIPNode(name, "::1");
-		appServerNode.getProperties().put(transport.toLowerCase() + "Port", port);		
-		appServerNode.getProperties().put("version", version);
-		appServerNode.getProperties().put("sessionId", ""+System.currentTimeMillis());
-		stopFlag.set(false);
-		timer.schedule(new TimerTask() {
-			
-			@Override
-			public void run() {
-				try {
-					ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-					nodes.add(appServerNode);
-					appServerNode.getProperties().put("version", version);
-					if(!stopFlag.get())
-					sendKeepAliveToBalancers(nodes);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+			node = new Node(name, "::1");
+		
+		node.getProperties().put(transport.toLowerCase() + "Port",""+ port);		
+		node.getProperties().put(Protocol.VERSION, version);
+		node.getProperties().put(Protocol.SESSION_ID, ""+System.currentTimeMillis());
+		node.getProperties().put(Protocol.HEARTBEAT_PORT, ""+heartbeatPort);
+		
+		serverBootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(executor, executor));
+		serverBootstrap.setPipelineFactory(new ServerPipelineFactory(this));
+		serverChannel = serverBootstrap.bind(new InetSocketAddress(node.getIp(), heartbeatPort));
+		
+		logger.info("Heartbeat service listen on " +heartbeatAddress+":"+ heartbeatPort+" (Node's side)");
+		
+		//start client
+		if(balancers==null)
+			clientController = new ClientController(this, lbAddress, lbPort, node, 2000 ,heartbeatPeriod, executor);
+		else
+		{
+			String [] lbs = balancers.split(",");
+			clientControllers = new ClientController [lbs.length];
+			for(int i=0; i < lbs.length; i++)
+			{
+				if(!isIpv6)
+					node = new Node(name, "127.0.0.1");
+				else
+					node = new Node(name, "::1");
+				
+				node.getProperties().put(transport.toLowerCase() + "Port",""+ port);		
+				node.getProperties().put(Protocol.VERSION, version);
+				node.getProperties().put(Protocol.HEARTBEAT_PORT, ""+heartbeatPort);
+				
+				clientControllers[i] = new ClientController(this, lbs[i].split(":")[0], Integer.parseInt(lbs[i].split(":")[1]), node, 2000 , heartbeatPeriod, executor);
+				clientControllers[i].startClient();
 			}
-		}, 1000, 1000);
+		}
+		if(sendHeartbeat)
+		{
+			if(balancers==null)
+				clientController.startClient();
+		}
 	}
 	
 	public void stop() {
-		isFirstStart = false;
-		stopFlag.getAndSet(true);
-		timer.cancel();
+		if(balancers==null)
+			clientController.stopClient(false);
+		else
+			for(ClientController cc : clientControllers)
+				cc.stopClient(false);
 		
+		serverChannel.unbind();
+		serverChannel.close();
+		serverChannel.getCloseFuture().awaitUninterruptibly();
+		
+		isFirstStart = false;
+
 		if(protocolObjects != null)
 			protocolObjects.sipStack.stop();
 		
 		protocolObjects=null;
-		//sendCleanShutdownToBalancers();
 	}
 
-	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) {
-		if(sendHeartbeat) {
-			Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
-			if(balancers != null) {
-				for(String balancer:balancers.replaceAll(" ","").split(",")) {
-					if(balancer.length()<2) continue;
-					String host;
-					String port;
-					int semi = balancer.indexOf(':');
-					if(semi>0) {
-						host = balancer.substring(0, semi);
-						port = balancer.substring(semi+1);
-					} else {
-						host = balancer;
-						port = "2000";
-					}
-					try {
-						Registry registry = LocateRegistry.getRegistry(host, Integer.parseInt(port));
-						NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-						reg.handlePing(info);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-				
-			} else {
-				try {
-					Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
-					NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-					reg.handlePing(info);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-	}	
-	public void sendCleanShutdownToBalancers() {
-		ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-		nodes.add(appServerNode);
-		sendCleanShutdownToBalancers(nodes);
-	}
-	
-	public void sendCleanShutdownToBalancers(ArrayList<SIPNode> info) {
-		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
-		try {
-			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
-			NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-			reg.forceRemoval(info);
-			stop();
-			Thread.sleep(2000); // delay the OK for a while
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
 	public TestSipListener getTestSipListener() {
 		return this.sipListener;
 	}
 	
-	public SIPNode getSIPNode() {
-		return appServerNode;
+	public Node getNode() {
+		return node;
 	}
 
 	public void gracefulShutdown()
 	{
-		appServerNode.getProperties().put("GRACEFUL_SHUTDOWN", "true");
+		clientController.stopClient(true);
 	}
+	
+	@Override
+	public void responseReceived(JsonObject json) 
+	{
+
+	}
+	@Override
+	public void stopRequestReceived(MessageEvent e, JsonObject json) 
+	{
+		logger.info("stop request received from LB : " + json);
+		if(balancers==null)
+			clientController.restartClient();
+		else
+			for(ClientController cc : clientControllers)
+			{
+				if(cc.getLbAddress().equals(json.get("ipAddress").toString().replace("\"",""))&&cc.getLbPort()==Integer.parseInt(json.get("port").toString()))
+				{
+					cc.restartClient();
+					logger.info("client controller connected to LB  " +cc.getLbAddress() + ":"+ cc.getLbPort() + " have changed state to initial");
+				}
+			}
+			
+		writeResponse(e, HttpResponseStatus.OK, Protocol.STOP, Protocol.OK);
+	}
+	
+	private synchronized void writeResponse(MessageEvent e, HttpResponseStatus status, String command, String responceString) 
+    {
+		Packet packet = null;
+		switch(command)
+		{
+			case Protocol.STOP:
+				packet = new StopResponsePacket(responceString);
+				break;
+		}
+        ChannelBuffer buf = ChannelBuffers.copiedBuffer(gson.toJson(packet), Charset.forName("UTF-8"));
+        HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
+        response.setHeader(HttpHeaders.Names.CONTENT_TYPE, APPLICATION_JSON);
+        response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, buf.readableBytes());
+        response.setContent(buf);
+        ChannelFuture future = e.getChannel().write(response);
+        future.addListener(ChannelFutureListener.CLOSE);
+    }
 
 }

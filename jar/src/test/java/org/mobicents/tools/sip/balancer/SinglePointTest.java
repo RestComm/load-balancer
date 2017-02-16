@@ -8,6 +8,7 @@ import javax.sip.message.Response;
 import org.junit.After;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.sip.balancer.operation.Helper;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 public class SinglePointTest {
@@ -42,9 +43,9 @@ public class SinglePointTest {
 		lbConfig.getSslConfiguration().setTerminateTLSTraffic(terminateTLS);
 		balancer.start(lbConfig);
 		if(terminateTLS)
-			server = new AppServer("node" ,4060 , "127.0.0.1", 2000, 5060, 5060, "0", ListeningPoint.TCP);
+			server = new AppServer("node" ,4060 , "127.0.0.1", 2000, 5060, 5060, "0", ListeningPoint.TCP, 2222);
 		else
-			server = new AppServer("node" ,4060 , "127.0.0.1", 2000, 5061, 5061, "0", ListeningPoint.TLS);
+			server = new AppServer("node" ,4060 , "127.0.0.1", 2000, 5061, 5061, "0", ListeningPoint.TLS, 2222);
 		server.start();
 		Thread.sleep(5000);
 	}
@@ -55,6 +56,7 @@ public class SinglePointTest {
 		shootistTcp.stop();
 		shootistTls.stop();
 		server.stop();
+		//Helper.sleep(1000);
 		balancer.stop();
 	}
 	

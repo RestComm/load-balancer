@@ -71,11 +71,12 @@ public class WssWorstCaseAffinityTest{
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5061, 5066, "0", ListeningPointExt.WSS);			
-			servers[q].start();		
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5061, 5066, "0", ListeningPointExt.WSS, 2222+q);			
+			servers[q].start();
+			Thread.sleep(1000);
 		}
-		
 		Thread.sleep(5000);
+		
 	}
 
 	@After

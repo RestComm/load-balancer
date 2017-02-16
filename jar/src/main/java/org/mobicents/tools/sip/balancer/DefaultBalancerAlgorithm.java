@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -37,6 +38,7 @@ import org.jboss.netty.handler.codec.http.Cookie;
 import org.jboss.netty.handler.codec.http.CookieDecoder;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
@@ -44,10 +46,10 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Properties properties;
 	protected BalancerContext balancerContext;
 	protected InvocationContext invocationContext;
-	protected Iterator<Entry<KeySip, SIPNode>> ipv4It = null;
-	protected Iterator<Entry<KeySip, SIPNode>> ipv6It = null;
-	protected Iterator<SIPNode> httpRequestIterator = null;
-	protected Iterator <SIPNode> instanceIdIterator = null;
+	protected Iterator<Entry<KeySip, Node>> ipv4It = null;
+	protected Iterator<Entry<KeySip, Node>> ipv6It = null;
+	protected Iterator<Node> httpRequestIterator = null;
+	protected Iterator <Node> instanceIdIterator = null;
 	protected LoadBalancerConfiguration lbConfig; 
 
 //	public void setProperties(Properties properties) {
@@ -85,7 +87,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}
 	
-	public synchronized SIPNode processHttpRequest(HttpRequest request) {
+	public synchronized Node processHttpRequest(HttpRequest request) {
 		if(invocationContext.sipNodeMap(false).size()>0) {
 			String instanceId = getInstanceId(request);
 			if(instanceId!=null)
@@ -101,7 +103,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				int indexOfDot = httpSessionId.lastIndexOf('.');
 				if(indexOfDot>0 && indexOfDot<httpSessionId.length()) {
 					String jvmRoute = httpSessionId.substring(indexOfDot + 1);
-					SIPNode node = balancerContext.jvmRouteToSipNode.get(jvmRoute);
+					Node node = balancerContext.jvmRouteToSipNode.get(jvmRoute);
 					
 					if(node != null) {
 						if(invocationContext.sipNodeMap(false).containsValue(node)) {
@@ -145,8 +147,8 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		} else {
 			String unavailaleHost = getConfiguration().getHttpConfiguration().getUnavailableHost();
 			if(unavailaleHost != null) {
-				SIPNode node = new SIPNode(unavailaleHost, unavailaleHost);
-				node.getProperties().put("httpPort", 80);
+				Node node = new Node(unavailaleHost, unavailaleHost);
+				node.getProperties().put("httpPort", "" + 80);
 				return node;
 			} else {
 				return null;
@@ -162,7 +164,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	    return false;
 	}
 	
-	public SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode) {
+	public Node processAssignedExternalRequest(Request request, Node assignedNode) {
 		return assignedNode;
 	}
 
@@ -242,11 +244,11 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}
 	
-	public void nodeAdded(SIPNode node) {
+	public void nodeAdded(Node node) {
 		
 	}
 
-	public void nodeRemoved(SIPNode node) {
+	public void nodeRemoved(Node node) {
 		
 	}
 	
@@ -254,15 +256,15 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}
 	
-	public void assignToNode(String id, SIPNode node) {
+	public void assignToNode(String id, Node node) {
 		
 	}	
 	
-	private SIPNode getNodeByInstanceId(String instanceId)
+	private Node getNodeByInstanceId(String instanceId)
 	{
 		if(logger.isDebugEnabled())
 			logger.debug("Node by instanceId("+instanceId+") getting");
-		SIPNode node = invocationContext.httpNodeMap.get(new KeyHttp(instanceId));
+		Node node = invocationContext.httpNodeMap.get(new KeyHttp(instanceId));
 		if(node!=null)
 		{
 			return node;

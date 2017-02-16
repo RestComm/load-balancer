@@ -36,6 +36,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 import javax.sip.message.Request;
 
@@ -50,11 +51,11 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	
 	MessageDigest md5;
 	
-	HashMap<Integer, SIPNode> hashToNode = new HashMap<Integer, SIPNode>();
-	HashMap<SIPNode, Integer> nodeToHash = new HashMap<SIPNode, Integer>();
+	HashMap<Integer, Node> hashToNode = new HashMap<Integer, Node>();
+	HashMap<Node, Integer> nodeToHash = new HashMap<Node, Integer>();
 	
 	
-	private TreeSet<SIPNode> tmpNodes = new TreeSet<SIPNode>();
+	private TreeSet<Node> tmpNodes = new TreeSet<Node>();
 	
 	public PureConsistentHashBalancerAlgorithm() {
 		this("Call-ID");
@@ -69,14 +70,14 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 		}
 	}
 
-	public SIPNode processExternalRequest(Request request,Boolean isIpV6) {
+	public Node processExternalRequest(Request request,Boolean isIpV6) {
 		Integer nodeIndex = hashHeader(request,isIpV6);
 		if(nodeIndex<0) {
 			return null;
 		} else {
 			try {
-				SIPNode node = (SIPNode) nodesArray(isIpV6)[nodeIndex];
-				if(!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(new KeySip(node)))
+				Node node = (Node) nodesArray(isIpV6)[nodeIndex];
+				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node)).isGracefulShutdown())
 					return node;
 				else
 					return null;
@@ -87,24 +88,24 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	}
 
 	@Override
-	public synchronized void nodeAdded(SIPNode node){
+	public synchronized void nodeAdded(Node node){
 		this.nodeAdded(node, invocationContext);
 	}
 	
-	public synchronized void nodeAdded(SIPNode node, InvocationContext context) {
+	public synchronized void nodeAdded(Node node, InvocationContext context) {
 		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            			
 		addNode(node);
 		syncNodes(isIpV6);
 	}
 	
-	private synchronized void addNode(SIPNode node) {
+	private synchronized void addNode(Node node) {
 		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            			
 		tmpNodes.add(node);
 		syncNodes(isIpV6);
 		dumpNodes();
 	}
 
-	public synchronized void nodeRemoved(SIPNode node) {
+	public synchronized void nodeRemoved(Node node) {
 		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            			
 		tmpNodes.remove(node);
 		syncNodes(isIpV6);
@@ -135,12 +136,12 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 			nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + (nodesArrayV4.length) + "):\n";
 		
 		for(Object object : nodesArrayV4) {
-			SIPNode node = (SIPNode) object;
+			Node node = (Node) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]" + " [HASH:" + absDigest(node.toStringWithoutJvmroute()) + "]"+ "\n";
 		}
 		if(nodesArrayV6!=null)
 		for(Object object : nodesArrayV6) {
-			SIPNode node = (SIPNode) object;
+			Node node = (Node) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]" + " [HASH:" + absDigest(node.toStringWithoutJvmroute()) + "]"+ "\n";
 		}
 		logger.info(nodes);
@@ -152,7 +153,7 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 		Object[] nodes = nodesArray(isIpV6); // take a copy to avoid inconsistent reads
 		int lastNodeWithLowerHash = 0;
 		for(int q=0;q<nodes.length;q++) {
-			SIPNode node = (SIPNode) nodes[q];
+			Node node = (Node) nodes[q];
 			Integer nodeHash = nodeToHash.get(node);
 			if(nodeHash == null) nodeHash = 0;
 			
@@ -189,13 +190,13 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	
 	@Override
 	public synchronized void syncNodes(Boolean isIpV6) {
-		Set<SIPNode> nodes = tmpNodes;
+		Set<Node> nodes = tmpNodes;
 		if(nodes != null) {
-			ArrayList<SIPNode> nodeList = new ArrayList<SIPNode>();
+			ArrayList<Node> nodeList = new ArrayList<Node>();
 			nodeList.addAll(nodes);
-			Collections.sort(nodeList, new Comparator<SIPNode>() {
+			Collections.sort(nodeList, new Comparator<Node>() {
 
-				public int compare(SIPNode o1, SIPNode o2) {
+				public int compare(Node o1, Node o2) {
 					int a = absDigest(o1.toStringWithoutJvmroute());
 					int b = absDigest(o2.toStringWithoutJvmroute());
 					if(a==b) return 0;
@@ -204,11 +205,11 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 				}
 				
 			});
-			HashMap<Integer, SIPNode> tmpHashToNode = new HashMap<Integer, SIPNode>();
-			for(SIPNode node:nodeList) tmpHashToNode.put(absDigest(node.toStringWithoutJvmroute()), node);
+			HashMap<Integer, Node> tmpHashToNode = new HashMap<Integer, Node>();
+			for(Node node:nodeList) tmpHashToNode.put(absDigest(node.toStringWithoutJvmroute()), node);
 			this.hashToNode = tmpHashToNode;
-			HashMap<SIPNode, Integer> tmpNodeToHash = new HashMap<SIPNode, Integer>();
-			for(SIPNode node:nodeList) tmpNodeToHash.put(node, absDigest(node.toStringWithoutJvmroute()));
+			HashMap<Node, Integer> tmpNodeToHash = new HashMap<Node, Integer>();
+			for(Node node:nodeList) tmpNodeToHash.put(node, absDigest(node.toStringWithoutJvmroute()));
 			this.nodeToHash = tmpNodeToHash;
 			
 			if(isIpV6)

@@ -69,13 +69,13 @@ public class XmlConfigurationLoader{
     {
         dst.setHost(src.getString("host", CommonConfiguration.HOST));
         dst.setIpv6Host(src.getString("ipv6Host", CommonConfiguration.IPV6_HOST));
-        dst.setRmiRegistryPort(src.getInteger("rmiRegistryPort",CommonConfiguration.RMI_REGISTRY_PORT));
-        dst.setRmiRemoteObjectPort(src.getInteger("rmiRemoteObjectPort",CommonConfiguration.RMI_REMOTE_OBJECT_PORT));
         dst.setNodeTimeout(src.getInteger("nodeTimeout", CommonConfiguration.NODE_TIMEOUT));
         dst.setHeartbeatInterval(src.getInteger("heartbeatInterval", CommonConfiguration.HARDBEAT_INTERVAL));
         dst.setStatisticPort(src.getInteger("statisticPort", CommonConfiguration.STATISTIC_PORT));
         if(src.getString("shutdownTimeout") != null && !src.getString("shutdownTimeout").equals(""))
         	dst.setShutdownTimeout(src.getInteger("shutdownTimeout", CommonConfiguration.SHUTDOWN_TIMEOUT));
+        	dst.setHeartbeatPort(src.getInteger("heartbeatPort", CommonConfiguration.HEARTBEAT_PORT));
+        dst.setCacheConfiguration(src.getString("cacheConfiguration",CommonConfiguration.CACHE_CONFIGURATION));
         dst.setSecurityRequired(src.getBoolean("securityRequired", CommonConfiguration.SECURITY_REQUIRED));
         dst.setLogin(src.getString("login", CommonConfiguration.LOGIN));
         dst.setPassword(src.getString("password", CommonConfiguration.PASSWORD));

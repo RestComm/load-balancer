@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.mobicents.tools.sip.balancer.SIPNode;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
 
 import com.cloudhopper.smpp.pdu.Pdu;
@@ -86,7 +86,7 @@ public class SmppToNodeRoundRobinAlgorithm extends DefaultSmppAlgorithm
 	}
 
 	@Override
-	public SIPNode processBindToProvider() {
+	public Node processBindToProvider() {
 		// TODO Auto-generated method stub
 		return null;
 	}

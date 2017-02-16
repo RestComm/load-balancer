@@ -1,5 +1,7 @@
 package org.mobicents.tools.sip.balancer;
 
+import org.mobicents.tools.heartbeat.impl.Node;
+
 public class KeySmpp {
 	
 	private Integer smppPort;
@@ -10,10 +12,10 @@ public class KeySmpp {
 		this.smppIp = smppIP;
 		this.smppPort = smppPort;
 	}
-	public KeySmpp(SIPNode node)
+	public KeySmpp(Node node)
 	{
 		this.smppIp = node.getIp();
-		this.smppPort = Integer.parseInt((String) node.getProperties().get("smppPort"));
+		this.smppPort = Integer.parseInt(node.getProperties().get("smppPort"));
 	}
 
 	public Integer getSmppPort() {

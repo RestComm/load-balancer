@@ -25,6 +25,7 @@ package org.mobicents.tools.sip.balancer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.smpp.multiplexer.DefaultSmppAlgorithm;
 import org.mobicents.tools.smpp.multiplexer.MServerConnectionImpl;
 
@@ -82,18 +83,17 @@ public class InvocationContext {
 		smppToProviderBalancerAlgorithm.stop();
 	}
 	
-	//public CopyOnWriteArrayList<SIPNode> nodes = new CopyOnWriteArrayList<SIPNode>();
-	private ConcurrentHashMap<KeySip, SIPNode> gracefulShutdownSipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
-	private ConcurrentHashMap<KeySip, SIPNode> gracefulShutdownSipNodeMapV6 = new ConcurrentHashMap<KeySip, SIPNode>();
-	private ConcurrentHashMap<KeySip, SIPNode> badSipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
-	private ConcurrentHashMap<KeySip, SIPNode> sipNodeMap = new ConcurrentHashMap<KeySip, SIPNode>();
-	private ConcurrentHashMap<KeySip, SIPNode> badSipNodeMapV6 = new ConcurrentHashMap<KeySip, SIPNode>();
-	private ConcurrentHashMap<KeySip, SIPNode> sipNodeMapV6 = new ConcurrentHashMap<KeySip, SIPNode>();
+	private ConcurrentHashMap<KeySip, Node> sipNodeMap = new ConcurrentHashMap<KeySip, Node>();
+	private ConcurrentHashMap<KeySip, Node> sipNodeMapV6 = new ConcurrentHashMap<KeySip, Node>();
+	
+	private ConcurrentHashMap<KeySession, Node> sessionNodeMap = new ConcurrentHashMap<KeySession, Node>();
+	private ConcurrentHashMap<KeySession, Node> sessionNodeMapV6 = new ConcurrentHashMap<KeySession, Node>();
+	
 	public ConcurrentHashMap<Long, MServerConnectionImpl> customers;
 	
-	public ConcurrentHashMap<KeyHttp, SIPNode> httpNodeMap = new ConcurrentHashMap<KeyHttp, SIPNode>();
+	public ConcurrentHashMap<KeyHttp, Node> httpNodeMap = new ConcurrentHashMap<KeyHttp, Node>();
+	public ConcurrentHashMap<KeySmpp, Node> smppNodeMap = new ConcurrentHashMap<KeySmpp, Node>();
 	
-	public ConcurrentHashMap<KeySmpp, SIPNode> smppNodeMap = new ConcurrentHashMap<KeySmpp, SIPNode>();
 	public KeySmpp activeNodeKey = null;
 	
 	public String version;
@@ -108,7 +108,7 @@ public class InvocationContext {
 		attribs.remove(name);
 	}
 	
-	public ConcurrentHashMap<KeySip, SIPNode> sipNodeMap(Boolean isIpV6)
+	public ConcurrentHashMap<KeySip, Node> sipNodeMap(Boolean isIpV6)
 	{
 		if(isIpV6)
 			return sipNodeMapV6;
@@ -116,19 +116,11 @@ public class InvocationContext {
 			return sipNodeMap;
 	}
 	
-	public ConcurrentHashMap<KeySip, SIPNode> badSipNodeMap(Boolean isIpV6)
+	public ConcurrentHashMap<KeySession, Node> sessionNodeMap(Boolean isIpV6)
 	{
 		if(isIpV6)
-			return badSipNodeMapV6;
+			return sessionNodeMapV6;
 		else
-			return badSipNodeMap;
-	}
-	
-	public ConcurrentHashMap<KeySip, SIPNode> gracefulShutdownSipNodeMap(Boolean isIpV6)
-	{
-		if(isIpV6)
-			return gracefulShutdownSipNodeMapV6;
-		else
-			return gracefulShutdownSipNodeMap;
+			return sessionNodeMap;
 	}
 }

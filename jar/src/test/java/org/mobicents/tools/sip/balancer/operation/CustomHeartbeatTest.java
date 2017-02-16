@@ -33,10 +33,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
-import org.mobicents.tools.sip.balancer.SIPNode;
 
 public class CustomHeartbeatTest{
 	BalancerRunner balancer;
@@ -60,7 +60,8 @@ public class CustomHeartbeatTest{
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5060, "0", ListeningPoint.UDP);
+			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5060, "0", ListeningPoint.UDP, 2222+q);
+			servers[q].sendHeartbeat = false;
 			servers[q].start();
 		}
 		Thread.sleep(5000);
@@ -132,8 +133,8 @@ public class CustomHeartbeatTest{
 		route.setLrParam();
 		shootist.start();
 		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
-		servers[0].sendHeartbeat = false;
-		servers[1].sendHeartbeat = false;
+		//servers[0].sendHeartbeat = false;
+		//servers[1].sendHeartbeat = false;
 		servers[0].sipListener.sendSipRequest("OPTIONS", fromAddress, toAddress, "tcpPort=1\nudpPort=2\nhostname=sipHeartbeat\nip=127.0.0.1", route, false, new String[]{"Mobicents-Heartbeat"}, new String[]{"1"}, ruri);
 		Thread.sleep(4000);
 		servers[0].sipListener.sendSipRequest("OPTIONS", fromAddress, toAddress, "tcpPort=1\nudpPort=2\nhostname=sipHeartbeat\nip=127.0.0.1", route, false, new String[]{"Mobicents-Heartbeat"}, new String[]{"1"}, ruri);
@@ -143,8 +144,8 @@ public class CustomHeartbeatTest{
 		servers[0].sipListener.sendSipRequest("OPTIONS", fromAddress, toAddress, "tcpPort=1\nudpPort=2\nhostname=sipHeartbeat\nip=127.0.0.1", route, false, new String[]{"Mobicents-Heartbeat"}, new String[]{"1"}, ruri);
 		Thread.sleep(4000);
 		servers[0].sipListener.sendSipRequest("OPTIONS", fromAddress, toAddress, "tcpPort=1\nudpPort=2\nhostname=sipHeartbeat\nip=127.0.0.1", route, false, new String[]{"Mobicents-Heartbeat"}, new String[]{"1"}, ruri);
-		List<SIPNode> list = balancer.getNodes();
-		SIPNode node = list.get(0);
+		List<Node> list = balancer.getNodes();
+		Node node = list.get(0);
 		assertEquals(node.getHostName(), "sipHeartbeat");
 		assertEquals(1, list.size());
 	}

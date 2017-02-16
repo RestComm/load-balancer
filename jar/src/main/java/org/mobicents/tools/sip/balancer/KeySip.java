@@ -3,13 +3,15 @@ package org.mobicents.tools.sip.balancer;
 import java.io.Serializable;
 import java.util.ArrayList;
 
+import org.mobicents.tools.heartbeat.impl.Node;
+
 public class KeySip {
 	
 	private String ip;
 	private ArrayList <Integer> ports = new ArrayList<Integer>();
 	private String [] transports = {"udp","tcp","tls","ws","wss"};
 	
-	public KeySip (SIPNode node)
+	public KeySip (Node node)
 	{
 		this.ip = node.getIp();
 		for(String transport:transports)

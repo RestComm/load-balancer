@@ -29,6 +29,7 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 /**
  * The BalancerAlgortihm interface exposes the methods implemented by decision making algorithms
@@ -48,8 +49,8 @@ public interface BalancerAlgorithm {
 	 * @param request
 	 * @return
 	 */
-	SIPNode processExternalRequest(Request request,Boolean isIpV6);
-	SIPNode processAssignedExternalRequest(Request request, SIPNode assignedNode);
+	Node processExternalRequest(Request request,Boolean isIpV6);
+	Node processAssignedExternalRequest(Request request, Node assignedNode);
 	void processInternalRequest(Request request);
 	/**
 	 * Check whether LB should forward request or not
@@ -63,7 +64,7 @@ public interface BalancerAlgorithm {
 	 * @param request
 	 * @return
 	 */
-	SIPNode processHttpRequest(HttpRequest request);
+	Node processHttpRequest(HttpRequest request);
 
 	void proxyMessage(ChannelHandlerContext ctx, MessageEvent e);
 	
@@ -72,7 +73,7 @@ public interface BalancerAlgorithm {
 //     * @param response
 //     * @return
 //     */
-//    SIPNode processHttpResponse(HttpResponse response);
+//    Node processHttpResponse(HttpResponse response);
 	
 	/**
 	 * Allow algorithms to process responses
@@ -87,13 +88,13 @@ public interface BalancerAlgorithm {
 	 * 
 	 * @param node
 	 */
-	void nodeRemoved(SIPNode node);
+	void nodeRemoved(Node node);
 	
 	/**
 	 * Notify the algorithm when a node is added.
 	 * @param node
 	 */
-	void nodeAdded(SIPNode node);
+	void nodeAdded(Node node);
 	
 	/**
 	 * Get the properties used to load the load balancer. This way you can read algorithm-specific settings
@@ -138,7 +139,7 @@ public interface BalancerAlgorithm {
 	/**
 	 * Assign callid to node
 	 */
-	void assignToNode(String id, SIPNode node);
+	void assignToNode(String id, Node node);
 	
 	void configurationChanged();
 }

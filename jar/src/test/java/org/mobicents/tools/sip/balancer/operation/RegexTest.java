@@ -59,11 +59,12 @@ public class RegexTest {
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(UserBasedAlgorithm.class.getCanonicalName());
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setSipHeaderAffinityKey("From");
 		balancer.start(lbConfig);
-		node0 = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
-		node1 = new AppServer("node1",4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
+		node0 = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP,2222);
+		node1 = new AppServer("node1",4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP,2223);
 		node0.start();
+		Thread.sleep(1000);
 		node1.start();
-		Thread.sleep(3000);
+		Thread.sleep(1000);
 	}
 	
 	@After

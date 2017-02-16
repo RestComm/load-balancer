@@ -40,6 +40,7 @@ import org.infinispan.notifications.cachelistener.annotation.CacheEntryModified;
 import org.infinispan.notifications.cachelistener.event.Event;
 import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
 import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 
 /**
@@ -52,7 +53,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	private static Logger logger = Logger.getLogger(PersistentConsistentHashBalancerAlgorithm.class.getCanonicalName());
 	
 	
-	protected Cache<SIPNode,String> cache;
+	protected Cache<Node,String> cache;
 	
 	public PersistentConsistentHashBalancerAlgorithm() {
 	}
@@ -62,22 +63,22 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	}
 	
 	@CacheEntryModified
-	public void modified(Event <SIPNode,String> event) {
+	public void modified(Event <Node,String> event) {
 		logger.debug(event.toString());
 	}
 
-	public synchronized void nodeAdded(SIPNode node) {
+	public synchronized void nodeAdded(Node node) {
 		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());		
 		addNode(node,isIpV6);
 		syncNodes(isIpV6);
 	}
 	
-	private void addNode(SIPNode node,Boolean isIpV6) {	
+	private void addNode(Node node,Boolean isIpV6) {	
 		cache.put(node, "");
 		dumpNodes();
 	}
 
-	public synchronized void nodeRemoved(SIPNode node) {
+	public synchronized void nodeRemoved(Node node) {
 		dumpNodes();
 	}
 	
@@ -85,12 +86,12 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		String nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now(IPV6 and IPv4) (" + (nodesArrayV6 +""+ nodesArrayV4) + "):\n";
 		if(nodesArrayV4!=null)
 		for(Object object : nodesArrayV4) {
-			SIPNode node = (SIPNode) object;
+			Node node = (Node) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]\n";
 		}
 		if(nodesArrayV6!=null)
 		for(Object object : nodesArrayV6) {
-			SIPNode node = (SIPNode) object;
+			Node node = (Node) object;
 			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]\n";
 		}
 		
@@ -132,7 +133,7 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		cache.addListener(this);
 		cache.start();
 		/*
-		for (SIPNode node : getBalancerContext().nodes) {
+		for (Node node : getBalancerContext().nodes) {
 			addNode(node);
 		}
 		syncNodes(context);*/

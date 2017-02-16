@@ -41,7 +41,6 @@ package org.mobicents.tools.sip.balancer;
 import static org.junit.Assert.fail;
 
 import java.net.InetAddress;
-import java.rmi.RemoteException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
@@ -58,7 +57,7 @@ public class SipBalancerForwarderTest{
 	}
 
 	@Test
-	public void testStartStop2x() throws RemoteException {
+	public void testStartStop2x() {
 		new NodeRegisterImpl(balancerAddress);
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		BalancerRunner balancerRunner = new BalancerRunner();

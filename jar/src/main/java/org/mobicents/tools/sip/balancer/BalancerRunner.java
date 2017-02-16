@@ -40,10 +40,6 @@ import java.util.logging.LogManager;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-import javax.management.remote.JMXConnectorServer;
-import javax.management.remote.JMXConnectorServerFactory;
-import javax.management.remote.JMXServiceURL;
-
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -51,12 +47,13 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.configuration.XmlConfigurationLoader;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 import org.restcomm.commons.statistics.reporter.RestcommStatsReporter;
+
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
-import com.sun.jdmk.comm.HtmlAdaptorServer;
 /**
  * @author jean.deruelle@gmail.com
  *
@@ -111,9 +108,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			.getCanonicalName());
 	protected SIPBalancerForwarder sipForwarder = null;
 	protected NodeRegisterImpl reg = null;
-	HtmlAdaptorServer adapter;
-	ObjectName adapterName = null;
-	JMXConnectorServer cs = null;
 	HttpBalancerForwarder httpBalancerForwarder;
 	public SmppBalancerRunner smppBalancerRunner;
 	public BalancerContext balancerContext = new BalancerContext();
@@ -145,7 +139,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public void start(LoadBalancerConfiguration lbConfig) {
 		if(statsReporter==null)
 			statsReporter = new RestcommStatsReporter();
-		adapter = new HtmlAdaptorServer();
+
 		String ipAddress = lbConfig.getCommonConfiguration().getHost();
 		if(ipAddress == null) {
 			ipAddress = lbConfig.getSipConfiguration().getInternalLegConfiguration().getHost();
@@ -160,24 +154,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("Couldn't get the InetAddress from the host " + ipAddress, e);
 			return;
 		}
-		
-		int jmxHtmlPort = -1;
-		jmxHtmlPort = lbConfig.getCommonConfiguration().getJmxHtmlAdapterPort();
-
-		int rmiRegistryPort = -1;
-		rmiRegistryPort = lbConfig.getCommonConfiguration().getRmiRegistryPort();
-	
-		
-		int remoteObjectPort = -1;
-	    remoteObjectPort = lbConfig.getCommonConfiguration().getRmiRemoteObjectPort();
-		
+		int heartbeatPort = -1;
+	    heartbeatPort = lbConfig.getCommonConfiguration().getHeartbeatPort();
 	    balancerContext.securityRequired = lbConfig.getCommonConfiguration().getSecurityRequired();
 	    if(balancerContext.securityRequired)
 	    {
 	    	balancerContext.login = lbConfig.getCommonConfiguration().getLogin();
 	    	balancerContext.password = lbConfig.getCommonConfiguration().getPassword();
 	    }
-	    
+
 		this.algorithClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
 		balancerContext.algorithmClassName = this.algorithClassName;
 		balancerContext.terminateTLSTraffic = lbConfig.getSslConfiguration().getTerminateTLSTraffic();
@@ -193,33 +178,20 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		try {
 			
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-			
-			//register the jmx html adapter
-			adapterName = new ObjectName(HTML_ADAPTOR_JMX_NAME + jmxHtmlPort);
-	        adapter.setPort(jmxHtmlPort);	        	        
-			server.registerMBean(adapter, adapterName);					
-			
 			RouterImpl.setRegister(reg);			
 
 			reg = new NodeRegisterImpl(addr);
 			reg.balancerRunner = this;
-			
-			try {
-				reg.setNodeExpirationTaskInterval(lbConfig.getCommonConfiguration().getHeartbeatInterval());
-				reg.setNodeExpiration(lbConfig.getCommonConfiguration().getNodeTimeout());
-				if(logger.isInfoEnabled()) {
-					logger.info("Node timeout" + " = " + reg.getNodeExpiration());
-					logger.info("Heartbeat interval" + " = " + reg.getNodeExpirationTaskInterval());
-				}
-			} catch(NumberFormatException nfe) {
-				logger.error("Couldn't convert rmiRegistryPort to a valid integer", nfe);
-				return ; 
+			reg.setNodeExpirationTaskInterval(lbConfig.getCommonConfiguration().getHeartbeatInterval());
+			reg.setNodeExpiration(lbConfig.getCommonConfiguration().getNodeTimeout());
+			if(logger.isInfoEnabled()) {
+				logger.info("Node timeout" + " = " + reg.getNodeExpiration());
+				logger.info("Heartbeat interval" + " = " + reg.getNodeExpirationTaskInterval());
 			}
-			
 			if(logger.isDebugEnabled()) {
-                logger.debug("About to startRegistry at: "+rmiRegistryPort+" and remoteObjectPort: "+remoteObjectPort);
+                logger.debug("About to start registry nodes at : " + heartbeatPort);
             }
-			reg.startRegistry(rmiRegistryPort, remoteObjectPort);
+			reg.startRegistry(ipAddress, heartbeatPort);
 			if(logger.isDebugEnabled()) {
 				logger.debug("adding shutdown hook");
 			}
@@ -262,13 +234,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				server.unregisterMBean(on);
 			}
 			server.registerMBean(this, on);
-			
-			// Create an RMI connector and start it
-	        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + ipAddress + ":" + rmiRegistryPort + "/server");
-	        cs = JMXConnectorServerFactory.newJMXConnectorServer(url, null, server);
-	        cs.start();
-	        adapter.start();
-	         
+			         
 	        shutdownHook=new SipBalancerShutdownHook(this);
 			Runtime.getRuntime().addShutdownHook(shutdownHook);
 		} catch (Exception e) {
@@ -281,6 +247,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			smppBalancerRunner.start();
 		}	
 	}
+	//start Jboss cache
+//			String cacheConfigFile = lbConfig.getCommonConfiguration().getCacheConfigFile();
+//			if(balancerContext.cacheListener==null&&cacheConfigFile!=null&&!cacheConfigFile.equals(""))
+//				balancerContext.cacheListener = new HttpCacheListener(this);
 	Timer timer;
 	long lastupdate = 0;
 
@@ -377,45 +347,27 @@ public class BalancerRunner implements BalancerRunnerMBean {
 					server.unregisterMBean(on);
 				}
 			}
-			
-			if(adapter!=null)
-			{
-				if(server.isRegistered(adapterName)) 
-				{
-					logger.info("Unregistering the node adapter");
-					server.unregisterMBean(adapterName);
-				}
-			}		
 		} 
 		catch (Exception e) 
 		{
 			logger.error("An unexpected error occurred while stopping the load balancer", e);
 		}
-		
+
 		try 
 		{
-			if(cs != null) 
+			for(InvocationContext ctx : contexts.values())
 			{
-				if(cs.isActive()) 
-					cs.stop();
-				
-				cs = null;
-				
-				for(InvocationContext ctx : contexts.values())
-				{
-					ctx.balancerAlgorithm.stop();
-					if(ctx.smppToNodeBalancerAlgorithm!=null)
-						ctx.smppToNodeBalancerAlgorithm.stop();
-					ctx.smppToProviderBalancerAlgorithm.stop();
-				}
-				
-				logger.info("Stopping the node registry");
-				adapter.stop();
-				reg.stopRegistry();
-				reg = null;
-				adapter = null;
-				System.gc();
+				ctx.balancerAlgorithm.stop();
+				if(ctx.smppToNodeBalancerAlgorithm!=null)
+					ctx.smppToNodeBalancerAlgorithm.stop();
+				ctx.smppToProviderBalancerAlgorithm.stop();
 			}
+			
+			logger.info("Stopping the node registry");
+			reg.stopRegistry();
+			reg = null;
+			System.gc();
+			
 		} catch (Exception e) {
 			logger.error("An unexpected error occurred while stopping the load balancer", e);
 		}	
@@ -575,15 +527,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		reg.setNodeExpirationTaskInterval(value);
 	}
 
-	public List<SIPNode> getNodes() {
-		return new LinkedList<SIPNode>(balancerContext.aliveNodes);
+	public List<Node> getNodes() {
+		return new LinkedList<Node>(balancerContext.aliveNodes);
 	}
 	
 	public String[] getNodeList() {
-		List<SIPNode> nodes = getNodes();
+		List<Node> nodes = getNodes();
 		String[] nodeList = new String[nodes.size()];
 		int i = 0;
-		for (SIPNode node : nodes) {			
+		for (Node node : nodes) {			
 			nodeList[i] = node.toString();
 			i++;
 		}

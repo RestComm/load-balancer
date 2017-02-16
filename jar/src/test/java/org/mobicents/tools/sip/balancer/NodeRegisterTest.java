@@ -40,13 +40,12 @@ package org.mobicents.tools.sip.balancer;
 
 import static org.junit.Assert.assertEquals;
 
-import java.rmi.RemoteException;
-
 import javax.sip.ListeningPoint;
 
 import org.junit.Test;
 import org.mobicents.ext.javax.sip.congestion.CongestionControlMessageValve;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.sip.balancer.operation.Helper;
 
 /**
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
@@ -56,24 +55,24 @@ public class NodeRegisterTest{
 
 
 	@Test
-	public void testNodeTimeouts() throws RemoteException, Exception {
+	public void testNodeTimeouts() {
 		BalancerRunner balancerRunner = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		balancerRunner.start(lbConfig);
-		Thread.sleep(1000);
+		Helper.sleep(1000);
 		int numNodes = 2;
 		AppServer[] servers = new AppServer[numNodes];
 		try {
 			for(int q=0;q<servers.length;q++) {
-				servers[q] = new AppServer("node" + q,15060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
+				servers[q] = new AppServer("node" + q,15060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP,  2222+q);
 				servers[q].start();
 			}
 			
-			Thread.sleep(8000);
+			Helper.sleep(8000);
 			String[] nodes = balancerRunner.getNodeList();
 			assertEquals(numNodes, nodes.length);
-			servers[0].sendHeartbeat = false;
-			Thread.sleep(14000);
+			servers[0].stop();
+			Helper.sleep(14000);
 			nodes = balancerRunner.getNodeList();
 			assertEquals(numNodes-1, nodes.length);
 		}
@@ -89,26 +88,26 @@ public class NodeRegisterTest{
 	}
 	
 	@Test
-	public void testNodeTimeouts2ValvesDrop() throws RemoteException, Exception {
+	public void testNodeTimeouts2ValvesDrop()  {
 		BalancerRunner balancerRunner = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("gov.nist.javax.sip.SIP_MESSAGE_VALVE", 
 				CongestionControlMessageValve.class.getName() + "," + SIPBalancerValveProcessor.class.getName());
 		balancerRunner.start(lbConfig);
-		Thread.sleep(1000);
+		Helper.sleep(1000);
 		int numNodes = 2;
 		AppServer[] servers = new AppServer[numNodes];
 		try {
 			for(int q=0;q<servers.length;q++) {
-				servers[q] = new AppServer("node" + q,15060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
+				servers[q] = new AppServer("node" + q,15060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP, 2222+q);
 				servers[q].start();
 			}
 			
-			Thread.sleep(8000);
+			Helper.sleep(8000);
 			String[] nodes = balancerRunner.getNodeList();
 			assertEquals(numNodes, nodes.length);
-			servers[0].sendHeartbeat = false;
-			Thread.sleep(14000);
+			servers[0].stop();
+			Helper.sleep(14000);
 			nodes = balancerRunner.getNodeList();
 			assertEquals(numNodes-1, nodes.length);
 		}

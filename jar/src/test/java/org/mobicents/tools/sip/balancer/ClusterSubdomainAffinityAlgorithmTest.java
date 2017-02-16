@@ -33,6 +33,7 @@ import javax.sip.message.Request;
 
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 
 public class ClusterSubdomainAffinityAlgorithmTest{
@@ -97,30 +98,30 @@ public class ClusterSubdomainAffinityAlgorithmTest{
 			algorithm.balancerContext.algorithmClassName = ClusterSubdomainAffinityAlgorithm.class.getName();
 			InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
 			
-			//ctx.nodes = new CopyOnWriteArrayList<SIPNode>();
+			//ctx.nodes = new CopyOnWriteArrayList<Node>();
 			ctx.sipNodeMap(false).clear();
 			for(int q=0;q<100;q++) {
-				SIPNode node = new SIPNode("alphabeticalNoise"+q, "alphabeticalNoise"+q);
+				Node node = new Node("alphabeticalNoise"+q, "alphabeticalNoise"+q);
 				ctx.sipNodeMap(false).put(new KeySip(node),node);
 			}
 			for(int q=0;q<100;q++) {
-				SIPNode node = new SIPNode(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q);
+				Node node = new Node(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q);
 				ctx.sipNodeMap(false).put(new KeySip(node),node);
 			}
-			SIPNode originalNode = new SIPNode("original", "original");
-			SIPNode partnerNode = new SIPNode("partner", "partner");
+			Node originalNode = new Node("original", "original");
+			Node partnerNode = new Node("partner", "partner");
 
 			// This is dead BalancerContext.balancerContext.nodes.add(originalNode);
 			ctx.sipNodeMap(false).put(new KeySip(partnerNode), partnerNode);
 			for(int q=0;q<100;q++) {
-				SIPNode node = new SIPNode("nonParner"+q, "nonPartner"+q);
+				Node node = new Node("nonParner"+q, "nonPartner"+q);
 				ctx.sipNodeMap(false).put(new KeySip(node),node);
 			}
 			algorithm.callIdMap.put("cid", originalNode);
 			Request request = SipFactory.getInstance().createMessageFactory().createRequest(inviteRequest);
 			algorithm.loadSubclusters(failoverGroup);
 			algorithm.invocationContext = ctx;
-			SIPNode resultNode = algorithm.processExternalRequest(request,false);
+			Node resultNode = algorithm.processExternalRequest(request,false);
 			assertEquals("partner", resultNode.getIp());
 			originalNode = null;
 			partnerNode = null;

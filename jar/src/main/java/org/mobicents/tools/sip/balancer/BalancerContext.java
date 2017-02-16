@@ -45,6 +45,7 @@ import javax.sip.message.MessageFactory;
 
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 import com.cloudhopper.smpp.SmppConstants;
 
@@ -56,9 +57,9 @@ public class BalancerContext {
 	 *  If internalPort is set there is no problem because we use other means to determine the direction.
 	 */
 	
-	public HashSet<SIPNode> allNodesEver = new HashSet<SIPNode>();
-	public CopyOnWriteArrayList<SIPNode> aliveNodes = null;
-	public ConcurrentHashMap<String, SIPNode> jvmRouteToSipNode;
+	public HashSet<Node> allNodesEver = new HashSet<Node>();
+	public CopyOnWriteArrayList<Node> aliveNodes = null;
+	public ConcurrentHashMap<String, Node> jvmRouteToSipNode;
 	public ConcurrentHashMap<String, KeySip> regexMap;
 	public String algorithmClassName;
 	public String smppToNodeAlgorithmClassName;

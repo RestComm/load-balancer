@@ -4,26 +4,24 @@ public class CommonConfiguration {
     
     public static final String HOST = "127.0.0.1";
     public static final String IPV6_HOST = "::1";
-    public static final Integer RMI_REGISTRY_PORT = 2000;
-    public static final Integer RMI_REMOTE_OBJECT_PORT = 2001;
     public static final Integer NODE_TIMEOUT = 8400;
     public static final Integer HARDBEAT_INTERVAL = 150;
     public static final Integer STATISTIC_PORT = 2006;
-    public static final Integer JMX_HTML_ADAPTOR_PORT_PORT = 8000;
     public static final Integer SHUTDOWN_TIMEOUT = 10000;
+    public static final Integer HEARTBEAT_PORT = 2610;
+    public static final String CACHE_CONFIGURATION = null;
     public static final Boolean SECURITY_REQUIRED = false;
     public static final String LOGIN = null;
     public static final String PASSWORD = null;
     
     private String host;
     private String ipv6Host;
-    private Integer rmiRegistryPort;
-    private Integer rmiRemoteObjectPort;
     private Integer nodeTimeout;
     private Integer heartbeatInterval;
     private Integer statisticPort;
-    private Integer jmxHtmlAdapterPort;
     private Integer shutdownTimeout;
+    private Integer heartbeatPort;
+    private String cacheConfiguration;
     private Boolean securityRequired;
     private String login;
     private String password;
@@ -32,13 +30,12 @@ public class CommonConfiguration {
     {
         this.host = HOST;
         this.ipv6Host = IPV6_HOST;
-        this.rmiRegistryPort = RMI_REGISTRY_PORT;
-        this.rmiRemoteObjectPort = RMI_REMOTE_OBJECT_PORT;
         this.nodeTimeout = NODE_TIMEOUT;
         this.heartbeatInterval = HARDBEAT_INTERVAL;
         this.statisticPort = STATISTIC_PORT;
-        this.jmxHtmlAdapterPort = JMX_HTML_ADAPTOR_PORT_PORT;
         this.shutdownTimeout = SHUTDOWN_TIMEOUT;
+        this.heartbeatPort = HEARTBEAT_PORT;
+        this.cacheConfiguration = CACHE_CONFIGURATION;
         this.securityRequired = SECURITY_REQUIRED;
         this.login = LOGIN;
         this.password = PASSWORD;
@@ -61,33 +58,6 @@ public class CommonConfiguration {
 	public void setIpv6Host(String ipv6Host) 
 	{
 		this.ipv6Host = ipv6Host;
-	}
-	public Integer getRmiRegistryPort() 
-	{
-		return rmiRegistryPort;
-	}
-
-	public void setRmiRegistryPort(Integer rmiRegistryPort) 
-	{
-		 if (rmiRegistryPort < 1 || rmiRegistryPort > 65535) 
-	        {
-	            throw new IllegalArgumentException("rmiRegistryPort is out of range");
-	        }
-		this.rmiRegistryPort = rmiRegistryPort;
-	}
-
-	public Integer getRmiRemoteObjectPort() 
-	{
-		return rmiRemoteObjectPort;
-	}
-
-	public void setRmiRemoteObjectPort(Integer rmiRemoteObjectPort) 
-	{
-		 if (rmiRemoteObjectPort < 1 || rmiRemoteObjectPort > 65535) 
-	        {
-	            throw new IllegalArgumentException("rmiRemoteObjectPort is out of range");
-	        }
-		this.rmiRemoteObjectPort = rmiRemoteObjectPort;
 	}
 
 	public Integer getNodeTimeout() 
@@ -124,20 +94,28 @@ public class CommonConfiguration {
 		this.statisticPort = statisticPort;
 	}
 
-	public Integer getJmxHtmlAdapterPort() {
-		return jmxHtmlAdapterPort;
-	}
-
-	public void setJmxHtmlAdapterPort(Integer jmxHtmlAdapterPort) {
-		this.jmxHtmlAdapterPort = jmxHtmlAdapterPort;
-	}
-
 	public Integer getShutdownTimeout() {
 		return shutdownTimeout;
 	}
 
 	public void setShutdownTimeout(Integer shutdownTimeout) {
 		this.shutdownTimeout = shutdownTimeout;
+	}
+
+	public Integer getHeartbeatPort() {
+		return heartbeatPort;
+	}
+
+	public void setHeartbeatPort(Integer heartbeatPort) {
+		this.heartbeatPort = heartbeatPort;
+	}
+
+	public String getCacheConfiguration() {
+		return cacheConfiguration;
+	}
+
+	public void setCacheConfiguration(String cacheConfiguration) {
+		this.cacheConfiguration = cacheConfiguration;
 	}
 
 	public Boolean getSecurityRequired() {

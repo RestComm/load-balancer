@@ -62,7 +62,7 @@ public class NoInternalAddressTest{
 		
 		for(int q=0;q<servers.length;q++) 
 		{
-			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
+			servers[q] = new AppServer("node" + q,4060+q, "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP, 2222+q);
 			servers[q].start();
 		}
 		
@@ -84,7 +84,7 @@ public class NoInternalAddressTest{
 	public void testFailDetection() throws Exception {
 			String[] nodes = balancer.getNodeList();
 			assertEquals(numNodes, nodes.length);
-			servers[0].sendHeartbeat = false;
+			servers[0].stop();
 			Thread.sleep(10500);
 			nodes = balancer.getNodeList();
 			assertEquals(numNodes-1, nodes.length);
@@ -93,8 +93,9 @@ public class NoInternalAddressTest{
 	@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
-			as.sendCleanShutdownToBalancers();
-			as.sendHeartbeat=false;
+			//as.sendCleanShutdownToBalancers();
+			as.stop();
+			//as.sendHeartbeat=false;
 		}
 		Thread.sleep(1000);
 		shootist.callerSendsBye = true;
@@ -139,7 +140,8 @@ public class NoInternalAddressTest{
 					once = true;
 					new Thread() {
 						public void run() {
-							source.sendCleanShutdownToBalancers();
+							source.stop();
+							//source.sendCleanShutdownToBalancers();
 						}
 					}.start();
 					
@@ -200,7 +202,8 @@ public class NoInternalAddressTest{
 			public void uacAfterResponse(int statusCode, AppServer source) {
 				if(statusCode == 180) {					
 					ringingAppServer = source;
-					source.sendCleanShutdownToBalancers();
+					//source.sendCleanShutdownToBalancers();
+					source.stop();
 				} else if(statusCode==200) {					
 					okAppServer = source;					
 				}

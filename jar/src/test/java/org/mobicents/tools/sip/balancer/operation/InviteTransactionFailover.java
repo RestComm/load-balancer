@@ -61,7 +61,7 @@ public class InviteTransactionFailover {
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP, 2222+q);
 			servers[q].start();
 		}
 		Thread.sleep(5000);
@@ -91,7 +91,7 @@ public class InviteTransactionFailover {
 	@Test
 	public void testAllNodesDead() throws Exception {
 		for(AppServer as:servers) {
-			as.sendCleanShutdownToBalancers();
+			//as.sendCleanShutdownToBalancers();
 			as.sendHeartbeat=false;
 		}
 		Thread.sleep(1000);
@@ -137,7 +137,7 @@ public class InviteTransactionFailover {
 				if(!once) {
 					once = true;
 					System.out.println("HERE " + once);
-					source.sendCleanShutdownToBalancers();
+					//source.sendCleanShutdownToBalancers();
 					
 				}
 				
@@ -196,7 +196,7 @@ public class InviteTransactionFailover {
 			public void uacAfterResponse(int statusCode, AppServer source) {
 				if(statusCode == 180) {
 					ringingAppServer = source;
-					source.sendCleanShutdownToBalancers();		
+					//source.sendCleanShutdownToBalancers();		
 				} else if(statusCode == 200) {
 					okAppServer = source;
 					

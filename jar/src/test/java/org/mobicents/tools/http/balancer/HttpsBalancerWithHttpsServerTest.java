@@ -20,6 +20,7 @@
 package org.mobicents.tools.http.balancer;
 
 import static org.junit.Assert.assertEquals;
+
 import java.util.concurrent.Semaphore;
 
 import org.junit.AfterClass;
@@ -27,6 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.operation.Helper;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
 import com.meterware.httpunit.GetMethodWebRequest;
@@ -51,13 +53,6 @@ public class HttpsBalancerWithHttpsServerTest
 	@BeforeClass
 	public static void initialization() 
 	{
-		serverArray = new HttpServer[numberNodes];
-		for(int i = 0; i < serverArray.length; i++)
-		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i);
-			serverArray[i].start();	
-		}
-		
 		balancerRunner = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setUdpPort(5065);
@@ -67,14 +62,14 @@ public class HttpsBalancerWithHttpsServerTest
 		lbConfig.getSslConfiguration().setTrustStore(HttpsBalancerWithHttpsServerTest.class.getClassLoader().getResource("keystore").getFile());
 		lbConfig.getSslConfiguration().setTrustStorePassword("123456");
 		balancerRunner.start(lbConfig);
-		try
+		serverArray = new HttpServer[numberNodes];
+		for(int i = 0; i < serverArray.length; i++)
 		{
-			Thread.sleep(1000);
-		} 
-		catch (InterruptedException e) 
-		{
-			e.printStackTrace();
+			serverArray[i] = new HttpServer(8080+i, 4444+i, 2222+i);
+			serverArray[i].start();	
+			Helper.sleep(1000);
 		}
+		Helper.sleep(5000);
 	}
 
 	//tests https balancer and https server

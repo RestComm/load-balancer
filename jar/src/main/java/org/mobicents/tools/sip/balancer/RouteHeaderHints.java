@@ -22,11 +22,13 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import org.mobicents.tools.heartbeat.impl.Node;
+
 public class RouteHeaderHints {
-	public SIPNode serverAssignedNode;
+	public Node serverAssignedNode;
 	public boolean subsequentRequest;
 	public String version;
-	public RouteHeaderHints(SIPNode node, boolean subsequent, String version) {
+	public RouteHeaderHints(Node node, boolean subsequent, String version) {
 		this.serverAssignedNode = node;
 		this.subsequentRequest = subsequent;
 		this.version = version;

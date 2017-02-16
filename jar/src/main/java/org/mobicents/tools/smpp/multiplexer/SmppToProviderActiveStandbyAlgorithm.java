@@ -19,11 +19,10 @@
 package org.mobicents.tools.smpp.multiplexer;
 
 import java.util.ArrayList;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.KeySmpp;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
 
 import com.cloudhopper.smpp.pdu.Pdu;
@@ -68,13 +67,13 @@ public class SmppToProviderActiveStandbyAlgorithm  extends DefaultSmppAlgorithm
 	}
 
 	@Override
-	public SIPNode processBindToProvider() {
+	public Node processBindToProvider() {
 		
 			if(invocationContext.smppNodeMap.size() == 0) return null;
 			if (invocationContext.activeNodeKey==null)
 			{
 				new ArrayList(invocationContext.smppNodeMap.values()).get(0);
-				invocationContext.activeNodeKey = new KeySmpp((SIPNode) new ArrayList(invocationContext.smppNodeMap.values()).get(0));
+				invocationContext.activeNodeKey = new KeySmpp((Node) new ArrayList(invocationContext.smppNodeMap.values()).get(0));
 				return invocationContext.smppNodeMap.get(invocationContext.activeNodeKey);
 			}
 			else

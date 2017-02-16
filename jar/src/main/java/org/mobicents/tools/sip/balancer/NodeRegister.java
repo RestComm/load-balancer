@@ -22,8 +22,9 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.rmi.Remote;
 import java.util.ArrayList;
+
+import org.mobicents.tools.heartbeat.impl.Node;
 
 /**
  * <p>
@@ -34,24 +35,24 @@ import java.util.ArrayList;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
  *
  */
-public interface NodeRegister extends Remote {
+public interface NodeRegister {
 	
-	public SIPNode getNextNode() throws IndexOutOfBoundsException;
+	public Node getNextNode() throws IndexOutOfBoundsException;
 
-	public SIPNode stickSessionToNode(String callID, SIPNode node);
+	public Node stickSessionToNode(String callID, Node node);
 	
-	public SIPNode getGluedNode(String callID);
+	public Node getGluedNode(String callID);
 	
-	public SIPNode[] getAllNodes();
+	public Node[] getAllNodes();
 
 	public void unStickSessionFromNode(String callID);
 	
-	public void handlePingInRegister(ArrayList<SIPNode> ping);
-	public void forceRemovalInRegister(ArrayList<SIPNode> ping);
+	public void handlePingInRegister(ArrayList<Node> ping);
+	public void forceRemovalInRegister(ArrayList<Node> ping);
 
-	public boolean isSIPNodePresent(String host, int port, String transportParam, String version);
+	public boolean isNodePresent(String host, int port, String transportParam, String version);
 	
-	public SIPNode getNode(String host, int port, String transportParam, String version);
+	public Node getNode(String host, int port, String transportParam, String version);
 	
 	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute);
 	

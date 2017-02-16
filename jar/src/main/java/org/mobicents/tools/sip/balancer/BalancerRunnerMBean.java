@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 
 /**
@@ -65,7 +66,7 @@ public interface BalancerRunnerMBean {
 	
 	int getNumberOfActiveSipConnections();
 	
-	List<SIPNode> getNodes();
+	List<Node> getNodes();
 	String[] getNodeList();
 	//TODO:
 //	String getProperty(String key);

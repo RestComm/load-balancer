@@ -22,6 +22,8 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import org.mobicents.tools.heartbeat.impl.Node;
+
 /**
  * If your algorthm return an instance of this class the load balancer will not forward the request anywhere.
  * For instance this is useful if you detected a call in unrecoverable state such as failure before ACK, then
@@ -30,12 +32,11 @@ package org.mobicents.tools.sip.balancer;
  * @author vladimirralev
  *
  */
-public class NullServerNode extends SIPNode {
+public class NullServerNode extends Node {
 
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 1L;
 	public NullServerNode() {
 		super(null, null);
 	}

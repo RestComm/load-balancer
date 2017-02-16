@@ -47,6 +47,7 @@ import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
@@ -56,7 +57,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(UserBasedAlgorithm.class.getCanonicalName());
 
 	protected String headerName = "To";
-	protected ConcurrentHashMap<String, SIPNode> userToMap = new ConcurrentHashMap<String, SIPNode>();
+	protected ConcurrentHashMap<String, Node> userToMap = new ConcurrentHashMap<String, Node>();
 	protected ConcurrentHashMap<String, Long> headerToTimestamps = new ConcurrentHashMap<String, Long>();
 	protected AtomicInteger nextNodeCounter = new AtomicInteger(0);
 	protected int maxCallIdleTime = 500;
@@ -76,7 +77,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		String host = via.getHost();
 		Integer port = via.getPort();
 		boolean found = false;
-		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
+		Node senderNode = (Node) ((ResponseExt)response).getApplicationData();
 		
 		if(logger.isDebugEnabled()) {
 			logger.debug("internal response checking sendernode " + senderNode + " or Via host:port " + host + ":" + port);
@@ -94,12 +95,12 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		if(!found) {
 			String headerKey = extractHeaderKey(response);
 			
-			SIPNode node = userToMap.get(headerKey);
+			Node node = userToMap.get(headerKey);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, headerKey, isIpV6);
 				String transportProperty = transport + "Port";
-				port = (Integer) node.getProperties().get(transportProperty);
+				port = Integer.parseInt(node.getProperties().get(transportProperty));
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 				if(logger.isDebugEnabled()) {
 					logger.debug("changing via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -164,12 +165,12 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		if(!found) {
 			String headerKey = extractHeaderKey(response);
 			
-			SIPNode node = userToMap.get(headerKey);
+			Node node = userToMap.get(headerKey);
 			//if(node == null || !invocationContext.nodes.contains(node)) {
 			if(node == null || !invocationContext.sipNodeMap(isIpV6).containsValue(node)) {
 				node = selectNewNode(node, headerKey, isIpV6);
 				String transportProperty = transport + "Port";
-				port = (Integer) node.getProperties().get(transportProperty);
+				port = Integer.parseInt(node.getProperties().get(transportProperty));
 				if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 				if(logger.isDebugEnabled()) {
 					logger.debug("changing via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -187,7 +188,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 				
 			} else {
 				String transportProperty = transport + "Port";
-				port = (Integer) node.getProperties().get(transportProperty);
+				port = Integer.parseInt(node.getProperties().get(transportProperty));
 				if(via.getHost().equalsIgnoreCase(node.getIp()) || via.getPort() != port) {
 					if(logger.isDebugEnabled()) {
 						logger.debug("changing retransmission via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -210,9 +211,9 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 
 	@Override
-	public SIPNode processExternalRequest(Request request, Boolean isIpV6) {
+	public Node processExternalRequest(Request request, Boolean isIpV6) {
 		String headerKey = extractHeaderKey(request);
-		SIPNode node = null;
+		Node node = null;
 		if (balancerContext.regexMap != null && balancerContext.regexMap.size() != 0) {
 			if (logger.isDebugEnabled())
 				logger.debug("regexMap is not empty : " + balancerContext.regexMap);
@@ -237,7 +238,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			headerToTimestamps.put(headerKey, System.currentTimeMillis());
 		}
 
-		if(node == null||invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(new KeySip(node))) { //
+		if(node == null||invocationContext.sipNodeMap(isIpV6).get(new KeySip(node)).isGracefulShutdown()) { //
 			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			userToMap.put(headerKey, node);
@@ -259,14 +260,14 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		return node;
 	}
 	
-	protected SIPNode selectNewNode(SIPNode node, String user,Boolean isIpV6) {
+	protected Node selectNewNode(Node node, String user,Boolean isIpV6) {
 		if(logger.isDebugEnabled()) {
     		logger.debug("The assigned node has died. This is the dead node: " + node);
     	}
 		if(groupedFailover) {
 			// This will occur very rarely because we re-assign all calls from the dead node in
 			// a single operation
-			SIPNode oldNode = node;
+			Node oldNode = node;
 			node = leastBusyTargetNode(oldNode);
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
@@ -288,9 +289,9 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		return node;
 	}
 	
-	protected synchronized SIPNode nextAvailableNode(Boolean isIpV6) {
+	protected synchronized Node nextAvailableNode(Boolean isIpV6) {
 		if(invocationContext.sipNodeMap(isIpV6).size() == 0) return null;
-		Iterator<Entry<KeySip, SIPNode>> currIt = null; 
+		Iterator<Entry<KeySip, Node>> currIt = null; 
 		if(isIpV6)
 			currIt = ipv6It;
 		else
@@ -303,12 +304,12 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			else
 				 ipv4It = currIt;
 		}
-		Entry<KeySip, SIPNode> pair = null;
+		Entry<KeySip, Node> pair = null;
 		while(currIt.hasNext())
 		{
 			pair = currIt.next();
 			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
-					&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
+					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown())
 				return pair.getValue();
 		}
 		currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
@@ -319,7 +320,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		if(currIt.hasNext())
 		{
 			pair = currIt.next();
-			if(!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(pair.getKey()))
+			if(!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown())
 				return pair.getValue();
 			else
 				return null;
@@ -328,9 +329,9 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			return null;
 	}
 	
-	protected synchronized SIPNode leastBusyTargetNode(SIPNode deadNode) {
-		HashMap<SIPNode, Integer> nodeUtilization = new HashMap<SIPNode, Integer>();
-		for(SIPNode node : userToMap.values()) {
+	protected synchronized Node leastBusyTargetNode(Node deadNode) {
+		HashMap<Node, Integer> nodeUtilization = new HashMap<Node, Integer>();
+		for(Node node : userToMap.values()) {
 			Integer n = nodeUtilization.get(node);
 			if(n == null) {
 				nodeUtilization.put(node, 0);
@@ -339,8 +340,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			}
 		}
 		int minUtil = Integer.MAX_VALUE;
-		SIPNode minUtilNode = null;
-		for(SIPNode node : nodeUtilization.keySet()) {
+		Node minUtilNode = null;
+		for(Node node : nodeUtilization.keySet()) {
 			Integer util = nodeUtilization.get(node);
 			if(!node.equals(deadNode) && (util < minUtil)) {
 				minUtil = util;
@@ -413,7 +414,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	@Override
-	public void assignToNode(String id, SIPNode node) {
+	public void assignToNode(String id, Node node) {
 //		userToMap.put(id, node);
 //		headerToTimestamps.put(id, System.currentTimeMillis());
 	}
@@ -421,12 +422,12 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	@Override
 	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
 		try {
-			SIPNode oldNode = getBalancerContext().jvmRouteToSipNode.get(fromJvmRoute);
-			SIPNode newNode = getBalancerContext().jvmRouteToSipNode.get(toJvmRoute);
+			Node oldNode = getBalancerContext().jvmRouteToSipNode.get(fromJvmRoute);
+			Node newNode = getBalancerContext().jvmRouteToSipNode.get(toJvmRoute);
 			if(oldNode != null && newNode != null) {
 				int updatedRoutes = 0;
 				for(String key : userToMap.keySet()) {
-					SIPNode n = userToMap.get(key);
+					Node n = userToMap.get(key);
 					if(n.equals(oldNode)) {
 						userToMap.replace(key, newNode);
 						updatedRoutes++;
@@ -450,12 +451,12 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	
-	synchronized public void groupedFailover(SIPNode oldNode, SIPNode newNode) {
+	synchronized public void groupedFailover(Node oldNode, Node newNode) {
 		try {
 			if(oldNode != null && newNode != null) {
 				int updatedRoutes = 0;
 				for(String key : userToMap.keySet()) {
-					SIPNode n = userToMap.get(key);
+					Node n = userToMap.get(key);
 					if(n.equals(oldNode)) {
 						userToMap.replace(key, newNode);
 						updatedRoutes++;

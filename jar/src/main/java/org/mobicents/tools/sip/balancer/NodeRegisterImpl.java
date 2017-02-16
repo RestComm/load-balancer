@@ -22,26 +22,47 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.io.IOException;
-import java.io.Serializable;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.rmi.NotBoundException;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.RMISocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import javax.sql.rowset.spi.SyncResolver;
+
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
+import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.impl.ServerController;
+import org.mobicents.tools.heartbeat.interfaces.IServerListener;
+import org.mobicents.tools.heartbeat.interfaces.Protocol;
+import org.mobicents.tools.heartbeat.packets.HeartbeatResponsePacket;
+import org.mobicents.tools.heartbeat.packets.Packet;
+import org.mobicents.tools.heartbeat.packets.ShutdownResponsePacket;
+import org.mobicents.tools.heartbeat.packets.StartResponsePacket;
+import org.mobicents.tools.heartbeat.packets.StopResponsePacket;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 /**
  * <p>
@@ -54,14 +75,13 @@ import org.apache.log4j.Logger;
  * @author <A HREF="mailto:jean.deruelle@gmail.com">Jean Deruelle</A> 
  *
  */
-public class NodeRegisterImpl  implements NodeRegister {
+public class NodeRegisterImpl  implements NodeRegister, IServerListener {
     private static Logger logger = Logger.getLogger(NodeRegisterImpl.class.getCanonicalName());
 
     public static final int POINTER_START = 0;
     private long nodeInfoExpirationTaskInterval = 5000;
     private long nodeExpiration = 5100;
 
-    private Registry registry;
     private Timer taskTimer = new Timer();
     private TimerTask nodeExpirationTask = null;
     private InetAddress serverAddress = null;
@@ -69,9 +89,11 @@ public class NodeRegisterImpl  implements NodeRegister {
     private String latestVersion = Integer.MIN_VALUE + "";
     
     BalancerRunner balancerRunner;
+    private ServerController serverController;
+    private Gson gson = new Gson();
 
 
-    public NodeRegisterImpl(InetAddress serverAddress) throws RemoteException {
+    public NodeRegisterImpl(InetAddress serverAddress) {
         super();
         this.serverAddress = serverAddress;		
     }
@@ -80,19 +102,18 @@ public class NodeRegisterImpl  implements NodeRegister {
     /**
      * {@inheritDoc}
      */
-    public boolean startRegistry(int rmiRegistryPort, int remoteObjectPort) {
+    public boolean startRegistry(String host, int heartbeatPort) {
+    	
         if(logger.isInfoEnabled()) {
             logger.info("Node registry starting...");
         }
         try {
-            balancerRunner.balancerContext.aliveNodes = new CopyOnWriteArrayList<SIPNode>();;
-            balancerRunner.balancerContext.jvmRouteToSipNode = new ConcurrentHashMap<String, SIPNode>();
-            register(serverAddress, rmiRegistryPort, remoteObjectPort);
-
+            balancerRunner.balancerContext.aliveNodes = new CopyOnWriteArrayList<Node>();
+            balancerRunner.balancerContext.jvmRouteToSipNode = new ConcurrentHashMap<String, Node>();
+            serverController = new ServerController(this,host,heartbeatPort);
+        	serverController.startServer();
             this.nodeExpirationTask = new NodeExpirationTimerTask();
-            this.taskTimer.scheduleAtFixedRate(this.nodeExpirationTask,
-                    this.nodeInfoExpirationTaskInterval,
-                    this.nodeInfoExpirationTaskInterval);
+            this.taskTimer.scheduleAtFixedRate(this.nodeExpirationTask, this.nodeInfoExpirationTaskInterval, this.nodeInfoExpirationTaskInterval);
             if(logger.isInfoEnabled()) {
                 logger.info("Node expiration task created");							
                 logger.info("Node registry started");
@@ -104,7 +125,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 
         return true;
     }
-
+   
     /**
      * {@inheritDoc}
      */
@@ -112,7 +133,21 @@ public class NodeRegisterImpl  implements NodeRegister {
         if(logger.isInfoEnabled()) {
             logger.info("Stopping node registry...");
         }
-        boolean isDeregistered = deregister(serverAddress);
+        for(Entry<String, InvocationContext> ctxEntry : balancerRunner.contexts.entrySet())
+        {
+        	for(Entry<KeySip, Node> entry : ctxEntry.getValue().sipNodeMap(true).entrySet())
+        	{
+        		if(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)!=null)
+        			serverController.sendPacket(entry.getValue().getIp(),Integer.parseInt(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)));
+        	}
+         	for(Entry<KeySip, Node> entry : ctxEntry.getValue().sipNodeMap(false).entrySet())
+         	{
+         		if(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)!=null)
+         			serverController.sendPacket(entry.getValue().getIp(),Integer.parseInt(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)));
+         	}
+        }
+        serverController.stopServer();
+        boolean isDeregistered = true;
         boolean taskCancelled = nodeExpirationTask.cancel();
         if(logger.isInfoEnabled()) {
             logger.info("Node Expiration Task cancelled " + taskCancelled);
@@ -120,13 +155,12 @@ public class NodeRegisterImpl  implements NodeRegister {
         
         if(balancerRunner.balancerContext.allNodesEver!=null)
         	balancerRunner.balancerContext.allNodesEver.clear();
-        balancerRunner.balancerContext.allNodesEver = null;
         if(logger.isInfoEnabled()) {
             logger.info("Node registry stopped.");
         }
         return isDeregistered;
     }
-
+    
 
     // ********* CLASS TO BE EXPOSED VIA RMI
     private class RegisterRMIStub extends UnicastRemoteObject implements NodeRegisterRMIStub {
@@ -144,7 +178,7 @@ public class NodeRegisterImpl  implements NodeRegister {
          * (non-Javadoc)
          * @see org.mobicents.tools.sip.balancer.NodeRegisterRMIStub#handlePing(java.util.ArrayList)
          */
-        public void handlePing(ArrayList<SIPNode> ping) throws RemoteException {
+        public void handlePing(ArrayList<Node> ping) throws RemoteException {
             handlePingInRegister(ping);
         }
 
@@ -152,7 +186,7 @@ public class NodeRegisterImpl  implements NodeRegister {
          * (non-Javadoc)
          * @see org.mobicents.tools.sip.balancer.NodeRegisterRMIStub#forceRemoval(java.util.ArrayList)
          */
-        public void forceRemoval(ArrayList<SIPNode> ping)
+        public void forceRemoval(ArrayList<Node> ping)
                 throws RemoteException {
             forceRemovalInRegister(ping);
         }
@@ -163,67 +197,7 @@ public class NodeRegisterImpl  implements NodeRegister {
         }
 
     }
-
-    public static class BindingAddressCorrectnessSocketFactory extends RMISocketFactory implements
-    Serializable
-    {
-        /**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-		private InetAddress bindingAddress = null;
-        public BindingAddressCorrectnessSocketFactory() {}
-        public BindingAddressCorrectnessSocketFactory(InetAddress ipInterface) {
-            this.bindingAddress = ipInterface;
-        }
-        public ServerSocket createServerSocket(int port) {
-            ServerSocket serverSocket = null;
-            try { 
-                serverSocket = new ServerSocket(port, 50, bindingAddress);
-                //System.out.println("ServerSocket local port: "+serverSocket.getLocalPort()+" local socket Address "+serverSocket.getLocalSocketAddress());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            return (serverSocket);
-        }
-
-        public Socket createSocket(String dummy, int port) throws IOException {
-            return (
-                    new Socket(bindingAddress, port));
-        }
-
-        public boolean equals(Object other) {
-            return (other != null && 
-                    other.getClass() == this.getClass());
-        }
-    }
-    // ***** SOME PRIVATE HELPERS
-
-    private void register(InetAddress serverAddress, int rmiRegistryPort, int remoteObjectPort) {
-
-        try {
-            registry = LocateRegistry.createRegistry(
-                    rmiRegistryPort, null, 
-                    new BindingAddressCorrectnessSocketFactory(serverAddress));
-            registry.bind("SIPBalancer", new RegisterRMIStub(remoteObjectPort));
-            logger.info("RMI heartbeat listener bound to internalHost, port " + rmiRegistryPort);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to bind due to:", e);
-        }
-    }
-
-    private boolean deregister(InetAddress serverAddress) {
-        try {
-            registry.unbind("SIPBalancer");
-            return UnicastRemoteObject.unexportObject(registry, false);
-        } catch (RemoteException e) {
-            throw new RuntimeException("Failed to unbind due to", e);
-        } catch (NotBoundException e) {
-            throw new RuntimeException("Failed to unbind due to", e);
-        }
-
-    }
-
+   
     // ***** NODE MGMT METHODS
 
     /**
@@ -240,7 +214,7 @@ public class NodeRegisterImpl  implements NodeRegister {
     /**
      * {@inheritDoc}
      */
-    public SIPNode stickSessionToNode(String callID, SIPNode sipNode) {
+    public Node stickSessionToNode(String callID, Node sipNode) {
 
         if(logger.isDebugEnabled()) {
             logger.debug("sticking  CallId " + callID + " to node " + null);
@@ -251,7 +225,7 @@ public class NodeRegisterImpl  implements NodeRegister {
     /**
      * {@inheritDoc}
      */
-    public SIPNode getGluedNode(String callID) {
+    public Node getGluedNode(String callID) {
         if(logger.isDebugEnabled()) {
             logger.debug("glueued node " + null + " for CallId " + callID);
         }
@@ -261,7 +235,7 @@ public class NodeRegisterImpl  implements NodeRegister {
     /**
      * {@inheritDoc}
      */
-    public boolean isSIPNodePresent(String host, int port, String transport, String version)  {		
+    public boolean isNodePresent(String host, int port, String transport, String version)  {		
         if(getNode(host, port, transport, version) != null) {
             return true;
         }
@@ -271,20 +245,20 @@ public class NodeRegisterImpl  implements NodeRegister {
     /**
      * {@inheritDoc}
      */
-    public SIPNode getNode(String host, int port, String transport, String version)  {		
-        for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
+    public Node getNode(String host, int port, String transport, String version)  {		
+        for (Node node : balancerRunner.balancerContext.aliveNodes) {
         	if(logger.isDebugEnabled()) {
                 logger.debug("node to check against " + node);
             }
             // https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address
             if(node != null && node.getIp() != null && node.getIp().equals(host)) {
-            	Integer nodePort = (Integer) node.getProperties().get(transport.toLowerCase() + "Port");
+            	Integer nodePort = Integer.parseInt(node.getProperties().get(transport.toLowerCase() + "Port"));
                 if(nodePort != null) {
                 	if(nodePort == port) {
                         if(version == null) {
                             return node;
                         } else {
-                            String nodeVersion = (String) node.getProperties().get("version");
+                            String nodeVersion = node.getProperties().get("version");
                             if(nodeVersion == null) nodeVersion = "0";
                             if(version.equals(nodeVersion)) {
                                 return node;
@@ -306,32 +280,28 @@ public class NodeRegisterImpl  implements NodeRegister {
             if(logger.isTraceEnabled()) {
                 logger.trace("NodeExpirationTimerTask Running");
             }
-            for (SIPNode node : balancerRunner.balancerContext.aliveNodes) {
+            for (Node node : balancerRunner.balancerContext.aliveNodes) {
                 long expirationTime = node.getTimeStamp() + nodeExpiration;
                 String nodeHostname = node.getHostName();
                 if (expirationTime < System.currentTimeMillis() && !nodeHostname.contains("ExtraServerNode")) {
-                    InvocationContext ctx = balancerRunner.getInvocationContext(
-                            (String) node.getProperties().get("version"));
+                    InvocationContext ctx = balancerRunner.getInvocationContext(node.getProperties().get("version"));
                     balancerRunner.balancerContext.aliveNodes.remove(node);
-                    //ctx.nodes.remove(node);
-                    String instanceId = (String) node.getProperties().get("Restcomm-Instance-Id");
+                    String instanceId = node.getProperties().get("Restcomm-Instance-Id");
                     if(instanceId!=null)
                     	ctx.httpNodeMap.remove(instanceId);
-                    
-                    Integer smppPort = (Integer) node.getProperties().get("smppPort");
-                    if(smppPort!=null)
-                    	ctx.smppNodeMap.remove(new KeySmpp(node));
-                    
+                    if(node.getProperties().get("smppPort")!=null)
+                    {
+                      	ctx.smppNodeMap.remove(new KeySmpp(node));
+                    }
                     Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	                    
                     ctx.sipNodeMap(isIpV6).remove(new KeySip(node));
+                    ctx.sessionNodeMap(isIpV6).remove(new KeySession(node.getProperties().get(Protocol.SESSION_ID)));
                     ctx.balancerAlgorithm.nodeRemoved(node);
-                    //if(logger.isWEnabled()) {
                         logger.warn("NodeExpirationTimerTask Run NSync["
                                 + node + "] removed. Last timestamp: " + node.getTimeStamp() + 
                                 ", current: " + System.currentTimeMillis()
                                 + " diff=" + ((double)System.currentTimeMillis()-node.getTimeStamp() ) +
                                 "ms and tolerance=" + nodeExpiration + " ms");
-                    //}
                 } else {
                     if(logger.isTraceEnabled()) {
                         logger.trace("node time stamp : " + expirationTime + " , current time : "
@@ -349,8 +319,8 @@ public class NodeRegisterImpl  implements NodeRegister {
     /**
      * {@inheritDoc}
      */
-    public synchronized void handlePingInRegister(ArrayList<SIPNode> ping) {
-        for (SIPNode pingNode : ping) {        	
+    public synchronized void handlePingInRegister(ArrayList<Node> ping) {
+        for (Node pingNode : ping) {        	
             if(pingNode.getIp() == null) {
                 // https://telestax.atlassian.net/browse/LB-9 Prevent Routing of Requests to Nodes that exposed null IP address 
                 logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");			   
@@ -361,19 +331,18 @@ public class NodeRegisterImpl  implements NodeRegister {
             		logger.warn("[" + pingNode + "] not added as its IP is null, the node is sending bad information");
             	else
             	{
-            		String version = (String) pingNode.getProperties().get("version");
+            		String version = pingNode.getProperties().get("version");
 	                if(version == null) version = "0";
 	                InvocationContext ctx = balancerRunner.getInvocationContext(version);
 	                                
 	                //if bad node changed sessioId it means that the node was restarted so we remove it from map of bad nodes
 	                KeySip keySip = new KeySip(pingNode);	                	                
-	                SIPNode badNode = ctx.badSipNodeMap(isIpV6).get(keySip);
-	                if(badNode != null)
+	                if(ctx.sipNodeMap(isIpV6).get(keySip)!=null&&ctx.sipNodeMap(isIpV6).get(keySip).isBad())
 	                {
-	                	if(badNode.getProperties().get("sessionId").equals(pingNode.getProperties().get("sessionId")))
+	                	if(ctx.sipNodeMap(isIpV6).get(keySip).getProperties().get("sessionId").equals(pingNode.getProperties().get("sessionId")))
 	                		continue;
 	                	else
-	                		ctx.badSipNodeMap(isIpV6).remove(keySip);
+	                		ctx.sipNodeMap(isIpV6).get(keySip).setBad(false);
 	                }
 	                pingNode.updateTimerStamp();
 	                //logger.info("Pingnode updated " + pingNode);
@@ -381,10 +350,10 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    // Let it leak, we will have 10-100 nodes, not a big deal if it leaks.
 	                    // We need info about inactive nodes to do the failover
 	                    balancerRunner.balancerContext.jvmRouteToSipNode.put(
-	                            (String)pingNode.getProperties().get("jvmRoute"), pingNode);				
+	                            pingNode.getProperties().get("jvmRoute"), pingNode);				
 	                }
 
-	                SIPNode nodePresent = ctx.sipNodeMap(isIpV6).get(keySip);
+	                Node nodePresent = ctx.sipNodeMap(isIpV6).get(keySip);
 	                
 	                // adding done afterwards to avoid ConcurrentModificationException when adding the node while going through the iterator
 	                if(nodePresent != null) 
@@ -398,7 +367,7 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    		pingNode.getProperties().get("GRACEFUL_SHUTDOWN").equals("true"))
 	                    {
 	                    	logger.info("LB will exclude node " + nodePresent + " for new calls because of GRACEFUL_SHUTDOWN");
-	                    	ctx.gracefulShutdownSipNodeMap(isIpV6).put(keySip, pingNode);
+	                    	ctx.sipNodeMap(isIpV6).get(keySip).setGracefulShutdown(true);
 	                    }
 	                } 
 	                else if(pingNode.getProperties().get("GRACEFUL_SHUTDOWN")!=null&&
@@ -414,12 +383,16 @@ public class NodeRegisterImpl  implements NodeRegister {
 	                    latestVersion = Math.max(current, latest) + "";
 	                    balancerRunner.balancerContext.aliveNodes.add(pingNode);
 	                    ctx.sipNodeMap(isIpV6).put(keySip, pingNode);
-	                    String instanceId = (String) pingNode.getProperties().get("Restcomm-Instance-Id");
+	                    String instanceId = pingNode.getProperties().get("Restcomm-Instance-Id");
 	                    if(instanceId!=null)
 	                    	ctx.httpNodeMap.put(new KeyHttp(instanceId), pingNode);
-	                    Integer smppPort = (Integer) pingNode.getProperties().get("smppPort");
-	                    if(smppPort!=null)
+	                    Integer smppPort = null;
+	                    if(pingNode.getProperties().get("smppPort")!=null)
+	                    {
+	                    	smppPort = Integer.parseInt(pingNode.getProperties().get("smppPort"));
 	                    	ctx.smppNodeMap.put(new KeySmpp(pingNode), pingNode);
+	                    }
+	                    	
 	                    
 	                    ctx.balancerAlgorithm.nodeAdded(pingNode);
 	                    balancerRunner.balancerContext.allNodesEver.add(pingNode);
@@ -441,26 +414,26 @@ public class NodeRegisterImpl  implements NodeRegister {
     /**
      * {@inheritDoc}
      */
-    public void forceRemovalInRegister(ArrayList<SIPNode> ping) {
-        for (SIPNode pingNode : ping) {
+    public void forceRemovalInRegister(ArrayList<Node> ping) {
+        for (Node pingNode : ping) {
             InvocationContext ctx = balancerRunner.getInvocationContext(
-                    (String) pingNode.getProperties().get("version"));
+                    pingNode.getProperties().get("version"));
             //ctx.nodes.remove(pingNode);
-            String instanceId = (String) pingNode.getProperties().get("Restcomm-Instance-Id");
+            String instanceId = pingNode.getProperties().get("Restcomm-Instance-Id");
             if(instanceId!=null)
             	ctx.httpNodeMap.remove(instanceId);
-            
-            Integer smppPort = (Integer) pingNode.getProperties().get("smppPort");
+            Integer smppPort = null;
+            if(pingNode.getProperties().get("smppPort") != null)
+            	smppPort = Integer.parseInt(pingNode.getProperties().get("smppPort"));
             if(smppPort!=null)
             	ctx.smppNodeMap.remove(new KeySmpp(pingNode));
             
             Boolean isIpV6=LbUtils.isValidInet6Address(pingNode.getIp());        	
             ctx.sipNodeMap(isIpV6).remove(new KeySip(pingNode));
-            ctx.gracefulShutdownSipNodeMap(isIpV6).remove(new KeySip(pingNode));
             boolean nodePresent = false;
-            Iterator<SIPNode> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
+            Iterator<Node> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
             while (nodesIterator.hasNext() && !nodePresent) {
-                SIPNode node = (SIPNode) nodesIterator.next();
+                Node node = (Node) nodesIterator.next();
                 if (node.equals(pingNode)) {
                     nodePresent = true;
                 }
@@ -521,11 +494,11 @@ public class NodeRegisterImpl  implements NodeRegister {
         this.nodeInfoExpirationTaskInterval = value;
     }
 
-    public SIPNode[] getAllNodes() {
-        return balancerRunner.balancerContext.aliveNodes.toArray(new SIPNode[]{});
+    public Node[] getAllNodes() {
+        return balancerRunner.balancerContext.aliveNodes.toArray(new Node[]{});
     }
 
-    public SIPNode getNextNode() throws IndexOutOfBoundsException {
+    public Node getNextNode() throws IndexOutOfBoundsException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -535,4 +508,223 @@ public class NodeRegisterImpl  implements NodeRegister {
             ctx.balancerAlgorithm.jvmRouteSwitchover(fromJvmRoute, toJvmRoute);
         }
     }
+
+
+	@Override
+	public void responseReceived(JsonObject json) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public synchronized void startRequestReceived(MessageEvent e, JsonObject json) 
+	{
+		Node node = new Node(json);
+        if(node.getIp() == null) 
+        {
+            logger.warn("[" + node + "] not added as it's IP is null, the node is sending bad information");			   
+        } 
+        else 
+        {
+         	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());
+           	Boolean isIpV4=InetAddressValidator.getInstance().isValidInet4Address(node.getIp());
+           	if(!isIpV4 && !isIpV6)
+           	{
+           		logger.warn("[" + node + "] not added as it's IP is incorrect, the node is sending bad information");
+           	}
+           	else
+           	{
+           		String version = node.getProperties().get("version");
+	            if(version == null) version = "0";
+	            InvocationContext ctx = balancerRunner.getInvocationContext(version);
+	            KeySip keySip = new KeySip(node);
+	            KeySession keySession = new KeySession(node.getProperties().get(Protocol.SESSION_ID));
+	            node.updateTimerStamp();
+	            if(node.getProperties().get("jvmRoute") != null) 
+	                balancerRunner.balancerContext.jvmRouteToSipNode.put(node.getProperties().get("jvmRoute"), node);				
+
+	            //Node nodePresent = ctx.sipNodeMap(isIpV6).get(keySip);
+	            Node nodePresent = ctx.sessionNodeMap(isIpV6).get(keySession);
+	                
+	            if(nodePresent != null&&!nodePresent.isBad()) 
+	            {
+	              	logger.warn("LB got start request from existed node " + nodePresent);
+
+	            }else if(nodePresent != null&&nodePresent.isBad())
+	            {
+	            	logger.info("LB got start request from restarted node " + nodePresent);
+	            	nodePresent.setBad(false);
+	            	nodePresent.setFailCounter(0);
+	            }
+	            else
+	            {
+	            	logger.debug("LB got start request from node " + node);
+	                Integer current = Integer.parseInt(version);
+	                Integer latest = Integer.parseInt(latestVersion);
+	                latestVersion = Math.max(current, latest) + "";
+	                balancerRunner.balancerContext.aliveNodes.add(node);
+	                ctx.sessionNodeMap(isIpV6).put(keySession, node);
+	                ctx.sipNodeMap(isIpV6).put(keySip, node);
+	                String instanceId = node.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+	                if(instanceId!=null)
+	                  	ctx.httpNodeMap.put(new KeyHttp(instanceId), node);
+	                if(node.getProperties().get("smppPort")!=null)
+	                  	ctx.smppNodeMap.put(new KeySmpp(node), node);
+	                 ctx.balancerAlgorithm.nodeAdded(node);
+	                 balancerRunner.balancerContext.allNodesEver.add(node);
+	                 node.updateTimerStamp();
+	                 if(logger.isInfoEnabled())
+	                    logger.info("New node added to map of nodes [" + node + "] ");
+	                }
+            	}
+            }					
+		writeResponse(e, HttpResponseStatus.OK, Protocol.START, Protocol.OK);
+	}
+
+	@Override
+	public synchronized void heartbeatRequestReceived(MessageEvent e, JsonObject json) 
+	{
+		logger.trace("LB got heartbeat from Node : " + json );
+		KeySession keySession = new KeySession(json.get(Protocol.SESSION_ID).toString());
+		boolean was = false; 
+		for(Entry<String, InvocationContext> ctxEntry : balancerRunner.contexts.entrySet())
+		{
+			InvocationContext ctx = ctxEntry.getValue();
+			Node nodePresentIPv4 = ctx.sessionNodeMap(false).get(keySession);
+			Node nodePresentIPv6 = null;
+			if(nodePresentIPv4!=null)
+			{
+				nodePresentIPv4.updateTimerStamp();
+				was = true;
+			}
+			else if((nodePresentIPv6 = ctx.sessionNodeMap(true).get(keySession))!=null)
+			{
+				nodePresentIPv6.updateTimerStamp();
+				was = true;
+			}
+		}
+		if(!was)
+		{
+			logger.error("LB got heartbeat ( " + json + " ) from node which not pesent in maps"); 
+		}
+		writeResponse(e, HttpResponseStatus.OK, Protocol.HEARTBEAT, Protocol.OK);
+	}
+
+	@Override
+	public synchronized void shutdownRequestReceived(MessageEvent e, JsonObject json) 
+	{
+		boolean was = false; 
+		logger.info("LB got graceful shutdown from Node : " + json);
+		KeySession keySession = new KeySession(json.get(Protocol.SESSION_ID).toString());
+		for(Entry<String, InvocationContext> ctxEntry : balancerRunner.contexts.entrySet())
+		{
+			InvocationContext ctx = ctxEntry.getValue();
+			Node nodePresentIPv4 = ctx.sessionNodeMap(false).get(keySession);
+			Node nodePresentIPv6 = null;
+			if(nodePresentIPv4!=null)
+			{
+				logger.info("LB will exclude node "+ nodePresentIPv4 +"for new calls because of shutdown request");
+				nodePresentIPv4.setGracefulShutdown(true);
+				was = true;
+			}
+			else if((nodePresentIPv6 = balancerRunner.getLatestInvocationContext().sessionNodeMap(true).get(keySession))!=null)
+			{
+				logger.info("LB will exclude node "+ nodePresentIPv6 +"for new calls because of shutdown request");
+				nodePresentIPv6.setGracefulShutdown(true);
+				was = true;
+			}
+		}
+		if(!was)
+		{
+			logger.error("LB got shutdown request ( " + json + " ) from node which not pesent in maps");
+		}
+		writeResponse(e, HttpResponseStatus.OK, Protocol.SHUTDOWN, Protocol.OK);
+	}
+	
+	@Override
+	public synchronized void stopRequestReceived(MessageEvent e, JsonObject json) 
+	{
+		boolean isIpV6 = false;
+		boolean was = false;
+		logger.info("LB got stop request from Node : " + json);
+		KeySession keySession = new KeySession(json.get(Protocol.SESSION_ID).toString());
+		for(Entry<String, InvocationContext> ctxEntry : balancerRunner.contexts.entrySet())
+		{
+			InvocationContext ctx = ctxEntry.getValue();
+			Node nodePresent = null;
+			Node nodePresentIpv4 = ctx.sessionNodeMap(true).get(keySession);
+			Node nodePresentIpv6 = ctx.sessionNodeMap(false).get(keySession);
+			if(nodePresentIpv4!=null)
+			{
+				isIpV6 = true;
+				nodePresent = nodePresentIpv4;
+			}
+			else if(nodePresentIpv6!=null)
+			{
+				nodePresent = nodePresentIpv6;
+			}
+		
+			if(nodePresent!=null)
+			{
+				was = true;
+				Node removedNode = ctx.sessionNodeMap(isIpV6).remove(keySession);
+				KeySip keySip = new KeySip(removedNode);
+				ctx.sipNodeMap(isIpV6).remove(keySip);
+				String instanceId = nodePresent.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+				if(instanceId!=null)
+					ctx.httpNodeMap.remove(instanceId);
+				String smppPort = nodePresent.getProperties().get(Protocol.SMPP_PORT);
+				if(smppPort!=null)
+					ctx.smppNodeMap.remove(new KeySmpp(nodePresent));
+				balancerRunner.balancerContext.aliveNodes.remove(nodePresent);
+			
+				ctx.balancerAlgorithm.nodeRemoved(nodePresent);
+				if(logger.isInfoEnabled())
+					logger.info(" LB got STOP request from node : " + nodePresent + ". So it will be rmoved : "  + balancerRunner.balancerContext.aliveNodes.size());
+			}
+		}
+		if(!was)
+		{
+			logger.error("LB got shutdown request ( " + json + " ) from node which not pesent in maps : " + 
+					balancerRunner.getLatestInvocationContext().sipNodeMap(isIpV6));
+		}
+		writeResponse(e, HttpResponseStatus.OK, Protocol.STOP, Protocol.OK);
+		
+	}
+	
+	private synchronized void writeResponse(MessageEvent e, HttpResponseStatus status, String command, String responceString) 
+    {
+		Packet packet = null;
+		switch(command)
+		{
+			case Protocol.HEARTBEAT:
+				packet = new HeartbeatResponsePacket(responceString);
+				break;
+			case Protocol.START:
+				packet = new StartResponsePacket(responceString);
+				break;
+			case Protocol.SHUTDOWN:
+				packet = new ShutdownResponsePacket(responceString);
+				break;
+			case Protocol.STOP:
+				packet = new StopResponsePacket(responceString);
+				break;
+		}
+        ChannelBuffer buf = ChannelBuffers.copiedBuffer(gson.toJson(packet), Charset.forName("UTF-8"));
+        HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
+        response.setHeader(HttpHeaders.Names.CONTENT_TYPE, APPLICATION_JSON);
+        response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, buf.readableBytes());
+        response.setContent(buf);
+        ChannelFuture future = e.getChannel().write(response);
+        future.addListener(ChannelFutureListener.CLOSE);
+    }
+
+
+	@Override
+	public void switchoverRequestReceived(MessageEvent e, JsonObject json) {
+		jvmRouteSwitchover(json.get("fromJvmRoute").toString(), json.get("toJvmRoute").toString());
+		writeResponse(e, HttpResponseStatus.OK, Protocol.SWITCHOVER, Protocol.OK);
+	}
+
   }

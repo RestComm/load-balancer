@@ -64,7 +64,7 @@ public class MediaFailureTest {
 		lbConfig.getSipConfiguration().setResponseStatusCodeNodeRemoval(statusRemoval);
 		balancer.start(lbConfig);
 		
-		goodServer = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
+		goodServer = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, 2223);
 		badServer = new AppServer("node1",4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, false,true);
 		goodServer.start();
 		Thread.sleep(5000);
@@ -108,12 +108,6 @@ public class MediaFailureTest {
 			if(res.getStatusCode() == Response.OK)
 				okCounter++;
 		}
-		System.out.println("==================================================================");
-		System.out.println(serviceAnavaible);
-		System.out.println(okCounter);
-		System.out.println(badServer.getTestSipListener().getDialogCount());
-		System.out.println(goodServer.getTestSipListener().getDialogCount());
-		System.out.println("==================================================================");
 		assertEquals(3,serviceAnavaible);
 		assertEquals(5,okCounter);
 		assertEquals(1,badServer.getTestSipListener().getDialogCount());

@@ -27,10 +27,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.KeySmpp;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.Dispatcher;
 import org.mobicents.tools.smpp.balancer.api.LbClientListener;
@@ -72,7 +72,7 @@ public class BalancerDispatcher extends Dispatcher implements LbClientListener, 
 		for(int i = 0; i < s.length; i++)
 		{
 			sTmp = s[i].split(":");
-			SIPNode currNode = new SIPNode("SMPP server " + i, sTmp[0].trim());
+			Node currNode = new Node("SMPP server " + i, sTmp[0].trim());
 			currNode.getProperties().put("smppPort", sTmp[1].trim());
 			this.ctx.smppNodeMap.put(new KeySmpp(sTmp[0].trim(),Integer.parseInt(sTmp[1].trim())),currNode);
 		}
@@ -120,7 +120,7 @@ public class BalancerDispatcher extends Dispatcher implements LbClientListener, 
 		
 		counterConnections.compareAndSet(Integer.MAX_VALUE, 0);
 	
-		SIPNode currNode = ctx.smppToProviderBalancerAlgorithm.processBindToProvider();
+		Node currNode = ctx.smppToProviderBalancerAlgorithm.processBindToProvider();
 		sessionConfig.setHost(currNode.getIp());
 		sessionConfig.setPort(Integer.parseInt((String) currNode.getProperties().get("smppPort")));
 		
@@ -212,7 +212,7 @@ public class BalancerDispatcher extends Dispatcher implements LbClientListener, 
 	}
 	
 	@Override
-	public void connectionLost(Long sessionId, Pdu packet, SIPNode node) 
+	public void connectionLost(Long sessionId, Pdu packet, Node node) 
 	{
 		serverSessions.get(sessionId).reconnectState(true);
 		monitorExecutor.schedule(new BinderRunnable(sessionId, packet, serverSessions, clientSessions, node, balancerRunner), reconnectPeriod, TimeUnit.MILLISECONDS);

@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.mobicents.tools.heartbeat.impl.Node;
 
 import javax.sip.ListeningPoint;
 import javax.sip.message.Request;
@@ -43,7 +44,7 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(ActiveStandbyAlgorithm.class.getCanonicalName());
 	
 	protected AtomicInteger nextNodeCounter = new AtomicInteger(0);
-	protected AtomicReference<SIPNode> currNode=new AtomicReference<SIPNode>();	
+	protected AtomicReference<Node> currNode=new AtomicReference<Node>();	
 	private Semaphore selectionSemaphore=new Semaphore(1);
 	
 	public void processInternalRequest(Request request) 
@@ -60,7 +61,7 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 		Integer port = via.getPort();
 		boolean found = false;
 		
-		SIPNode senderNode = (SIPNode) ((ResponseExt)response).getApplicationData();
+		Node senderNode = (Node) ((ResponseExt)response).getApplicationData();
 
 		if(logger.isDebugEnabled())
 			logger.debug("internal response checking sendernode " + senderNode + " or Via host:port " + host + ":" + port);
@@ -75,9 +76,9 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 			logger.debug("internal response node found ? " + found);
 
 		if(!found) {
-			SIPNode node = selectNewNode(isIpV6);
+			Node node = selectNewNode(isIpV6);
 			String transportProperty = transport + "Port";
-			port = (Integer) node.getProperties().get(transportProperty);
+			port = Integer.parseInt(node.getProperties().get(transportProperty));
 			if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 			if(logger.isDebugEnabled())
 				logger.debug("changing via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -98,9 +99,9 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 	public void processExternalResponse(Response response,Boolean isIpV6) {
 		Via via = (Via) response.getHeader(Via.NAME);
 		String transport = via.getTransport().toLowerCase();
-		SIPNode node = selectNewNode(isIpV6);
+		Node node = selectNewNode(isIpV6);
 		String transportProperty = transport + "Port";
-		Integer port = (Integer) node.getProperties().get(transportProperty);
+		Integer port = Integer.parseInt(node.getProperties().get(transportProperty));
 		if(port == null) throw new RuntimeException("No transport found for node " + node + " " + transportProperty);
 		if(logger.isDebugEnabled())
 			logger.debug("changing via " + via + "setting new values " + node.getIp() + ":" + port);
@@ -117,9 +118,9 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 		}
 	}
 	
-	public SIPNode processExternalRequest(Request request,Boolean isIpV6) 
+	public Node processExternalRequest(Request request,Boolean isIpV6) 
 	{
-		SIPNode node = selectNewNode(isIpV6);
+		Node node = selectNewNode(isIpV6);
 		if(node == null) return null;
 		if(logger.isDebugEnabled())
     		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
@@ -129,23 +130,23 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 	}
 	
 	@Override
-	public synchronized SIPNode processHttpRequest(HttpRequest request)
+	public synchronized Node processHttpRequest(HttpRequest request)
 	{
-		SIPNode node = selectNewNode(false);
+		Node node = selectNewNode(false);
 		if(node == null) return null;
 		if(logger.isDebugEnabled())
     		logger.debug("No node found in the affinity map. It is null. We select new node: " + node);
 		return node;
 	}
 	
-	protected SIPNode selectNewNode(Boolean isIpV6)
+	protected Node selectNewNode(Boolean isIpV6)
 	{		
-		SIPNode node = currNode.get();		
+		Node node = currNode.get();		
 		//Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());
 		if(node!=null)
 		{
 			KeySip keyNode = new KeySip(node);
-			if(invocationContext.sipNodeMap(isIpV6).containsKey(keyNode)&&!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(keyNode))
+			if(invocationContext.sipNodeMap(isIpV6).containsKey(keyNode)&&!invocationContext.sipNodeMap(isIpV6).get(keyNode).isGracefulShutdown())
 				return node;
 		}
 		try
@@ -171,9 +172,9 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 		return node;
 	}
 	
-	protected SIPNode nextAvailableNode(Boolean isIpV6)
+	protected Node nextAvailableNode(Boolean isIpV6)
 	{
-		Iterator<Entry<KeySip, SIPNode>> currIt = null; 
+		Iterator<Entry<KeySip, Node>> currIt = null; 
 		if(isIpV6)
 			currIt = ipv6It;
 		else
@@ -186,7 +187,7 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 			else
 				ipv4It = currIt;
 		}
-		Entry<KeySip, SIPNode> pair = null;
+		Entry<KeySip, Node> pair = null;
 		while(currIt.hasNext())
 		{
 			pair = currIt.next();

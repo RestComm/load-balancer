@@ -19,29 +19,27 @@
 package org.mobicents.tools.http.balancer;
 
 import java.net.InetSocketAddress;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.mobicents.tools.sip.balancer.NodeRegisterRMIStub;
-import org.mobicents.tools.sip.balancer.SIPNode;
+import org.mobicents.tools.heartbeat.impl.ClientController;
+import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.interfaces.IClientListener;
+import org.mobicents.tools.heartbeat.interfaces.Protocol;
+import com.google.gson.JsonObject;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class HttpServer 
+public class HttpServer implements IClientListener
 {
 	private static final Logger logger = Logger.getLogger(HttpServer.class.getCanonicalName());
 	private ExecutorService executor;
@@ -54,26 +52,28 @@ public class HttpServer
 	private int sslPort;
 	private int udpPort;
 	private AtomicInteger requestCount = new AtomicInteger(0);
-	private boolean sendHeartbeat = true;
-	private String balancers;
-	private Timer timer;
-	private SIPNode appServerNode;
-	private AtomicBoolean stopFlag = new AtomicBoolean(false);
+	private Node node;
+
 	private String lbAddress = "127.0.0.1";
-	private int lbRMIport = 2000;
 	private String instanceId;
 	public static int delta = 0;
 	
-	public HttpServer(int httpPort, int sslPort, String instanceId)
+	ClientController clientController;
+	int lbPort = 2610;
+	int heartbeatPort = 2222; 
+	int heartbeatPeriod = 1000;
+	
+	public HttpServer(int httpPort, int sslPort, String instanceId, int heartbeatPort)
 	{
 		this.httpPort = httpPort;
 		this.sslPort = sslPort;
 		this.instanceId = instanceId;
 		this.udpPort = 4060 + delta++;
+		this.heartbeatPort = heartbeatPort;
 	}
-	public HttpServer(int httpPort, int sslPort)
+	public HttpServer(int httpPort, int sslPort, int heartbeatPort)
 	{
-		this(httpPort, sslPort, null);
+		this(httpPort, sslPort, null, heartbeatPort);
 	}
 	
 	public void start() 
@@ -90,38 +90,23 @@ public class HttpServer
 		serverSecureChannel = serverSecureBootstrap.bind(new InetSocketAddress("127.0.0.1", sslPort));
 		
 		//ping
-		 timer = new Timer();
-		    appServerNode = new SIPNode("HttpServer", "127.0.0.1");		
-			appServerNode.getProperties().put("version", "0");
-			appServerNode.getProperties().put("httpPort", httpPort);
-			appServerNode.getProperties().put("udpPort", udpPort);
-			appServerNode.getProperties().put("sslPort", sslPort);
-			if(instanceId!=null)
-				appServerNode.getProperties().put("Restcomm-Instance-Id", instanceId);
-			
-			
-			timer.schedule(new TimerTask() {
-				
-				@Override
-				public void run() {
-					try {
-						ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-						nodes.add(appServerNode);
-						appServerNode.getProperties().put("version", "0");
-						if(!stopFlag.get())
-						sendKeepAliveToBalancers(nodes);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			}, 1000, 1000);
+		node = new Node("HttpServer", "127.0.0.1");		
+		node.getProperties().put("version", "0");
+		node.getProperties().put("httpPort",""+ httpPort);
+		node.getProperties().put("udpPort",""+ udpPort);
+		node.getProperties().put("sslPort",""+ sslPort);
+		node.getProperties().put(Protocol.SESSION_ID, ""+System.currentTimeMillis());
+		node.getProperties().put(Protocol.HEARTBEAT_PORT, ""+heartbeatPort);
+		if(instanceId!=null)
+			node.getProperties().put("Restcomm-Instance-Id", instanceId);
+		clientController = new ClientController(this, lbAddress, lbPort, node, 2000 , heartbeatPeriod, executor);
+		clientController.startClient();
 		
+			
 	}
 
 	public void stop() {
-		
-		stopFlag.getAndSet(true);
-		timer.cancel();
+		clientController.stopClient(false);
 		if(executor == null) return; // already stopped
 		for (Entry<Channel, Channel> entry : HttpChannelAssociations.channels.entrySet()) {
 			entry.getKey().unbind();
@@ -148,65 +133,21 @@ public class HttpServer
 		serverBootstrap.shutdown();
 		serverSecureBootstrap.shutdown();
 		nioServerSocketChannelFactory.shutdown();
-		logger.info("HTTP server stoped : " + appServerNode);
-	}
-	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) {
-		if(sendHeartbeat) {
-			Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
-			if(balancers != null) {
-				for(String balancer:balancers.replaceAll(" ","").split(",")) {
-					if(balancer.length()<2) continue;
-					String host;
-					String port;
-					int semi = balancer.indexOf(':');
-					if(semi>0) {
-						host = balancer.substring(0, semi);
-						port = balancer.substring(semi+1);
-					} else {
-						host = balancer;
-						port = "2000";
-					}
-					try {
-						Registry registry = LocateRegistry.getRegistry(host, Integer.parseInt(port));
-						NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-						reg.handlePing(info);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-				
-			} else {
-				try {
-					Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
-					NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-					reg.handlePing(info);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-	}	
-	public void sendCleanShutdownToBalancers() {
-		ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-		nodes.add(appServerNode);
-		sendCleanShutdownToBalancers(nodes);
+		logger.info("HTTP server stoped : " + node);
 	}
 	
-	public void sendCleanShutdownToBalancers(ArrayList<SIPNode> info) {
-		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
-		try {
-			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);
-			NodeRegisterRMIStub reg=(NodeRegisterRMIStub) registry.lookup("SIPBalancer");
-			reg.forceRemoval(info);
-			stop();
-			Thread.sleep(2000); // delay the OK for a while
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 	public AtomicInteger getRequstCount()
 	{
 		return requestCount;
+	}
+	@Override
+	public void responseReceived(JsonObject json) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void stopRequestReceived(MessageEvent e, JsonObject json) {
+		// TODO Auto-generated method stub
+		
 	}
 }

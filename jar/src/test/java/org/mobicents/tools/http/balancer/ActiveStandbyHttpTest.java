@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.ActiveStandbyAlgorithm;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.operation.Helper;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
 import com.meterware.httpunit.GetMethodWebRequest;
@@ -61,15 +62,14 @@ public class ActiveStandbyHttpTest
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(ActiveStandbyAlgorithm.class.getName());
 		balancerRunner.start(lbConfig);
-		sleep(2000);
-		
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < numberNodes; i++)
 		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i);
+			serverArray[i] = new HttpServer(8080+i, 4444+i, 2222+i);
 			serverArray[i].start();
-			sleep(1000);
+			Helper.sleep(1000);
 		}
+		Helper.sleep(5000);
 	}
 
 	//tests http balancer

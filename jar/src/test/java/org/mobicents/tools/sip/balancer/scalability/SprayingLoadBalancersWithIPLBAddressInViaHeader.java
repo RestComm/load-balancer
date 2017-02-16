@@ -57,10 +57,16 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 
 	UDPPacketForwarder externalIpLoadBalancer;
 	UDPPacketForwarder internalIpLoadBalancer;
+	String loadbalancers = "";
 	
 	private BalancerRunner prepBalancer(int id) {
 		BalancerRunner balancer = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		int heartbeatPort = 2610+id;
+		loadbalancers += "127.0.0.1:"+heartbeatPort;
+		if(id < balancers.length-1)
+			loadbalancers+=",";
+		lbConfig.getCommonConfiguration().setHeartbeatPort(heartbeatPort);
 		lbConfig.getSipConfiguration().setUseIpLoadBalancerAddressInViaHeaders(true);
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder" + id);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setHost("127.0.0.1");
@@ -68,8 +74,6 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(null);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setUdpPort(5060+id*100);
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setUdpPort(5065+id*100);
-		lbConfig.getCommonConfiguration().setRmiRegistryPort(2000+id*100);
-		lbConfig.getCommonConfiguration().setJmxHtmlAdapterPort(8000+id*100);
 		lbConfig.getHttpConfiguration().setHttpPort(null);
 		lbConfig.getSmppConfiguration().setSmppPort(null);
 		ArrayList <String> ipLoadBalancerAddressList = new ArrayList<String>();
@@ -86,19 +90,17 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 	@Before
 	public void setUp() throws Exception {
 		shootist = new Shootist();
-		String balancerString = "";
 		String externalIpLBString = "";
 		String internalIpLBString = "";
 		for(int q=0;q<numBalancers;q++) {
 			balancers[q] = prepBalancer(q);
-			balancerString += "127.0.0.1:"+2+q+"00,";
 			externalIpLBString += "127.0.0.1:"+5+q+"60,";
 			internalIpLBString += "127.0.0.1:"+5+q+"65,";
 		}
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP);
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.UDP, 2222+q);
+			servers[q].setBalancers(loadbalancers);
 			servers[q].start();
-			servers[q].setBalancers(balancerString);
 		}
 		
 		externalIpLoadBalancer = new UDPPacketForwarder(9988, externalIpLBString, "127.0.0.1");
@@ -198,7 +200,9 @@ public class SprayingLoadBalancersWithIPLBAddressInViaHeader{
 			public void uacAfterResponse(int statusCode, AppServer source) {
 				if(statusCode == 180) {
 					ringingAppServer = source;
-					source.sendCleanShutdownToBalancers();		
+					//i guess should send stop
+					//source.sendCleanShutdownToBalancers();
+					source.stop();
 				} else if (statusCode == 200){
 					okAppServer = source;
 					

@@ -70,7 +70,7 @@ public class TlsWorstCaseAffinityTest{
 		balancer.start(lbConfig);
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5061, 5066, "0", ListeningPoint.TLS);			
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5061, 5066, "0", ListeningPoint.TLS, 2222+q);			
 			servers[q].start();		
 		}
 		

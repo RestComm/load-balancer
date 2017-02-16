@@ -36,8 +36,8 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerConnectionCheck;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerEnquire;
@@ -79,7 +79,7 @@ public class MClientConnectionImpl implements ClientConnection{
 	private ClientBootstrap clientBootstrap;
     private MClientConnectionHandlerImpl clientConnectionHandler;
     private SmppSessionConfiguration config;
-    private SIPNode node;
+    private Node node;
     private boolean isSslConnection = false;
 
 
@@ -125,7 +125,7 @@ public class MClientConnectionImpl implements ClientConnection{
     	INITIAL, OPEN, BINDING, BOUND, REBINDING, UNBINDING, CLOSED    	
     }
     
-	public  MClientConnectionImpl(Long serverSessionID, UserSpace userSpace, ScheduledExecutorService monitorExecutor, BalancerRunner balancerRunner, SIPNode node, boolean isSslConnection) 
+	public  MClientConnectionImpl(Long serverSessionID, UserSpace userSpace, ScheduledExecutorService monitorExecutor, BalancerRunner balancerRunner, Node node, boolean isSslConnection) 
 	{
 		  this.serverSessionID = serverSessionID;
 		  this.timeoutResponse = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getTimeoutResponse();
@@ -652,7 +652,7 @@ public class MClientConnectionImpl implements ClientConnection{
     public boolean isSslConnection() {
 		return isSslConnection;
 	}
-	public SIPNode getNode() {
+	public Node getNode() {
 		return node;
 	}
 }

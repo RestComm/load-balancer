@@ -36,10 +36,10 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.KeySmpp;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.core.BalancerDispatcher;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerResponse;
@@ -90,7 +90,7 @@ public class ClientConnectionImpl implements ClientConnection{
  	private Map<Integer, TimerData> packetMap =  new ConcurrentHashMap <Integer, TimerData>();
  	private Map<Integer, Integer> sequenceMap =  new ConcurrentHashMap <Integer, Integer>();
     private ScheduledExecutorService monitorExecutor;
-    private SIPNode node;
+    private Node node;
     private long timeoutResponse;
     private boolean isEnquireLinkSent;
     private InvocationContext invocationContext;
@@ -121,7 +121,7 @@ public class ClientConnectionImpl implements ClientConnection{
     }
     
 	public  ClientConnectionImpl(Long sessionId,SmppSessionConfiguration config, BalancerDispatcher clientListener, ScheduledExecutorService monitorExecutor, 
-			BalancerRunner balancerRunner, Pdu bindPacket, SIPNode node) 
+			BalancerRunner balancerRunner, Pdu bindPacket, Node node) 
 	{
 
 		  this.node = node;
@@ -353,7 +353,7 @@ public class ClientConnectionImpl implements ClientConnection{
 				    this.lbClientListener.reconnectSuccesful(sessionId);
 				    clientState = ClientState.BOUND;
 				    if(invocationContext.activeNodeKey!=null)
-						invocationContext.activeNodeKey = new KeySmpp((SIPNode) new ArrayList(invocationContext.smppNodeMap.values()).get(0));
+						invocationContext.activeNodeKey = new KeySmpp((Node) new ArrayList(invocationContext.smppNodeMap.values()).get(0));
 				}else
 				{
 					logger.debug("Reconnection to client unsuccessful. client session ID : " + sessionId + ". LB will close session!");
@@ -504,7 +504,7 @@ public class ClientConnectionImpl implements ClientConnection{
 		if(logger.isDebugEnabled())
 			logger.debug("LB tried to rebind to client " + channel.getRemoteAddress().toString() + ". sessionId : " + sessionId);
 		if(invocationContext.activeNodeKey!=null)
-			invocationContext.activeNodeKey = new KeySmpp((SIPNode) new ArrayList(invocationContext.smppNodeMap.values()).get(0));
+			invocationContext.activeNodeKey = new KeySmpp((Node) new ArrayList(invocationContext.smppNodeMap.values()).get(0));
 		clientState = ClientState.REBINDING;		
 		this.lbClientListener.connectionLost(sessionId, bindPacket, node);
 		

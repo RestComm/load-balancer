@@ -50,8 +50,9 @@ public class TerminaitingSslTest
 		balancer.start(lbConfig);
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);			
-			servers[q].start();		
+			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, 2222+q);			
+			servers[q].start();
+			Thread.sleep(2000);
 		}
 		
 		Thread.sleep(5000);

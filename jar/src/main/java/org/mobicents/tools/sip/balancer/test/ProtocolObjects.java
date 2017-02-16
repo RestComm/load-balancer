@@ -118,7 +118,6 @@ public class ProtocolObjects {
 		try {
 			// Create SipStack object
 			sipStack = sipFactory.createSipStack(properties);
-			System.out.println("createSipStack " + sipStack);
 		} catch (Exception e) {
 			// could not find
 			// gov.nist.jain.protocol.ip.sip.SipStackImpl

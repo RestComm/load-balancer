@@ -42,34 +42,39 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.interfaces.Protocol;
 
 /**
  * @author <A HREF="mailto:yukinobu.imai@gmail.com">Yukinobu Imai</A> 
  *
  */
-public class SIPNodeTest {
+public class NodeTest {
 
 	@Test
     public void testEquals() throws Exception {
-        SIPNode node1 = new SIPNode("mobicents.org", "192.168.0.10");
-        SIPNode node2 = node1;
+        Node node1 = new Node("mobicents.org", "192.168.0.10");
+        node1.getProperties().put(Protocol.UDP_PORT, "5060");
+        Node node2 = node1;
         assertTrue(node1.equals(node2));
         
-        node2 = new SIPNode("mobicents.org", "192.168.0.20");
+        node2 = new Node("mobicents.org", "192.168.0.20");
+        node2.getProperties().put(Protocol.UDP_PORT, "5060");
         assertFalse(node1.equals(node2));
         
-        node2 = new SIPNode("mobicents.org", "192.168.0.10");
+        node2 = new Node("mobicents.org", "192.168.0.10");
+        node2.getProperties().put(Protocol.UDP_PORT, "5060");
         assertTrue(node1.equals(node2));
         
-        node1.getProperties().put("key", "value");
-        node2.getProperties().put("key", "value");
+        node1.getProperties().put(Protocol.TCP_PORT, "5060");
+        node2.getProperties().put(Protocol.TCP_PORT, "5060");
         assertTrue(node1.equals(node2));
         
-        node1.getProperties().put("key2", "value");
+        node1.getProperties().put(Protocol.TLS_PORT, "5061");
         assertFalse(node1.equals(node2));
         
-        node2.getProperties().put("key2", "value");
-        node2.getProperties().put("key3", "value");
+        node2.getProperties().put(Protocol.TLS_PORT, "5061");
+        node2.getProperties().put(Protocol.WS_PORT, "5062");
         assertFalse(node1.equals(node2));
         
     }

@@ -19,7 +19,8 @@
 
 package org.mobicents.tools.smpp.multiplexer;
 
-import org.mobicents.tools.sip.balancer.SIPNode;
+
+import org.mobicents.tools.heartbeat.impl.Node;
 
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 
@@ -29,7 +30,7 @@ import com.cloudhopper.smpp.SmppSessionConfiguration;
 
 public class MBinderRunnable implements Runnable {
 
-	private SIPNode node;
+	private Node node;
 	private MClientConnectionImpl client;
 	private String systemId;
 	private String password;

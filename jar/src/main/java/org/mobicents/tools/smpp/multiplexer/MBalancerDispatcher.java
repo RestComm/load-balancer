@@ -24,8 +24,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.netty.util.internal.ConcurrentHashMap;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.Dispatcher;
 
 import com.cloudhopper.smpp.pdu.BaseBind;
@@ -40,7 +40,7 @@ public class MBalancerDispatcher extends Dispatcher implements MLbServerListener
 	private ConcurrentHashMap<String, UserSpace> userSpaces = new ConcurrentHashMap<String, UserSpace>();
 	private AtomicInteger notBindClients = new AtomicInteger(0);
 	private AtomicInteger notRespondedPackets = new AtomicInteger(0);
-	private SIPNode [] nodes;
+	private Node [] nodes;
 	private BalancerRunner balancerRunner;
 	private ScheduledExecutorService monitorExecutor;
 	
@@ -49,12 +49,12 @@ public class MBalancerDispatcher extends Dispatcher implements MLbServerListener
 		this.balancerRunner = balancerRunner;
 		this.monitorExecutor = monitorExecutor;
 		String [] s = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getRemoteServers().split(",");
-		this.nodes = new SIPNode[s.length];
+		this.nodes = new Node[s.length];
 		String [] sTmp = new String[2];
 		for(int i = 0; i < s.length; i++)
 		{
 			sTmp = s[i].split(":");
-			this.nodes[i] = new SIPNode("SMPP server " + i, sTmp[0].trim());
+			this.nodes[i] = new Node("SMPP server " + i, sTmp[0].trim());
 			this.nodes[i].getProperties().put("smppPort", sTmp[1].trim());
 		}
 	}

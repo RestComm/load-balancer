@@ -36,15 +36,15 @@ import java.util.TimerTask;
 
 import javax.sip.SipProvider;
 
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.NodeRegisterRMIStub;
-import org.mobicents.tools.sip.balancer.SIPNode;
 
 public class BlackholeAppServer {
 	public ProtocolObjects protocolObjects;
 	Timer timer;
 	int port;
 	String name;
-	SIPNode appServerNode;
+	Node appServerNode;
 	public boolean sendHeartbeat = true;
 	String lbAddress;
 	int lbRMIport;
@@ -100,17 +100,9 @@ public class BlackholeAppServer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		appServerNode = new SIPNode(name, "127.0.0.1");
-		appServerNode.getProperties().put("udpPort", port);
-		timer.schedule(new TimerTask() {
-			
-			@Override
-			public void run() {
-				ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
-				nodes.add(appServerNode);
-				sendKeepAliveToBalancers(nodes);
-			}
-		}, 1000, 1000);
+		appServerNode = new Node(name, "127.0.0.1");
+		appServerNode.getProperties().put("udpPort", "" + port);
+		
 	}
 	
 	public void stop() {
@@ -127,7 +119,7 @@ public class BlackholeAppServer {
 		//sendCleanShutdownToBalancers();
 	}
 
-	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) {
+	private void sendKeepAliveToBalancers(ArrayList<Node> info) {
 		if(sendHeartbeat) {
 			Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
 			try {
@@ -141,12 +133,12 @@ public class BlackholeAppServer {
 
 	}	
 	public void sendCleanShutdownToBalancers() {
-		ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
+		ArrayList<Node> nodes = new ArrayList<Node>();
 		nodes.add(appServerNode);
 		sendCleanShutdownToBalancers(nodes);
 	}
 	
-	public void sendCleanShutdownToBalancers(ArrayList<SIPNode> info) {
+	public void sendCleanShutdownToBalancers(ArrayList<Node> info) {
 		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
 		try {
 			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);

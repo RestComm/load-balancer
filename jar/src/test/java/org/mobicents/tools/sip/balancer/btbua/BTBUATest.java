@@ -60,8 +60,8 @@ public class BTBUATest
 	public void tearDown() throws Exception {
 		shootist1.stop();
 		shootist2.stop();
-		balancer.stop();
 		agent.stop();
+		balancer.stop();
 	}
 
 	//test back to back use agent 

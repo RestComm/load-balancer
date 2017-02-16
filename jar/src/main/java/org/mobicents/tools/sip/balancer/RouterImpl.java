@@ -35,6 +35,8 @@ import javax.sip.address.Router;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
+import org.mobicents.tools.heartbeat.impl.Node;
+
 /**
  * @deprecated
  * This custom implementation is not used anymore in the new sip balancer version
@@ -59,7 +61,7 @@ public class RouterImpl implements Router {
 	public Hop getNextHop(Request request) throws SipException {
 		String callID = ((CallID) request.getHeader(CallID.NAME)).getCallId();
 
-		SIPNode node = null;
+		Node node = null;
 		Hop hop = null;
 		
 		String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
@@ -91,7 +93,7 @@ public class RouterImpl implements Router {
 					}
 				}
 		}
-		Integer port = (Integer) node.getProperties().get(transport + "Port");
+		Integer port = Integer.parseInt(node.getProperties().get(transport + "Port"));
 		if(port == null) {
 			throw new RuntimeException("No port available for transport " + transport + " for node " + node);
 		}
@@ -103,7 +105,7 @@ public class RouterImpl implements Router {
 
 	public ListIterator<HopImpl> getNextHops(Request request) {
 
-		SIPNode node = null;
+		Node node = null;
 		for (int i = 0; i < 5 && node == null; i++) {
 			try {
 				node = register.getNextNode();
@@ -116,7 +118,7 @@ public class RouterImpl implements Router {
 		} else {
 			String transport = ((ViaHeader)request.getHeader(ViaHeader.NAME)).getTransport().toLowerCase();
 			LinkedList<HopImpl> retval = new LinkedList<HopImpl>();
-			Integer port = (Integer) node.getProperties().get(transport + "Port");
+			Integer port = Integer.parseInt(node.getProperties().get(transport + "Port"));
 			if(port == null) {
 				throw new RuntimeException("No port available for transport " + transport + " for node " + node);
 			}

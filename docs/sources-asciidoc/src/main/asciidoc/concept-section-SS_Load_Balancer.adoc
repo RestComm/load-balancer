@@ -47,12 +47,46 @@ The {this-platform} Load Balancer, using a round-robin algorithm, then selects a
 The Load Balancer forwards all same-session requests to the first node selected to initiate the session, providing that the node is healthy and available.
 
 [[_sslb_load_balancer_keepalive]]
-=== Keepalives to the {this-platform} Load Balancer
-Each individual {this-platform} SIP Server in the cluster is responsible for contacting the {this-platform} Load Balancer and relaying its health status through regular "heartbeats" that are sent over a TCP connection.
+=== Heartbeats to the {this-platform} Load Balancer
 
-The nodes typically send the IP addresses, ports and transports thay are listening on plus an optional list of custom information to allow more more powerful dynamic and intelligent routing to be done by the Load Balancer.
+Heartbeats service based on http protocol. Each http request and response has JSON
+object with required data. The load balancer and SIP-HA listens on heartbeats
+ports which we should set in configuration. Also for SIP-HA we should set port
+of the load balancer on which SIP-HA will send requests.
 
-If the Load Balancer doesn't receive the keepalive information from a node after a certain configurable amount of time, it discards the node. The time is reset for each message that the Load Balancer receives from the node as well be it a keepalive or a regular SIP or HTTP message.
+.Heartbeat protocol
+image::images/heartbeat-protocol.png[]
+
+Protocol has next requests:
+
+ * Node’s start request
+
+After Node’s start sip-ha will send start POST http request with JSON object
+with info about Node (hostname, ip, ports, sessionId etc.). sessionId generates
+after Restcomm’s start or restart. The Node sends periodically start request
+until getting http start response from the Load balancer.
+
+ * Node’s heartbeat request
+
+After getting start http response, RC will send heartbeat requests
+This request will have JSON object with only sessionId value. On each heartbeat
+request the Load balancer sends heartbeat http response.
+
+For signalising about gracefully shutdown the Node can send the shutdown request
+to the Load balancer
+
+ * Node’s shutdown request
+
+If node will shutdown then it will send shutdown request. If we don’t need
+gracefully shutdown but need just stop the Node then the Node can use stop request.
+For signaling about stopping of the Load balancer, it can send stop http request
+to the Node.
+
+  * LB’s stop request:
+
+When the Node gets stop request from the Load balancer,
+it will start send the start request to the Load balancer until will not get
+start response.
 
 === {this-platform} Load Balancer supports SIP Over Websockets
 
@@ -346,10 +380,9 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
 <common>
   <host>172.21.0.105</host>
   <ipv6Host></ipv6Host>
-  <rmiRegistryPort>2000</rmiRegistryPort>
-  <rmiRemoteObjectPort>2001</rmiRemoteObjectPort>
   <nodeTimeout>8400</nodeTimeout>
   <heartbeatInterval>150</heartbeatInterval>
+  <heartbeatPort>2610</heartbeatPort>
   <statisticPort>2006</statisticPort>
   <jmxHtmlAdapterPort>8000</jmxHtmlAdapterPort>
   <shutdownTimeout>10000<shutdownTimeout>
@@ -557,12 +590,8 @@ externalUdpPort::
 internalUdpPort::
   Port on which the {this-platform} Load Balancer forwards incoming requests to available, and healthy, SIP Server cluster nodes.
 
-rmiRegistryPort::
-  Port on which the {this-platform} Load Balancer will establish the RMI heartbeat connection to the application servers.
-  When this connection fails or a disconnection instruction is received, an application server node is removed and handling of requests continues without it by redirecting the load to the lie nodes.
-
-rmiRemoteObjectPort::
-  Port on which the {this-platform} Load Balancer will use to export the RMI Remote Object.
+heartbeatPort::
+  Port on which the {this-platform} Load Balancer listens heartbeats from nodes
 
 shutdownTimeout::
   Time after which LB will shutdown completely after getting request
@@ -800,7 +829,6 @@ home]$ java -DlogConfigFile=./lb-log4j.xml -jar sip-balancer-jar-with-dependenci
 2016-02-08 15:54:28,036 INFO main - nodeTimeout=8400
 2016-02-08 15:54:28,038 INFO main - heartbeatInterval=150
 2016-02-08 15:54:28,039 INFO main - Node registry starting...
-2016-02-08 15:54:28,103 INFO main - RMI heartbeat listener bound to internalHost, port 2000
 2016-02-08 15:54:28,103 INFO main - Node expiration task created
 2016-02-08 15:54:28,103 INFO main - Node registry started
 2016-02-08 15:54:28,130 INFO main - value -1000 will be used for reliableConnectionKeepAliveTimeout stack property
@@ -998,7 +1026,6 @@ The load balancer will respond to every heartbeat request with 200 OK immediatel
 The third party server must expect the OK response.
 If no response if received within a threshhold time then the third party SIP server must assume the {this-platform} Load Balancer is not available and use another (backup) load balancer.
 
-The regular {this-platform} Load Balancer setting are still in effect for third party servers and you can expect the same behavior as the Restcomm-specific RMI heartbeat configuration.
 
 If you are desgning a pluggable algorithm using the SIP metadata, you can access the properties passed in the SIP message contents using `SIPNode.getProperties()`
 

@@ -9,9 +9,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
-import org.mobicents.tools.sip.balancer.SIPNode;
 
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.pdu.BaseBind;
@@ -36,7 +36,7 @@ public class UserSpace {
 	private InvocationContext ctx = null;
 	private ScheduledFuture<?> reconnectionSchedule = null;
 	
-	private SIPNode [] nodes;
+	private Node [] nodes;
 	private Long serverSessionID = new Long(0);
 	private ScheduledExecutorService monitorExecutor;
 	private long reconnectPeriod;
@@ -45,7 +45,7 @@ public class UserSpace {
 	private AtomicReference<BINDSTATE> bindState=new AtomicReference<BINDSTATE>(BINDSTATE.INITIAL);
 	private AtomicReference<MServerConnectionImpl> bindingCustomer=new AtomicReference<MServerConnectionImpl>();
 	
-	public UserSpace(String systemId, String password, SIPNode[] nodes, BalancerRunner balancerRunner,ScheduledExecutorService monitorExecutor, MBalancerDispatcher dispatcher)
+	public UserSpace(String systemId, String password, Node[] nodes, BalancerRunner balancerRunner,ScheduledExecutorService monitorExecutor, MBalancerDispatcher dispatcher)
 	{
 		this.systemId = systemId;
 		this.password = password;
@@ -87,7 +87,7 @@ public class UserSpace {
 			}			
 	}
 
-	void bindSuccesfull(SIPNode node)
+	void bindSuccesfull(Node node)
 	{
 		
 		bindState.set(BINDSTATE.BOUND);
@@ -171,7 +171,7 @@ public class UserSpace {
 			logger.debug("Start initial bind for customer with sessionID : " + customer.getSessionId());
 		bindingCustomer.set(customer);
 		//INITIAL CONNECTION TO ALL SERVERS
-		for(SIPNode node: nodes)
+		for(Node node: nodes)
 		{
 			if(balancerRunner.balancerContext.terminateTLSTraffic)
 				isSslConnection = false;

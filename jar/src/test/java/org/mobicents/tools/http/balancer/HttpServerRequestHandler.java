@@ -170,7 +170,6 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		//Get the request query
 		String query = uri.getQuery();
 		if (query != null) {
-//			System.out.println("Query: " + query);
 			String[] queryParams = query.split(AND_DELIMITER);
 			if (queryParams.length > 0) {
 				for (String qParam : queryParams) {

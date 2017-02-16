@@ -22,8 +22,8 @@ package org.mobicents.tools.smpp.balancer.impl;
 import java.util.ArrayList;
 import java.util.Map;
 
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;
 import org.mobicents.tools.smpp.balancer.impl.ClientConnectionImpl.ClientState;
@@ -51,16 +51,16 @@ public class BinderRunnable implements Runnable {
 	private Map<Long, ServerConnection> serverSessions;
 	private Map<Long, ClientConnection> clientSessions;
 	private Long sessionId;
-	private SIPNode firstNode;
-	private ArrayList<SIPNode> nodes;
+	private Node firstNode;
+	private ArrayList<Node> nodes;
 
-	public BinderRunnable(Long sessionId, Pdu packet, Map<Long, ServerConnection> serverSessions, Map<Long, ClientConnection> clientSessions, SIPNode node, BalancerRunner balancerRunner)
+	public BinderRunnable(Long sessionId, Pdu packet, Map<Long, ServerConnection> serverSessions, Map<Long, ClientConnection> clientSessions, Node node, BalancerRunner balancerRunner)
 	{
 		this.sessionId = sessionId;
 		this.packet = packet;
 		this.client = (ClientConnectionImpl) clientSessions.get(sessionId);
 		this.firstNode = node;
-		this.nodes = new ArrayList<SIPNode>(balancerRunner.getLatestInvocationContext().smppNodeMap.values());
+		this.nodes = new ArrayList<Node>(balancerRunner.getLatestInvocationContext().smppNodeMap.values());
 		//this.index = this.nodes.indexOf(node);
 		this.serverSessions = serverSessions;
 		this.clientSessions = clientSessions;

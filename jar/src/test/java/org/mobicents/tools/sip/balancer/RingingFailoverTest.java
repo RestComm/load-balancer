@@ -30,9 +30,9 @@ import javax.sip.SipFactory;
 import javax.sip.message.Response;
 
 import org.junit.Test;
+import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.sip.balancer.BalancerContext;
 import org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm;
-import org.mobicents.tools.sip.balancer.SIPNode;
 import org.mobicents.tools.smpp.multiplexer.SmppToNodeRoundRobinAlgorithm;
 import org.mobicents.tools.smpp.multiplexer.SmppToProviderRoundRobinAlgorithm;
 
@@ -53,14 +53,14 @@ public class RingingFailoverTest {
 			
 		String node = "1.2.3.4";
 		Integer port = 1234;
-		SIPNode adNode = new SIPNode(node, node);
-		adNode.getProperties().put("udpPort", port);
+		Node adNode = new Node(node, node);
+		adNode.getProperties().put("udpPort", ""+port);
 		algorithm.balancerContext = new BalancerContext();
 		algorithm.balancerContext.algorithmClassName = CallIDAffinityBalancerAlgorithm.class.getName();
 		algorithm.balancerContext.smppToNodeAlgorithmClassName = SmppToNodeRoundRobinAlgorithm.class.getName();
 		algorithm.balancerContext.smppToProviderAlgorithmClassName = SmppToProviderRoundRobinAlgorithm.class.getName();
 		InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
-		//ctx.nodes = new CopyOnWriteArrayList<SIPNode>(new SIPNode[]{adNode});
+
 		ctx.sipNodeMap(false).put(new KeySip(adNode), adNode); 
 				
 		algorithm.invocationContext = ctx;
