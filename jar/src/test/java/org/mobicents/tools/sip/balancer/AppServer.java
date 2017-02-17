@@ -185,7 +185,7 @@ public class AppServer implements IClientListener{
 		
 		//start client
 		if(balancers==null)
-			clientController = new ClientController(this, lbAddress, lbPort, node, 2000 ,heartbeatPeriod, executor);
+			clientController = new ClientController(this, lbAddress, lbPort, node, 5000 ,heartbeatPeriod, executor);
 		else
 		{
 			String [] lbs = balancers.split(",");
@@ -201,7 +201,7 @@ public class AppServer implements IClientListener{
 				node.getProperties().put(Protocol.VERSION, version);
 				node.getProperties().put(Protocol.HEARTBEAT_PORT, ""+heartbeatPort);
 				
-				clientControllers[i] = new ClientController(this, lbs[i].split(":")[0], Integer.parseInt(lbs[i].split(":")[1]), node, 2000 , heartbeatPeriod, executor);
+				clientControllers[i] = new ClientController(this, lbs[i].split(":")[0], Integer.parseInt(lbs[i].split(":")[1]), node, 5000 , heartbeatPeriod, executor);
 				clientControllers[i].startClient();
 			}
 		}

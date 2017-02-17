@@ -99,7 +99,7 @@ public class HttpServer implements IClientListener
 		node.getProperties().put(Protocol.HEARTBEAT_PORT, ""+heartbeatPort);
 		if(instanceId!=null)
 			node.getProperties().put("Restcomm-Instance-Id", instanceId);
-		clientController = new ClientController(this, lbAddress, lbPort, node, 2000 , heartbeatPeriod, executor);
+		clientController = new ClientController(this, lbAddress, lbPort, node, 5000 , heartbeatPeriod, executor);
 		clientController.startClient();
 		
 			
