@@ -116,7 +116,7 @@
 		<repository>
 			<id>mobicents-public-repository-group</id>
 			<name>Mobicens Public Maven Repository Group</name>
-			<url>https://oss.sonatype.org/content/groups/public</url>
+			<url>http://oss.sonatype.org/content/groups/public</url>
 			<layout>default</layout>
 			<releases>
 				<enabled>true</enabled>
