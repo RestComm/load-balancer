@@ -21,9 +21,10 @@
 	<url>https://github.com/Restcomm/load-balancer</url>
 
 	<modules>
-		<module>docs</module>
+		
 		<module>heartbeat</module>
 		<module>jar</module>
+		<module>docs</module>
 	</modules>
 <!--
 	<profiles>
