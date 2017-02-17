@@ -59,6 +59,7 @@ public class Client implements IClient{
 	
 	private ExecutorService executor;
 	private ClientBootstrap clientBootstrap;
+	private NioClientSocketChannelFactory nioClientSocketChannelFactory;
 	private ChannelFuture future;
 
 	private String lbAddress;
@@ -86,7 +87,8 @@ public class Client implements IClient{
 	@Override
 	public void start()
 	{
-		this.clientBootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(executor, executor));
+		this.nioClientSocketChannelFactory = new NioClientSocketChannelFactory(executor, executor);
+		this.clientBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
 		this.clientBootstrap.setPipelineFactory(new ClientPipelineFactory(clientListener));
 		this.isa = new InetSocketAddress(lbAddress, lbPort);
 	}
@@ -105,7 +107,7 @@ public class Client implements IClient{
 	@Override
 	public synchronized void sendPacket(String command)
 	{
-		if(clientBootstrap!=null)
+		if(clientBootstrap!=null&&!executor.isShutdown())
 		{
 			
 			future = clientBootstrap.connect(isa);
@@ -137,8 +139,12 @@ public class Client implements IClient{
 	@Override
 	public void stop() 
 	{
+		
 		if(executor==null) return;
-		executor.shutdownNow();
+			executor.shutdownNow();
+		if(clientBootstrap!=null)
+			clientBootstrap.shutdown();
+		nioClientSocketChannelFactory.shutdown();
 	}
 	
 	private String getStringFromJson(String packetType, Packet packet)

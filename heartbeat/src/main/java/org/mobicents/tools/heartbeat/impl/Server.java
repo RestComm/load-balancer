@@ -119,6 +119,10 @@ public class Server implements IServer{
 		}
 		if(executor!=null)
 			executor.shutdownNow();
+		serverBootstrap.shutdown();
+		nioServerSocketChannelFactory.shutdown();
+		if(nioClientSocketChannelFactory!=null)
+		 nioClientSocketChannelFactory.shutdown();
 	}
 	
 	private String getStringFromJson(String command)

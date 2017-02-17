@@ -70,7 +70,7 @@ public class AppServer implements IClientListener{
 	Node node;
 	public boolean sendHeartbeat = true;
 	private Gson gson = new Gson();
-	
+	NioServerSocketChannelFactory nioServerSocketChannelFactory;
 	String lbAddress;
 	int lbRMIport;
 	int lbSIPext;
@@ -176,8 +176,8 @@ public class AppServer implements IClientListener{
 		node.getProperties().put(Protocol.VERSION, version);
 		node.getProperties().put(Protocol.SESSION_ID, ""+System.currentTimeMillis());
 		node.getProperties().put(Protocol.HEARTBEAT_PORT, ""+heartbeatPort);
-		
-		serverBootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(executor, executor));
+		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor, executor);
+		serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		serverBootstrap.setPipelineFactory(new ServerPipelineFactory(this));
 		serverChannel = serverBootstrap.bind(new InetSocketAddress(node.getIp(), heartbeatPort));
 		
@@ -222,7 +222,7 @@ public class AppServer implements IClientListener{
 		serverChannel.unbind();
 		serverChannel.close();
 		serverChannel.getCloseFuture().awaitUninterruptibly();
-		
+		nioServerSocketChannelFactory.shutdown();
 		isFirstStart = false;
 
 		if(protocolObjects != null)
