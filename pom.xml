@@ -21,12 +21,11 @@
 	<url>https://github.com/Restcomm/load-balancer</url>
 
 	<modules>
-		
 		<module>heartbeat</module>
 		<module>jar</module>
-		<module>docs</module>
+		<!--<module>docs</module>-->
 	</modules>
-<!--
+
 	<profiles>
 		<profile>
 			<id>maven-release</id>
@@ -35,7 +34,7 @@
 			</modules>
 		</profile>
 	</profiles>
--->
+
 	<scm>
 		<connection>scm:git:git@github.com:Restcomm/load-balancer.git</connection>
 		<developerConnection>scm:git:git@github.com:Restcomm/load-balancer.git</developerConnection>

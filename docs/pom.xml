@@ -22,9 +22,11 @@
 	<profiles>
 		<profile>
 			<id>all</id>
+			<!--
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
+			-->
 			<modules>
 				<module>sources-asciidoc</module>
 				<!--module>sources-mobicents</module>
