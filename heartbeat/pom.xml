@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.mobicents.tools</groupId>
     <artifactId>sip-balancer</artifactId>
-    <version>9.0.0-SNAPSHOT</version>
+    <version>9.0.180</version>
   </parent>
   
   <artifactId>heartbeat</artifactId>
