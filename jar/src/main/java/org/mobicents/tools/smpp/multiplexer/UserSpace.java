@@ -35,6 +35,7 @@ public class UserSpace {
 	private ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToServers;
 	private InvocationContext ctx = null;
 	private ScheduledFuture<?> reconnectionSchedule = null;
+	private MBinderRunnable reconnectTask = null;
 	
 	private Node [] nodes;
 	private Long serverSessionID = new Long(0);
@@ -303,17 +304,22 @@ public class UserSpace {
 	public void connectionLost(Long serverSessionID)
 	{
 		//set all connected customers to rebinding state and trying to reconnect
+		if(logger.isDebugEnabled())
+			logger.debug("LB will start rebind task with period : " + reconnectPeriod);
+		
 		if(connectionsToServers.size() == 1)
 			for(Long key:customers.keySet())
 				customers.get(key).reconnectState(true);
 		
 		MClientConnectionImpl connection = connectionsToServers.get(serverSessionID);
 		connectionsToServers.remove(serverSessionID);
-		reconnectionSchedule = monitorExecutor.scheduleAtFixedRate(new MBinderRunnable(connection, systemId, password, systemType), reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
+		reconnectTask = new MBinderRunnable(connection, systemId, password, systemType);
+		reconnectionSchedule = monitorExecutor.scheduleAtFixedRate(reconnectTask, reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
 	}
 	
 	public void reconnectSuccesful(Long serverSessionID, MClientConnectionImpl connection)
 	{
+		reconnectTask.cancel();
 		reconnectionSchedule.cancel(true);
 		for(Long key:customers.keySet())
 			customers.get(key).reconnectState(false);

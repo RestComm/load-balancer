@@ -108,6 +108,7 @@ public class MClientConnectionImpl implements ClientConnection{
     private long timeoutConnectionCheckServerSide;
     private long timeoutConnectionCheckClientSide;
     
+    private ChannelFuture channelFuture = null;
     private long lastTimeSMPPLinkUpdated = System.currentTimeMillis();
     
 	public SmppSessionConfiguration getConfig() {
@@ -150,7 +151,14 @@ public class MClientConnectionImpl implements ClientConnection{
 
 	@Override
 	public Boolean connect() {
-		ChannelFuture channelFuture = null;
+		if(channelFuture!=null&&channelFuture.getChannel().isConnected())
+		{
+			//if(logger.isDebugEnabled())
+				logger.info("LB trying to connect to server but connection is already established so we disconnect it"
+						+ "channel is: " + channelFuture.getChannel().getRemoteAddress().toString());
+			channelFuture.getChannel().disconnect();
+		}
+
 		try 
 		{
 			if(logger.isDebugEnabled())
@@ -331,6 +339,7 @@ public class MClientConnectionImpl implements ClientConnection{
 				
 				enquireRunnable.cancel();			
 				enquireTimer.cancel(false);
+				connectionCheckServerSideTimer.cancel(false);
 				
 				correctPacket = true;
 				response=new ServerTimerResponse(this ,packet);
@@ -357,7 +366,8 @@ public class MClientConnectionImpl implements ClientConnection{
 				{
 					if(logger.isDebugEnabled())
 						logger.debug("Connection reconnected to client " + channel.getRemoteAddress().toString() + ". client session ID : " + serverSessionID);
-					
+					updateLastTimeSMPPLinkUpdated();
+					connectionCheckServerSideTimer = monitorExecutor.scheduleAtFixedRate(connectionCheck,timeoutConnection, timeoutConnection,TimeUnit.MILLISECONDS);
 					if(enquireTimer!=null)
 					{
 						enquireRunnable.cancel();			
@@ -410,6 +420,8 @@ public class MClientConnectionImpl implements ClientConnection{
 	{		
 		enquireRunnable.cancel();			
 		enquireTimer.cancel(false);
+		connectionCheck.cancel();
+		connectionCheckServerSideTimer.cancel(false);
 		
 		Integer currSequence=lastSequenceNumberSent.incrementAndGet();
 		sequenceMap.put(currSequence, packet.getSequenceNumber());
@@ -515,18 +527,26 @@ public class MClientConnectionImpl implements ClientConnection{
 
 	@Override
 	public void rebind() {
-		if(logger.isDebugEnabled())
-			logger.debug("LB tried to rebind to client " + channel.getRemoteAddress().toString() + ". client session ID : " + serverSessionID);
+		if(clientState != ClientState.REBINDING)
+		{
+			if(logger.isDebugEnabled())
+				logger.debug("LB tried to rebind to client " + channel.getRemoteAddress().toString() + ". client session ID : " + serverSessionID + " client state is : " + clientState);
 		
-		if(enquireRunnable != null) {
-			enquireRunnable.cancel();	
-		}
-		if(enquireTimer != null) {
-			enquireTimer.cancel(false);
-		}
+			if(enquireRunnable != null) {
+				enquireRunnable.cancel();	
+			}
+			if(enquireTimer != null) {
+				enquireTimer.cancel(false);
+			}
+			connectionCheckServerSideTimer.cancel(false);
 		
-		clientState = ClientState.REBINDING;		
-		userSpace.connectionLost(serverSessionID);
+			clientState = ClientState.REBINDING;		
+			userSpace.connectionLost(serverSessionID);
+		}else
+		{
+			if(logger.isDebugEnabled())
+				logger.debug("Skip start rebind task as it is started and LB in state " + clientState);
+		}
 	}
 
 	@Override
@@ -580,6 +600,7 @@ public class MClientConnectionImpl implements ClientConnection{
 	@Override
 	public void closeChannel() 
 	{
+		connectionCheck.cancel();
 		connectionCheckServerSideTimer.cancel(false);
 		if(enquireTimer!=null)
 		{
@@ -636,6 +657,8 @@ public class MClientConnectionImpl implements ClientConnection{
 				//remove client form userspase and close connection to client
 				enquireRunnable.cancel();
 				enquireTimer.cancel(false);
+				connectionCheck.cancel();
+				connectionCheckServerSideTimer.cancel(false);
 	//			connectionCheckRunnable.cancel();
 	//			connectionCheckTimer.cancel(false);
 	//			userSpace.getCustomers().remove(serverSessionID);

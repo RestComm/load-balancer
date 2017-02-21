@@ -36,6 +36,7 @@ public class MBinderRunnable implements Runnable {
 	private String password;
 	private String systemType;
 	private boolean isUseSsl;
+	private boolean cancelled = false;
 	
 	public MBinderRunnable(MClientConnectionImpl connection, String systemId, String password, String systemType)
 	{
@@ -49,16 +50,24 @@ public class MBinderRunnable implements Runnable {
 	}
 
 	@Override
-	public void run() {			
-		SmppSessionConfiguration config = client.getConfig();
-		config.setName("Loadbalancer");
-		config.setHost(node.getIp());
-		config.setPort(Integer.parseInt(node.getProperties().get("smppPort").toString()));
-		config.setSystemId(systemId);
-		config.setPassword(password);
-		config.setSystemType(systemType);
-		config.setUseSsl(isUseSsl);
-		if (client.connect()) 
-			client.bind();	
+	public void run() {
+		if(!cancelled)
+		{
+			SmppSessionConfiguration config = client.getConfig();
+			config.setName("Loadbalancer");
+			config.setHost(node.getIp());
+			config.setPort(Integer.parseInt(node.getProperties().get("smppPort").toString()));
+			config.setSystemId(systemId);
+			config.setPassword(password);
+			config.setSystemType(systemType);
+			config.setUseSsl(isUseSsl);
+			if (client.connect()) 
+				client.bind();
+		}
+	}
+	
+	public void cancel() 
+	{
+		this.cancelled=true;
 	}
 }
