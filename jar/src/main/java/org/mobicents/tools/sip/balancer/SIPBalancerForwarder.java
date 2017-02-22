@@ -740,7 +740,8 @@ public class SIPBalancerForwarder implements SipListener {
         	if(logger.isDebugEnabled()) {
          		logger.debug("headerKey " + headerKey);
          	}
-        	ctx.balancerAlgorithm.assignToNode(headerKey, hints.serverAssignedNode);
+        	if(!request.getMethod().equalsIgnoreCase(Request.ACK))
+        		ctx.balancerAlgorithm.assignToNode(headerKey, hints.serverAssignedNode);
             if(logger.isDebugEnabled()) {
                 logger.debug("Following node information has been found in one of the route Headers " + hints.serverAssignedNode);
             }

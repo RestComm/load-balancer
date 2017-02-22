@@ -415,8 +415,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 	
 	@Override
 	public void assignToNode(String id, Node node) {
-//		userToMap.put(id, node);
-//		headerToTimestamps.put(id, System.currentTimeMillis());
+		userToMap.put(id, node);
+		headerToTimestamps.put(id, System.currentTimeMillis());
 	}
 	
 	@Override
