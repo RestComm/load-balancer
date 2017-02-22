@@ -1870,27 +1870,7 @@ public class SIPBalancerForwarder implements SipListener {
             response.removeFirst(ViaHeader.NAME);
         }
         
-        //removes rport and received from last Via header because of NEXMO patches it
-        if(balancerRunner.balancerContext.isUseWithNexmo)
-        {
-        	viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
-        	if(viaHeader!=null) 
-        	{
-        		if(logger.isDebugEnabled())
-        			logger.debug("We are going to remove rport and received parametres from :" + viaHeader);
-        		response.removeFirst(ViaHeader.NAME);
-        		viaHeader.removeParameter("rport");
-        		viaHeader.removeParameter("received");
-			
-        		try {
-        			response.addFirst(viaHeader);
-        		} catch (NullPointerException | SipException e) {
-        			e.printStackTrace();
-        		}
-        		if(logger.isDebugEnabled())
-        			logger.debug("After removing :" + response);
-        	}
-        }
+       
         
         boolean fromServer = false;
         if(balancerRunner.balancerContext.isTwoEntrypoints()) {
@@ -1910,6 +1890,27 @@ public class SIPBalancerForwarder implements SipListener {
             if(logger.isDebugEnabled()) {
     			logger.debug("fromServer : "+ fromServer + ", senderNode " + senderNode);
     		}
+        }
+        //removes rport and received from last Via header because of NEXMO patches it
+        if(balancerRunner.balancerContext.isUseWithNexmo&&!fromServer)
+        {
+        	viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
+        	if(viaHeader!=null) 
+        	{
+        		if(logger.isDebugEnabled())
+        			logger.debug("We are going to remove rport and received parametres from :" + viaHeader + " from external response");
+        		response.removeFirst(ViaHeader.NAME);
+        		viaHeader.removeParameter("rport");
+        		viaHeader.removeParameter("received");
+			
+        		try {
+        			response.addFirst(viaHeader);
+        		} catch (NullPointerException | SipException e) {
+        			e.printStackTrace();
+        		}
+        		if(logger.isDebugEnabled())
+        			logger.debug("After removing :" + response);
+        	}
         }
 
         if(fromServer) {
