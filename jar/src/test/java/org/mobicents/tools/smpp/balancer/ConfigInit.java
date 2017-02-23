@@ -210,5 +210,25 @@ public class ConfigInit {
 		submit.setShortMessage(textBytes);
         return submit;
 	}
+
+	public static LoadBalancerConfiguration getLbPropertiesWithOneServer() {
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		//sip property
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
+		//smpp property
+		lbConfig.getSmppConfiguration().setSmppHost("127.0.0.1");
+		lbConfig.getSmppConfiguration().setSmppPort(2776);
+		lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021");
+		lbConfig.getSmppConfiguration().setDefaultSessionCountersEnabled(true);
+		lbConfig.getSmppConfiguration().setTimeoutResponse(1000);
+		lbConfig.getSmppConfiguration().setTimeoutConnection(1000);
+		lbConfig.getSmppConfiguration().setTimeoutEnquire(20000);
+		lbConfig.getSmppConfiguration().setReconnectPeriod(500);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckClientSide(2000);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckServerSide(2000);
+		lbConfig.getSmppConfiguration().setSmppToNodeAlgorithmClass(SmppToNodeSubmitToAllAlgorithm.class.getName());
+		return lbConfig;
+	}
 	
 }

@@ -151,6 +151,7 @@ public class MClientConnectionImpl implements ClientConnection{
 
 	@Override
 	public Boolean connect() {
+		//prevent create connection if it's already established https://github.com/RestComm/load-balancer/issues/95
 		if(channelFuture!=null&&channelFuture.getChannel().isConnected())
 		{
 			//if(logger.isDebugEnabled())
@@ -527,6 +528,7 @@ public class MClientConnectionImpl implements ClientConnection{
 
 	@Override
 	public void rebind() {
+		//prevent starting multiple reconnection tasks https://github.com/RestComm/load-balancer/issues/95
 		if(clientState != ClientState.REBINDING)
 		{
 			if(logger.isDebugEnabled())
