@@ -23,11 +23,13 @@
 package org.mobicents.tools.sip.balancer.operation;
 
 import gov.nist.javax.sip.ListeningPointExt;
+import gov.nist.javax.sip.header.From;
 import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
 
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.Properties;
 import java.util.Random;
 import java.util.TimerTask;
@@ -54,6 +56,7 @@ import javax.sip.TransactionUnavailableException;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
+import javax.sip.address.URI;
 import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
@@ -164,9 +167,27 @@ public class Shootist implements SipListener {
     		contactHeader = headerFactory.createContactHeader(addressFactory.createAddress("sip:here@" + localIPAddress + ":" + localPort));
     		response.addHeader(contactHeader);
     		dialog = stx.getDialog();
-    		stx.sendResponse(response );
+    		//check removing incorrect patching last via https://github.com/RestComm/load-balancer/issues/97
+    		FromHeader fromHeader = (FromHeader)response.getHeader(From.NAME);
+    		URI currUri = fromHeader.getAddress().getURI();
+    		String fromUser = null;
+    		if(currUri.isSipURI())
+    		{
+    			fromUser = ((SipURI)currUri).getUser();
+    			if(fromUser.equals("senderToNexmo"))
+    			{
+    				ViaHeader lastViaHeader = null;
+    				ListIterator<ViaHeader> it = response.getHeaders(ViaHeader.NAME);
+    				while(it.hasNext())
+    					lastViaHeader = it.next();
+    				lastViaHeader.setReceived("127.0.0.2");
+    				lastViaHeader.setParameter("rport", "1111");
+    				
+    			}	
+    		}
+    		stx.sendResponse(response);
     		try {
-				Thread.sleep(4000);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
