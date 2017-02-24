@@ -477,10 +477,14 @@ public class Shootist implements SipListener {
             // Create ViaHeaders
 
             ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
-            String ipAddress = listeningPoint.getIPAddress();
-            ViaHeader viaHeader = headerFactory.createViaHeader(ipAddress,
-                    sipProvider.getListeningPoint(transport).getPort(),
-                    transport, null);
+            
+            String ipAddress = null;
+            
+            if(fromUser.equals("KostyaNosach"))
+            	ipAddress = "127.0.0.2";
+            else
+            	ipAddress = listeningPoint.getIPAddress();
+            ViaHeader viaHeader = headerFactory.createViaHeader(ipAddress,sipProvider.getListeningPoint(transport).getPort(), transport, null);
 
             // add via headers
             viaHeaders.add(viaHeader);
