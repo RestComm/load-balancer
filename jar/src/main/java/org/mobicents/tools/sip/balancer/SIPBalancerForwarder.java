@@ -1892,6 +1892,7 @@ public class SIPBalancerForwarder implements SipListener {
     		}
         }
         //removes rport and received from last Via header because of NEXMO patches it
+        //only for external responses
         if(balancerRunner.balancerContext.isUseWithNexmo&&!fromServer)
         {
         	viaHeader = (ViaHeader) response.getHeader(ViaHeader.NAME);
