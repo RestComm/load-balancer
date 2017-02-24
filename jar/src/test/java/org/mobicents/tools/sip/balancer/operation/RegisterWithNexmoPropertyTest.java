@@ -37,8 +37,6 @@ import org.mobicents.tools.sip.balancer.EventListener;
 import org.mobicents.tools.sip.balancer.UserBasedAlgorithm;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
-import com.sun.mail.iap.Response;
-
 public class RegisterWithNexmoPropertyTest {
 	
 	BalancerRunner balancer;
