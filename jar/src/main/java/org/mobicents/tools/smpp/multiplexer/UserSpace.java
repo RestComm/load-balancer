@@ -90,6 +90,11 @@ public class UserSpace {
 
 	void bindSuccesfull(Node node)
 	{
+		if(reconnectionSchedule!=null&&!reconnectionSchedule.isCancelled())
+		{
+			reconnectTask.cancel();
+			reconnectionSchedule.cancel(true);
+		}
 		
 		bindState.set(BINDSTATE.BOUND);
 		
@@ -113,10 +118,14 @@ public class UserSpace {
 		if(logger.isDebugEnabled())
 			logger.debug("Bind failed to server with serverSessionId : " + serverSessionID);
 		//in case no new customer set state to INITIAL
-		if(packet.getCommandStatus()!=SmppConstants.STATUS_INVPASWD)
+		if(packet.getCommandStatus()!=SmppConstants.STATUS_INVPASWD&&packet.getCommandStatus()!=SmppConstants.STATUS_INVSYSID)
 		{
 			//in case its not password try to reinint
-				monitorExecutor.execute(new MBinderRunnable(clientConnection, systemId, password, systemType));
+			if(reconnectionSchedule==null||reconnectionSchedule.isCancelled())
+			{
+				reconnectTask = new MBinderRunnable(clientConnection, systemId, password, systemType);
+				reconnectionSchedule = monitorExecutor.scheduleAtFixedRate(reconnectTask, reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
+			}
 		}
 		else
 		{

@@ -19,10 +19,13 @@
 
 package org.mobicents.tools.smpp.balancer;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
+import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppServerHandler;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
@@ -31,7 +34,10 @@ import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
+import com.cloudhopper.smpp.type.RecoverablePduException;
+import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppProcessingException;
+import com.cloudhopper.smpp.type.UnrecoverablePduException;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
@@ -41,9 +47,12 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
 	
 	private static final Logger logger = Logger.getLogger(DefaultSmppServerHandler.class);
 
+	CopyOnWriteArrayList<Long> invalidPasswordUsers = new CopyOnWriteArrayList<Long>();
+	CopyOnWriteArrayList<Long> errorUsers = new CopyOnWriteArrayList<Long>();
 	int smsNumber;
 	AtomicInteger enqLinkNumber = new AtomicInteger(0);
 	AtomicInteger responsesFromClient = new AtomicInteger(0);
+	String validPassword = "password";
     public AtomicInteger getEnqLinkNumber() {
 		return enqLinkNumber;
 	}
@@ -65,12 +74,36 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
 	@SuppressWarnings("rawtypes")
 	public void sessionBindRequested(Long sessionId, SmppSessionConfiguration sessionConfiguration, final BaseBind bindRequest) throws SmppProcessingException 
 	{
-        sessionConfiguration.setName("Application.SMPP." + sessionConfiguration.getSystemId());
+        if(sessionConfiguration.getPassword().equals("PasswordForSomeErrors"))
+        	errorUsers.addIfAbsent(sessionId);
+        else if(!sessionConfiguration.getPassword().equals(validPassword))
+        	invalidPasswordUsers.addIfAbsent(sessionId);
      }
 
     public void sessionCreated(Long sessionId, SmppServerSession session, BaseBindResp preparedBindResponse) throws SmppProcessingException 
     {
-        session.serverReady(new TestSmppSessionHandler());
+    	if(invalidPasswordUsers.contains(sessionId))
+    	{
+    		preparedBindResponse.setCommandStatus(SmppConstants.STATUS_INVPASWD);
+    		try {
+				session.sendResponsePdu(preparedBindResponse);
+			} catch (RecoverablePduException | UnrecoverablePduException | SmppChannelException | InterruptedException e) {
+				logger.error("Exception : " + e);
+			}
+    	}
+    	else if (errorUsers.contains(sessionId))
+    	{
+    		preparedBindResponse.setCommandStatus(SmppConstants.STATUS_INVDSTADR);
+    		try {
+				session.sendResponsePdu(preparedBindResponse);
+			} catch (RecoverablePduException | UnrecoverablePduException | SmppChannelException | InterruptedException e) {
+				logger.error("Exception : " + e);
+			}
+    	}
+    	else
+    	{
+    		session.serverReady(new TestSmppSessionHandler());
+    	}
      }
 
     public void sessionDestroyed(Long sessionId, SmppServerSession session) 
