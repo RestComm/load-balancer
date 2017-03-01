@@ -16,20 +16,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.interfaces;
+package org.mobicents.tools.heartbeat.api;
 
-import org.jboss.netty.channel.MessageEvent;
-import com.google.gson.JsonObject;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-public interface IServerListener extends IListener{
+public class NodeStopRequestPacket implements Packet{
 
-	void responseReceived(JsonObject json);
-	void startRequestReceived(MessageEvent e, JsonObject json);
-	void heartbeatRequestReceived(MessageEvent e, JsonObject json);
-	void shutdownRequestReceived(MessageEvent e, JsonObject json);
-	void stopRequestReceived(MessageEvent e, JsonObject json);
-	void switchoverRequestReceived(MessageEvent e, JsonObject asJsonObject);
+	private Long sessionId;
+
+	public NodeStopRequestPacket(Node node)
+	{
+		this.sessionId = Long.parseLong(node.getProperties().get(Protocol.SESSION_ID));
+	}
+	
+	public NodeStopRequestPacket(SIPNode sipNode)
+	{
+		this.sessionId = Long.parseLong((String)sipNode.getProperties().get(Protocol.SESSION_ID));
+	}
+
+	public Long getSessionId() {
+		return sessionId;
+	}
+
+	public void setSessionId(Long sessionId) {
+		this.sessionId = sessionId;
+	}
 	
 }

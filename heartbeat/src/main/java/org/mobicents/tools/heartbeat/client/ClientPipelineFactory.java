@@ -24,7 +24,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpResponseDecoder;
-import org.mobicents.tools.heartbeat.interfaces.IListener;
+import org.mobicents.tools.heartbeat.api.IListener;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */

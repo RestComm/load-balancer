@@ -18,7 +18,7 @@
  */
 package org.mobicents.tools.heartbeat.interfaces;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */

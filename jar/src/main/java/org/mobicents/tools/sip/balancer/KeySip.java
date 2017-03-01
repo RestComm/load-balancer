@@ -3,7 +3,7 @@ package org.mobicents.tools.sip.balancer;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 public class KeySip {
 	

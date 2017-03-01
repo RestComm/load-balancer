@@ -42,8 +42,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
-import org.mobicents.tools.heartbeat.impl.Node;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
+import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Protocol;
 
 /**
  * @author <A HREF="mailto:yukinobu.imai@gmail.com">Yukinobu Imai</A> 

@@ -16,20 +16,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.packets;
+package org.mobicents.tools.heartbeat.api;
 
-import org.mobicents.tools.heartbeat.impl.Node;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
+
+
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-public class NodeStopRequestPacket implements Packet{
+public class HeartbeatRequestPacket implements Packet{
 
 	private Long sessionId;
 
-	public NodeStopRequestPacket(Node node)
+	public HeartbeatRequestPacket(Node node)
 	{
 		this.sessionId = Long.parseLong(node.getProperties().get(Protocol.SESSION_ID));
+	}
+	public HeartbeatRequestPacket(SIPNode sipNode)
+	{
+		this.sessionId = Long.parseLong((String)sipNode.getProperties().get(Protocol.SESSION_ID));
 	}
 
 	public Long getSessionId() {
@@ -39,5 +43,4 @@ public class NodeStopRequestPacket implements Packet{
 	public void setSessionId(Long sessionId) {
 		this.sessionId = sessionId;
 	}
-	
 }

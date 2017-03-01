@@ -3,7 +3,7 @@ package org.mobicents.tools.heartbeat;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 public class Helper {
 

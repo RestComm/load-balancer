@@ -16,12 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.packets;
+package org.mobicents.tools.heartbeat.api;
 
 import java.util.Iterator;
 
-import org.mobicents.tools.heartbeat.impl.Node;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
@@ -72,6 +70,41 @@ public class StartRequestPacket implements Packet{
             	case Protocol.RESTCOMM_INSTANCE_ID: restcommInstanceId = node.getProperties().get(key);
 				                break;
             	case Protocol.HEARTBEAT_PORT: heartbeatPort = node.getProperties().get(key);
+								break;
+			}
+		}
+	}
+	public StartRequestPacket(SIPNode sipNode)
+	{
+		this.hostName = sipNode.getHostName();
+		this.ip = sipNode.getIp();
+		Iterator<String> keyIterator = sipNode.getProperties().keySet().iterator();
+		while(keyIterator.hasNext()) 
+		{
+			String key = keyIterator.next();
+			switch (key) 
+			{
+            	case Protocol.HTTP_PORT: httpPort = ((Integer)sipNode.getProperties().get(key)).toString();
+                     			 break;
+            	case Protocol.SSL_PORT: sslPort = ((Integer)sipNode.getProperties().get(key)).toString();
+                				break;
+            	case Protocol.UDP_PORT: udpPort = ((Integer)sipNode.getProperties().get(key)).toString();
+                				break;
+            	case Protocol.TCP_PORT: tcpPort = ((Integer)sipNode.getProperties().get(key)).toString();
+                				break;
+            	case Protocol.TLS_PORT: tlsPort = ((Integer)sipNode.getProperties().get(key)).toString();
+                				break;
+            	case Protocol.WS_PORT: wsPort = ((Integer)sipNode.getProperties().get(key)).toString();
+                			   break;
+            	case Protocol.WSS_PORT: wssPort = ((Integer)sipNode.getProperties().get(key)).toString();
+                				break;
+            	case Protocol.VERSION: version = (String) sipNode.getProperties().get(key);
+                				break;
+            	case Protocol.SESSION_ID: sessionId = (String)sipNode.getProperties().get(key);
+								break;
+            	case Protocol.RESTCOMM_INSTANCE_ID: restcommInstanceId = (String) sipNode.getProperties().get(key);
+				                break;
+            	case Protocol.HEARTBEAT_PORT: heartbeatPort = ((Integer)sipNode.getProperties().get(key)).toString();
 								break;
 			}
 		}

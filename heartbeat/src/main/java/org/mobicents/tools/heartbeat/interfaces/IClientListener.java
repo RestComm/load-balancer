@@ -19,6 +19,7 @@
 package org.mobicents.tools.heartbeat.interfaces;
 
 import org.jboss.netty.channel.MessageEvent;
+import org.mobicents.tools.heartbeat.api.IListener;
 
 import com.google.gson.JsonObject;
 /**

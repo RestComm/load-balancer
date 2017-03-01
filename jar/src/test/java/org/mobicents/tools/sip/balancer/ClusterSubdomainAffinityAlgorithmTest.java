@@ -33,7 +33,7 @@ import javax.sip.message.Request;
 
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 
 public class ClusterSubdomainAffinityAlgorithmTest{

@@ -29,7 +29,7 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * The BalancerAlgortihm interface exposes the methods implemented by decision making algorithms

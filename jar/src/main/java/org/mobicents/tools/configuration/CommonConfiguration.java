@@ -1,5 +1,10 @@
 package org.mobicents.tools.configuration;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.mobicents.tools.heartbeat.impl.ServerController;
+
 public class CommonConfiguration {
     
     public static final String HOST = "127.0.0.1";
@@ -8,11 +13,12 @@ public class CommonConfiguration {
     public static final Integer HARDBEAT_INTERVAL = 150;
     public static final Integer STATISTIC_PORT = 2006;
     public static final Integer SHUTDOWN_TIMEOUT = 10000;
-    public static final Integer HEARTBEAT_PORT = 2610;
+    public static final String HEARTBEAT_PORT = "2610";
     public static final String CACHE_CONFIGURATION = null;
     public static final Boolean SECURITY_REQUIRED = false;
     public static final String LOGIN = null;
     public static final String PASSWORD = null;
+    public static final String NODE_PROTOCOL_CLASS_NAME = ServerController.class.getCanonicalName();
     
     private String host;
     private String ipv6Host;
@@ -20,11 +26,12 @@ public class CommonConfiguration {
     private Integer heartbeatInterval;
     private Integer statisticPort;
     private Integer shutdownTimeout;
-    private Integer heartbeatPort;
+    private List <Integer> heartbeatPorts;
     private String cacheConfiguration;
     private Boolean securityRequired;
     private String login;
     private String password;
+    private String nodeCommunicationProtocolClassName;
 
     public CommonConfiguration() 
     {
@@ -34,11 +41,12 @@ public class CommonConfiguration {
         this.heartbeatInterval = HARDBEAT_INTERVAL;
         this.statisticPort = STATISTIC_PORT;
         this.shutdownTimeout = SHUTDOWN_TIMEOUT;
-        this.heartbeatPort = HEARTBEAT_PORT;
+        this.heartbeatPorts = new ArrayList<>();
         this.cacheConfiguration = CACHE_CONFIGURATION;
         this.securityRequired = SECURITY_REQUIRED;
         this.login = LOGIN;
         this.password = PASSWORD;
+        this.nodeCommunicationProtocolClassName = NODE_PROTOCOL_CLASS_NAME;
     }
 
     public String getHost() 
@@ -102,12 +110,12 @@ public class CommonConfiguration {
 		this.shutdownTimeout = shutdownTimeout;
 	}
 
-	public Integer getHeartbeatPort() {
-		return heartbeatPort;
+	public List<Integer> getHeartbeatPorts() {
+		return heartbeatPorts;
 	}
 
-	public void setHeartbeatPort(Integer heartbeatPort) {
-		this.heartbeatPort = heartbeatPort;
+	public void setHeartbeatPorts(List<Integer> heartbeatPorts) {
+		this.heartbeatPorts = heartbeatPorts;
 	}
 
 	public String getCacheConfiguration() {
@@ -140,6 +148,14 @@ public class CommonConfiguration {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public String getNodeCommunicationProtocolClassName() {
+		return nodeCommunicationProtocolClassName;
+	}
+
+	public void setNodeCommunicationProtocolClassName(String nodeCommunicationProtocolClassName) {
+		this.nodeCommunicationProtocolClassName = nodeCommunicationProtocolClassName;
 	}
 	
 }

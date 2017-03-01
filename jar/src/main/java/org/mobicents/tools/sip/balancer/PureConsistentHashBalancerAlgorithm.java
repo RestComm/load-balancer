@@ -36,7 +36,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 import javax.sip.message.Request;
 

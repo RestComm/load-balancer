@@ -25,9 +25,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.MessageEvent;
+import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.interfaces.IClient;
 import org.mobicents.tools.heartbeat.interfaces.IClientListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
 
 import com.google.gson.JsonObject;
 /**

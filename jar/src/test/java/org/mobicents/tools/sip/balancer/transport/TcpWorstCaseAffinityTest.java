@@ -27,6 +27,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+
 import javax.sip.ListeningPoint;
 import javax.sip.address.SipURI;
 import javax.sip.header.RecordRouteHeader;
@@ -35,16 +37,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.rmi.ServerControllerRmi;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
+import org.mobicents.tools.sip.balancer.AppServerWithRmi;
 import org.mobicents.tools.sip.balancer.WorstCaseUdpTestAffinityAlgorithm;
+import org.mobicents.tools.sip.balancer.operation.Helper;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 public class TcpWorstCaseAffinityTest{
 	BalancerRunner balancer;
 	int numNodes = 2;
-	AppServer[] servers = new AppServer[numNodes];
+	AppServer[] servers = new AppServerWithRmi[numNodes];
 	Shootist shootist;
 	static AppServer invite;
 	static AppServer ack;
@@ -61,11 +66,16 @@ public class TcpWorstCaseAffinityTest{
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(WorstCaseUdpTestAffinityAlgorithm.class.getName());
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setEarlyDialogWorstCase(true);
+		lbConfig.getCommonConfiguration().setNodeCommunicationProtocolClassName(ServerControllerRmi.class.getName());
+		ArrayList <Integer> heartbeatPorts = new ArrayList<>();
+		heartbeatPorts.add(2000);
+		heartbeatPorts.add(2001);
+		lbConfig.getCommonConfiguration().setHeartbeatPorts(heartbeatPorts);
 		balancer.start(lbConfig);
 		
 		
 		for(int q=0;q<servers.length;q++) {
-			servers[q] = new AppServer("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, 2222+q);			
+			servers[q] = new AppServerWithRmi("node" + q,4060+q , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP);
 			servers[q].start();		
 		}
 		
@@ -82,7 +92,7 @@ public class TcpWorstCaseAffinityTest{
 	}
 
 	@Test
-	public void testInviteAckLandOnDifferentNodes() throws Exception {
+	public void testInviteAckLandOnDifferentNodes() {
 		EventListener failureEventListener = new EventListener() {
 
 			@Override
@@ -121,7 +131,7 @@ public class TcpWorstCaseAffinityTest{
 		
 		shootist.callerSendsBye = true;
 		shootist.sendInitialInvite();
-		Thread.sleep(15000);
+		Helper.sleep(15000);
 		assertNotNull(invite);
 		assertNotNull(ack);
 		assertEquals(ack, invite);
@@ -129,7 +139,7 @@ public class TcpWorstCaseAffinityTest{
 	}
 	
 	@Test
-	public void testOKRingingLandOnDifferentNodes() throws Exception {
+	public void testOKRingingLandOnDifferentNodes(){
 		
 		EventListener failureEventListener = new EventListener() {
 			
@@ -166,6 +176,8 @@ public class TcpWorstCaseAffinityTest{
 		
 		String fromName = "sender";
 		String fromHost = "sip-servlets.com";
+		try
+		{
 		SipURI fromAddress = servers[0].protocolObjects.addressFactory.createSipURI(
 				fromName, fromHost);
 				
@@ -184,9 +196,12 @@ public class TcpWorstCaseAffinityTest{
 		route.setTransportParam(ListeningPoint.TCP);
 		route.setLrParam();
 		shootist.start();
-		//servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, null, false);
 		servers[0].sipListener.sendSipRequest("INVITE", fromAddress, toAddress, null, route, false, null, null, ruri);
-		Thread.sleep(16000);
+		}catch(Exception e)
+		{
+			System.err.print("Exception : " + e);
+		}
+		Helper.sleep(5000);
 		assertTrue(shootist.inviteRequest.getHeader(RecordRouteHeader.NAME).toString().contains("node_host"));
 		assertNotSame(ringingAppServer, okAppServer);
 		assertNotNull(ringingAppServer);

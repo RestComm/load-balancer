@@ -63,7 +63,9 @@ public class SprayingLoadBalancersWithNoInternalPortTest {
 		loadbalancers += "127.0.0.1:"+heartbeatPort;
 		if(id < balancers.length-1)
 			loadbalancers+=",";
-		lbConfig.getCommonConfiguration().setHeartbeatPort(heartbeatPort);
+		ArrayList <Integer> heartbeatPorts = new ArrayList<>();
+		heartbeatPorts.add(heartbeatPort);
+		lbConfig.getCommonConfiguration().setHeartbeatPorts(heartbeatPorts);
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder" + id);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setHost("127.0.0.1");
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(null);

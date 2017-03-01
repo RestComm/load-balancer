@@ -18,27 +18,33 @@
  */
 package org.mobicents.tools.heartbeat.impl;
 
+import java.net.InetAddress;
+
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.MessageEvent;
+import org.mobicents.tools.heartbeat.api.IServerHeartbeatService;
+import org.mobicents.tools.heartbeat.api.IServerListener;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.interfaces.IServer;
-import org.mobicents.tools.heartbeat.interfaces.IServerListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
 
 import com.google.gson.JsonObject;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-public class ServerController implements IServerListener{
+public class ServerController implements IServerListener,IServerHeartbeatService{
 
 	private static final Logger logger = Logger.getLogger(ServerController.class.getCanonicalName());
 	
 	private IServerListener listener;
 	private IServer server;
 	
-	public ServerController(IServerListener listener, String serverAddress, int serverPort)
+	public ServerController()
 	{
-		this.listener = listener;
-		this.server = new Server(this, serverAddress, serverPort);
+	}
+	public void init(IServerListener listener, InetAddress serverAddress, Integer ... serverPorts)
+	{
+		this.listener = (IServerListener) listener;
+		this.server = new Server(this, serverAddress, serverPorts[0]);
 	}
 	
 	public void startServer()

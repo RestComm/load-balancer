@@ -25,7 +25,7 @@ package org.mobicents.tools.sip.balancer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.smpp.multiplexer.DefaultSmppAlgorithm;
 import org.mobicents.tools.smpp.multiplexer.MServerConnectionImpl;
 

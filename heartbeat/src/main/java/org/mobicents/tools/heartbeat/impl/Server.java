@@ -20,6 +20,7 @@ package org.mobicents.tools.heartbeat.impl;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.util.concurrent.ExecutorService;
@@ -39,11 +40,11 @@ import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.mobicents.tools.heartbeat.api.IListener;
+import org.mobicents.tools.heartbeat.api.Packet;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.client.ClientPipelineFactory;
-import org.mobicents.tools.heartbeat.interfaces.IListener;
 import org.mobicents.tools.heartbeat.interfaces.IServer;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
-import org.mobicents.tools.heartbeat.packets.Packet;
 import org.mobicents.tools.heartbeat.packets.LBShutdownRequestPacket;
 import org.mobicents.tools.heartbeat.server.ServerPipelineFactory;
 
@@ -67,16 +68,16 @@ public class Server implements IServer{
 	private NioClientSocketChannelFactory nioClientSocketChannelFactory;
 	private ClientBootstrap clientBootstrap;
 	
-	private String lbAddress;
+	private InetAddress lbAddress;
 	private int lbPort;
 	private Packet packet;
 	
 	IListener serverListener;
 	
-	public Server(IListener serverListener, String lbAddress, int httpPort)
+	public Server(IListener serverListener, InetAddress serverAddress, int httpPort)
 	{
 		this.serverListener = serverListener;
-		this.lbAddress = lbAddress;
+		this.lbAddress = serverAddress;
 		this.lbPort = httpPort;
 	}
 	
@@ -101,7 +102,7 @@ public class Server implements IServer{
 		switch(command)
 		{
 			case Protocol.STOP:
-				packet = new LBShutdownRequestPacket(lbAddress, lbPort);
+				packet = new LBShutdownRequestPacket(lbAddress.getHostAddress(), lbPort);
 				break;
 		}
 		future.awaitUninterruptibly();

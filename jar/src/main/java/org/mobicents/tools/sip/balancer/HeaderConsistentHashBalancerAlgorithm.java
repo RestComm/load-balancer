@@ -42,7 +42,7 @@ import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(HeaderConsistentHashBalancerAlgorithm.class.getName());

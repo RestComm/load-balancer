@@ -33,7 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;

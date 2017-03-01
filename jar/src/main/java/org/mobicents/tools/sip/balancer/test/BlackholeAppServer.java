@@ -36,7 +36,7 @@ import java.util.TimerTask;
 
 import javax.sip.SipProvider;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.NodeRegisterRMIStub;
 
 public class BlackholeAppServer {

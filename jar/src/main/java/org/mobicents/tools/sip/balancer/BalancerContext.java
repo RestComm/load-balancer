@@ -45,7 +45,7 @@ import javax.sip.message.MessageFactory;
 
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 import com.cloudhopper.smpp.SmppConstants;
 
@@ -64,6 +64,7 @@ public class BalancerContext {
 	public String algorithmClassName;
 	public String smppToNodeAlgorithmClassName;
 	public String smppToProviderAlgorithmClassName;
+	public String nodeCommunicationProtocolClassName;
 	
 	public boolean securityRequired;
 	public String login;

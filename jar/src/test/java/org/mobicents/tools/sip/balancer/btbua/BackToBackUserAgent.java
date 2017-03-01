@@ -37,10 +37,10 @@ import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.jboss.netty.channel.MessageEvent;
+import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.impl.ClientController;
-import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.heartbeat.interfaces.IClientListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
 import org.mobicents.tools.sip.balancer.ProtocolObjects;
 
 import com.google.gson.JsonObject;

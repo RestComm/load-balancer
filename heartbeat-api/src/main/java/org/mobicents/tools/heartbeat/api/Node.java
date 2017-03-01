@@ -16,12 +16,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.impl;
+package org.mobicents.tools.heartbeat.api;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

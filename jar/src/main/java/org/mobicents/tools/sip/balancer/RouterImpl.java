@@ -35,7 +35,7 @@ import javax.sip.address.Router;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * @deprecated

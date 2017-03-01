@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 import javax.sip.ListeningPoint;
 import javax.sip.message.Request;

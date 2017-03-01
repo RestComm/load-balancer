@@ -22,7 +22,7 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 public class RouteHeaderHints {
 	public Node serverAssignedNode;

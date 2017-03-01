@@ -22,7 +22,7 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * If your algorthm return an instance of this class the load balancer will not forward the request anywhere.

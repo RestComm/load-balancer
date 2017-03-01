@@ -20,7 +20,7 @@
 package org.mobicents.tools.smpp.multiplexer;
 
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 

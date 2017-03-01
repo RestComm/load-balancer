@@ -16,10 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.packets;
+package org.mobicents.tools.heartbeat.api;
 
-import org.mobicents.tools.heartbeat.impl.Node;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
@@ -30,6 +28,10 @@ public class NodeShutdownRequestPacket implements Packet{
 	public NodeShutdownRequestPacket(Node node)
 	{
 		this.sessionId = Long.parseLong(node.getProperties().get(Protocol.SESSION_ID));
+	}
+	public NodeShutdownRequestPacket(SIPNode sipNode)
+	{
+		this.sessionId = Long.parseLong((String) sipNode.getProperties().get(Protocol.SESSION_ID));
 	}
 
 	public Long getSessionId() {

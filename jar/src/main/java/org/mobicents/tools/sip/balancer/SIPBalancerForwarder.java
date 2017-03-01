@@ -91,7 +91,7 @@ import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * A transaction stateful UDP Forwarder that listens at a port and forwards to multiple

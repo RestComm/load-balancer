@@ -21,7 +21,7 @@ package org.mobicents.tools.smpp.multiplexer;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.KeySmpp;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
 

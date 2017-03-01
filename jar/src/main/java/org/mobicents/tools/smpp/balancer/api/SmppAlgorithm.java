@@ -20,7 +20,7 @@ package org.mobicents.tools.smpp.balancer.api;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl;
 import org.mobicents.tools.smpp.multiplexer.MServerConnectionImpl;
 

@@ -24,7 +24,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.util.HashMap;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * Instances of this class represent Application Server nodes that do not participate in the hearbeats

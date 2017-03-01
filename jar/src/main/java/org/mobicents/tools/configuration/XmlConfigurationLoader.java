@@ -74,12 +74,21 @@ public class XmlConfigurationLoader{
         dst.setStatisticPort(src.getInteger("statisticPort", CommonConfiguration.STATISTIC_PORT));
         if(src.getString("shutdownTimeout") != null && !src.getString("shutdownTimeout").equals(""))
         	dst.setShutdownTimeout(src.getInteger("shutdownTimeout", CommonConfiguration.SHUTDOWN_TIMEOUT));
-        	dst.setHeartbeatPort(src.getInteger("heartbeatPort", CommonConfiguration.HEARTBEAT_PORT));
+        String heartbeatPorts = src.getString("heartbeatPorts", CommonConfiguration.HEARTBEAT_PORT);
+        if(heartbeatPorts != null) {
+        	List<Integer> heartbeatPortsList = new ArrayList<Integer>();
+        	StringTokenizer tokens = new StringTokenizer(heartbeatPorts, ",");
+        	while (tokens.hasMoreTokens()) {
+				String token = tokens.nextToken();
+				heartbeatPortsList.add(Integer.parseInt(token));
+			}
+        	dst.setHeartbeatPorts(heartbeatPortsList);
+        }
         dst.setCacheConfiguration(src.getString("cacheConfiguration",CommonConfiguration.CACHE_CONFIGURATION));
         dst.setSecurityRequired(src.getBoolean("securityRequired", CommonConfiguration.SECURITY_REQUIRED));
         dst.setLogin(src.getString("login", CommonConfiguration.LOGIN));
         dst.setPassword(src.getString("password", CommonConfiguration.PASSWORD));
-        
+        dst.setNodeCommunicationProtocolClassName(src.getString("nodeCommunicationProtocolClassName", CommonConfiguration.NODE_PROTOCOL_CLASS_NAME));
     }
 
     private static void configureSip(HierarchicalConfiguration<ImmutableNode> src, SipConfiguration dst) {

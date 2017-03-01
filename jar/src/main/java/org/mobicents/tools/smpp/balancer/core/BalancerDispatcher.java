@@ -27,7 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.KeySmpp;

@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 
 /**

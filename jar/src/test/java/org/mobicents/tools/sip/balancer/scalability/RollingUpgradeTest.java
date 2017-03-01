@@ -29,6 +29,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.sip.ListeningPoint;
 import javax.sip.SipException;
@@ -65,7 +66,9 @@ public class RollingUpgradeTest{
 		loadbalancers += "127.0.0.1:"+heartbeatPort;
 		if(id < balancers.length-1)
 			loadbalancers+=",";
-		lbConfig.getCommonConfiguration().setHeartbeatPort(heartbeatPort);
+		ArrayList <Integer> heartbeatPorts = new ArrayList<>();
+		heartbeatPorts.add(heartbeatPort);
+		lbConfig.getCommonConfiguration().setHeartbeatPorts(heartbeatPorts);
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder" + id);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setHost("127.0.0.1");
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setHost("127.0.0.1");

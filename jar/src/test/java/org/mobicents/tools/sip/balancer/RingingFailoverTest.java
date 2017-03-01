@@ -30,7 +30,7 @@ import javax.sip.SipFactory;
 import javax.sip.message.Response;
 
 import org.junit.Test;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.BalancerContext;
 import org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm;
 import org.mobicents.tools.smpp.multiplexer.SmppToNodeRoundRobinAlgorithm;

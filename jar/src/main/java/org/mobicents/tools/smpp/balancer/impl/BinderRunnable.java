@@ -22,7 +22,7 @@ package org.mobicents.tools.smpp.balancer.impl;
 import java.util.ArrayList;
 import java.util.Map;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.api.ServerConnection;

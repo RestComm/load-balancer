@@ -16,10 +16,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.packets;
+package org.mobicents.tools.heartbeat.rmi;
+
+import java.util.ArrayList;
+
+import org.mobicents.tools.heartbeat.api.Node;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-public interface Packet {
+public interface NodeRegister {
+	
+	public Node getNextNode() throws IndexOutOfBoundsException;
 
+	public Node stickSessionToNode(String callID, Node node);
+	
+	public Node getGluedNode(String callID);
+	
+	public Node[] getAllNodes();
+
+	public void unStickSessionFromNode(String callID);
+	
+	public void handlePingInRegister(ArrayList<Node> ping);
+	public void forceRemovalInRegister(ArrayList<Node> ping);
+
+	public boolean isNodePresent(String host, int port, String transportParam, String version);
+	
+	public Node getNode(String host, int port, String transportParam, String version);
+	
+	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute);
+	
+	public String getLatestVersion();
+	
 }

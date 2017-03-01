@@ -11,20 +11,17 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
-import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
-import org.mobicents.tools.heartbeat.interfaces.IServerListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
+import org.mobicents.tools.heartbeat.api.IServerListener;
+import org.mobicents.tools.heartbeat.api.Packet;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.packets.HeartbeatResponsePacket;
 import org.mobicents.tools.heartbeat.packets.ShutdownResponsePacket;
-import org.mobicents.tools.heartbeat.packets.Packet;
 import org.mobicents.tools.heartbeat.packets.StartResponsePacket;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 public class TestNodeRegister implements IServerListener {
@@ -34,7 +31,6 @@ public class TestNodeRegister implements IServerListener {
 	@Override
 	public void responseReceived(JsonObject json) 
 	{
-		//TODO
 		
 	}
 

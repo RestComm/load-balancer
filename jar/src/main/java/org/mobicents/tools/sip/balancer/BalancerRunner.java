@@ -28,6 +28,7 @@ import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import java.util.logging.LogManager;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -47,7 +49,7 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.configuration.XmlConfigurationLoader;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 import org.restcomm.commons.statistics.reporter.RestcommStatsReporter;
@@ -112,10 +114,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	public SmppBalancerRunner smppBalancerRunner;
 	public BalancerContext balancerContext = new BalancerContext();
 	
-	public String algorithClassName = null;
-	public String smppToNodeAlgorithClassName = null;
-	public String smppToProviderAlgorithClassName = null;
-
 	/**
 	 * @param args
 	 */
@@ -154,8 +152,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.error("Couldn't get the InetAddress from the host " + ipAddress, e);
 			return;
 		}
-		int heartbeatPort = -1;
-	    heartbeatPort = lbConfig.getCommonConfiguration().getHeartbeatPort();
+
+	    List<Integer> heartbeatPorts = lbConfig.getCommonConfiguration().getHeartbeatPorts();
+	    if(heartbeatPorts.isEmpty())
+	    	heartbeatPorts.add(2610);
 	    balancerContext.securityRequired = lbConfig.getCommonConfiguration().getSecurityRequired();
 	    if(balancerContext.securityRequired)
 	    {
@@ -163,20 +163,15 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	    	balancerContext.password = lbConfig.getCommonConfiguration().getPassword();
 	    }
 
-		this.algorithClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
-		balancerContext.algorithmClassName = this.algorithClassName;
+		balancerContext.algorithmClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
 		balancerContext.terminateTLSTraffic = lbConfig.getSslConfiguration().getTerminateTLSTraffic();
-		this.smppToProviderAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToProviderAlgorithmClass();
-		balancerContext.smppToProviderAlgorithmClassName = this.smppToProviderAlgorithClassName;
+		balancerContext.smppToProviderAlgorithmClassName = lbConfig.getSmppConfiguration().getSmppToProviderAlgorithmClass();
+		balancerContext.nodeCommunicationProtocolClassName = lbConfig.getCommonConfiguration().getNodeCommunicationProtocolClassName(); 
 		if(lbConfig.getSmppConfiguration().isMuxMode())
-		{
-			this.smppToNodeAlgorithClassName = lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
-			balancerContext.smppToNodeAlgorithmClassName = this.smppToNodeAlgorithClassName;
-		}
+			balancerContext.smppToNodeAlgorithmClassName = lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
 		balancerContext.shutdownTimeout = lbConfig.getCommonConfiguration().getShutdownTimeout();
 		
 		try {
-			
 			MBeanServer server = ManagementFactory.getPlatformMBeanServer();
 			RouterImpl.setRegister(reg);			
 
@@ -189,9 +184,9 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				logger.info("Heartbeat interval" + " = " + reg.getNodeExpirationTaskInterval());
 			}
 			if(logger.isDebugEnabled()) {
-                logger.debug("About to start registry nodes at : " + heartbeatPort);
+                logger.debug("About to start registry nodes at : " + heartbeatPorts);
             }
-			reg.startRegistry(ipAddress, heartbeatPort);
+			reg.startRegistry(heartbeatPorts.toArray(new Integer[heartbeatPorts.size()]));
 			if(logger.isDebugEnabled()) {
 				logger.debug("adding shutdown hook");
 			}
@@ -557,6 +552,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 //		}
 //	}
 	
+	@SuppressWarnings("restriction")
 	@Override
 	public double getJvmCpuUsage() 
 	{

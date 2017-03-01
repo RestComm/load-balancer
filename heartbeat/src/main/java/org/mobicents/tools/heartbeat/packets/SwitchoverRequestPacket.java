@@ -17,6 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 package org.mobicents.tools.heartbeat.packets;
+
+import org.mobicents.tools.heartbeat.api.Packet;
+
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */

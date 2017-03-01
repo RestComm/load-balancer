@@ -47,7 +47,7 @@ import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)

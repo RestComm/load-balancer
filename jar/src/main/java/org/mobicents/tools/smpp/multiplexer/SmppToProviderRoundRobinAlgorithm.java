@@ -23,7 +23,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.KeySmpp;
 
 import com.cloudhopper.smpp.pdu.Pdu;

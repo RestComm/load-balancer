@@ -16,29 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.packets;
-
-import org.mobicents.tools.heartbeat.impl.Node;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
-
-
+package org.mobicents.tools.heartbeat.api;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-public class HeartbeatRequestPacket implements Packet{
+public interface Packet {
 
-	private Long sessionId;
-
-	public HeartbeatRequestPacket(Node node)
-	{
-		this.sessionId = Long.parseLong(node.getProperties().get(Protocol.SESSION_ID));
-	}
-
-	public Long getSessionId() {
-		return sessionId;
-	}
-
-	public void setSessionId(Long sessionId) {
-		this.sessionId = sessionId;
-	}
 }

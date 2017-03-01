@@ -48,11 +48,11 @@ import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Packet;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.impl.ClientController;
-import org.mobicents.tools.heartbeat.impl.Node;
 import org.mobicents.tools.heartbeat.interfaces.IClientListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
-import org.mobicents.tools.heartbeat.packets.Packet;
 import org.mobicents.tools.heartbeat.packets.StopResponsePacket;
 import org.mobicents.tools.heartbeat.server.ServerPipelineFactory;
 
@@ -126,6 +126,9 @@ public class AppServer implements IClientListener{
 		this.isMediaFailure = isMediaFailure;
 	}
 	
+	public AppServer() {
+		// TODO Auto-generated constructor stub
+	}
 	public void setBalancers(String balancers) {
 		this.balancers = balancers;
 	}

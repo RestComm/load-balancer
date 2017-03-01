@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.smpp.multiplexer.MClientConnectionImpl.ClientState;
 
 import com.cloudhopper.smpp.pdu.Pdu;

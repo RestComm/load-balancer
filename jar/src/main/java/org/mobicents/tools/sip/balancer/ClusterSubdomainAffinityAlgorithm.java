@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 public class ClusterSubdomainAffinityAlgorithm extends CallIDAffinityBalancerAlgorithm {
 	private static Logger logger = Logger.getLogger(ClusterSubdomainAffinityAlgorithm.class.getCanonicalName());

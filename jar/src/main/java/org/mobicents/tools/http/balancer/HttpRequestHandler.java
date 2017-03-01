@@ -61,7 +61,7 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.GracefulShutdown;
 import org.mobicents.tools.sip.balancer.InvocationContext;

@@ -36,7 +36,7 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.internal.ConcurrentHashMap;
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.api.ClientConnection;
 import org.mobicents.tools.smpp.balancer.timers.ServerTimerConnectionCheck;

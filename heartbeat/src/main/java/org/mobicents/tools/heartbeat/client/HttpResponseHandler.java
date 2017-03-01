@@ -24,11 +24,11 @@ import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.mobicents.tools.heartbeat.api.IListener;
+import org.mobicents.tools.heartbeat.api.IServerListener;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.impl.ClientController;
 import org.mobicents.tools.heartbeat.interfaces.IClientListener;
-import org.mobicents.tools.heartbeat.interfaces.IListener;
-import org.mobicents.tools.heartbeat.interfaces.IServerListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

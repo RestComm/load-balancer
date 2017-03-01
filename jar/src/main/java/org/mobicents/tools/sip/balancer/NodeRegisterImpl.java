@@ -25,7 +25,6 @@ package org.mobicents.tools.sip.balancer;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -36,8 +35,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.sql.rowset.spi.SyncResolver;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
@@ -51,12 +48,13 @@ import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
-import org.mobicents.tools.heartbeat.impl.Node;
-import org.mobicents.tools.heartbeat.impl.ServerController;
-import org.mobicents.tools.heartbeat.interfaces.IServerListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
+import org.mobicents.tools.heartbeat.api.IListener;
+import org.mobicents.tools.heartbeat.api.IServerHeartbeatService;
+import org.mobicents.tools.heartbeat.api.IServerListener;
+import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Packet;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.packets.HeartbeatResponsePacket;
-import org.mobicents.tools.heartbeat.packets.Packet;
 import org.mobicents.tools.heartbeat.packets.ShutdownResponsePacket;
 import org.mobicents.tools.heartbeat.packets.StartResponsePacket;
 import org.mobicents.tools.heartbeat.packets.StopResponsePacket;
@@ -89,29 +87,36 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
     private String latestVersion = Integer.MIN_VALUE + "";
     
     BalancerRunner balancerRunner;
-    private ServerController serverController;
+    //private ServerController serverController;
+    private IServerHeartbeatService heartbeatService;
     private Gson gson = new Gson();
 
 
     public NodeRegisterImpl(InetAddress serverAddress) {
         super();
-        this.serverAddress = serverAddress;		
+        this.serverAddress = serverAddress;
     }
 
 
     /**
      * {@inheritDoc}
      */
-    public boolean startRegistry(String host, int heartbeatPort) {
+    public boolean startRegistry(Integer ... heartbeatPorts) {
     	
         if(logger.isInfoEnabled()) {
             logger.info("Node registry starting...");
         }
         try {
+        	try {
+    			Class<?> clazz = Class.forName(balancerRunner.balancerContext.nodeCommunicationProtocolClassName);
+    			heartbeatService = (IServerHeartbeatService) clazz.newInstance();
+    		} catch (Exception e) {
+    			throw new RuntimeException("Error loading the node communication protocol: " + balancerRunner.balancerContext.nodeCommunicationProtocolClassName, e);
+    		}
             balancerRunner.balancerContext.aliveNodes = new CopyOnWriteArrayList<Node>();
             balancerRunner.balancerContext.jvmRouteToSipNode = new ConcurrentHashMap<String, Node>();
-            serverController = new ServerController(this,host,heartbeatPort);
-        	serverController.startServer();
+            heartbeatService.init(this,serverAddress,heartbeatPorts);
+            heartbeatService.startServer();
             this.nodeExpirationTask = new NodeExpirationTimerTask();
             this.taskTimer.scheduleAtFixedRate(this.nodeExpirationTask, this.nodeInfoExpirationTaskInterval, this.nodeInfoExpirationTaskInterval);
             if(logger.isInfoEnabled()) {
@@ -138,15 +143,15 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
         	for(Entry<KeySip, Node> entry : ctxEntry.getValue().sipNodeMap(true).entrySet())
         	{
         		if(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)!=null)
-        			serverController.sendPacket(entry.getValue().getIp(),Integer.parseInt(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)));
+        			heartbeatService.sendPacket(entry.getValue().getIp(),Integer.parseInt(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)));
         	}
          	for(Entry<KeySip, Node> entry : ctxEntry.getValue().sipNodeMap(false).entrySet())
          	{
          		if(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)!=null)
-         			serverController.sendPacket(entry.getValue().getIp(),Integer.parseInt(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)));
+         			heartbeatService.sendPacket(entry.getValue().getIp(),Integer.parseInt(entry.getValue().getProperties().get(Protocol.HEARTBEAT_PORT)));
          	}
         }
-        serverController.stopServer();
+        heartbeatService.stopServer();
         boolean isDeregistered = true;
         boolean taskCancelled = nodeExpirationTask.cancel();
         if(logger.isInfoEnabled()) {
@@ -578,8 +583,9 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 	                    logger.info("New node added to map of nodes [" + node + "] ");
 	                }
             	}
-            }					
-		writeResponse(e, HttpResponseStatus.OK, Protocol.START, Protocol.OK);
+            }
+        if(e!=null)
+        	writeResponse(e, HttpResponseStatus.OK, Protocol.START, Protocol.OK);
 	}
 
 	@Override
@@ -608,7 +614,8 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 		{
 			logger.error("LB got heartbeat ( " + json + " ) from node which not pesent in maps"); 
 		}
-		writeResponse(e, HttpResponseStatus.OK, Protocol.HEARTBEAT, Protocol.OK);
+		if(e!=null)
+			writeResponse(e, HttpResponseStatus.OK, Protocol.HEARTBEAT, Protocol.OK);
 	}
 
 	@Override
@@ -639,7 +646,8 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 		{
 			logger.error("LB got shutdown request ( " + json + " ) from node which not pesent in maps");
 		}
-		writeResponse(e, HttpResponseStatus.OK, Protocol.SHUTDOWN, Protocol.OK);
+		if(e!=null)
+			writeResponse(e, HttpResponseStatus.OK, Protocol.SHUTDOWN, Protocol.OK);
 	}
 	
 	@Override
@@ -689,7 +697,8 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 			logger.error("LB got shutdown request ( " + json + " ) from node which not pesent in maps : " + 
 					balancerRunner.getLatestInvocationContext().sipNodeMap(isIpV6));
 		}
-		writeResponse(e, HttpResponseStatus.OK, Protocol.STOP, Protocol.OK);
+		if(e!=null)
+			writeResponse(e, HttpResponseStatus.OK, Protocol.STOP, Protocol.OK);
 		
 	}
 	

@@ -24,7 +24,7 @@ package org.mobicents.tools.sip.balancer;
 
 import java.util.ArrayList;
 
-import org.mobicents.tools.heartbeat.impl.Node;
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * <p>

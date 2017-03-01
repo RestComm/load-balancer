@@ -42,9 +42,10 @@ import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Packet;
+import org.mobicents.tools.heartbeat.api.Protocol;
 import org.mobicents.tools.heartbeat.interfaces.IClientListener;
-import org.mobicents.tools.heartbeat.interfaces.Protocol;
-import org.mobicents.tools.heartbeat.packets.Packet;
 import org.mobicents.tools.heartbeat.packets.StopResponsePacket;
 import org.mobicents.tools.heartbeat.server.ServerPipelineFactory;
 
