@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Level;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -450,7 +451,9 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     private void changeLogLevel(MessageEvent e)
     {
     	String logLevel = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("logLevel");
-    	Logger.getRootLogger().setLevel(Level.toLevel(logLevel));
+    	LogManager.getLogger("gov.nist").setLevel(Level.toLevel(logLevel));
+    	LogManager.getLogger("org.mobicents").setLevel(Level.toLevel(logLevel));
+    	LogManager.getRootLogger().setLevel(Level.toLevel(logLevel));
     }
     
     private boolean addRegex(MessageEvent e)
