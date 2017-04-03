@@ -1206,6 +1206,7 @@ public class SIPBalancerForwarder implements SipListener {
         }
         catch (SipException e) 
         {
+        	logger.error("Unexpected exception while forwarding the request \n" + request, e);
         	if(balancerRunner.balancerContext.isSend5xxResponse)
         		try {
         			Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.SERVICE_UNAVAILABLE, request);
