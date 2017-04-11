@@ -201,12 +201,12 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				request.setUri(url);
 				return instanceId;
 			}
-			else
-			{
-				url = url.replace("/"+tokens[6], "");
-				request.setUri(url);
-				return tokens[6];
-			}
+//			else
+//			{
+//				url = url.replace("/"+tokens[6], "");
+//				request.setUri(url);
+//				return tokens[6];
+//			}
 		}	
 		return null;
 	}
