@@ -204,6 +204,9 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
                 logger.debug("Request URI accessed: " + request.getUri() + " channel " + e.getChannel());
             }
 
+            if(HttpChannelAssociations.urlRewriteFilter!=null)
+            	HttpChannelAssociations.urlRewriteFilter.doFilter(request, e);
+
             Channel associatedChannel = HttpChannelAssociations.channels.get(e.getChannel());
 
             InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();

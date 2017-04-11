@@ -5,12 +5,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import org.apache.log4j.Logger;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class XmlConfigurationLoader{
     
@@ -34,7 +40,7 @@ public class XmlConfigurationLoader{
 
             // Overwrite default configurations
             configureCommon(xml.configurationAt("common"), configuration.getCommonConfiguration());
-            configureHttp(xml.configurationAt("http"), configuration.getHttpConfiguration());
+            configureHttp(xml, configuration.getHttpConfiguration());
             configureSmpp(xml.configurationAt("smpp"), configuration.getSmppConfiguration());
             configureSip(xml.configurationAt("sip"), configuration.getSipConfiguration());
             configureSsl(xml.configurationAt("ssl"), configuration.getSslConfiguration());
@@ -268,8 +274,9 @@ public class XmlConfigurationLoader{
         	in.setIpv6LoadBalancerWssPort(src.getInteger("internal.ipv6LoadBalancerWssPort",InternalLegConfiguration.IPV6_LOAD_BALANCER_WSS_PORT));
     }
 
-    private static void configureHttp(HierarchicalConfiguration<ImmutableNode> src, HttpConfiguration dst) 
+    private static void configureHttp(XMLConfiguration xml, HttpConfiguration dst) 
     {
+    	HierarchicalConfiguration<ImmutableNode> src = xml.configurationAt("http");
         // Basic HTTP configuration
     	if(!src.getString("httpPort").equals(""))
     		dst.setHttpPort(src.getInteger("httpPort", HttpConfiguration.HTTP_PORT));
@@ -280,6 +287,7 @@ public class XmlConfigurationLoader{
         	dst.setMaxContentLength(src.getInteger("maxContentLength",HttpConfiguration.MAX_CONTENT_LENT));
         	dst.setUnavailableHost(src.getString("unavailableHost", HttpConfiguration.UNAVAILABLE_HOST));
         }
+        setFilterConfig(xml, dst);
      }
 
     private static void configureSmpp(HierarchicalConfiguration<ImmutableNode> src, SmppConfiguration dst) 
@@ -326,5 +334,32 @@ public class XmlConfigurationLoader{
         }
 
         
+    }
+    
+    private static void setFilterConfig(XMLConfiguration xmlConfiguration, HttpConfiguration httpConfiguration)
+    {
+    	Document doc = xmlConfiguration.getDocument();
+        NodeList nodes = doc.getElementsByTagName("urlrewrite");
+        Node node = null;
+        for(int i = 0; i < nodes.getLength(); i++)
+        {
+        	if(nodes.item(i).getNodeName().equals("urlrewrite"))
+         		node = nodes.item(i);
+        }
+        if(node!=null)
+        {
+        	DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        	factory.setNamespaceAware(true);
+        	DocumentBuilder builder = null;
+        	try {
+        		builder = factory.newDocumentBuilder();
+        	} catch (ParserConfigurationException e) {
+        		e.printStackTrace();
+        	}
+        	Document urlRewriteRuleDocument = builder.newDocument();
+        	Node importedNode = urlRewriteRuleDocument.importNode(node, true);
+        	urlRewriteRuleDocument.appendChild(importedNode);
+        	httpConfiguration.setUrlrewriteRule(urlRewriteRuleDocument);
+        }
     }
 }

@@ -26,12 +26,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.mobicents.tools.http.urlrewriting.BalancerUrlRewriteFilter;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 
 /**
@@ -56,7 +58,15 @@ public class HttpBalancerForwarder {
 		HttpChannelAssociations.serverStatisticBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
 		HttpChannelAssociations.channels = new ConcurrentHashMap<Channel, Channel>();
-
+		if(balancerRunner.getConfiguration().getHttpConfiguration().getUrlrewriteRule()!=null)
+		{
+			HttpChannelAssociations.urlRewriteFilter = new BalancerUrlRewriteFilter();
+			try {
+				HttpChannelAssociations.urlRewriteFilter.init(balancerRunner);
+			} catch (ServletException e) {
+				throw new IllegalStateException("Can't init url filter due to [ " + e.getMessage()+ " ] ", e);
+			}
+		}
 		// https://telestax.atlassian.net/browse/LB-7 making the default port the same
 		Integer httpPort = 2080;
 		if(balancerRunner.balancerContext.lbConfig != null) 

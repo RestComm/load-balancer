@@ -62,9 +62,15 @@
 </sip>
 <http>
   <httpPort>2080</httpPort>
-  <httpsPort>2081</httpsPort>
+  <httpsPort></httpsPort>
   <maxContentLength>1048576</maxContentLength>
   <unavailableHost></unavailableHost>
+  <urlrewrite decode-using="utf-8">
+    <rule>
+        <from>someCompany</from>
+        <to>restcomm</to>
+    </rule>
+  </urlrewrite>
 </http>
 <smpp>
   <smppHost></smppHost>

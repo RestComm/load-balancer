@@ -1,5 +1,7 @@
 package org.mobicents.tools.configuration;
 
+import org.w3c.dom.Document;
+
 public class HttpConfiguration 
 {
 	public static final Integer HTTP_PORT = 2080;
@@ -11,6 +13,7 @@ public class HttpConfiguration
 	private Integer httpsPort;
 	private Integer maxContentLength;
 	private String unavailableHost;
+	private Document urlrewriteRule;
 	
 	 public HttpConfiguration() 
 	    {
@@ -59,5 +62,12 @@ public class HttpConfiguration
 	{
 		this.maxContentLength = maxContentLength;
 	}
-	
+
+	public Document getUrlrewriteRule() {
+		return urlrewriteRule;
+	}
+
+	public void setUrlrewriteRule(Document urlrewriteRule) {
+		this.urlrewriteRule = urlrewriteRule;
+	}
 }

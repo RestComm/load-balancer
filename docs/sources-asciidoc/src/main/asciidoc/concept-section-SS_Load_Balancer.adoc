@@ -155,6 +155,32 @@ Also HTTP load balancer can choose the next node by 'instanceId' which is got fr
 checks whether http request contains 'CallSID' parameter. If it does, the Load balancer gets 'instanceId' from it and checks whether 'instanceId' corresponds to 'instanceId'
 of nodes connected to the Load balancer. If the Load balancer finds the correspondence, it sends http request to this node.
 
+The load balancer can rewrite incoming HTTP requests. For enabling this feature
+you should change http section in config file of the Load balancer. You need to
+add section <urlrewrite> :
+
+  <http>
+    <httpPort>2080</httpPort>
+    <httpsPort>2081</httpsPort>
+    <maxContentLength>1048576</maxContentLength>
+    <urlrewrite decode-using="utf-8">
+      <rule>
+          <from>someCompany</from>
+          <to>restcomm</to>
+      </rule>
+    </urlrewrite>
+  </http>
+
+This rule will change all requests with “someCompany” string to “restcomm” for example:
+
+/someCompany/2012-04-24/Accounts/0/Calls/ID1f
+
+To
+
+/restcomm/2012-04-24/Accounts/0/Calls/ID1f
+
+More info about rules you can find link:http://tuckey.org/urlrewrite/manual/3.0/guide.html[here].
+
 == SMPP multiplexing basics
 
 === Modes of SMPP

@@ -29,15 +29,17 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.mobicents.tools.http.urlrewriting.BalancerUrlRewriteFilter;
 
 public class HttpChannelAssociations {
 	static Executor executor;
     static ServerBootstrap serverBootstrap;
     static ServerBootstrap serverSecureBootstrap;
-    public static ServerBootstrap serverStatisticBootstrap;
+    public static ServerBootstrap serverApiBootstrap;
     static ClientBootstrap inboundBootstrap;
     static ClientBootstrap inboundSecureBootstrap;
     static ConcurrentHashMap<Channel, Channel> channels;
-    public static Channel serverStatisticChannel;
+    public static Channel serverApiChannel;
+    static BalancerUrlRewriteFilter urlRewriteFilter;
 
 }
