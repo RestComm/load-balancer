@@ -21,6 +21,7 @@ package org.mobicents.tools.http.balancer;
 
 import static org.jboss.netty.channel.Channels.*;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLEngine;
@@ -31,6 +32,7 @@ import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.jboss.netty.handler.ssl.SslHandler;
+
 import com.cloudhopper.smpp.ssl.SslConfiguration;
 import com.cloudhopper.smpp.ssl.SslContextFactory;
 
@@ -43,11 +45,13 @@ public class TestHttpServerPipelineFactory implements ChannelPipelineFactory
 	private int maxContentLength = 1048576;
     private Boolean terminateTLSTraffic;
     private AtomicInteger requestCount;
+    private List <String> requests;
     
-    public TestHttpServerPipelineFactory(Boolean terminateTLSTraffic, AtomicInteger requestCount) 
+    public TestHttpServerPipelineFactory(Boolean terminateTLSTraffic, AtomicInteger requestCount,List <String> requests) 
     {
         this.terminateTLSTraffic = terminateTLSTraffic;
         this.requestCount = requestCount;
+        this.requests = requests;
     }
 
     public ChannelPipeline getPipeline() throws Exception 
@@ -72,7 +76,7 @@ public class TestHttpServerPipelineFactory implements ChannelPipelineFactory
         pipeline.addLast("encoder", new HttpResponseEncoder());
         // Remove the following line if you don't want automatic content compression.
         //pipeline.addLast("deflater", new HttpContentCompressor());
-        pipeline.addLast("handler", new HttpServerRequestHandler(requestCount));
+        pipeline.addLast("handler", new HttpServerRequestHandler(requestCount,requests));
         
 
         return pipeline;

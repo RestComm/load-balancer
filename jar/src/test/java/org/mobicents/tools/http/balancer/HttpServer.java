@@ -58,6 +58,7 @@ public class HttpServer implements IClientListener
 	private String lbAddress = "127.0.0.1";
 	private String instanceId;
 	public static int delta = 0;
+	private List <String> requests = new LinkedList<String>();
 	
 	ClientController clientController;
 	int lbPort = 2610;
@@ -83,11 +84,11 @@ public class HttpServer implements IClientListener
 		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor,	executor);	
 		
 		serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
-		serverBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(true, requestCount));
+		serverBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(true, requestCount,requests));
 		serverChannel = serverBootstrap.bind(new InetSocketAddress("127.0.0.1", httpPort));
 		
 		serverSecureBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
-		serverSecureBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(false, requestCount));
+		serverSecureBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(false, requestCount,requests));
 		serverSecureChannel = serverSecureBootstrap.bind(new InetSocketAddress("127.0.0.1", sslPort));
 		
 		//ping
@@ -141,6 +142,7 @@ public class HttpServer implements IClientListener
 	{
 		return requestCount;
 	}
+
 	@Override
 	public void responseReceived(JsonObject json) {
 		// TODO Auto-generated method stub
@@ -151,4 +153,8 @@ public class HttpServer implements IClientListener
 		// TODO Auto-generated method stub
 		
 	}
+	public List<String> getRequests() {
+		return requests;
+	}
+	
 }

@@ -21,6 +21,7 @@ package org.mobicents.tools.http.balancer;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -62,10 +63,12 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 	
 	private volatile boolean readingChunks;
 	private HttpRequest request;
+	private List <String> requests;
     
-	public HttpServerRequestHandler(AtomicInteger requestCount)
+	public HttpServerRequestHandler(AtomicInteger requestCount,List <String> requests)
 	{
 		this.requestCount = requestCount;
+		this.requests = requests;
 	}
 	
 
@@ -87,6 +90,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 	public void handle(ChannelHandlerContext ctx,MessageEvent e) throws IOException {
 		if (!readingChunks) {
             request = (HttpRequest) e.getMessage();
+            requests.add(request.getUri());
             if (request.isChunked())
             	readingChunks = true;
             else
