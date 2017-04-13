@@ -1145,6 +1145,25 @@ public class SIPBalancerForwarder implements SipListener {
 	                    }
 	                }
         		}
+        		else if(balancerRunner.balancerContext.internalTransport!=null) {
+        			// https://github.com/RestComm/load-balancer/issues/67
+        			// Patching the contact header for incoming requests so that requests coming out of nodes will use the non secure version
+        			ContactHeader contactHeader = (ContactHeader) request.getHeader(ContactHeader.NAME);
+	        		if (contactHeader != null) {
+	                    final URI contactURI = contactHeader.getAddress().getURI();
+	                    if(logger.isDebugEnabled()) {
+	        	            logger.debug("Patching the contact header " + contactURI + 
+	        	            		" so that requests coming out of nodes will use correct protocol");
+	        	        }
+	                    
+	                    if(contactURI instanceof SipUri) {
+	                    	((SipUri) contactURI).setTransportParam(outerTransport);
+	                    	logger.debug("new transport " + contactURI +
+	        	            		" so that requests coming out of nodes will use correct protocol");
+	                    }
+	                }
+        		}
+        		
         		if(logger.isDebugEnabled()) {
                     logger.debug("Sending the request:\n" + request);
                 }
