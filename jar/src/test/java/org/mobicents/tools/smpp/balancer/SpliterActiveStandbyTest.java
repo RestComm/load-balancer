@@ -163,7 +163,9 @@ public class SpliterActiveStandbyTest{
 			 {
 				 session.submit(ConfigInit.getSubmitSm(), 12000);
 				 if(i==1&&j==smsNumber/2-1)
-					 serverArray[0].stop();
+					 for(DefaultSmppServer serv : serverArray)
+						 if(serv.getBindRequested()!=0)
+							 serv.stop();
 			 }
 			 sleep(2000);
 		     session.unbind(5000);
