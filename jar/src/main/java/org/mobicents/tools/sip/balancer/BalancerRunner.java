@@ -49,7 +49,9 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.configuration.XmlConfigurationLoader;
+import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
 import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.impl.HeartbeatConfigHttp;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
 import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 import org.restcomm.commons.statistics.reporter.RestcommStatsReporter;
@@ -153,9 +155,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			return;
 		}
 
-	    List<Integer> heartbeatPorts = lbConfig.getCommonConfiguration().getHeartbeatPorts();
-	    if(heartbeatPorts.isEmpty())
-	    	heartbeatPorts.add(2610);
 	    balancerContext.securityRequired = lbConfig.getCommonConfiguration().getSecurityRequired();
 	    if(balancerContext.securityRequired)
 	    {
@@ -166,7 +165,6 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		balancerContext.algorithmClassName = lbConfig.getSipConfiguration().getAlgorithmConfiguration().getAlgorithmClass();
 		balancerContext.terminateTLSTraffic = lbConfig.getSslConfiguration().getTerminateTLSTraffic();
 		balancerContext.smppToProviderAlgorithmClassName = lbConfig.getSmppConfiguration().getSmppToProviderAlgorithmClass();
-		balancerContext.nodeCommunicationProtocolClassName = lbConfig.getCommonConfiguration().getNodeCommunicationProtocolClassName(); 
 		if(lbConfig.getSmppConfiguration().isMuxMode())
 			balancerContext.smppToNodeAlgorithmClassName = lbConfig.getSmppConfiguration().getSmppToNodeAlgorithmClass();
 		balancerContext.shutdownTimeout = lbConfig.getCommonConfiguration().getShutdownTimeout();
@@ -183,10 +181,20 @@ public class BalancerRunner implements BalancerRunnerMBean {
 				logger.info("Node timeout" + " = " + reg.getNodeExpiration());
 				logger.info("Heartbeat interval" + " = " + reg.getNodeExpirationTaskInterval());
 			}
+			
 			if(logger.isDebugEnabled()) {
-                logger.debug("About to start registry nodes at : " + heartbeatPorts);
+                logger.debug("LB will use next class for registry nodes : " + lbConfig.getHeartbeatConfigurationClass());
             }
-			reg.startRegistry(heartbeatPorts.toArray(new Integer[heartbeatPorts.size()]));
+			
+			HeartbeatConfig heartbeatConfig = lbConfig.getHeartbeatConfiguration();
+			if(heartbeatConfig ==null)
+			{
+				logger.warn("Configuration of heartbeat is not set, we will use http heartbeat protocol default values");
+				heartbeatConfig = new HeartbeatConfigHttp();
+			}
+			balancerContext.nodeCommunicationProtocolClassName = heartbeatConfig.getProtocolClassName();
+			reg.startRegistry(heartbeatConfig);
+				
 			if(logger.isDebugEnabled()) {
 				logger.debug("adding shutdown hook");
 			}

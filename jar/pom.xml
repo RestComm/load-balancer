@@ -96,18 +96,12 @@
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-log4j12</artifactId> 
 		    <version>1.5.6</version>		    
-	     </dependency>
-
-		<!--dependency> <groupId>com.sun.jdmk</groupId> <artifactId>jmxtools</artifactId> 
-			<version>1.2.1</version> <scope>system</scope> <systemPath>${basedir}/lib/jmxtools-1.2.1.jar 
-			</systemPath> <optional>true</optional> </dependency -->
-
+	    </dependency>
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-api</artifactId>
 			<version>${jain-sip-api.version}</version>
 		</dependency>
-
 		<dependency>
 			<groupId>javax.sip</groupId>
 			<artifactId>jain-sip-ri</artifactId>
@@ -123,49 +117,41 @@
 			<artifactId>ch-smpp</artifactId>
 			<version>5.0.8</version>
 		</dependency>
-		
 		<dependency>
 			<groupId>javax.ws.rs</groupId>
 			<artifactId>jsr311-api</artifactId>
 			<version>1.1.1</version>
 		</dependency>
-		
 		<dependency>
     			<groupId>com.sun.jersey</groupId>
     			<artifactId>jersey-client</artifactId>
     			<version>1.12</version>
 		</dependency>
-		
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 			<version>2.3.1</version>
 		</dependency>
-
 		<dependency>
     			<groupId>org.apache.commons</groupId>
     			<artifactId>commons-io</artifactId>
     			<version>1.3.2</version>
 		</dependency>
-		
 		<dependency>
 			<groupId>org.restcomm.commons</groupId>
 			<artifactId>restcomm-statistics</artifactId>
 			<version>${restcomm.commons.version}</version>
 		</dependency>
-		
 		<dependency>
 		    <groupId>io.dropwizard.metrics</groupId>
 		    <artifactId>metrics-core</artifactId>
 		    <version>${metrics.version}</version>
 		</dependency>
-
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-api</artifactId>
 		    <version>${slf4j.version}</version>
 		</dependency>
-
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-simple</artifactId>
@@ -200,9 +186,13 @@
     		<groupId>javax.servlet</groupId>
     		<artifactId>servlet-api</artifactId>
     		<version>2.5</version>
-		</dependency>
+        </dependency>
+        <dependency>
+            <groupId>org.mobicents.tools</groupId>
+            <artifactId>heartbeat-kube</artifactId>
+           	<version>9.0.0-SNAPSHOT</version>
+        </dependency>
 	</dependencies>
-
 	<build>
 		<resources>
 			<resource>

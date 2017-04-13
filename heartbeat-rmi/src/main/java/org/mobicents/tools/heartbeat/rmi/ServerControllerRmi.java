@@ -49,7 +49,7 @@ import com.google.gson.JsonParser;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-public class ServerControllerRmi implements IListener,IServerHeartbeatService {
+public class ServerControllerRmi implements IListener,IServerHeartbeatService<HeartbeatConfigRmi> {
 
 	private static Logger logger = Logger.getLogger(ServerControllerRmi.class.getCanonicalName());
 	private JsonParser parser = new JsonParser();
@@ -87,10 +87,9 @@ public class ServerControllerRmi implements IListener,IServerHeartbeatService {
 	}
 
 	@Override
-	public void init(IServerListener listener, InetAddress serverAddress, Integer ... rmiRegistryPorts) {
-		this.rmiRegistryPort = rmiRegistryPorts[0];
-		if(rmiRegistryPorts.length>1)
-			this.remoteObjectPort = rmiRegistryPorts[1];
+	public void init(IServerListener listener, InetAddress serverAddress, HeartbeatConfigRmi config) {
+		this.rmiRegistryPort = config.getRmiRegistryPort();
+		this.remoteObjectPort = config.getRmiRemoteObjectPort();
 		this.listener = listener;
 			try {
 				registry = LocateRegistry.createRegistry(rmiRegistryPort, null, new BindingAddressCorrectnessSocketFactory(serverAddress));

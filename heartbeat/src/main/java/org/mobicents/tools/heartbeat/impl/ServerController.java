@@ -31,7 +31,7 @@ import com.google.gson.JsonObject;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
-public class ServerController implements IServerListener,IServerHeartbeatService{
+public class ServerController implements IServerListener,IServerHeartbeatService<HeartbeatConfigHttp>{
 
 	private static final Logger logger = Logger.getLogger(ServerController.class.getCanonicalName());
 	
@@ -41,10 +41,10 @@ public class ServerController implements IServerListener,IServerHeartbeatService
 	public ServerController()
 	{
 	}
-	public void init(IServerListener listener, InetAddress serverAddress, Integer ... serverPorts)
+	public void init(IServerListener listener, InetAddress serverAddress, HeartbeatConfigHttp config)
 	{
 		this.listener = (IServerListener) listener;
-		this.server = new Server(this, serverAddress, serverPorts[0]);
+		this.server = new Server(this, serverAddress, config.getHeartbeatPort());
 	}
 	
 	public void startServer()

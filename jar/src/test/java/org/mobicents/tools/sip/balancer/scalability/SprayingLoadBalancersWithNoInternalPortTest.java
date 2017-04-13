@@ -36,6 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.impl.HeartbeatConfigHttp;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.EventListener;
@@ -63,9 +64,9 @@ public class SprayingLoadBalancersWithNoInternalPortTest {
 		loadbalancers += "127.0.0.1:"+heartbeatPort;
 		if(id < balancers.length-1)
 			loadbalancers+=",";
-		ArrayList <Integer> heartbeatPorts = new ArrayList<>();
-		heartbeatPorts.add(heartbeatPort);
-		lbConfig.getCommonConfiguration().setHeartbeatPorts(heartbeatPorts);
+		HeartbeatConfigHttp heartbeatConfig = new HeartbeatConfigHttp();
+		heartbeatConfig.setHeartbeatPort(heartbeatPort);
+		lbConfig.setHeartbeatConfiguration(heartbeatConfig);
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.sip.STACK_NAME", "SipBalancerForwarder" + id);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setHost("127.0.0.1");
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(null);

@@ -31,6 +31,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
+import org.mobicents.tools.heartbeat.rmi.HeartbeatConfigRmi;
 import org.mobicents.tools.heartbeat.rmi.ServerControllerRmi;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
@@ -58,11 +60,8 @@ public class NodeGracefulShutdownRmiTest{
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(UserBasedAlgorithm.class.getCanonicalName());
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setSipHeaderAffinityKey("To");
-		lbConfig.getCommonConfiguration().setNodeCommunicationProtocolClassName(ServerControllerRmi.class.getName());
-		ArrayList <Integer> heartbeatPorts = new ArrayList<>();
-		heartbeatPorts.add(2000);
-		heartbeatPorts.add(2001);
-		lbConfig.getCommonConfiguration().setHeartbeatPorts(heartbeatPorts);
+		HeartbeatConfig heartbeatConfig = new HeartbeatConfigRmi(); 
+		lbConfig.setHeartbeatConfiguration(heartbeatConfig);
 		balancer.start(lbConfig);
 		
 		for(int q=0;q<servers.length;q++) {

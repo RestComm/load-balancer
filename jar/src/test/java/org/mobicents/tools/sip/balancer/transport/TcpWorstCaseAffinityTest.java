@@ -37,6 +37,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
+import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
+import org.mobicents.tools.heartbeat.rmi.HeartbeatConfigRmi;
 import org.mobicents.tools.heartbeat.rmi.ServerControllerRmi;
 import org.mobicents.tools.sip.balancer.AppServer;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
@@ -66,11 +68,8 @@ public class TcpWorstCaseAffinityTest{
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setAlgorithmClass(WorstCaseUdpTestAffinityAlgorithm.class.getName());
 		lbConfig.getSipConfiguration().getAlgorithmConfiguration().setEarlyDialogWorstCase(true);
-		lbConfig.getCommonConfiguration().setNodeCommunicationProtocolClassName(ServerControllerRmi.class.getName());
-		ArrayList <Integer> heartbeatPorts = new ArrayList<>();
-		heartbeatPorts.add(2000);
-		heartbeatPorts.add(2001);
-		lbConfig.getCommonConfiguration().setHeartbeatPorts(heartbeatPorts);
+		HeartbeatConfig rmiConfig = new HeartbeatConfigRmi();
+		lbConfig.setHeartbeatConfiguration(rmiConfig);
 		balancer.start(lbConfig);
 		
 		

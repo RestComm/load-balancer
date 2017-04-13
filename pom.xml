@@ -24,6 +24,7 @@
 		<module>heartbeat-api</module>
 		<module>heartbeat</module>
 		<module>heartbeat-rmi</module>
+		<module>heartbeat-kube</module>
 		<module>jar</module>
 		<!--<module>docs</module>-->
 	</modules>

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<load-balancer-properties>
+<common>
+  <host>127.0.0.1</host>
+  <rmiRegistryPort>2000</rmiRegistryPort>
+  <rmiRemoteObjectPort>2001</rmiRemoteObjectPort>
+  <heartbeatPorts>2610</heartbeatPorts>
+  <nodeTimeout>8400</nodeTimeout>
+  <heartbeatInterval>150</heartbeatInterval>
+  <apiPort>2006</apiPort>
+  <jmxHtmlAdapterPort>8000</jmxHtmlAdapterPort>
+  <cacheConfigFile>/home/konstantinnosach/tmp/infinispan-cache.xml</cacheConfigFile>
+  
+  <securityRequired>true</securityRequired>
+  <login>daddy</login>
+  <password>123456</password>
+</common>
+<sip>
+  <publicIp></publicIp>
+  <isSendTrying>true</isSendTrying>
+  <useIpLoadBalancerAddressInViaHeaders>false</useIpLoadBalancerAddressInViaHeaders>
+  <performanceTestingMode>false</performanceTestingMode>
+  <extraServerNodes></extraServerNodes>
+  <isSend5xxResponse>false</isSend5xxResponse>
+  <isSend5xxResponseReasonHeader>Destination not available</isSend5xxResponseReasonHeader>
+  <isSend5xxResponseSatusCode>503</isSend5xxResponseSatusCode>
+  <responseStatusCodeNodeRemoval>503</responseStatusCodeNodeRemoval>
+  <responseReasonNodeRemoval>Unable to setup media services</responseReasonNodeRemoval>
+  <keepalivePeriod>1000</keepalivePeriod>
+  <responsesStatusCodeNodeRemoval></responsesStatusCodeNodeRemoval>
+  <algorithm>
+  <!--
+    <algorithmClass></algorithmClass>
+    <sipHeaderAffinityKey></sipHeaderAffinityKey>
+    <callIdAffinityGroupFailover>false</callIdAffinityGroupFailover>
+    <callIdAffinityMaxTimeInCache>0</callIdAffinityMaxTimeInCache>
+    <httpAffinityKey></httpAffinityKey>
+    <persistentConsistentHashCacheConfiguration></persistentConsistentHashCacheConfiguration>
+    <earlyDialogWorstCase>false</earlyDialogWorstCase>
+    <sipHeaderAffinityExclusionPattern></sipHeaderAffinityExclusionPattern>
+    <sipHeaderAffinityFallbackKey></sipHeaderAffinityFallbackKey>
+    -->
+   <algorithmClass>org.mobicents.tools.sip.balancer.UserBasedAlgorithm</algorithmClass>
+   <sipHeaderAffinityKey>From</sipHeaderAffinityKey>
+   <sipHeaderAffinityExclusionPattern>.*sip.nexmo.com</sipHeaderAffinityExclusionPattern>
+   <sipHeaderAffinityFallbackKey>Call-ID</sipHeaderAffinityFallbackKey>
+   <callIdAffinityGroupFailover>false</callIdAffinityGroupFailover>
+   <callIdAffinityMaxTimeInCache>14400</callIdAffinityMaxTimeInCache>
+   <httpAffinityKey></httpAffinityKey>
+   <persistentConsistentHashCacheConfiguration></persistentConsistentHashCacheConfiguration>
+   <earlyDialogWorstCase>false</earlyDialogWorstCase>
+  </algorithm>
+  <external>
+    <host>127.0.0.1</host>
+    <ipLoadBalancerAddress></ipLoadBalancerAddress>
+    <udpPort>5060</udpPort>
+    <tcpPort>5060</tcpPort>
+    <tlsPort></tlsPort>
+    <wsPort></wsPort>
+    <wssPort></wssPort>
+    <ipLoadBalancerUdpPort></ipLoadBalancerUdpPort>
+    <ipLoadBalancerTcpPort></ipLoadBalancerTcpPort>
+    <ipLoadBalancerTlsPort></ipLoadBalancerTlsPort>
+    <ipLoadBalancerWsPort></ipLoadBalancerWsPort>
+    <ipLoadBalancerWssPort></ipLoadBalancerWssPort>
+    <ipv6Host></ipv6Host>
+    <publicIpv6></publicIpv6>
+    <ipv6LoadBalancerAddress></ipv6LoadBalancerAddress>
+    <ipv6UdpPort></ipv6UdpPort>
+    <ipv6TcpPort></ipv6TcpPort>
+    <ipv6TlsPort></ipv6TlsPort>
+    <ipv6WsPort></ipv6WsPort>
+    <ipv6WssPort></ipv6WssPort>
+    <ipv6LoadBalancerUdpPort></ipv6LoadBalancerUdpPort>
+    <ipv6LoadBalancerTcpPort></ipv6LoadBalancerTcpPort>
+    <ipv6LoadBalancerTlsPort></ipv6LoadBalancerTlsPort>
+    <ipv6LoadBalancerWsPort></ipv6LoadBalancerWsPort>
+    <ipv6LoadBalancerWssPort></ipv6LoadBalancerWssPort>
+  </external>
+  <internal>
+    <host>127.0.0.1</host>
+    <ipLoadBalancerAddress></ipLoadBalancerAddress>
+    <udpPort>5065</udpPort>
+    <tcpPort>5065</tcpPort>
+    <tlsPort></tlsPort>
+    <wsPort></wsPort>
+    <wssPort></wssPort>
+    <ipLoadBalancerUdpPort></ipLoadBalancerUdpPort>
+    <ipLoadBalancerTcpPort></ipLoadBalancerTcpPort>
+    <ipLoadBalancerTlsPort></ipLoadBalancerTlsPort>
+    <ipLoadBalancerWsPort></ipLoadBalancerWsPort>
+    <ipLoadBalancerWssPort></ipLoadBalancerWssPort>
+    <ipv6Host></ipv6Host>
+    <publicIpv6></publicIpv6>
+    <ipv6LoadBalancerAddress></ipv6LoadBalancerAddress>
+    <ipv6UdpPort></ipv6UdpPort>
+    <ipv6TcpPort></ipv6TcpPort>
+    <ipv6TlsPort></ipv6TlsPort>
+    <ipv6WsPort></ipv6WsPort>
+    <ipv6WssPort></ipv6WssPort>
+    <ipv6LoadBalancerUdpPort></ipv6LoadBalancerUdpPort>
+    <ipv6LoadBalancerTcpPort></ipv6LoadBalancerTcpPort>
+    <ipv6LoadBalancerTlsPort></ipv6LoadBalancerTlsPort>
+    <ipv6LoadBalancerWsPort></ipv6LoadBalancerWsPort>
+    <ipv6LoadBalancerWssPort></ipv6LoadBalancerWssPort>    
+  </internal>
+</sip>
+<http>
+  <httpPort>2080</httpPort>
+  <httpsPort>2081</httpsPort>
+  <maxContentLength>1048576</maxContentLength>
+  <unavailableHost></unavailableHost>
+</http>
+<smpp>
+  <smppHost></smppHost>
+  <smppPort></smppPort>
+  <smppSslPort></smppSslPort>
+  <remoteServers></remoteServers>
+  <maxConnectionSize>10</maxConnectionSize>
+  <nonBlockingSocketsEnabled>true</nonBlockingSocketsEnabled>
+  <defaultSessionCountersEnabled>true</defaultSessionCountersEnabled>
+  <timeoutResponse>3000</timeoutResponse>
+  <timeoutConnection>1000</timeoutConnection>
+  <timeoutEnquire>5000</timeoutEnquire>
+  <reconnectPeriod>1000</reconnectPeriod>
+  <timeoutConnectionCheckClientSide>1000</timeoutConnectionCheckClientSide>
+  <timeoutConnectionCheckServerSide>1000</timeoutConnectionCheckServerSide>
+  <isUseRrSendSmppRequestToClient></isUseRrSendSmppRequestToClient>
+  
+</smpp>
+<ssl>
+  <terminateTLSTraffic>false</terminateTLSTraffic>
+  <keyStore></keyStore>
+  <keyStorePassword></keyStorePassword>
+  <trustStore></trustStore>
+  <trustStorePassword></trustStorePassword>
+  <tlsClientProtocols></tlsClientProtocols>
+  <enabledCipherSuites></enabledCipherSuites>
+</ssl>
+<sipStack>
+	<property>
+    	<key>javax.sip.STACK_NAME</key>
+		<value>SipBalancerForwarder</value>
+	</property>
+	<property>
+    	<key>javax.sip.AUTOMATIC_DIALOG_SUPPORT</key>
+		<value>off</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.TRACE_LEVEL</key>
+		<value>LOG4J</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.LOG_MESSAGE_CONTENT</key>
+		<value>false</value>
+	</property>
+		<property>
+    	<key>gov.nist.javax.sip.REENTRANT_LISTENER</key>
+		<value>false</value>
+	</property>
+	<property>
+    	<key>gov.nist.javax.sip.CANCEL_CLIENT_TRANSACTION_CHECKED</key>
+		<value>false</value>
+	</property>
+        <property>
+        <key>gov.nist.javax.sip.COMPACT_FORM_HEADER</key>
+                <value>false</value>
+        </property>
+</sipStack>
+<heartbeat configclass = "org.mobicents.tools.heartbeat.kube.HeartbeatConfigKube">
+    <heartbeatConfig>
+    	<ProtocolClassName>org.mobicents.tools.heartbeat.kube.ServerControllerKube</ProtocolClassName>
+        <nodeName>node</nodeName>
+        <pullPeriod>2000</pullPeriod>
+    </heartbeatConfig>
+</heartbeat>
+</load-balancer-properties>

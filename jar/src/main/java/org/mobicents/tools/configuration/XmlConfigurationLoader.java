@@ -9,11 +9,15 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.log4j.Logger;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
-import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.tree.ImmutableNode;
+import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -23,6 +27,7 @@ public class XmlConfigurationLoader{
     private static final Logger log = Logger.getLogger(XmlConfigurationLoader.class);
 
     private  final Configurations configurations;
+
 
     public XmlConfigurationLoader() {
         this.configurations = new Configurations();
@@ -34,17 +39,19 @@ public class XmlConfigurationLoader{
 
         // Read configuration from file
         XMLConfiguration xml;
+        
         try 
         {
             xml = this.configurations.xml(filepath);
-
+            
+            setHeartbeatConfig(configuration, xml);
             // Overwrite default configurations
             configureCommon(xml.configurationAt("common"), configuration.getCommonConfiguration());
             configureHttp(xml, configuration.getHttpConfiguration());
             configureSmpp(xml.configurationAt("smpp"), configuration.getSmppConfiguration());
             configureSip(xml.configurationAt("sip"), configuration.getSipConfiguration());
             configureSsl(xml.configurationAt("ssl"), configuration.getSslConfiguration());
-            configureSipStack(xml.configurationsAt("sipStack.property"), configuration.getSipStackConfiguration(), xml.configurationAt("ssl"));            
+            configureSipStack(xml.configurationsAt("sipStack.property"), configuration.getSipStackConfiguration(), xml.configurationAt("ssl"));
         } catch (ConfigurationException | IllegalArgumentException e) 
         {
             log.error("Could not load configuration from " + filepath + ". Using default values. Message : " + e.getMessage());
@@ -80,21 +87,11 @@ public class XmlConfigurationLoader{
         dst.setStatisticPort(src.getInteger("statisticPort", CommonConfiguration.STATISTIC_PORT));
         if(src.getString("shutdownTimeout") != null && !src.getString("shutdownTimeout").equals(""))
         	dst.setShutdownTimeout(src.getInteger("shutdownTimeout", CommonConfiguration.SHUTDOWN_TIMEOUT));
-        String heartbeatPorts = src.getString("heartbeatPorts", CommonConfiguration.HEARTBEAT_PORT);
-        if(heartbeatPorts != null) {
-        	List<Integer> heartbeatPortsList = new ArrayList<Integer>();
-        	StringTokenizer tokens = new StringTokenizer(heartbeatPorts, ",");
-        	while (tokens.hasMoreTokens()) {
-				String token = tokens.nextToken();
-				heartbeatPortsList.add(Integer.parseInt(token));
-			}
-        	dst.setHeartbeatPorts(heartbeatPortsList);
-        }
         dst.setCacheConfiguration(src.getString("cacheConfiguration",CommonConfiguration.CACHE_CONFIGURATION));
         dst.setSecurityRequired(src.getBoolean("securityRequired", CommonConfiguration.SECURITY_REQUIRED));
         dst.setLogin(src.getString("login", CommonConfiguration.LOGIN));
         dst.setPassword(src.getString("password", CommonConfiguration.PASSWORD));
-        dst.setNodeCommunicationProtocolClassName(src.getString("nodeCommunicationProtocolClassName", CommonConfiguration.NODE_PROTOCOL_CLASS_NAME));
+        dst.setCacheConfigFile(src.getString("cacheConfigFile",CommonConfiguration.CACHE_CONFIG_FILE));
     }
 
     private static void configureSip(HierarchicalConfiguration<ImmutableNode> src, SipConfiguration dst) {
@@ -361,5 +358,38 @@ public class XmlConfigurationLoader{
         	urlRewriteRuleDocument.appendChild(importedNode);
         	httpConfiguration.setUrlrewriteRule(urlRewriteRuleDocument);
         }
+    private void setHeartbeatConfig(LoadBalancerConfiguration lbConfiguration, XMLConfiguration xmlConfiguration)
+    {
+    	lbConfiguration.setHeartbeatConfigurationClass(xmlConfiguration.getString("heartbeat[@configclass]"));
+    	Document doc = xmlConfiguration.getDocument();
+        NodeList nodes = doc.getElementsByTagName("heartbeatConfig");
+        Node node = null;
+        int lentgth = nodes.getLength();
+        for(int i = 0; i < lentgth; i++)
+        {
+        	if(nodes.item(i).getNodeName().equals("heartbeatConfig"))
+         		node = nodes.item(i);
+        }
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        DocumentBuilder builder = null;
+		try {
+			builder = factory.newDocumentBuilder();
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		}
+        Document heartbeatConfigDocument = builder.newDocument();
+        Node importedNode = heartbeatConfigDocument.importNode(node, true);
+        heartbeatConfigDocument.appendChild(importedNode);
+
+        JAXBContext jc = null;
+        Unmarshaller u = null;
+		try {
+			jc = JAXBContext.newInstance(Class.forName(lbConfiguration.getHeartbeatConfigurationClass()));
+			u = jc.createUnmarshaller();
+			lbConfiguration.setHeartbeatConfiguration((HeartbeatConfig) u.unmarshal(heartbeatConfigDocument));
+		} catch (ClassNotFoundException | JAXBException e) {
+			e.printStackTrace();
+		}
     }
 }

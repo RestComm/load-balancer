@@ -33,7 +33,9 @@ This enables SIP applications to meet the real-time demand for SIP services.
 [[_sslb_load_balancer_node_discovery]]
 === Node Discovery of the {this-platform} Load Balancer
 
-Each individual {this-platform} SIP Server in the cluster is responsible for contacting the {this-platform} Load Balancer and relaying its health status and regular "heartbeats".
+Each individual {this-platform} SIP Server in the cluster is responsible for
+contacting the {this-platform} Load Balancer and relaying its health status and
+regular "heartbeats" except case with <<Kubernetes integration>>.
 
 From these health status reports and heartbeats, the {this-platform} Load Balancer creates and maintains a list of all available and healthy nodes in the cluster allowing for making the whole cluster dynamic and capable of autoscaling with no downtime.
 
@@ -49,16 +51,33 @@ The Load Balancer forwards all same-session requests to the first node selected 
 [[_sslb_load_balancer_keepalive]]
 === Heartbeats to the {this-platform} Load Balancer
 
-Currently the Load balancer support two protocols for heartbeats(RMI and protocol
-based on http requests). For setup you should
-set property <nodeCommunicationProtocolClassName></nodeCommunicationProtocolClassName>
-in <common> section.
+Currently the Load balancer support three protocols for heartbeats(RMI, protocol
+based on http requests, and protocol for Kubernetes(explained in )).
+For RMI you should set:
+
+<heartbeat configclass = "org.mobicents.tools.heartbeat.rmi.HeartbeatConfigRmi">
+  <heartbeatConfig>
+    <ProtocolClassName>org.mobicents.tools.heartbeat.rmi.ServerControllerRmi</ProtocolClassName>
+      <rmiRegistryPort>2000</rmiRegistryPort>
+      <rmiRemoteObjectPort>2001</rmiRemoteObjectPort>
+  </heartbeatConfig>
+</heartbeat>
+
+For http protocol:
+
+ <heartbeat configclass = "org.mobicents.tools.heartbeat.impl.HeartbeatConfigHttp">
+   <heartbeatConfig>
+     <ProtocolClassName>org.mobicents.tools.heartbeat.impl.ServerController</ProtocolClassName>
+       <heartbeatPort>2610</heartbeatPort>
+   </heartbeatConfig>
+</heartbeat>
+.
 
 For RMI protocol you should set:
 
   org.mobicents.tools.heartbeat.rmi.ServerControllerRmi
 
-For protocol based on http requests: 
+For protocol based on http requests:
 
   org.mobicents.tools.heartbeat.impl.ServerController
 
@@ -425,8 +444,6 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <ipv6Host></ipv6Host>
   <nodeTimeout>8400</nodeTimeout>
   <heartbeatInterval>150</heartbeatInterval>
-  <nodeCommunicationProtocolClassName>org.mobicents.tools.heartbeat.impl.ServerController</nodeCommunicationProtocolClassName>
-  <heartbeatPorts>2610</heartbeatPorts>
   <statisticPort>2006</statisticPort>
   <jmxHtmlAdapterPort>8000</jmxHtmlAdapterPort>
   <shutdownTimeout>10000<shutdownTimeout>
@@ -620,6 +637,12 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
 		<value>ssl</value>
 	</property>
 </sipStack>
+<heartbeat configclass = "org.mobicents.tools.heartbeat.impl.HeartbeatConfigHttp">
+   <heartbeatConfig>
+     <ProtocolClassName>org.mobicents.tools.heartbeat.impl.ServerController</ProtocolClassName>
+       <heartbeatPort>2610</heartbeatPort>
+   </heartbeatConfig>
+</heartbeat>
 </load-balancer-properties>
 ----
 ====
@@ -634,7 +657,7 @@ externalUdpPort::
 internalUdpPort::
   Port on which the {this-platform} Load Balancer forwards incoming requests to available, and healthy, SIP Server cluster nodes.
 
-nodeCommunicationProtocolClassName::
+ProtocolClassName::
   Protocol which will be used for communicating with nodes
 
 heartbeatPorts::
@@ -1692,3 +1715,75 @@ Same property should be set for LB2.
 
 On server side you should also set
 sip stack property gov.nist.javax.sip.NEVER_ADD_RECEIVED_RPORT=true
+
+== Kubernetes integration
+
+With Kubernetes integration  the Load balancer can get info about running
+SIP Server Nodes from Pods and get data as IP, ports etc. When SIP Server Node
+starts, it can set its property (ip, ports) in labels of pods. It will be looks
+like:
+
+  "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+        "creationTimestamp": "2017-03-17T09:05:43Z",
+        "labels": {
+            "Restcomm-Instance-Id": "qwe123rty",
+            "hostName": "node1",
+            "httpPort": "2080",
+            "name": "sip-node",
+            "sessionId": "123456789",
+            "sslPort": "2081",
+            "tcpPort": "4060",
+            "tlsPort": "4061",
+            "udpPort": "4060",
+            "version": "0",
+        },
+        "name": "sip-node-1",
+        "namespace": "default",
+        "resourceVersion": "501683",
+        ...
+
+From these labels, the {this-platform} Load Balancer
+creates and maintains a list of all available and healthy nodes in the cluster
+allowing for making the whole cluster dynamic and capable of autoscaling with no
+downtime.
+For creating this pod we can use script like:
+
+ {
+  "kind": "Pod",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "sip-node-1",
+  },
+  "spec": {
+    "volumes": [
+    ],
+    "containers": [
+      {
+        "name": "sip-node",
+        "image": "knosach/sip-node",
+        "ports": [
+        ]
+      }
+    ]
+  }
+}
+
+Only one property should be set in MSS configuration, it is
+org.mobicents.ha.javax.sip.POD_NAME which should be same as in name of pod.
+
+On side of the Load balancer we should set next tags:
+
+ <heartbeat configclass = "org.mobicents.tools.heartbeat.kube.HeartbeatConfigKube">
+    <heartbeatConfig>
+    	<ProtocolClassName>org.mobicents.tools.heartbeat.kube.ServerControllerKube</ProtocolClassName>
+        <nodeName>sip-node</nodeName>
+        <pullPeriod>2000</pullPeriod>
+    </heartbeatConfig>
+</heartbeat>
+
+pullPeriod - it's period in which the Load balancer will check active pods;
+nodeName - it's string from which all names of pods with SIP Server Nodes should
+start. For example if we have pods with SIP Server Nodes :
+sip-node-1, sip-node-2 etc., then this tag should be <nodeName>sip-node</nodeName>.

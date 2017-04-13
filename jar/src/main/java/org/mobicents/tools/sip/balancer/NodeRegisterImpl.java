@@ -48,6 +48,7 @@ import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
 import org.mobicents.tools.heartbeat.api.IListener;
 import org.mobicents.tools.heartbeat.api.IServerHeartbeatService;
 import org.mobicents.tools.heartbeat.api.IServerListener;
@@ -87,7 +88,6 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
     private String latestVersion = Integer.MIN_VALUE + "";
     
     BalancerRunner balancerRunner;
-    //private ServerController serverController;
     private IServerHeartbeatService heartbeatService;
     private Gson gson = new Gson();
 
@@ -96,12 +96,10 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
         super();
         this.serverAddress = serverAddress;
     }
-
-
     /**
      * {@inheritDoc}
      */
-    public boolean startRegistry(Integer ... heartbeatPorts) {
+    public boolean startRegistry(HeartbeatConfig heartbeatConfig) {
     	
         if(logger.isInfoEnabled()) {
             logger.info("Node registry starting...");
@@ -115,7 +113,7 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
     		}
             balancerRunner.balancerContext.aliveNodes = new CopyOnWriteArrayList<Node>();
             balancerRunner.balancerContext.jvmRouteToSipNode = new ConcurrentHashMap<String, Node>();
-            heartbeatService.init(this,serverAddress,heartbeatPorts);
+            heartbeatService.init(this,serverAddress, heartbeatConfig);
             heartbeatService.startServer();
             this.nodeExpirationTask = new NodeExpirationTimerTask();
             this.taskTimer.scheduleAtFixedRate(this.nodeExpirationTask, this.nodeInfoExpirationTaskInterval, this.nodeInfoExpirationTaskInterval);

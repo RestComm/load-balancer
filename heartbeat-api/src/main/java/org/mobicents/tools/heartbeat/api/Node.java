@@ -18,6 +18,7 @@
  */
 package org.mobicents.tools.heartbeat.api;
 
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -41,7 +42,10 @@ public class Node implements Comparable<Node> {
 	public Node(){}
 	public Node(String hostName, String ip) {
 		super();
-		this.hostName = hostName;
+		if(hostName==null)
+			this.hostName = "undeffined_node";
+		else
+			this.hostName = hostName;
 		this.ip = ip;
 	}
 	
@@ -55,6 +59,7 @@ public class Node implements Comparable<Node> {
 		if(restcommInstanceId!=null)
 			properties.put(Protocol.RESTCOMM_INSTANCE_ID, restcommInstanceId);
 	}
+
 	public String getHostName() {
 		return hostName;
 	}

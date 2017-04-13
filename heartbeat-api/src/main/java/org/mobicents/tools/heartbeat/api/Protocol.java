@@ -40,10 +40,14 @@ public class Protocol
 	public static final String TLS_PORT = "tlsPort";
 	public static final String WS_PORT = "wsPort";
 	public static final String WSS_PORT = "wssPort";
-	public static final Object SMPP_PORT = "smppPort";
+	public static final String SCTP_PORT = "sctpPort";
+	public static final String SMPP_PORT = "smppPort";
+	public static final String SMPP_SSL_PORT = "smppSslPort";
 	public static final String VERSION = "version";
 	public static final String SESSION_ID = "sessionId";
 	public static final String RESTCOMM_INSTANCE_ID = "Restcomm-Instance-Id";
 	public static final String HEARTBEAT_PORT = "heartbeatPort";
+	public static final String GRACEFUL_SHUTDOWN ="graceful-shutdown";
+	public static final String LB_LABEL ="lbs";
 
 }

@@ -133,7 +133,7 @@ public class TlsWorstCaseAffinityTest{
 		assertNotSame(ack, bye);		
 	}
 	
-	@Test
+	//@Test
 	public void testOKRingingLandOnDifferentNodes() throws Exception {
 		
 		EventListener failureEventListener = new EventListener() {
