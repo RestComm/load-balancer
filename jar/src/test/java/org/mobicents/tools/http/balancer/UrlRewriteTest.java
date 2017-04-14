@@ -53,7 +53,7 @@ public class UrlRewriteTest
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < numberNodes; i++)
 		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i,"ID1f2a2222772f4195948d040a2ccc648c");
+			serverArray[i] = new HttpServer(8080+i, 4444+i,"ID1f2a2222772f4195948d040a2ccc648c",2222);
 			serverArray[i].start();	
 		}
 		balancerRunner = new BalancerRunner();

@@ -133,5 +133,13 @@ public class CommonConfiguration {
 	public void setPassword(String password) {
 		this.password = password;
 	}
+
+	public String getCacheConfigFile() {
+		return cacheConfigFile;
+	}
+
+	public void setCacheConfigFile(String cacheConfigFile) {
+		this.cacheConfigFile = cacheConfigFile;
+	}
 	
 }

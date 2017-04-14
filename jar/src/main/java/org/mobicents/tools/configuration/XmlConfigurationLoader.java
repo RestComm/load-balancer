@@ -358,38 +358,43 @@ public class XmlConfigurationLoader{
         	urlRewriteRuleDocument.appendChild(importedNode);
         	httpConfiguration.setUrlrewriteRule(urlRewriteRuleDocument);
         }
+    }
     private void setHeartbeatConfig(LoadBalancerConfiguration lbConfiguration, XMLConfiguration xmlConfiguration)
     {
-    	lbConfiguration.setHeartbeatConfigurationClass(xmlConfiguration.getString("heartbeat[@configclass]"));
-    	Document doc = xmlConfiguration.getDocument();
-        NodeList nodes = doc.getElementsByTagName("heartbeatConfig");
-        Node node = null;
-        int lentgth = nodes.getLength();
-        for(int i = 0; i < lentgth; i++)
-        {
-        	if(nodes.item(i).getNodeName().equals("heartbeatConfig"))
-         		node = nodes.item(i);
-        }
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        DocumentBuilder builder = null;
-		try {
-			builder = factory.newDocumentBuilder();
-		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
-		}
-        Document heartbeatConfigDocument = builder.newDocument();
-        Node importedNode = heartbeatConfigDocument.importNode(node, true);
-        heartbeatConfigDocument.appendChild(importedNode);
+    	String configClassString = xmlConfiguration.getString("heartbeat[@configclass]");
+    	if(configClassString!=null)
+    	{
+    		lbConfiguration.setHeartbeatConfigurationClass(xmlConfiguration.getString("heartbeat[@configclass]"));
+    		Document doc = xmlConfiguration.getDocument();
+    		NodeList nodes = doc.getElementsByTagName("heartbeatConfig");
+    		Node node = null;
+    		int lentgth = nodes.getLength();
+    		for(int i = 0; i < lentgth; i++)
+    		{
+    			if(nodes.item(i).getNodeName().equals("heartbeatConfig"))
+    				node = nodes.item(i);
+    		}
+    		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    		factory.setNamespaceAware(true);
+    		DocumentBuilder builder = null;
+    		try {
+    			builder = factory.newDocumentBuilder();
+    		} catch (ParserConfigurationException e) {
+    			e.printStackTrace();
+    		}
+    		Document heartbeatConfigDocument = builder.newDocument();
+    		Node importedNode = heartbeatConfigDocument.importNode(node, true);
+    		heartbeatConfigDocument.appendChild(importedNode);
 
-        JAXBContext jc = null;
-        Unmarshaller u = null;
-		try {
-			jc = JAXBContext.newInstance(Class.forName(lbConfiguration.getHeartbeatConfigurationClass()));
-			u = jc.createUnmarshaller();
-			lbConfiguration.setHeartbeatConfiguration((HeartbeatConfig) u.unmarshal(heartbeatConfigDocument));
-		} catch (ClassNotFoundException | JAXBException e) {
-			e.printStackTrace();
-		}
+    		JAXBContext jc = null;
+    		Unmarshaller u = null;
+    		try {
+    			jc = JAXBContext.newInstance(Class.forName(lbConfiguration.getHeartbeatConfigurationClass()));
+    			u = jc.createUnmarshaller();
+    			lbConfiguration.setHeartbeatConfiguration((HeartbeatConfig) u.unmarshal(heartbeatConfigDocument));
+    		} catch (ClassNotFoundException | JAXBException e) {
+    			e.printStackTrace();
+    		}
+    	}
     }
 }

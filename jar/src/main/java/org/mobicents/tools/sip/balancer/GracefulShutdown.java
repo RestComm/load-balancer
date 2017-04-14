@@ -15,10 +15,10 @@ public class GracefulShutdown extends Thread {
 	@Override
 	public void run() {
 		logger.warn("GracefulShutdown was called, stopping the Load Balancer into " + balancerRunner.balancerContext.shutdownTimeout + " ms.");
-    	HttpChannelAssociations.serverStatisticChannel.unbind();
-    	HttpChannelAssociations.serverStatisticChannel.close();
-    	HttpChannelAssociations.serverStatisticChannel.getCloseFuture().awaitUninterruptibly();
-    	HttpChannelAssociations.serverStatisticBootstrap.shutdown();
+    	HttpChannelAssociations.serverApiChannel.unbind();
+    	HttpChannelAssociations.serverApiChannel.close();
+    	HttpChannelAssociations.serverApiChannel.getCloseFuture().awaitUninterruptibly();
+    	HttpChannelAssociations.serverApiBootstrap.shutdown();
     	try 
     	{
 			sleep(balancerRunner.balancerContext.shutdownTimeout);
