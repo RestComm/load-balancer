@@ -126,7 +126,8 @@ in external section
 
 Other tags you can see in example of lb-configuration.xml below.
 
-== HTTP Load Balancing Basics
+== HTTP Load Balancing
+=== Basics
 
 In addition to the SIP load balancing, there are several options for coordinated or cooperative load balancing with other protocols such as HTTP.
 
@@ -154,6 +155,8 @@ However, the integrated HTTP Balancer has an advantage when related SIP and HTTP
 Also HTTP load balancer can choose the next node by 'instanceId' which is got from the Restcomm connector info. First the Load balancer
 checks whether http request contains 'CallSID' parameter. If it does, the Load balancer gets 'instanceId' from it and checks whether 'instanceId' corresponds to 'instanceId'
 of nodes connected to the Load balancer. If the Load balancer finds the correspondence, it sends http request to this node.
+
+=== Url rewriting
 
 The load balancer can rewrite incoming HTTP requests. For enabling this feature
 you should change http section in config file of the Load balancer. You need to
