@@ -1,6 +1,7 @@
 package org.mobicents.tools.smpp.multiplexer;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,6 +37,7 @@ public class UserSpace {
 	private InvocationContext ctx = null;
 	private ScheduledFuture<?> reconnectionSchedule = null;
 	private MBinderRunnable reconnectTask = null;
+	private ConcurrentHashMap<Long, ScheduledFuture<MBinderRunnable>> mapReconnectionSchedule = new ConcurrentHashMap<>();  
 	
 	private Node [] nodes;
 	private Long serverSessionID = new Long(0);
@@ -88,13 +90,11 @@ public class UserSpace {
 			}			
 	}
 
-	void bindSuccesfull(Node node)
+	void bindSuccesfull(Node node, Long serverSessionID)
 	{
-		if(reconnectionSchedule!=null&&!reconnectionSchedule.isCancelled())
-		{
-			reconnectTask.cancel();
-			reconnectionSchedule.cancel(true);
-		}
+		ScheduledFuture<MBinderRunnable> currReconnectionSchedule = mapReconnectionSchedule.get(serverSessionID);
+		if(currReconnectionSchedule!=null)	
+			currReconnectionSchedule.cancel(true);
 		
 		bindState.set(BINDSTATE.BOUND);
 		
@@ -121,10 +121,11 @@ public class UserSpace {
 		if(packet.getCommandStatus()!=SmppConstants.STATUS_INVPASWD&&packet.getCommandStatus()!=SmppConstants.STATUS_INVSYSID)
 		{
 			//in case its not password try to reinint
-			if(reconnectionSchedule==null||reconnectionSchedule.isCancelled())
+			if(!mapReconnectionSchedule.containsKey(serverSessionID))
 			{
 				reconnectTask = new MBinderRunnable(clientConnection, systemId, password, systemType);
 				reconnectionSchedule = monitorExecutor.scheduleAtFixedRate(reconnectTask, reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
+				mapReconnectionSchedule.put(serverSessionID, (ScheduledFuture<MBinderRunnable>) reconnectionSchedule);
 			}
 		}
 		else
@@ -218,6 +219,8 @@ public class UserSpace {
 	
 	public void disconnectFromServer()
 	{
+		for(Entry<Long, ScheduledFuture<MBinderRunnable>> entry : mapReconnectionSchedule.entrySet())
+			entry.getValue().cancel(true);
 		for(Long serverSessionID :connectionsToServers.keySet())
 			connectionsToServers.get(serverSessionID).sendUnbindRequest(new Unbind());
 
@@ -322,14 +325,18 @@ public class UserSpace {
 		
 		MClientConnectionImpl connection = connectionsToServers.get(serverSessionID);
 		connectionsToServers.remove(serverSessionID);
-		reconnectTask = new MBinderRunnable(connection, systemId, password, systemType);
-		reconnectionSchedule = monitorExecutor.scheduleAtFixedRate(reconnectTask, reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
+		if(!mapReconnectionSchedule.containsKey(serverSessionID))
+		{
+			reconnectTask = new MBinderRunnable(connection, systemId, password, systemType);
+			reconnectionSchedule = monitorExecutor.scheduleAtFixedRate(reconnectTask, reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
+			mapReconnectionSchedule.put(serverSessionID, (ScheduledFuture<MBinderRunnable>) reconnectionSchedule);
+		}
 	}
 	
 	public void reconnectSuccesful(Long serverSessionID, MClientConnectionImpl connection)
 	{
-		reconnectTask.cancel();
-		reconnectionSchedule.cancel(true);
+
+		mapReconnectionSchedule.get(serverSessionID).cancel(true);
 		for(Long key:customers.keySet())
 			customers.get(key).reconnectState(false);
 		connectionsToServers.put(serverSessionID,connection);

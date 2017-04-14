@@ -52,6 +52,7 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
 	int smsNumber;
 	AtomicInteger enqLinkNumber = new AtomicInteger(0);
 	AtomicInteger responsesFromClient = new AtomicInteger(0);
+	private AtomicInteger requestFromClientNumber = new AtomicInteger(0);
 	String validPassword = "password";
     public AtomicInteger getEnqLinkNumber() {
 		return enqLinkNumber;
@@ -118,6 +119,8 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
         @SuppressWarnings({ "rawtypes" })
 		@Override
         public PduResponse firePduRequestReceived(PduRequest pduRequest) {
+        	if(pduRequest.getCommandId() == SmppConstants.CMD_ID_SUBMIT_SM)
+        		requestFromClientNumber.getAndIncrement();
             return pduRequest.createResponse();
         }
         @Override
@@ -125,6 +128,9 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
             logger.info("Server get response : " + pduResponse);
         } 
     }
-    
-   
+
+	public AtomicInteger getRequestFromClientNumber() {
+		return requestFromClientNumber;
+	}
+
 }

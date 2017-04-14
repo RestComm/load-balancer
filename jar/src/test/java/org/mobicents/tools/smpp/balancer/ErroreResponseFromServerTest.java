@@ -94,7 +94,7 @@ public class ErroreResponseFromServerTest {
 		// start client
 		new Load(locker).start();
 		locker.waitForClients();
-		assertEquals(3, server.getBindRequested());
+		assertEquals(1, server.getBindRequested());
 	}
 
 	@AfterClass
@@ -130,7 +130,6 @@ public class ErroreResponseFromServerTest {
 			}
 			try {
 				sleep(5000);
-				System.out.println("HERE WE ARE");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

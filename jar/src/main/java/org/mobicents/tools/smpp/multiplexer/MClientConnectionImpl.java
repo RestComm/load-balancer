@@ -271,7 +271,7 @@ public class MClientConnectionImpl implements ClientConnection{
 					enquireRunnable=new ServerTimerEnquire(this);
 					enquireTimer =  monitorExecutor.scheduleAtFixedRate(enquireRunnable,timeoutEnquire,timeoutEnquire,TimeUnit.MILLISECONDS);
 					clientState = ClientState.BOUND;
-					userSpace.bindSuccesfull(node);
+					userSpace.bindSuccesfull(node,serverSessionID);
 					
 				} else {
 					logger.error("Binding to server is unsuccesful.serverSessionId" + serverSessionID + " , error code: " + packet.getCommandStatus());

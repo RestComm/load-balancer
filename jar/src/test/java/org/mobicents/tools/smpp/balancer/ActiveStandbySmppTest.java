@@ -148,7 +148,7 @@ public class ActiveStandbySmppTest{
 		private int smsNumber;
 		Load (int i, int smsNumber, ClientListener listener)
 		{
-			this.i =i;
+			this.i = i;
 			this.listener = listener;
 			this.smsNumber = smsNumber;
 		}
@@ -165,7 +165,13 @@ public class ActiveStandbySmppTest{
 			 {
 				 session.submit(ConfigInit.getSubmitSm(), 12000);
 				 if(j==smsNumber/2-1)
-					 serverArray[0].stop();
+				 {
+					 for(int i = 0; i < serverNumbers; i++)
+					 {
+						 if(serverHandlerArray[i].getRequestFromClientNumber().get()!=0)
+							 serverArray[i].stop();
+					 }
+				 }
 			 }
 			 sleep(1000);
 		     session.unbind(5000);
