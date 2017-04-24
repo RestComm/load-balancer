@@ -87,7 +87,7 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
         pipeline.addLast("decoder", new HttpRequestDecoder());
         // http://code.google.com/p/commscale/issues/detail?id=5 support for HttpChunks
 	// https://telestax.atlassian.net/browse/LB-8 if commented accessing the RestComm Management console fails, so making the maxContentLength Configurable
-        pipeline.addLast("aggregator", new HttpChunkAggregator(maxContentLength));
+        //pipeline.addLast("aggregator", new HttpChunkAggregator(maxContentLength));
         pipeline.addLast("encoder", new HttpResponseEncoder());
         // Remove the following line if you don't want automatic content compression.
         //pipeline.addLast("deflater", new HttpContentCompressor());
