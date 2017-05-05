@@ -47,11 +47,9 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
 	BalancerRunner balancerRunner;
 	boolean isSecure;
 
-    int maxContentLength = 1048576;
 
-	public HttpServerPipelineFactory(BalancerRunner balancerRunner, int maxContentLength, boolean isSecure) {
+	public HttpServerPipelineFactory(BalancerRunner balancerRunner, boolean isSecure) {
 		this.balancerRunner = balancerRunner;
-		this.maxContentLength = maxContentLength;
 		this.isSecure = isSecure;
 	}
 
@@ -99,7 +97,4 @@ public class HttpServerPipelineFactory implements ChannelPipelineFactory {
         return pipeline;
     }
 
-    public void setMaxContentLength(int maxContentLength) {
-	this.maxContentLength = maxContentLength;
-    }
 }

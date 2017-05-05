@@ -18,7 +18,7 @@ public class CommonConfiguration {
     private String ipv6Host;
     private Integer nodeTimeout;
     private Integer heartbeatInterval;
-    private Integer statisticPort;
+    private Integer apiPort;
     private Integer shutdownTimeout;
     private String cacheConfiguration;
     private Boolean securityRequired;
@@ -32,7 +32,7 @@ public class CommonConfiguration {
         this.ipv6Host = IPV6_HOST;
         this.nodeTimeout = NODE_TIMEOUT;
         this.heartbeatInterval = HARDBEAT_INTERVAL;
-        this.statisticPort = STATISTIC_PORT;
+        this.apiPort = STATISTIC_PORT;
         this.shutdownTimeout = SHUTDOWN_TIMEOUT;
         this.cacheConfiguration = CACHE_CONFIGURATION;
         this.securityRequired = SECURITY_REQUIRED;
@@ -82,16 +82,16 @@ public class CommonConfiguration {
 
 	public Integer getStatisticPort() 
 	{
-		return statisticPort;
+		return apiPort;
 	}
 
-	public void setStatisticPort(Integer statisticPort) 
+	public void setStatisticPort(Integer apiPort) 
 	{
-		if (statisticPort < 1 || statisticPort > 65535) 
+		if (apiPort < 1 || apiPort > 65535) 
         {
-            throw new IllegalArgumentException("statisticPort is out of range");
+            throw new IllegalArgumentException("apiPort is out of range");
         }
-		this.statisticPort = statisticPort;
+		this.apiPort = apiPort;
 	}
 
 	public Integer getShutdownTimeout() {

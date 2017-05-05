@@ -72,14 +72,8 @@ public class HttpBalancerForwarder {
 		if(balancerRunner.balancerContext.lbConfig != null) 
 			httpPort = balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getHttpPort();
 		
-		// Defaulting to 1 MB
-		int maxContentLength = 1048576;
-		if(balancerRunner.balancerContext.lbConfig != null) {
-			maxContentLength = balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getMaxContentLength();
-		}
 		logger.info("HTTP LB listening on port " + httpPort);
-		logger.debug("HTTP maxContentLength Chunking set to " + maxContentLength);
-		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, false));
+		HttpChannelAssociations.serverBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner,false));
 		HttpChannelAssociations.serverBootstrap.setOption("child.tcpNoDelay", true);
 		HttpChannelAssociations.serverBootstrap.setOption("child.keepAlive", true);
 		serverChannel = HttpChannelAssociations.serverBootstrap.bind(new InetSocketAddress(httpPort));
@@ -87,26 +81,26 @@ public class HttpBalancerForwarder {
 		if(httpsPort != null)
 		{
 			logger.info("HTTPS LB listening on port " + httpsPort);
-			HttpChannelAssociations.serverSecureBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, true));
+			HttpChannelAssociations.serverSecureBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, true));
 			serverSecureChannel = HttpChannelAssociations.serverSecureBootstrap.bind(new InetSocketAddress(httpsPort));
 			if(!balancerRunner.balancerContext.terminateTLSTraffic)
 			{
 				HttpChannelAssociations.inboundSecureBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
-				HttpChannelAssociations.inboundSecureBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength, true));
+				HttpChannelAssociations.inboundSecureBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, true));
 				HttpChannelAssociations.inboundSecureBootstrap.setOption("child.tcpNoDelay", true);
 				HttpChannelAssociations.inboundSecureBootstrap.setOption("child.keepAlive", true);
 			}
 		}
 		
-		Integer statisticPort = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getStatisticPort();
-		if(statisticPort != null)
+		Integer apiPort = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getStatisticPort();
+		if(apiPort != null)
 		{
-			logger.info("Load balancer statistic on port : " + statisticPort);
-			HttpChannelAssociations.serverApiBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, maxContentLength, false));
-			HttpChannelAssociations.serverApiChannel = HttpChannelAssociations.serverApiBootstrap.bind(new InetSocketAddress(statisticPort));
+			logger.info("Load balancer API port : " + apiPort);
+			HttpChannelAssociations.serverApiBootstrap.setPipelineFactory(new HttpServerPipelineFactory(balancerRunner, false));
+			HttpChannelAssociations.serverApiChannel = HttpChannelAssociations.serverApiBootstrap.bind(new InetSocketAddress(apiPort));
 		}
 		
-		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, maxContentLength, false));		
+		HttpChannelAssociations.inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, false));		
 	}
 
 	public void stop() {

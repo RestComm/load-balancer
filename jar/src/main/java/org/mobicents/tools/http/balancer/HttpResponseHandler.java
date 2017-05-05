@@ -22,6 +22,9 @@
 
 package org.mobicents.tools.http.balancer;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.handler.codec.http.HttpChunkedInput;
+
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -31,8 +34,10 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import org.jboss.netty.channel.WriteCompletionEvent;
 import org.jboss.netty.handler.codec.http.DefaultHttpChunk;
 import org.jboss.netty.handler.codec.http.HttpChunk;
+import org.jboss.netty.handler.codec.http.HttpChunkTrailer;
 import org.jboss.netty.handler.codec.http.HttpHeaders.Names;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -61,7 +66,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 		Object msg = e.getMessage();
-		if ((msg instanceof HttpResponse) || (msg instanceof DefaultHttpChunk)) {
+		if ((msg instanceof HttpResponse) || (msg instanceof DefaultHttpChunk) || (msg instanceof HttpChunkTrailer)) {
 			handleHttpResponse(ctx, e);
 		} else if (msg instanceof WebSocketFrame) {
 			handleWebSocketFrame(ctx, e);
@@ -84,7 +89,21 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	private void handleHttpResponse(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
-		if(!readingChunks || !(e.getMessage() instanceof DefaultHttpChunk)){
+		if(e.getMessage() instanceof HttpChunkTrailer)
+		{
+			HttpChunkTrailer chunk = (HttpChunkTrailer) e.getMessage();			
+			balancerRunner.balancerContext.httpBytesToClient.addAndGet(chunk.getContent().capacity());
+			if (chunk.isLast()) 
+				readingChunks = false;
+			
+			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+			if(channel != null) 
+			{
+				logger.info("Send chunked response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + chunk.getContent().capacity());
+				channel.write(chunk);				
+			}
+		}
+		else if(!readingChunks || !(e.getMessage() instanceof DefaultHttpChunk)){
 			response = (HttpResponse) e.getMessage();
 			updateStatistic(response);
 			balancerRunner.balancerContext.httpBytesToClient.addAndGet(response.getContent().capacity());
@@ -94,6 +113,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			}
 			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
 			if(channel != null) {
+				logger.info("Send response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + response.getContent().capacity());
 				channel.write(response);
 			}
 
@@ -121,15 +141,21 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 
 				}
 			}
-		} else {
+		} 
+		else
+		{			
 			
-			HttpChunk chunk = (HttpChunk) e.getMessage();
+			HttpChunk chunk = (HttpChunk) e.getMessage();			
 			balancerRunner.balancerContext.httpBytesToClient.addAndGet(chunk.getContent().capacity());
-			if (chunk.isLast()) {
+			if (chunk.isLast()) 
 				readingChunks = false;
-			}
+			
 			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
-			channel.write(chunk);
+			if(channel != null) 
+			{
+				logger.info("Send1 chunked response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + chunk.getContent().capacity());
+				channel.write(chunk);				
+			}
 		}
 	}
 

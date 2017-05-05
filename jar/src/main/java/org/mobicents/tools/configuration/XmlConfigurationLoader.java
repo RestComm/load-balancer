@@ -84,7 +84,7 @@ public class XmlConfigurationLoader{
         dst.setIpv6Host(src.getString("ipv6Host", CommonConfiguration.IPV6_HOST));
         dst.setNodeTimeout(src.getInteger("nodeTimeout", CommonConfiguration.NODE_TIMEOUT));
         dst.setHeartbeatInterval(src.getInteger("heartbeatInterval", CommonConfiguration.HARDBEAT_INTERVAL));
-        dst.setStatisticPort(src.getInteger("statisticPort", CommonConfiguration.STATISTIC_PORT));
+        dst.setStatisticPort(src.getInteger("apiPort", CommonConfiguration.STATISTIC_PORT));
         if(src.getString("shutdownTimeout") != null && !src.getString("shutdownTimeout").equals(""))
         	dst.setShutdownTimeout(src.getInteger("shutdownTimeout", CommonConfiguration.SHUTDOWN_TIMEOUT));
         dst.setCacheConfiguration(src.getString("cacheConfiguration",CommonConfiguration.CACHE_CONFIGURATION));
@@ -281,7 +281,6 @@ public class XmlConfigurationLoader{
         	dst.setHttpsPort(src.getInteger("httpsPort", HttpConfiguration.HTTPS_PORT));
         if(!src.getString("httpPort").equals("")&&!src.getString("httpsPort").equals(""))
         {
-        	dst.setMaxContentLength(src.getInteger("maxContentLength",HttpConfiguration.MAX_CONTENT_LENT));
         	dst.setUnavailableHost(src.getString("unavailableHost", HttpConfiguration.UNAVAILABLE_HOST));
         }
         setFilterConfig(xml, dst);

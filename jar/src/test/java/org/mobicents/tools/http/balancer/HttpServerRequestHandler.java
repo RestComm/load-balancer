@@ -64,6 +64,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 	private volatile boolean readingChunks;
 	private HttpRequest request;
 	private List <String> requests;
+	private boolean chunk = false;
     
 	public HttpServerRequestHandler(AtomicInteger requestCount,List <String> requests)
 	{
@@ -119,6 +120,10 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 	@SuppressWarnings("deprecation")
 	private void writeResponse(MessageEvent e, HttpResponseStatus status, String responseString) {
         // Convert the response content to a ChannelBuffer.
+		if(chunk)
+			for(int i = 0; i < 1000; i++)
+				responseString+="HOW MUCH IS THE FISH";
+		
         ChannelBuffer buf = ChannelBuffers.copiedBuffer(responseString, Charset.forName("UTF-8"));
 
         // Decide whether to close the connection or not.
@@ -129,14 +134,18 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 
         // Build the response object.
         HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
-        response.setContent(buf);
+        if(!chunk)
+        	response.setContent(buf);
         response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+        if(chunk)
+        	response.setHeader(HttpHeaders.Names.TRANSFER_ENCODING, "chunked");
 
-        if (!close) {
-            // There's no need to add 'Content-Length' header
-            // if this is the last response.
-            response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
-        }
+        if(!chunk)
+        	if (!close) {
+            	// There's no need to add 'Content-Length' header
+            	// if this is the last response.
+            	response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
+        	}
 
         String cookieString = request.getHeader(HttpHeaders.Names.COOKIE);
         if (cookieString != null) {
@@ -155,6 +164,21 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
         // Write the response.
         ChannelFuture future = e.getChannel().write(response);
 
+        if(chunk)
+        {
+        	while(buf.readableBytes()>0)
+        	{
+        		int maxBytes=1000;
+        		if(buf.readableBytes()<1000)
+        			maxBytes=buf.readableBytes();
+        	
+        		HttpChunk currChunk=new DefaultHttpChunk(buf.readBytes(maxBytes));
+        		future=e.getChannel().write(currChunk);
+        	}
+        
+        	HttpChunk currChunk=new DefaultHttpChunk(buf);
+    		future=e.getChannel().write(currChunk);
+    	}
         // Close the connection after the write operation is done if necessary.
         if (close) {
             future.addListener(ChannelFutureListener.CLOSE);

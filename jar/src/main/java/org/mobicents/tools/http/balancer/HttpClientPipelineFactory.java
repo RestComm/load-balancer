@@ -43,13 +43,12 @@ import com.cloudhopper.smpp.ssl.SslContextFactory;
  * 
  */
 public class HttpClientPipelineFactory implements ChannelPipelineFactory {
-    private int maxContentLength = 1048576;
+
     private BalancerRunner balancerRunner;
     private boolean isUseSsl;
     
-    public HttpClientPipelineFactory(BalancerRunner balancerRunner, int maxContentLength, boolean isUseSsl) {
+    public HttpClientPipelineFactory(BalancerRunner balancerRunner, boolean isUseSsl) {
         this.balancerRunner = balancerRunner;
-        this.maxContentLength = maxContentLength;
         this.isUseSsl = isUseSsl;
     }
 
@@ -78,7 +77,4 @@ public class HttpClientPipelineFactory implements ChannelPipelineFactory {
         return pipeline;
     }
 
-    public void setMaxContentLength(int maxContentLength) {
-	this.maxContentLength = maxContentLength;
-    }
 }

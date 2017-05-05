@@ -105,13 +105,13 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         Object msg = e.getMessage();
         if (msg instanceof HttpRequest) {
             request = (HttpRequest)e.getMessage();
-            Integer statisticPort = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getStatisticPort();
-            if(statisticPort != null)
+            Integer apiPort = balancerRunner.balancerContext.lbConfig.getCommonConfiguration().getStatisticPort();
+            if(apiPort != null)
             {
 				try 
 				{
 					URI uri = new URI(request.getUri());
-					if (((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort() == statisticPort) {
+					if (((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort() == apiPort) {
 						String currUriPath = uri.getPath().toLowerCase();
 						switch(currUriPath)
 						{
