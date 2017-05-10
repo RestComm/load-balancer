@@ -99,7 +99,8 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
 			if(channel != null) 
 			{
-				logger.info("Send chunked response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + chunk.getContent().capacity());
+				if(logger.isDebugEnabled())
+					logger.debug("Send chunked response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + chunk.getContent().capacity());
 				channel.write(chunk);				
 			}
 		}
@@ -113,7 +114,8 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			}
 			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
 			if(channel != null) {
-				logger.info("Send response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + response.getContent().capacity());
+				if(logger.isDebugEnabled())
+					logger.debug("Send response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + response.getContent().capacity());
 				channel.write(response);
 			}
 
@@ -153,7 +155,8 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
 			if(channel != null) 
 			{
-				logger.info("Send1 chunked response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + chunk.getContent().capacity());
+				if(logger.isDebugEnabled())
+					logger.debug("Send chunked response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + chunk.getContent().capacity());
 				channel.write(chunk);				
 			}
 		}

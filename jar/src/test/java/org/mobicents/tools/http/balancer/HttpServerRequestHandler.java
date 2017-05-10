@@ -72,6 +72,11 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		this.requests = requests;
 	}
 	
+	public HttpServerRequestHandler(AtomicInteger requestCount,List <String> requests, boolean chunk)
+	{
+		this(requestCount, requests);
+		this.chunk = chunk;
+	}
 
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
