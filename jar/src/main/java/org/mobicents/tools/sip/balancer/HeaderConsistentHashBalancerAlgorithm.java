@@ -99,7 +99,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			try {
 				Node node = (Node) nodesArray(isIpV6)[nodeIndex];
 //				if(!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(new KeySip(node)))
-				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node)).isGracefulShutdown())
+				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown())
 					return node;
 				else
 					return null;
@@ -250,7 +250,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 //				}
 //			}
 //		}
-		if(context.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
+		if(context.sipNodeMap(isIpV6).containsKey(new KeySip(host, port,isIpV6)))
 			found = true;
 		if(logger.isDebugEnabled()) {
 			logger.debug("external response node found ? " + found);

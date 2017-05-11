@@ -38,7 +38,7 @@ public class HttpChannelAssociations {
     public static ServerBootstrap serverApiBootstrap;
     static ClientBootstrap inboundBootstrap;
     static ClientBootstrap inboundSecureBootstrap;
-    static ConcurrentHashMap<Channel, Channel> channels;
+    static ConcurrentHashMap<AdvancedChannel, AdvancedChannel> channels;
     public static Channel serverApiChannel;
     static BalancerUrlRewriteFilter urlRewriteFilter;
 

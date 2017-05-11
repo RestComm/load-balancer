@@ -22,6 +22,8 @@ import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,6 +64,7 @@ public class HttpServer implements IClientListener
 	public static int delta = 0;
 	private boolean chunkedresponse = false;
 	private List <String> requests = new LinkedList<String>();
+	private boolean badSever;
 	
 	ClientController clientController;
 	int lbPort = 2610;
@@ -87,11 +90,11 @@ public class HttpServer implements IClientListener
 		nioServerSocketChannelFactory = new NioServerSocketChannelFactory(executor,	executor);	
 		
 		serverBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
-		serverBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(true, requestCount,requests,chunkedresponse));
+		serverBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(true, requestCount,requests,chunkedresponse,badSever));
 		serverChannel = serverBootstrap.bind(new InetSocketAddress("127.0.0.1", httpPort));
 		
 		serverSecureBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
-		serverSecureBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(false, requestCount,requests,chunkedresponse));
+		serverSecureBootstrap.setPipelineFactory(new TestHttpServerPipelineFactory(false, requestCount,requests,chunkedresponse,badSever));
 		serverSecureChannel = serverSecureBootstrap.bind(new InetSocketAddress("127.0.0.1", sslPort));
 		
 		//ping
@@ -113,15 +116,6 @@ public class HttpServer implements IClientListener
 	public void stop() {
 		clientController.stopClient(false);
 		if(executor == null) return; // already stopped
-		for (Entry<Channel, Channel> entry : HttpChannelAssociations.channels.entrySet()) {
-			entry.getKey().unbind();
-			entry.getKey().close();
-			entry.getKey().getCloseFuture().awaitUninterruptibly();
-			entry.getValue().unbind();
-			entry.getValue().close();
-			entry.getValue().getCloseFuture().awaitUninterruptibly();
-		}
-		
 		serverChannel.unbind();
 		serverSecureChannel.unbind();
 		serverChannel.close();
@@ -165,5 +159,8 @@ public class HttpServer implements IClientListener
 
 	public void setChunkedresponse(boolean chunkedresponse) {
 		this.chunkedresponse = chunkedresponse;
+	}
+	public void setBadSever(boolean badSever) {
+		this.badSever = badSever;
 	}
 }

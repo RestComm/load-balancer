@@ -529,6 +529,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
 <http>
   <httpPort>2080</httpPort>
   <httpsPort>2081</httpsPort>
+  <requestCheckPattern>(admin)</requestCheckPattern>
   <unavailableHost></unavailableHost>
 </http>
 <smpp>
@@ -679,6 +680,10 @@ httpPort::
 
 httpsPort::
   Port on which the {this-platform} Load Balancer will accept HTTPS requests to be distributed across the nodes.
+
+requestCheckPattern::
+  If LB gets http response with error (>=400 and <600) from the Node on request which will
+  be matched to this pattern, then LB will remove this Node.
 
 externalIpLoadBalancerAddress::
   Address of the IP load balancer (if any) used for incoming requests to be distributed in the direction of the application server nodes.

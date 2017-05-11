@@ -71,7 +71,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 		} 
 		if(senderNode != null&&invocationContext.sipNodeMap(isIpV6).containsValue(senderNode))
 			found = true;
-		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
+		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port,isIpV6)))
 			found = true;
 		else if(balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())) 
 //    			&& response.getReasonPhrase().equals(balancerContext.responsesReasonNodeRemoval))
@@ -137,7 +137,7 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 //			}
 //		}
 		
-		if(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
+		if(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port,isIpV6)))
 			found = true;
 		
 		

@@ -30,7 +30,7 @@ import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
-import com.meterware.httpunit.GetMethodWebRequest;
+import com.meterware.httpunit.PostMethodWebRequest;
 import com.meterware.httpunit.WebConversation;
 import com.meterware.httpunit.WebRequest;
 import com.meterware.httpunit.WebResponse;
@@ -40,22 +40,30 @@ import com.meterware.httpunit.WebResponse;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class ChunkResponseTest
+public class HttpBadResponseNodeRemovalTest
 {
 	private static BalancerRunner balancerRunner;
-	private static HttpServer server;
-	private static HttpUser user;
+	private static int numberNodes = 2;
+	private static int numberUsers = 4;
+	private static HttpServer [] serverArray;
+	private static HttpUser [] userArray;
 	
 	@BeforeClass
 	public static void initialization() 
 	{
-		server = new HttpServer(8080, 4444, 2222);
-		server.setChunkedresponse(true);
-		server.start();	
+		serverArray = new HttpServer[numberNodes];
+		for(int i = 0; i < numberNodes; i++)
+		{
+			serverArray[i] = new HttpServer(8080+i, 4444+i, ""+i, 2222+i);
+			if(i==0)
+				serverArray[i].setBadSever(true);
+			serverArray[i].start();	
+		}
 		balancerRunner = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
+		lbConfig.getHttpConfiguration().setRequestCheckPattern("(/Accounts/)");
 		balancerRunner.start(lbConfig);
 		try 
 		{
@@ -71,9 +79,19 @@ public class ChunkResponseTest
 	@Test
     public void testHttpBalancer() 
     {  
-		Locker locker = new Locker(1);
-		user = new HttpUser(locker);
-		user.start();
+		userArray = new HttpUser[numberUsers];
+		Locker locker = new Locker(numberUsers);
+		
+		for(int i = 0; i < numberUsers;i++)
+		{
+			userArray[i] = new HttpUser(i,locker);
+			userArray[i].start();
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		locker.waitForClients();
 
 		try 
@@ -85,15 +103,19 @@ public class ChunkResponseTest
 			e.printStackTrace();
 		}
 		
-		assertEquals(1,server.getRequstCount().get());
-		
-		assertEquals(200, user.codeResponse);
+		assertEquals(1 ,serverArray[0].getRequstCount().get());
+		assertEquals(3 ,serverArray[1].getRequstCount().get());
+		assertEquals(0, userArray[0].codeResponse);
+		assertEquals(200, userArray[1].codeResponse);
+		assertEquals(200, userArray[2].codeResponse);
+		assertEquals(200, userArray[3].codeResponse);
     }
 	
 	@AfterClass
 	public static void finalization()
 	{
-		server.stop();
+		for(int i = 0; i < serverArray.length; i++)
+			serverArray[i].stop();
 		
 		balancerRunner.stop();
 	}
@@ -101,9 +123,11 @@ public class ChunkResponseTest
 	{
 		int codeResponse;
 		ClientListener listener;
-		public HttpUser(ClientListener listener)
+		int accountSid;
+		public HttpUser(int accountSid, ClientListener listener)
 		{
 		 this.listener = listener;
+		 this.accountSid = accountSid;
 		}
 
 		public void run()
@@ -111,15 +135,18 @@ public class ChunkResponseTest
 			try 
 			{ 
 				WebConversation conversation = new WebConversation();
-				WebRequest request = new GetMethodWebRequest(new String("http://127.0.0.1:2080/app?fName=Konstantin&lName=Nosach"));
+				WebRequest request = new PostMethodWebRequest(
+						"http://user:password@127.0.0.1:2080/restcomm/2012-04-24/Accounts/"+accountSid+"/Calls.json/0-CAccccfd3a0c3");
 				WebResponse response = conversation.getResponse(request);
 				codeResponse = response.getResponseCode();
-				listener.clientCompleted();
 			} 
 			catch (Exception e) 
 			{
-				listener.clientCompleted();
 				e.printStackTrace();
+			}
+			finally
+			{
+				listener.clientCompleted();
 			}
 		}
 	}

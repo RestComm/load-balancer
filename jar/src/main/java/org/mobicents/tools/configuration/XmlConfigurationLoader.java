@@ -282,6 +282,7 @@ public class XmlConfigurationLoader{
         if(!src.getString("httpPort").equals("")&&!src.getString("httpsPort").equals(""))
         {
         	dst.setUnavailableHost(src.getString("unavailableHost", HttpConfiguration.UNAVAILABLE_HOST));
+        	dst.setRequestCheckPattern(src.getString("requestCheckPattern", HttpConfiguration.REQUEST_CHECK_PATTERN));
         }
         setFilterConfig(xml, dst);
      }

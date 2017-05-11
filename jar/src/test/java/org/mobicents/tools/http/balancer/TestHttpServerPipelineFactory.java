@@ -47,6 +47,7 @@ public class TestHttpServerPipelineFactory implements ChannelPipelineFactory
     private AtomicInteger requestCount;
     private List <String> requests;
     private boolean chunkResponse;
+    private boolean badSever;
     
     public TestHttpServerPipelineFactory(Boolean terminateTLSTraffic, AtomicInteger requestCount,List <String> requests) 
     {
@@ -59,6 +60,12 @@ public class TestHttpServerPipelineFactory implements ChannelPipelineFactory
     {
         this(terminateTLSTraffic,requestCount,requests);
         this.chunkResponse = chunkResponse;
+        
+    }
+    public TestHttpServerPipelineFactory(Boolean terminateTLSTraffic, AtomicInteger requestCount,List <String> requests, boolean chunkResponse, boolean badSever) 
+    {
+    	this(terminateTLSTraffic,requestCount,requests, chunkResponse);
+    	this.badSever = badSever;
     }
 
     public ChannelPipeline getPipeline() throws Exception 
@@ -83,7 +90,7 @@ public class TestHttpServerPipelineFactory implements ChannelPipelineFactory
         pipeline.addLast("encoder", new HttpResponseEncoder());
         // Remove the following line if you don't want automatic content compression.
         //pipeline.addLast("deflater", new HttpContentCompressor());
-        pipeline.addLast("handler", new HttpServerRequestHandler(requestCount,requests,chunkResponse));
+        pipeline.addLast("handler", new HttpServerRequestHandler(requestCount,requests,chunkResponse,badSever));
         
 
         return pipeline;

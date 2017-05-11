@@ -77,7 +77,7 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 		} else {
 			try {
 				Node node = (Node) nodesArray(isIpV6)[nodeIndex];
-				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node)).isGracefulShutdown())
+				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown())
 					return node;
 				else
 					return null;

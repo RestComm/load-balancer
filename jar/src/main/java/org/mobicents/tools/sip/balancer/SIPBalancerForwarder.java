@@ -394,7 +394,7 @@ public class SIPBalancerForwarder implements SipListener {
 
     private Node getAliveNode(String host, int port, String otherTransport, InvocationContext ctx,Boolean isIpV6) {
         //return getNodeFromCollection(host, port, otherTransport, ctx.nodes);
-    	return ctx.sipNodeMap(isIpV6).get(new KeySip(host,port));
+    	return ctx.sipNodeMap(isIpV6).get(new KeySip(host,port,isIpV6));
     }
 
     private Node getAliveNodeAnyVersion(String host, int port, String otherTransport) {
@@ -2031,7 +2031,7 @@ public class SIPBalancerForwarder implements SipListener {
     private void mediaFailureDetection(Response response, InvocationContext ctx, Node node)
     {
     	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	        
-    	KeySip keySip = new KeySip(node);
+    	KeySip keySip = new KeySip(node,isIpV6);
     	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode()))
     		// adding null check for https://github.com/RestComm/load-balancer/issues/83
     		if(ctx.sipNodeMap(isIpV6).get(keySip) != null && 
@@ -2048,7 +2048,7 @@ public class SIPBalancerForwarder implements SipListener {
 		boolean found = false;
 		if(host!=null && port!=null)
 		{
-			if(ctx.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
+			if(ctx.sipNodeMap(isIpV6).containsKey(new KeySip(host, port,isIpV6)))
 				found = true;
 //			for(Node node : ctx.nodes) {
 //				if(node.getIp().equals(host)) {

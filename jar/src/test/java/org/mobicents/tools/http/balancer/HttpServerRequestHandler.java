@@ -65,6 +65,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 	private HttpRequest request;
 	private List <String> requests;
 	private boolean chunk = false;
+	private boolean badServer = false;
     
 	public HttpServerRequestHandler(AtomicInteger requestCount,List <String> requests)
 	{
@@ -72,10 +73,11 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		this.requests = requests;
 	}
 	
-	public HttpServerRequestHandler(AtomicInteger requestCount,List <String> requests, boolean chunk)
+	public HttpServerRequestHandler(AtomicInteger requestCount,List <String> requests, boolean chunk, boolean badServer)
 	{
 		this(requestCount, requests);
 		this.chunk = chunk;
+		this.badServer = badServer;
 	}
 
 	@Override
@@ -105,7 +107,10 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
             	try
             	{
             		String response = createResponseFromQueryParams(new URI(request.getUri()));
-            		writeResponse(e, HttpResponseStatus.OK, response);
+            		if(!badServer)
+            			writeResponse(e, HttpResponseStatus.OK, response);
+            		else
+            			writeResponse(e, HttpResponseStatus.BAD_REQUEST, response);
             	}
             	catch(Exception ex)
             	{

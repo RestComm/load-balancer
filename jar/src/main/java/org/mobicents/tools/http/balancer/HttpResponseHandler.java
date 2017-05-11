@@ -25,9 +25,14 @@ package org.mobicents.tools.http.balancer;
 import io.netty.channel.ChannelFuture;
 import io.netty.handler.codec.http.HttpChunkedInput;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Enumeration;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.infinispan.commons.equivalence.EquivalentHashMap.EntrySet;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -43,6 +48,11 @@ import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
+import org.mobicents.tools.sip.balancer.InvocationContext;
+import org.mobicents.tools.sip.balancer.KeyHttp;
+import org.mobicents.tools.sip.balancer.KeySip;
+
+import org.mobicents.tools.heartbeat.api.Node;
 
 /**
  * @author Vladimir Ralev (vladimir.ralev@jboss.org)
@@ -64,7 +74,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {		
 		Object msg = e.getMessage();
 		if ((msg instanceof HttpResponse) || (msg instanceof DefaultHttpChunk) || (msg instanceof HttpChunkTrailer)) {
 			handleHttpResponse(ctx, e);
@@ -80,7 +90,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			logger.debug(String.format("Channel %s received WebSocket response %s", ctx.getChannel().getId(), response));
 		}
 				
-		Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+		Channel channel = HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel())).getChannel();
 //		channel.getPipeline().remove(HttpResponseDecoder.class);
 		
 		if(channel != null) {
@@ -96,7 +106,10 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			if (chunk.isLast()) 
 				readingChunks = false;
 			
-			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+			AdvancedChannel ac = HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel()));
+			Channel channel = null;
+			if(ac!=null)
+				channel = ac.getChannel();
 			if(channel != null) 
 			{
 				if(logger.isDebugEnabled())
@@ -104,15 +117,47 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 				channel.write(chunk);				
 			}
 		}
-		else if(!readingChunks || !(e.getMessage() instanceof DefaultHttpChunk)){
+		else if(!readingChunks || !(e.getMessage() instanceof DefaultHttpChunk))
+		{
 			response = (HttpResponse) e.getMessage();
+			int stsusCode = response.getStatus().getCode(); 
+			if(stsusCode > 399 && stsusCode < 600)
+			{
+				AdvancedChannel ac = HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel()));
+				if(ac!=null && ac.isCheckNeed())
+				{
+					
+					InetSocketAddress address = (InetSocketAddress)e.getChannel().getRemoteAddress();
+					InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
+					KeySip keySip = new KeySip(address.getHostString(), address.getPort(), false);
+					Node currNode = invocationContext.sipNodeMap(false).get(keySip);
+					if( currNode!= null) 
+					{
+						currNode.setBad(true);
+						logger.error("Error code [" + stsusCode + "] detected in HTTP response. From  node : " + currNode +". This node will marked as bad.");
+						String currInstanceId = (String) currNode.getProperties().get("Restcomm-Instance-Id");
+						if(currInstanceId!=null)
+							logger.warn("Node : " + invocationContext.httpNodeMap.remove(new KeyHttp(currInstanceId)) + " from httpNodeMap");
+						//invocationContext.badSipNodeMap(false).put(keySip, currNode);
+						invocationContext.balancerAlgorithm.nodeRemoved(currNode);
+					}
+					//TODO CHECK REQUEST AND REMOVE NODE
+					
+				}
+
+
+			}
 			updateStatistic(response);
 			balancerRunner.balancerContext.httpBytesToClient.addAndGet(response.getContent().capacity());
 
 			if(response.isChunked()){
 				readingChunks = true;
 			}
-			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+
+			AdvancedChannel ac = HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel()));
+			Channel channel = null;
+			if(ac!=null)
+				channel = ac.getChannel();
 			if(channel != null) {
 				if(logger.isDebugEnabled())
 					logger.debug("Send response from : " + e.getChannel().getRemoteAddress() + " to : " + channel.getRemoteAddress() + " capacity : " + response.getContent().capacity());
@@ -152,7 +197,10 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 			if (chunk.isLast()) 
 				readingChunks = false;
 			
-			Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+			AdvancedChannel ac = HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel()));
+			Channel channel = null;
+			if(ac!=null)
+				channel = ac.getChannel();
 			if(channel != null) 
 			{
 				if(logger.isDebugEnabled())

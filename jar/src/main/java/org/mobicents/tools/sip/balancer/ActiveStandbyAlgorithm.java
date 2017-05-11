@@ -69,7 +69,7 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 		Boolean isIpV6=LbUtils.isValidInet6Address(senderNode.getIp());        	            	
 		if(senderNode != null&&invocationContext.sipNodeMap(isIpV6).containsValue(senderNode))
 			found = true;
-		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
+		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port, isIpV6)))
 			found = true;
 
 		if(logger.isDebugEnabled())
@@ -145,7 +145,7 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 		//Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());
 		if(node!=null)
 		{
-			KeySip keyNode = new KeySip(node);
+			KeySip keyNode = new KeySip(node,isIpV6);
 			if(invocationContext.sipNodeMap(isIpV6).containsKey(keyNode)&&!invocationContext.sipNodeMap(isIpV6).get(keyNode).isGracefulShutdown())
 				return node;
 		}

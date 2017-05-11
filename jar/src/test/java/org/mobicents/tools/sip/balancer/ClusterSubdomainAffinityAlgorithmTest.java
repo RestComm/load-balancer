@@ -102,20 +102,20 @@ public class ClusterSubdomainAffinityAlgorithmTest{
 			ctx.sipNodeMap(false).clear();
 			for(int q=0;q<100;q++) {
 				Node node = new Node("alphabeticalNoise"+q, "alphabeticalNoise"+q);
-				ctx.sipNodeMap(false).put(new KeySip(node),node);
+				ctx.sipNodeMap(false).put(new KeySip(node,false),node);
 			}
 			for(int q=0;q<100;q++) {
 				Node node = new Node(q+"alphabeticalNoise"+q, q+"alphabeticalNoise"+q);
-				ctx.sipNodeMap(false).put(new KeySip(node),node);
+				ctx.sipNodeMap(false).put(new KeySip(node,false),node);
 			}
 			Node originalNode = new Node("original", "original");
 			Node partnerNode = new Node("partner", "partner");
 
 			// This is dead BalancerContext.balancerContext.nodes.add(originalNode);
-			ctx.sipNodeMap(false).put(new KeySip(partnerNode), partnerNode);
+			ctx.sipNodeMap(false).put(new KeySip(partnerNode,false), partnerNode);
 			for(int q=0;q<100;q++) {
 				Node node = new Node("nonParner"+q, "nonPartner"+q);
-				ctx.sipNodeMap(false).put(new KeySip(node),node);
+				ctx.sipNodeMap(false).put(new KeySip(node,false),node);
 			}
 			algorithm.callIdMap.put("cid", originalNode);
 			Request request = SipFactory.getInstance().createMessageFactory().createRequest(inviteRequest);

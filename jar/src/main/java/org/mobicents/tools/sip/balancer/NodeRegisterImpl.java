@@ -297,7 +297,7 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
                       	ctx.smppNodeMap.remove(new KeySmpp(node));
                     }
                     Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	                    
-                    ctx.sipNodeMap(isIpV6).remove(new KeySip(node));
+                    ctx.sipNodeMap(isIpV6).remove(new KeySip(node,isIpV6));
                     ctx.sessionNodeMap(isIpV6).remove(new KeySession(node.getProperties().get(Protocol.SESSION_ID)));
                     ctx.balancerAlgorithm.nodeRemoved(node);
                         logger.warn("NodeExpirationTimerTask Run NSync["
@@ -339,7 +339,7 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 	                InvocationContext ctx = balancerRunner.getInvocationContext(version);
 	                                
 	                //if bad node changed sessioId it means that the node was restarted so we remove it from map of bad nodes
-	                KeySip keySip = new KeySip(pingNode);	                	                
+	                KeySip keySip = new KeySip(pingNode,isIpV6);	                	                
 	                if(ctx.sipNodeMap(isIpV6).get(keySip)!=null&&ctx.sipNodeMap(isIpV6).get(keySip).isBad())
 	                {
 	                	if(ctx.sipNodeMap(isIpV6).get(keySip).getProperties().get("sessionId").equals(pingNode.getProperties().get("sessionId")))
@@ -432,7 +432,7 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
             	ctx.smppNodeMap.remove(new KeySmpp(pingNode));
             
             Boolean isIpV6=LbUtils.isValidInet6Address(pingNode.getIp());        	
-            ctx.sipNodeMap(isIpV6).remove(new KeySip(pingNode));
+            ctx.sipNodeMap(isIpV6).remove(new KeySip(pingNode,isIpV6));
             boolean nodePresent = false;
             Iterator<Node> nodesIterator = balancerRunner.balancerContext.aliveNodes.iterator();
             while (nodesIterator.hasNext() && !nodePresent) {
@@ -541,7 +541,7 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
            		String version = node.getProperties().get("version");
 	            if(version == null) version = "0";
 	            InvocationContext ctx = balancerRunner.getInvocationContext(version);
-	            KeySip keySip = new KeySip(node);
+	            KeySip keySip = new KeySip(node,isIpV6);
 	            KeySession keySession = new KeySession(node.getProperties().get(Protocol.SESSION_ID));
 	            node.updateTimerStamp();
 	            if(node.getProperties().get("jvmRoute") != null) 
@@ -675,7 +675,7 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 			{
 				was = true;
 				Node removedNode = ctx.sessionNodeMap(isIpV6).remove(keySession);
-				KeySip keySip = new KeySip(removedNode);
+				KeySip keySip = new KeySip(removedNode,isIpV6);
 				ctx.sipNodeMap(isIpV6).remove(keySip);
 				String instanceId = nodePresent.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
 				if(instanceId!=null)

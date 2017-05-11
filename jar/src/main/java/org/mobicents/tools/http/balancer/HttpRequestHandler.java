@@ -33,7 +33,10 @@ import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
@@ -67,6 +70,7 @@ import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.GracefulShutdown;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.KeySip;
+import org.mobicents.tools.sip.balancer.LbUtils;
 import org.mobicents.tools.sip.balancer.NodesInfoObject;
 import org.mobicents.tools.sip.balancer.StatisticObject;
 
@@ -92,12 +96,16 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     private WebsocketModifyClientPipelineFactory websocketServerPipelineFactory;
     private volatile Node node;
     private boolean isSecured;
+    private Pattern pattern;
 
     private BalancerRunner balancerRunner;
 
     public HttpRequestHandler(BalancerRunner balancerRunner, boolean isSecured) {
         this.balancerRunner = balancerRunner;
         this.isSecured = isSecured;
+        String regEx = balancerRunner.balancerContext.lbConfig.getHttpConfiguration().getRequestCheckPattern();
+        if(regEx!=null)
+        	this.pattern = Pattern.compile(regEx);
     }
 
     @Override
@@ -185,7 +193,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
             logger.debug(String.format("Channel %s received WebSocket request %s", ctx.getChannel().getId(), request));
         }
         //Modify the Client Pipeline - Phase 2
-        Channel channel = HttpChannelAssociations.channels.get(e.getChannel());
+        Channel channel = HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel())).getChannel();
         ChannelPipeline p = channel.getPipeline();
         websocketServerPipelineFactory.upgradeClientPipelineFactoryPhase2(p, wsVersion);
 
@@ -207,7 +215,11 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
             if(HttpChannelAssociations.urlRewriteFilter!=null)
             	HttpChannelAssociations.urlRewriteFilter.doFilter(request, e);
 
-            Channel associatedChannel = HttpChannelAssociations.channels.get(e.getChannel());
+            AdvancedChannel currentAC = HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel()));
+            Channel associatedChannel = null;
+            if(currentAC!=null)
+            	associatedChannel = currentAC.getChannel();
+
 
             InvocationContext invocationContext = balancerRunner.getLatestInvocationContext();
 
@@ -280,8 +292,18 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
                     public void operationComplete(ChannelFuture arg0) throws Exception {
                         Channel channel = arg0.getChannel();
-                        HttpChannelAssociations.channels.put(e.getChannel(), channel);
-                        HttpChannelAssociations.channels.put(channel, e.getChannel());
+                        
+        				if (pattern!=null&& pattern.matcher(request.getUri()).find()) 
+                        {
+        					logger.info("request : " + request.getUri() + " matches to pattern : " + pattern);
+                        	HttpChannelAssociations.channels.put(new AdvancedChannel(e.getChannel(),true), new AdvancedChannel(channel,true));
+                        	HttpChannelAssociations.channels.put(new AdvancedChannel(channel,true), new AdvancedChannel(e.getChannel(),true));
+                        }
+                        else
+                        {
+                        	HttpChannelAssociations.channels.put(new AdvancedChannel(e.getChannel(),false), new AdvancedChannel(channel,false));
+                        	HttpChannelAssociations.channels.put(new AdvancedChannel(channel,false), new AdvancedChannel(e.getChannel(),false));
+                        }
 
                         if (request.isChunked()) {
                             readingChunks = true;
@@ -310,12 +332,13 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
             if (chunk.isLast()) {
                 readingChunks = false;
             }
-            HttpChannelAssociations.channels.get(e.getChannel()).write(chunk);
+            HttpChannelAssociations.channels.get(new AdvancedChannel(e.getChannel())).getChannel().write(chunk);
         }
     }
+    
 
     private void closeChannelPair(Channel channel) {
-        Channel associatedChannel = HttpChannelAssociations.channels.get(channel);
+        Channel associatedChannel = HttpChannelAssociations.channels.get(new AdvancedChannel(channel)).getChannel();
         if(associatedChannel != null) {
             try {
                 HttpChannelAssociations.channels.remove(associatedChannel);
@@ -334,9 +357,9 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
         if(logger.isDebugEnabled()) {
             try {
                 logger.debug("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
-                Enumeration<Channel> c = HttpChannelAssociations.channels.keys();
-                while(c.hasMoreElements()) {
-                    logger.debug(c.nextElement().toString());
+                Enumeration<AdvancedChannel> ac = HttpChannelAssociations.channels.keys();
+                while(ac.hasMoreElements()) {
+                    logger.debug(ac.nextElement().getChannel().toString());
                 }
             } catch (Exception e) {
                 logger.debug("error", e);
@@ -464,11 +487,15 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     	String regex = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("regex");
     	String ip = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("ip");
     	String port = getUrlParameters(((HttpRequest)e.getMessage()).getUri()).get("port");
+    	boolean isIpV6 = false;
+    	if(ip!=null)
+    		isIpV6 = LbUtils.isValidInet6Address(ip);
+    	
     	logger.info("regex : " + regex + " IP :" + ip);
     	
     	if(regex!=null&&ip!=null&&port!=null)
     	{
-    		KeySip keySip = new KeySip(ip,Integer.parseInt(port));
+    		KeySip keySip = new KeySip(ip,Integer.parseInt(port),isIpV6);
     		if(balancerRunner.balancerContext.regexMap==null)
     		{
     			balancerRunner.balancerContext.regexMap = new ConcurrentHashMap<String,KeySip>();

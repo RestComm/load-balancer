@@ -7,18 +7,21 @@ public class HttpConfiguration
 	public static final Integer HTTP_PORT = 2080;
 	public static final Integer HTTPS_PORT = null;
 	public static final String UNAVAILABLE_HOST = null;
+	public  static final String REQUEST_CHECK_PATTERN = null;
 	
 	private Integer httpPort;
 	private Integer httpsPort;
 	private String unavailableHost;
+	private String requestCheckPattern;
 	private Document urlrewriteRule;
 	
 	 public HttpConfiguration() 
-	    {
-	        this.httpPort = HTTP_PORT;
-	        this.httpsPort = HTTPS_PORT;
-	        this.unavailableHost = UNAVAILABLE_HOST;
-	    }
+	 {
+		 this.httpPort = HTTP_PORT;
+		 this.httpsPort = HTTPS_PORT;
+	     this.unavailableHost = UNAVAILABLE_HOST;
+	     this.requestCheckPattern = REQUEST_CHECK_PATTERN;   
+	 }
 
 	public Integer getHttpPort() 
 	{
@@ -50,11 +53,24 @@ public class HttpConfiguration
 		this.unavailableHost = unavailableHost;
 	}
 
-	public Document getUrlrewriteRule() {
+	public Document getUrlrewriteRule() 
+	{
 		return urlrewriteRule;
 	}
 
-	public void setUrlrewriteRule(Document urlrewriteRule) {
+	public void setUrlrewriteRule(Document urlrewriteRule) 
+	{
 		this.urlrewriteRule = urlrewriteRule;
 	}
+
+	public String getRequestCheckPattern() 
+	{
+		return requestCheckPattern;
+	}
+
+	public void setRequestCheckPattern(String requestCheckPattern) 
+	{
+		this.requestCheckPattern = requestCheckPattern;
+	}
+	
 }

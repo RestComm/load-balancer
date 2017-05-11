@@ -84,7 +84,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		} 
 		if(senderNode != null&&invocationContext.sipNodeMap(isIpV6).containsValue(senderNode))
 			found = true;
-		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
+		else if	(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port,isIpV6)))
 			found = true;
 		else if(balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode()))
 			return;
@@ -157,7 +157,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		Integer port = via.getPort();
 		boolean found = false;
 
-		if(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port)))
+		if(invocationContext.sipNodeMap(isIpV6).containsKey(new KeySip(host, port,isIpV6)))
 			found = true;
 		if(logger.isDebugEnabled()) {
 			logger.debug("external response node found ? " + found);
@@ -238,7 +238,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			headerToTimestamps.put(headerKey, System.currentTimeMillis());
 		}
 
-		if(node == null||invocationContext.sipNodeMap(isIpV6).get(new KeySip(node)).isGracefulShutdown()) { //
+		if(node == null||invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown()) { //
 			node = nextAvailableNode(isIpV6);
 			if(node == null) return null;
 			userToMap.put(headerKey, node);

@@ -61,7 +61,7 @@ public class RingingFailoverTest {
 		algorithm.balancerContext.smppToProviderAlgorithmClassName = SmppToProviderRoundRobinAlgorithm.class.getName();
 		InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
 
-		ctx.sipNodeMap(false).put(new KeySip(adNode), adNode); 
+		ctx.sipNodeMap(false).put(new KeySip(adNode,false), adNode); 
 				
 		algorithm.invocationContext = ctx;
 		algorithm.processExternalResponse(response,false);

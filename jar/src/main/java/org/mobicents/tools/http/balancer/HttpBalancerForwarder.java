@@ -57,7 +57,7 @@ public class HttpBalancerForwarder {
 		HttpChannelAssociations.serverSecureBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		HttpChannelAssociations.serverApiBootstrap = new ServerBootstrap(nioServerSocketChannelFactory);
 		HttpChannelAssociations.inboundBootstrap = new ClientBootstrap(nioClientSocketChannelFactory);
-		HttpChannelAssociations.channels = new ConcurrentHashMap<Channel, Channel>();
+		HttpChannelAssociations.channels = new ConcurrentHashMap<AdvancedChannel, AdvancedChannel>();
 		if(balancerRunner.getConfiguration().getHttpConfiguration().getUrlrewriteRule()!=null)
 		{
 			HttpChannelAssociations.urlRewriteFilter = new BalancerUrlRewriteFilter();
@@ -105,13 +105,13 @@ public class HttpBalancerForwarder {
 
 	public void stop() {
 		if(executor == null) return; // already stopped
-		for (Entry<Channel, Channel> entry : HttpChannelAssociations.channels.entrySet()) {
-			entry.getKey().unbind();
-			entry.getKey().close();
-			entry.getKey().getCloseFuture().awaitUninterruptibly();
-			entry.getValue().unbind();
-			entry.getValue().close();
-			entry.getValue().getCloseFuture().awaitUninterruptibly();
+		for (Entry<AdvancedChannel, AdvancedChannel> entry : HttpChannelAssociations.channels.entrySet()) {
+			entry.getKey().getChannel().unbind();
+			entry.getKey().getChannel().close();
+			entry.getKey().getChannel().getCloseFuture().awaitUninterruptibly();
+			entry.getValue().getChannel().unbind();
+			entry.getValue().getChannel().close();
+			entry.getValue().getChannel().getCloseFuture().awaitUninterruptibly();
 		}
 		
 		serverChannel.unbind();
