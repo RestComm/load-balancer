@@ -280,6 +280,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 							if(ctx.smppToNodeBalancerAlgorithm!=null)
 								ctx.smppToNodeBalancerAlgorithm.configurationChanged();
 							ctx.smppToProviderBalancerAlgorithm.configurationChanged();
+							smppBalancerRunner.remoteServersUpdated();
 						}
 					} catch (Exception e) {
 						logger.warn("Problem reloading configuration " + e);

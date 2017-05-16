@@ -207,5 +207,13 @@ public class SmppBalancerRunner {
 			return ((BalancerDispatcher)dispatcher).getClientSessions().size() + ((BalancerDispatcher)dispatcher).getServerSessions().size();
 		}
 	}
+	
+	public void remoteServersUpdated()
+	{
+		if(dispatcher instanceof MBalancerDispatcher)
+		{
+			((MBalancerDispatcher)dispatcher).remoteServersUpdated();
+		}
+	}
 
 }

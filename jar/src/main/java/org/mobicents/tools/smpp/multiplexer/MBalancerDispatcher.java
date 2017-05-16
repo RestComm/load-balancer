@@ -20,6 +20,7 @@
 package org.mobicents.tools.smpp.multiplexer;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -89,5 +90,11 @@ public class MBalancerDispatcher extends Dispatcher implements MLbServerListener
 	public AtomicInteger getNotRespondedPackets() 
 	{
 		return notRespondedPackets;
+	}
+	
+	public void remoteServersUpdated()
+	{
+		for(Entry<String, UserSpace> entry : userSpaces.entrySet())
+			entry.getValue().remoteServersUpdated();
 	}
 }

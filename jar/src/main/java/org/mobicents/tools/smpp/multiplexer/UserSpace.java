@@ -1,7 +1,10 @@
 package org.mobicents.tools.smpp.multiplexer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -13,6 +16,9 @@ import org.apache.log4j.Logger;
 import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
+
+import org.mobicents.tools.smpp.balancer.core.ListDiff;
+import org.mobicents.tools.smpp.balancer.core.ListUtil;
 
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.pdu.BaseBind;
@@ -31,6 +37,7 @@ public class UserSpace {
 	private String systemId;
 	private String password;
 	private String systemType;
+	private boolean isSslConnection;
 	private ConcurrentLinkedQueue<MServerConnectionImpl> pendingCustomers;
 	private ConcurrentHashMap<Long, MServerConnectionImpl> customers;
 	private ConcurrentHashMap<Long, MClientConnectionImpl> connectionsToServers;
@@ -176,7 +183,7 @@ public class UserSpace {
 	
 	public void initBind(MServerConnectionImpl customer)
 	{
-		boolean isSslConnection = customer.getConfig().isUseSsl();
+		this.isSslConnection = customer.getConfig().isUseSsl();
 		this.systemType = customer.getConfig().getSystemType();
 		if(logger.isDebugEnabled())
 			logger.debug("Start initial bind for customer with sessionID : " + customer.getSessionId());
@@ -348,5 +355,33 @@ public class UserSpace {
 	}
 	public MBalancerDispatcher getDispatcher() {
 		return dispatcher;
+	}
+	
+	public void remoteServersUpdated()
+	{
+		List<Node> usedNodes = new ArrayList<Node>();
+		for(Entry<Long, MClientConnectionImpl> entryConnections : connectionsToServers.entrySet())
+			usedNodes.add(entryConnections.getValue().getNode());
+		List<Node> updatedNodes = new ArrayList<Node>(ctx.smppNodeMap.values());
+		
+		ListDiff<Node> diff = ListUtil.diff(usedNodes, updatedNodes);
+		List<Node> addedNodes = diff.getAdded();
+		List<Node> removedNodes = diff.getRemoved();
+		for(Node node : addedNodes)
+		{
+			connectionsToServers.put(serverSessionID, new MClientConnectionImpl(serverSessionID, this, monitorExecutor, balancerRunner, node, isSslConnection));
+			monitorExecutor.execute(new MBinderRunnable(connectionsToServers.get(serverSessionID), systemId, password, systemType));
+			serverSessionID++;
+		}
+		for(Node node : removedNodes)
+		{
+			for(Entry<Long,MClientConnectionImpl> entry : connectionsToServers.entrySet())
+				{
+					if(node.equals(entry.getValue().getNode()))
+						connectionsToServers.remove(entry.getKey());
+				}
+		}
+		
+
 	}
 }
