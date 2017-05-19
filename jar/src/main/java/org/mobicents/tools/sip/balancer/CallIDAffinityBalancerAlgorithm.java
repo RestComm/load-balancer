@@ -194,12 +194,20 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	public Node processExternalRequest(Request request,Boolean isIpV6) {
 		String callId = ((SIPHeader) request.getHeader(headerName))
 		.getValue();
+		System.out.println("CALL ID : " + callId);
 		Node node;
 		node = callIdMap.get(callId);
 		callIdTimestamps.put(callId, System.currentTimeMillis());
 
 		if(node == null) { //
-			node = nextAvailableNode(isIpV6);
+			if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
+			{
+				node = getNextRampUpNode(isIpV6);
+				System.out.println("WE WILL GET NEXT RAMP UP NODE : " + node);
+			}				
+			else
+				node = nextAvailableNode(isIpV6);
+			
 			if(node == null) return null;
 			callIdMap.put(callId, node);
 			if(logger.isDebugEnabled()) {
@@ -238,8 +246,12 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			if(node == null) return null;
 			groupedFailover(oldNode, node);
 		} else {
-			//Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            				
-			node = nextAvailableNode(isIpV6);
+			//Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        
+			if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
+				node = getNextRampUpNode(isIpV6);				
+			else
+				node = nextAvailableNode(isIpV6);
+			
 			if(node == null) {
 				if(logger.isDebugEnabled()) {
 		    		logger.debug("no nodes available return null");

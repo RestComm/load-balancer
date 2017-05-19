@@ -239,7 +239,12 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 
 		if(node == null||invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown()) { //
-			node = nextAvailableNode(isIpV6);
+			if(cycleStartTime==null)
+				node = nextAvailableNode(isIpV6);
+			else
+			{
+				node = getNextRampUpNode(isIpV6);
+			}
 			if(node == null) return null;
 			userToMap.put(headerKey, node);
 			if(logger.isDebugEnabled()) {
@@ -273,7 +278,10 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			groupedFailover(oldNode, node);
 		} else {
 			//Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            							
-			node = nextAvailableNode(isIpV6);
+			if(cycleStartTime==null)
+				node = nextAvailableNode(isIpV6);
+			else
+				node = getNextRampUpNode(isIpV6);
 			if(node == null) {
 				if(logger.isDebugEnabled()) {
 		    		logger.debug("no nodes available return null");

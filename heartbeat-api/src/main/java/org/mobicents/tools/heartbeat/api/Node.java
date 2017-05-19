@@ -37,6 +37,7 @@ public class Node implements Comparable<Node> {
 	private boolean gracefulShutdown;
 	private boolean bad;
 	private int failCounter = 0;
+	private int weightIndex = 0;
 	private Gson gson = new Gson();
 	
 	public Node(){}
@@ -174,5 +175,14 @@ public class Node implements Comparable<Node> {
 	public int compareTo(Node node) {
 		return this.toStringWithoutJvmroute().compareTo(node.toStringWithoutJvmroute());
 	}
+	
+	public void incrementWeightIndex()
+	{
+		weightIndex++;
+	}
+	public int getWeightIndex() {
+		return weightIndex;
+	}
+	
 	
 }

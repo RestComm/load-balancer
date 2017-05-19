@@ -22,11 +22,18 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -40,6 +47,7 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.heartbeat.api.Node;
 
+
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
 	private static final Logger logger = Logger.getLogger(DefaultBalancerAlgorithm.class.getCanonicalName());
@@ -51,10 +59,13 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Iterator<Node> httpRequestIterator = null;
 	protected Iterator <Node> instanceIdIterator = null;
 	protected LoadBalancerConfiguration lbConfig; 
-
-//	public void setProperties(Properties properties) {
-//		this.properties = properties;
-//	}
+	protected ArrayList <Node> cycleListIpV4 = new ArrayList<Node>();
+	protected ArrayList <Node> cycleListIpV6 = new ArrayList<Node>();
+	protected AtomicInteger currentItemIndexIpV4 = new AtomicInteger(0);
+	protected AtomicInteger currentItemIndexIpV6 = new AtomicInteger(0);
+	protected AtomicLong cycleStartTimeIpV6 = new AtomicLong(0);
+	protected AtomicLong cycleStartTimeIpV4 = new AtomicLong(0);
+	private Semaphore semaphore = new Semaphore(1);
 
 	public LoadBalancerConfiguration getConfiguration() {
 		return lbConfig;
@@ -76,14 +87,84 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		return balancerContext;
 	}
 
-//	public Properties getProperties() {
-//		return properties;
-//	}
-	
 	public void processInternalRequest(Request request) {
 		
 	}
 	public void configurationChanged() {
+		
+	}
+	
+	private void cycle(boolean isIpv6)
+	{
+		try {
+			semaphore.acquire();
+		} catch (InterruptedException e) 
+		{
+			logger.error("Semaphore acquire exception : " + e.getMessage());
+		}
+
+		Long currTime;
+		if(isIpv6)
+			currTime=cycleStartTimeIpV6.get();
+		else
+			currTime=cycleStartTimeIpV4.get();
+		
+		if(System.currentTimeMillis() > (lbConfig.getSipConfiguration().getCyclePeriod() + currTime))
+		{
+			ArrayList<Node> currList= new ArrayList<Node>();
+			for(Entry<KeySip, Node> entry : invocationContext.sipNodeMap(isIpv6).entrySet())
+			{
+				Node currNode = entry.getValue();
+				if(currNode.getWeightIndex()<lbConfig.getSipConfiguration().getMaxWeightIndex())
+					currNode.incrementWeightIndex();
+
+				for(int i = 0; i < currNode.getWeightIndex(); i++)
+					currList.add(currNode);				
+			}
+
+			if(isIpv6)
+			{
+				if(currentItemIndexIpV6.get()>cycleListIpV6.size())
+					currentItemIndexIpV6.set(0);
+				
+				cycleListIpV6 = currList;
+			}
+			else
+			{
+				if(currentItemIndexIpV4.get()>cycleListIpV4.size())
+					currentItemIndexIpV4.set(0);
+				
+				cycleListIpV4 = currList;
+			}
+			
+			
+			if(isIpv6)
+				cycleStartTimeIpV6.set(System.currentTimeMillis());
+			else
+				cycleStartTimeIpV4.set(System.currentTimeMillis());						
+		}
+		semaphore.release();
+		
+	}
+	
+	protected synchronized Node getNextRampUpNode(boolean isIpV6)
+	{
+		if(isIpV6)
+		{
+			if(currentItemIndexIpV6.get() < cycleListIpV6.size())
+				cycle(isIpV6);
+
+			return cycleListIpV6.get(currentItemIndexIpV6.getAndIncrement()%cycleListIpV6.size());
+		}
+		else
+		{
+			if(currentItemIndexIpV4.get() < cycleListIpV4.size())
+				cycle(isIpV6);
+
+			System.out.println("ARRAY LIST : " + cycleListIpV4);
+			
+			return cycleListIpV4.get(currentItemIndexIpV4.getAndIncrement()%cycleListIpV4.size());
+		}
 		
 	}
 	
@@ -244,12 +325,47 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}
 	
-	public void nodeAdded(Node node) {
-		
+	public void nodeAdded(Node node) 
+	{
+		if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
+		{
+			boolean isIpV6 = false;
+			try {
+				isIpV6 = InetAddress.getByName(node.getIp()) instanceof Inet6Address;
+			} catch (UnknownHostException e) {
+
+				logger.error("A Problem happened during the determination isIpV6 for ip : " + node.getIp() +". So it will be default false", e);
+			}
+			
+			if(isIpV6)
+				cycleStartTimeIpV6.set(0);
+			else
+				cycleStartTimeIpV4.set(0);
+			
+			cycle(isIpV6);
+		}
+	
 	}
 
-	public void nodeRemoved(Node node) {
-		
+	public void nodeRemoved(Node node) 
+	{
+		if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
+		{
+			boolean isIpV6 = false;
+			try {
+				isIpV6 = InetAddress.getByName(node.getIp()) instanceof Inet6Address;
+			} catch (UnknownHostException e) {
+
+				logger.error("A Problem happened during the determination isIpV6 for ip : " + node.getIp() +". So it will be default false", e);
+			}
+			
+			if(isIpV6)
+				cycleStartTimeIpV6.set(0);
+			else
+				cycleStartTimeIpV4.set(0);
+			
+			cycle(isIpV6);
+		}
 	}
 	
 	public void jvmRouteSwitchover(String fromJvmRoute, String toJvmRoute) {
@@ -286,4 +402,5 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			}
 		}
 	}
+	
 }

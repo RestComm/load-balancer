@@ -2,7 +2,6 @@ package org.mobicents.tools.configuration;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class SipConfiguration {
 	
@@ -26,6 +25,8 @@ public class SipConfiguration {
 	public static final String MATCHING_HOSTNAME_FOR_ROUTE = null;
 	public static final Boolean IS_FILTER_SUBDOMAIN = false;
 	public static final String INTERNAL_TRANSPORT = null;
+	public static final Integer CYCLE_PERIOD = null;
+	public static final Integer MAX_WEIGHT_INDEX = null;
 
 	private Boolean isSendTrying;
 	private String publicIp;
@@ -43,6 +44,8 @@ public class SipConfiguration {
 	private String matchingHostnameForRoute;
 	private Boolean isFilterSubdomain;
 	private String internalTransport;
+	private Integer cyclePeriod;
+	private Integer maxWeightIndex;
 	
 	public SipConfiguration() 
     {
@@ -66,6 +69,8 @@ public class SipConfiguration {
         this.matchingHostnameForRoute = MATCHING_HOSTNAME_FOR_ROUTE;
         this.isFilterSubdomain = IS_FILTER_SUBDOMAIN;
         this.internalTransport = INTERNAL_TRANSPORT;
+        this.cyclePeriod = CYCLE_PERIOD;
+        this.maxWeightIndex = MAX_WEIGHT_INDEX;
     }
 
 	public AlgorithmConfiguration getAlgorithmConfiguration() {
@@ -219,5 +224,21 @@ public class SipConfiguration {
 	public void setInternalTransport(String internalTransport) {
 		this.internalTransport = internalTransport;
 	}
-	
+
+	public Integer getCyclePeriod() {
+		return cyclePeriod;
+	}
+
+	public void setCyclePeriod(Integer cyclePeriod) {
+		this.cyclePeriod = cyclePeriod;
+	}
+
+	public Integer getMaxWeightIndex() {
+		return maxWeightIndex;
+	}
+
+	public void setMaxWeightIndex(Integer maxWeightIndex) {
+		this.maxWeightIndex = maxWeightIndex;
+	}
+
 }
