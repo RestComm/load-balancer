@@ -239,12 +239,11 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		}
 
 		if(node == null||invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown()) { //
-			if(cycleStartTime==null)
+			if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 				node = nextAvailableNode(isIpV6);
 			else
-			{
 				node = getNextRampUpNode(isIpV6);
-			}
+
 			if(node == null) return null;
 			userToMap.put(headerKey, node);
 			if(logger.isDebugEnabled()) {
@@ -278,7 +277,7 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			groupedFailover(oldNode, node);
 		} else {
 			//Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	            							
-			if(cycleStartTime==null)
+			if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 				node = nextAvailableNode(isIpV6);
 			else
 				node = getNextRampUpNode(isIpV6);

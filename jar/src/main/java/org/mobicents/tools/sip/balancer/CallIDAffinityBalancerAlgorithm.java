@@ -194,17 +194,13 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 	public Node processExternalRequest(Request request,Boolean isIpV6) {
 		String callId = ((SIPHeader) request.getHeader(headerName))
 		.getValue();
-		System.out.println("CALL ID : " + callId);
 		Node node;
 		node = callIdMap.get(callId);
 		callIdTimestamps.put(callId, System.currentTimeMillis());
 
 		if(node == null) { //
 			if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
-			{
 				node = getNextRampUpNode(isIpV6);
-				System.out.println("WE WILL GET NEXT RAMP UP NODE : " + node);
-			}				
 			else
 				node = nextAvailableNode(isIpV6);
 			

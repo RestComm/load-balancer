@@ -161,7 +161,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			if(currentItemIndexIpV4.get() < cycleListIpV4.size())
 				cycle(isIpV6);
 
-			System.out.println("ARRAY LIST : " + cycleListIpV4);
 			
 			return cycleListIpV4.get(currentItemIndexIpV4.getAndIncrement()%cycleListIpV4.size());
 		}
