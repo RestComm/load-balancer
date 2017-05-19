@@ -754,6 +754,14 @@ heartbeatInterval::
 smppHost::
   Local IP address on which the SMPP load balancer will listen for incoming requests from clients.
 
+smppInternalHost::
+
+If neede two NIC for SMPP. Interface to SMPP provider side.
+
+smppExternalHost::
+
+If neede two NIC for SMPP. Interface to SMPP RC/Node/client side.
+
 smppPort::
   Port on which the SMPP load balancer will listen for incoming requests from clients.
 

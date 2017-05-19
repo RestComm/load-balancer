@@ -290,10 +290,18 @@ public class XmlConfigurationLoader{
     private static void configureSmpp(HierarchicalConfiguration<ImmutableNode> src, SmppConfiguration dst) 
     {
     	// Basic SMPP configuration
-    	dst.setSmppHost(src.getString("smppHost", SmppConfiguration.SMPP_HOST));
-    	if(!src.getString("smppPort").equals(""))
+    	if (src.getString("smppHost") != null && !src.getString("smppHost").equals(""))
+    		dst.setSmppHost(src.getString("smppHost", SmppConfiguration.SMPP_HOST));
+    	// Basic SMPP configuration
+    	if (src.getString("smppInternalHost") != null && !src.getString("smppInternalHost").equals(""))
+    		dst.setSmppInternalHost(src.getString("smppInternalHost", SmppConfiguration.SMPP_INTERNAL_HOST));
+    	// Basic SMPP configuration
+    	if (src.getString("smppExternalHost") != null && !src.getString("smppExternalHost").equals(""))
+    		dst.setSmppExternalHost(src.getString("smppExternalHost", SmppConfiguration.SMPP_EXTERNAL_HOST));
+    	
+    	if(src.getString("smppPort") != null && !src.getString("smppPort").equals(""))
     		dst.setSmppPort(src.getInteger("smppPort", SmppConfiguration.SMPP_PORT));
-    	if(!src.getString("smppSslPort").equals(""))
+    	if(src.getString("smppSslPort") != null && !src.getString("smppSslPort").equals(""))
     		dst.setSmppSslPort(src.getInteger("smppSslPort", SmppConfiguration.SMPP_SSL_PORT));
     	if(!src.getString("smppPort").equals("")||!src.getString("smppSslPort").equals(""))
     	{

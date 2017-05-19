@@ -62,7 +62,11 @@ public class SmppBalancerRunner {
 	{
         SmppServerConfiguration regularConfiguration = new SmppServerConfiguration();
         regularConfiguration.setName("SMPP Load Balancer");
-        regularConfiguration.setHost(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost());
+        String smppHost = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppExternalHost();
+        if (smppHost == null || smppHost.equals("")) {
+        	smppHost = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost();
+        }
+        regularConfiguration.setHost(smppHost);
         regularConfiguration.setPort(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppPort());
        	regularConfiguration.setMaxConnectionSize(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getMaxConnectionSize());
        	regularConfiguration.setNonBlockingSocketsEnabled(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().isNonBlockingSocketsEnabled());
@@ -74,7 +78,11 @@ public class SmppBalancerRunner {
         if(smppSslPort!=null)
         {
         	securedConfiguration = new SmppServerConfiguration();
-        	securedConfiguration.setHost(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost());
+        	String smppSslHost = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppExternalHost();
+            if (smppSslHost == null || smppSslHost.equals("")) {
+            	smppSslHost = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost();
+            }
+        	securedConfiguration.setHost(smppSslHost);
 	        securedConfiguration.setPort(smppSslPort);
 	        securedConfiguration.setMaxConnectionSize(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getMaxConnectionSize());
 	        securedConfiguration.setNonBlockingSocketsEnabled(balancerRunner.balancerContext.lbConfig.getSmppConfiguration().isNonBlockingSocketsEnabled());

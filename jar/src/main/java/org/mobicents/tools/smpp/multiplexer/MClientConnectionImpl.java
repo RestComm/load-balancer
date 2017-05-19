@@ -80,6 +80,7 @@ public class MClientConnectionImpl implements ClientConnection{
     private MClientConnectionHandlerImpl clientConnectionHandler;
     private SmppSessionConfiguration config;
     private Node node;
+    private String localSmppAddress;
     private boolean isSslConnection = false;
 
 
@@ -137,6 +138,10 @@ public class MClientConnectionImpl implements ClientConnection{
 		  this.isSslConnection = isSslConnection;
 		  this.monitorExecutor = monitorExecutor;
 		  this.node = node;
+		  this.localSmppAddress = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppInternalHost();
+		  if (this.localSmppAddress == null) {
+			  this.localSmppAddress = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost();
+		  }
 		  this.config = new SmppSessionConfiguration();	
 		  this.transcoder = new DefaultPduTranscoder(new DefaultPduTranscoderContext());
 		  this.userSpace = userSpace;
@@ -165,7 +170,7 @@ public class MClientConnectionImpl implements ClientConnection{
 			if(logger.isDebugEnabled())
 				logger.debug("LB trying to connect to server " + config.getHost() + " " + config.getPort());
 			
-			channelFuture = clientBootstrap.connect(new InetSocketAddress(config.getHost(), config.getPort())).sync();
+			channelFuture = clientBootstrap.connect(new InetSocketAddress(config.getHost(), config.getPort()), new InetSocketAddress(localSmppAddress, 0)).sync();
 			channel = channelFuture.getChannel();
 			if (config.isUseSsl()) 
 	          {

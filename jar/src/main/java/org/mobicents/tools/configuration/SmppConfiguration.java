@@ -6,6 +6,8 @@ import org.mobicents.tools.smpp.multiplexer.SmppToProviderRoundRobinAlgorithm;
 public class SmppConfiguration {
 	
 	public static final String SMPP_HOST = null;
+	public static final String SMPP_INTERNAL_HOST = null;
+	public static final String SMPP_EXTERNAL_HOST = null;
 	public static final Integer SMPP_PORT = null;
 	public static final Integer SMPP_SSL_PORT = null;
 	public static final String REMOTE_SERVERS = null;
@@ -23,6 +25,8 @@ public class SmppConfiguration {
 	public static final Boolean MUX_MODE = true;
 	
 	private String smppHost;	
+	private String smppInternalHost;	
+	private String smppExternalHost;	
 	private Integer smppPort;
 	private Integer smppSslPort;
 	private String remoteServers;
@@ -42,6 +46,8 @@ public class SmppConfiguration {
 	 public SmppConfiguration() 
 	    {
 		 	this.smppHost = SMPP_HOST;
+		 	this.smppInternalHost = SMPP_INTERNAL_HOST;
+		 	this.smppExternalHost = SMPP_EXTERNAL_HOST;
 	        this.smppPort = SMPP_PORT;
 	        this.smppSslPort = SMPP_SSL_PORT;
 	        this.remoteServers = REMOTE_SERVERS;
@@ -66,6 +72,22 @@ public class SmppConfiguration {
 
 	public void setSmppHost(String smppHost) {
 		this.smppHost = smppHost;
+	}
+	
+	public String getSmppInternalHost() {
+		return smppInternalHost;
+	}
+
+	public void setSmppInternalHost(String smppInternalHost) {
+		this.smppInternalHost = smppInternalHost;
+	}
+
+	public String getSmppExternalHost() {
+		return smppExternalHost;
+	}
+
+	public void setSmppExternalHost(String smppExternalHost) {
+		this.smppExternalHost = smppExternalHost;
 	}
 
 	public Integer getSmppPort() 

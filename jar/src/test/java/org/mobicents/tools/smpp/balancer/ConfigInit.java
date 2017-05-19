@@ -116,6 +116,40 @@ public class ConfigInit {
 		return lbConfig;
 	}
 	
+	static LoadBalancerConfiguration getLbPropertiesTwoNic(boolean isSsl, boolean terminateTLSTraffic)
+	{
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		lbConfig.getSslConfiguration().setTerminateTLSTraffic(terminateTLSTraffic);
+		//sip property
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
+		//smpp property
+		lbConfig.getSmppConfiguration().setSmppInternalHost("127.0.0.1");
+		lbConfig.getSmppConfiguration().setSmppExternalHost("127.0.0.1");
+		lbConfig.getSmppConfiguration().setSmppPort(2776);
+		lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023");
+		lbConfig.getSmppConfiguration().setDefaultSessionCountersEnabled(true);
+		lbConfig.getSmppConfiguration().setTimeoutResponse(3000);
+		lbConfig.getSmppConfiguration().setTimeoutConnection(1000);
+		lbConfig.getSmppConfiguration().setTimeoutEnquire(1000);
+		lbConfig.getSmppConfiguration().setReconnectPeriod(500);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckClientSide(2000);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckServerSide(2000);
+		lbConfig.getSmppConfiguration().setSmppToNodeAlgorithmClass(SmppToNodeSubmitToAllAlgorithm.class.getName());
+		if(isSsl)
+		{
+			lbConfig.getSslConfiguration().setKeyStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			lbConfig.getSslConfiguration().setKeyStorePassword("123456");
+			lbConfig.getSslConfiguration().setTrustStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			lbConfig.getSslConfiguration().setTrustStorePassword("123456");
+			lbConfig.getSmppConfiguration().setSmppSslPort(2876);
+			
+		}
+		
+		
+		return lbConfig;
+	}
+	
 	static LoadBalancerConfiguration getLbSpliterProperties(boolean isSsl, boolean terminateTLSTraffic)
 	{
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
@@ -125,6 +159,41 @@ public class ConfigInit {
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		//smpp property
 		lbConfig.getSmppConfiguration().setSmppHost("127.0.0.1");
+		lbConfig.getSmppConfiguration().setSmppPort(2776);
+		lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023");
+		lbConfig.getSmppConfiguration().setDefaultSessionCountersEnabled(true);
+		lbConfig.getSmppConfiguration().setTimeoutResponse(3000);
+		lbConfig.getSmppConfiguration().setTimeoutConnection(1000);
+		lbConfig.getSmppConfiguration().setTimeoutEnquire(5000);
+		lbConfig.getSmppConfiguration().setReconnectPeriod(500);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckClientSide(2000);
+		lbConfig.getSmppConfiguration().setTimeoutConnectionCheckServerSide(2000);
+		lbConfig.getSmppConfiguration().setSmppToNodeAlgorithmClass(SmppToNodeSubmitToAllAlgorithm.class.getName());
+		lbConfig.getSmppConfiguration().setMuxMode(false);
+		if(isSsl)
+		{
+			lbConfig.getSslConfiguration().setKeyStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			lbConfig.getSslConfiguration().setKeyStorePassword("123456");
+			lbConfig.getSslConfiguration().setTrustStore(ConfigInit.class.getClassLoader().getResource("keystore").getFile());
+			lbConfig.getSslConfiguration().setTrustStorePassword("123456");
+			lbConfig.getSmppConfiguration().setSmppSslPort(2876);
+		
+		}
+	
+	
+		return lbConfig;
+	}
+	
+	static LoadBalancerConfiguration getLbSpliterPropertiesTwoNic(boolean isSsl, boolean terminateTLSTraffic)
+	{
+		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
+		lbConfig.getSslConfiguration().setTerminateTLSTraffic(terminateTLSTraffic);
+		//sip property
+		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
+		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
+		//smpp property
+		lbConfig.getSmppConfiguration().setSmppInternalHost("127.0.0.1");
+		lbConfig.getSmppConfiguration().setSmppExternalHost("127.0.0.1");
 		lbConfig.getSmppConfiguration().setSmppPort(2776);
 		lbConfig.getSmppConfiguration().setRemoteServers("127.0.0.1:10021,127.0.0.1:10022,127.0.0.1:10023");
 		lbConfig.getSmppConfiguration().setDefaultSessionCountersEnabled(true);

@@ -98,6 +98,8 @@ public class ClientConnectionImpl implements ClientConnection{
     //private ScheduledFuture<?> connectionCheckServerSideTimer;    
     private ServerTimerConnectionCheck connectionCheck;
 
+	private String localSmppAddress;
+
     
     public boolean isEnquireLinkSent() {
 		return isEnquireLinkSent;
@@ -130,6 +132,10 @@ public class ClientConnectionImpl implements ClientConnection{
 		  this.monitorExecutor = monitorExecutor;
 		  this.sessionId = sessionId;
 		  this.config = config;
+		  this.localSmppAddress = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppInternalHost();
+		  if (this.localSmppAddress == null || this.localSmppAddress.equals("")) {
+			  this.localSmppAddress = balancerRunner.balancerContext.lbConfig.getSmppConfiguration().getSmppHost();
+		  }
 		  this.transcoder = new DefaultPduTranscoder(new DefaultPduTranscoderContext());
 		  this.lbClientListener=clientListener;
 		  this.clientConnectionHandler = new ClientConnectionHandlerImpl(this);	
@@ -147,7 +153,7 @@ public class ClientConnectionImpl implements ClientConnection{
 			if(logger.isDebugEnabled())
 				logger.debug("LB trying to connect to server " + config.getHost() + " " + config.getPort());
 			
-			channelFuture = clientBootstrap.connect(new InetSocketAddress(config.getHost(), config.getPort())).sync();
+			channelFuture = clientBootstrap.connect(new InetSocketAddress(config.getHost(), config.getPort()), new InetSocketAddress(localSmppAddress, 0)).sync();
 			channel = channelFuture.getChannel();
 			
 			if (config.isUseSsl()) 
