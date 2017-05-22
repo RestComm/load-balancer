@@ -115,10 +115,10 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			for(Entry<KeySip, Node> entry : invocationContext.sipNodeMap(isIpv6).entrySet())
 			{
 				Node currNode = entry.getValue();
-				if(currNode.getWeightIndex()<lbConfig.getSipConfiguration().getMaxWeightIndex())
+				if(currNode.obtainWeightIndex()<lbConfig.getSipConfiguration().getMaxWeightIndex())
 					currNode.incrementWeightIndex();
 
-				for(int i = 0; i < currNode.getWeightIndex(); i++)
+				for(int i = 0; i < currNode.obtainWeightIndex(); i++)
 					currList.add(currNode);				
 			}
 

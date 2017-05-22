@@ -40,7 +40,7 @@ public class RampUpTest {
 	
 		BalancerRunner balancer;
 		int numNodes = 2;
-		int numShootist = 7;
+		int numShootist = 8;
 		AppServer[] servers = new AppServer[numNodes];
 		Shootist [] shootists = new Shootist [numShootist];
 
@@ -92,7 +92,7 @@ public class RampUpTest {
 			}
 			
 			assertEquals(6,servers[0].getTestSipListener().getDialogCount());
-			assertEquals(1,servers[1].getTestSipListener().getDialogCount());
+			assertEquals(2,servers[1].getTestSipListener().getDialogCount());
 			for(Shootist s :shootists)
 			{
 				boolean wasRinging = false;

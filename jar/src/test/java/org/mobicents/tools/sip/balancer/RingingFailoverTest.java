@@ -30,6 +30,7 @@ import javax.sip.SipFactory;
 import javax.sip.message.Response;
 
 import org.junit.Test;
+import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.BalancerContext;
 import org.mobicents.tools.sip.balancer.CallIDAffinityBalancerAlgorithm;
@@ -59,6 +60,7 @@ public class RingingFailoverTest {
 		algorithm.balancerContext.algorithmClassName = CallIDAffinityBalancerAlgorithm.class.getName();
 		algorithm.balancerContext.smppToNodeAlgorithmClassName = SmppToNodeRoundRobinAlgorithm.class.getName();
 		algorithm.balancerContext.smppToProviderAlgorithmClassName = SmppToProviderRoundRobinAlgorithm.class.getName();
+		algorithm.setConfiguration(new LoadBalancerConfiguration());
 		InvocationContext ctx = new InvocationContext("0",algorithm.balancerContext);
 
 		ctx.sipNodeMap(false).put(new KeySip(adNode,false), adNode); 

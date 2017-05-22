@@ -180,7 +180,7 @@ public class Node implements Comparable<Node> {
 	{
 		weightIndex++;
 	}
-	public int getWeightIndex() {
+	public int obtainWeightIndex() {
 		return weightIndex;
 	}
 	
