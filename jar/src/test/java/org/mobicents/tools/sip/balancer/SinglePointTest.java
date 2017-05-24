@@ -8,7 +8,6 @@ import javax.sip.message.Response;
 import org.junit.After;
 import org.junit.Test;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
-import org.mobicents.tools.sip.balancer.operation.Helper;
 import org.mobicents.tools.sip.balancer.operation.Shootist;
 
 public class SinglePointTest {
@@ -38,6 +37,8 @@ public class SinglePointTest {
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.net.ssl.trustStorePassword", "123456");
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.net.ssl.trustStore",SinglePointTest.class.getClassLoader().getResource("keystore").getFile());
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.net.ssl.keyStorePassword","123456");
+		lbConfig.getSslConfiguration().setTlsClientProtocols("TLSv1,TLSv1.1,TLSv1.2");
+		lbConfig.getSslConfiguration().setEnabledCipherSuites("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTlsPort(5061);
 		lbConfig.getSslConfiguration().setTerminateTLSTraffic(terminateTLS);
@@ -56,7 +57,6 @@ public class SinglePointTest {
 		shootistTcp.stop();
 		shootistTls.stop();
 		server.stop();
-		//Helper.sleep(1000);
 		balancer.stop();
 	}
 	
@@ -69,7 +69,7 @@ public class SinglePointTest {
 		shootistTcp.sendInitialInvite();
 		Thread.sleep(5000);
 		shootistTcp.sendBye();
-		Thread.sleep(15000);
+		Thread.sleep(5000);
 		assertTrue(server.getTestSipListener().isInviteReceived());
 		assertTrue(server.getTestSipListener().isAckReceived());
 		assertTrue(server.getTestSipListener().getByeReceived());
@@ -93,7 +93,7 @@ public class SinglePointTest {
 		shootistTls.sendInitialInvite();
 		Thread.sleep(5000);
 		shootistTls.sendBye();
-		Thread.sleep(15000);
+		Thread.sleep(5000);
 		assertTrue(server.getTestSipListener().isInviteReceived());
 		assertTrue(server.getTestSipListener().isAckReceived());
 		assertTrue(server.getTestSipListener().getByeReceived());
@@ -117,7 +117,7 @@ public class SinglePointTest {
 		shootistTls.sendInitialInvite();
 		Thread.sleep(5000);
 		shootistTls.sendBye();
-		Thread.sleep(15000);
+		Thread.sleep(5000);
 		assertTrue(server.getTestSipListener().isInviteReceived());
 		assertTrue(server.getTestSipListener().isAckReceived());
 		assertTrue(server.getTestSipListener().getByeReceived());

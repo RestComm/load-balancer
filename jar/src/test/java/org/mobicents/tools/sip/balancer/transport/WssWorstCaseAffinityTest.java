@@ -67,6 +67,8 @@ public class WssWorstCaseAffinityTest{
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.net.ssl.trustStorePassword", "123456");
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.net.ssl.trustStore",SinglePointTest.class.getClassLoader().getResource("keystore").getFile());
 		lbConfig.getSipStackConfiguration().getSipStackProperies().setProperty("javax.net.ssl.keyStorePassword","123456");
+		lbConfig.getSslConfiguration().setTlsClientProtocols("TLSv1,TLSv1.1,TLSv1.2");
+		lbConfig.getSslConfiguration().setEnabledCipherSuites("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
 		balancer.start(lbConfig);
 		
 		
