@@ -145,6 +145,24 @@ in external section
 
 Other tags you can see in example of lb-configuration.xml below.
 
+=== Ramp-up of restarting Nodes
+
+When a node is added to the list of available nodes, the traffic should be slowly
+injected to the new node, until it gets the best performance. A fresh started node
+needs to initialize internal data structures,and fill different caches to get the
+best performance, if we allow to inject high traffic to restarted node, we may
+face high response times in the beginning, potentially leading to failed calls.
+So the Load balancer allow to ramp-up of freshly added node. It can be enabled via
+next properties:
+
+  - cyclePeriod
+  - maxWeightIndex
+
+The Load balancer will create array of nodes based on weight of this node. So if
+node will have weight = 3, this node will present 3 times in this array. Max of
+weight sets via 'maxWeightIndex' property. 'cyclePeriod' it's period in wich LB will
+update array of nodes and its weight. This will be work in all algorithms.
+
 == HTTP Load Balancing
 === Basics
 
