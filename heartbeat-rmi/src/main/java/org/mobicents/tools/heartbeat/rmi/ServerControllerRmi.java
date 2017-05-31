@@ -40,8 +40,9 @@ import org.mobicents.tools.heartbeat.api.IServerListener;
 import org.mobicents.tools.heartbeat.api.NodeShutdownRequestPacket;
 import org.mobicents.tools.heartbeat.api.NodeStopRequestPacket;
 import org.mobicents.tools.heartbeat.api.Protocol;
-import org.mobicents.tools.heartbeat.api.SIPNode;
 import org.mobicents.tools.heartbeat.api.StartRequestPacket;
+import org.mobicents.tools.sip.balancer.NodeRegisterRMIStub;
+import org.mobicents.tools.sip.balancer.SIPNode;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

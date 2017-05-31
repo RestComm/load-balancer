@@ -36,15 +36,15 @@ import java.util.TimerTask;
 
 import javax.sip.SipProvider;
 
-import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.sip.balancer.NodeRegisterRMIStub;
+import org.mobicents.tools.sip.balancer.SIPNode;
 
 public class BlackholeAppServer {
 	public ProtocolObjects protocolObjects;
 	Timer timer;
 	int port;
 	String name;
-	Node appServerNode;
+	SIPNode appServerNode;
 	public boolean sendHeartbeat = true;
 	String lbAddress;
 	int lbRMIport;
@@ -100,7 +100,7 @@ public class BlackholeAppServer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		appServerNode = new Node(name, "127.0.0.1");
+		appServerNode = new SIPNode(name, "127.0.0.1");
 		appServerNode.getProperties().put("udpPort", "" + port);
 		
 	}
@@ -119,7 +119,7 @@ public class BlackholeAppServer {
 		//sendCleanShutdownToBalancers();
 	}
 
-	private void sendKeepAliveToBalancers(ArrayList<Node> info) {
+	private void sendKeepAliveToBalancers(ArrayList<SIPNode> info) {
 		if(sendHeartbeat) {
 			Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
 			try {
@@ -133,12 +133,12 @@ public class BlackholeAppServer {
 
 	}	
 	public void sendCleanShutdownToBalancers() {
-		ArrayList<Node> nodes = new ArrayList<Node>();
+		ArrayList<SIPNode> nodes = new ArrayList<SIPNode>();
 		nodes.add(appServerNode);
 		sendCleanShutdownToBalancers(nodes);
 	}
 	
-	public void sendCleanShutdownToBalancers(ArrayList<Node> info) {
+	public void sendCleanShutdownToBalancers(ArrayList<SIPNode> info) {
 		Thread.currentThread().setContextClassLoader(NodeRegisterRMIStub.class.getClassLoader());
 		try {
 			Registry registry = LocateRegistry.getRegistry(lbAddress, lbRMIport);

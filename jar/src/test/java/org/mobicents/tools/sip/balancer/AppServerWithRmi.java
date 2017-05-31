@@ -7,8 +7,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.mobicents.tools.heartbeat.api.SIPNode;
-import org.mobicents.tools.heartbeat.rmi.NodeRegisterRMIStub;
+import org.mobicents.tools.sip.balancer.NodeRegisterRMIStub;
 
 import javax.sip.SipProvider;
 import javax.sip.message.Response;

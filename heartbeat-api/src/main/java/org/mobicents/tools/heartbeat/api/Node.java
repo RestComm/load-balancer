@@ -38,7 +38,6 @@ public class Node implements Comparable<Node> {
 	private boolean bad;
 	private int failCounter = 0;
 	private int weightIndex = 0;
-	private Gson gson = new Gson();
 	
 	public Node(){}
 	public Node(String hostName, String ip) {
@@ -52,6 +51,7 @@ public class Node implements Comparable<Node> {
 	
 	@SuppressWarnings("unchecked")
 	public Node(JsonObject json) {
+		Gson gson = new Gson();
 		properties = gson.fromJson(json,properties.getClass());
 		this.hostName = properties.remove(Protocol.HOST_NAME);
 		this.ip = properties.remove(Protocol.IP);

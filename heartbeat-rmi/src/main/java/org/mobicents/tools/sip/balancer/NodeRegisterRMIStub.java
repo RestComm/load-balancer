@@ -16,13 +16,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-package org.mobicents.tools.heartbeat.rmi;
+package org.mobicents.tools.sip.balancer;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-
-import org.mobicents.tools.heartbeat.api.SIPNode;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */

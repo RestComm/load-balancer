@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.mobicents.tools.heartbeat.api;
+package org.mobicents.tools.sip.balancer;
 
 import java.io.Serializable;
 import java.util.HashMap;

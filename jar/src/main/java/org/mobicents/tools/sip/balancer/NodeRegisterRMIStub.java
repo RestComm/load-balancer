@@ -39,7 +39,7 @@ public interface NodeRegisterRMIStub extends Remote {
 	 * @param ping list of Node to add to the load balancer's list of availables nodes to dispatch requests to
 	 * @throws RemoteException if anything goes wrong during the RMI call
 	 */
-	public void handlePing(ArrayList<Node> ping) throws RemoteException;
+	public void handlePing(ArrayList<SIPNode> ping) throws RemoteException;
 	// Force removal added for Issue 308 (http://code.google.com/p/mobicents/issues/detail?id=308)
 	/**
 	 * Method for nodes to force their removal from the load balancer.
@@ -47,7 +47,7 @@ public interface NodeRegisterRMIStub extends Remote {
 	 * @param ping list of Node to remove from the load balancer's list of availables nodes to dispatch requests to
 	 * @throws RemoteException if anything goes wrong during the RMI call
 	 */
-	public void forceRemoval(ArrayList<Node> ping) throws RemoteException;
+	public void forceRemoval(ArrayList<SIPNode> ping) throws RemoteException;
 	
 	/**
 	 * Migrate from one jvmRoute to another.

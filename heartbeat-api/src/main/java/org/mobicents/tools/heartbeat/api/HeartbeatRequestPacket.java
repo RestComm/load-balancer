@@ -18,6 +18,8 @@
  */
 package org.mobicents.tools.heartbeat.api;
 
+import org.mobicents.tools.sip.balancer.SIPNode;
+
 
 
 /**
