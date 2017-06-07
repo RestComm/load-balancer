@@ -391,7 +391,10 @@ org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm::
   Information about the options in this algorithms is available in the balancer configuration file comments.
 
 org.mobicents.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm::
-  This algorithm is distributable and is similar to the previous algorithm, but it attempts to keep session affinity even when the cluster nodes are removed or added, which would normally cause hash values to point to different nodes.
+  This algorithm is distributable and is similar to the previous algorithm,
+  but it attempts to keep session affinity even when the cluster nodes are removed or
+  added. It implemented by storing "header value" <-> "SIP Node" to cache. So this
+  cache can be shared between LBs.
 
 org.mobicents.tools.sip.balancer.ClusterSubdomainAffinityAlgorithm::
   This algorithm is not distributable, but supports grouping server nodes to act as a subcluster.
