@@ -193,12 +193,12 @@ face high response times in the beginning, potentially leading to failed calls.
 So the Load balancer allow to ramp-up of freshly added node. It can be enabled via
 next properties:
 
-  - cyclePeriod
+  - trafficRampupCyclePeriod
   - maxWeightIndex
 
 The Load balancer will create array of nodes based on weight of this node. So if
 node will have weight = 3, this node will present 3 times in this array. Max of
-weight sets via 'maxWeightIndex' property. 'cyclePeriod' it's period in wich LB will
+weight sets via 'maxWeightIndex' property. 'trafficRampupCyclePeriod' it's period in wich LB will
 update array of nodes and its weight. This will be work in all algorithms.
 
 == HTTP Load Balancing
@@ -523,7 +523,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <matchingHostnameForRoute>restcomm.com</matchingHostnameForRoute>
   <isFilterSubdomain>true</isFilterSubdomain>
   <internalTransport></internalTransport>
-  <cyclePeriod></cyclePeriod>
+  <trafficRampupCyclePeriod></trafficRampupCyclePeriod>
   <maxWeightIndex></maxWeightIndex>
   <algorithm>
     <algorithmClass></algorithmClass>
@@ -787,7 +787,7 @@ if true LB will remove route ended with .matchingHostnameForRoute(a.restcomm.com
 internalTransport::
 if set, all external transport will switch to this internal(e.g. WSS,WS,TLS,UDP -> TCP)
 
-cyclePeriod::
+trafficRampupCyclePeriod::
 Uses if rump-up needed.Period after which LB will update Node's array based
 on weight of the Node.
 

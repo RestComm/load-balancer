@@ -25,7 +25,7 @@ public class SipConfiguration {
 	public static final String MATCHING_HOSTNAME_FOR_ROUTE = null;
 	public static final Boolean IS_FILTER_SUBDOMAIN = false;
 	public static final String INTERNAL_TRANSPORT = null;
-	public static final Integer CYCLE_PERIOD = null;
+	public static final Integer TRAFFIC_RAMPUP_CYCLE_PERIOD = null;
 	public static final Integer MAX_WEIGHT_INDEX = null;
 	public static final Integer MAX_REQUEST_NUMBER_WITHOUT_RESPONSE = null;
 	public static final Long MAX_RESPONSE_TIME = null;
@@ -46,7 +46,7 @@ public class SipConfiguration {
 	private String matchingHostnameForRoute;
 	private Boolean isFilterSubdomain;
 	private String internalTransport;
-	private Integer cyclePeriod;
+	private Integer trafficRampupCyclePeriod;
 	private Integer maxWeightIndex;
 	private Integer maxRequestNumberWithoutResponse;
 	private Long maxResponseTime;
@@ -73,7 +73,7 @@ public class SipConfiguration {
         this.matchingHostnameForRoute = MATCHING_HOSTNAME_FOR_ROUTE;
         this.isFilterSubdomain = IS_FILTER_SUBDOMAIN;
         this.internalTransport = INTERNAL_TRANSPORT;
-        this.cyclePeriod = CYCLE_PERIOD;
+        this.trafficRampupCyclePeriod = TRAFFIC_RAMPUP_CYCLE_PERIOD;
         this.maxWeightIndex = MAX_WEIGHT_INDEX;
         this.maxRequestNumberWithoutResponse = MAX_REQUEST_NUMBER_WITHOUT_RESPONSE;
         this.maxResponseTime = MAX_RESPONSE_TIME;
@@ -231,12 +231,12 @@ public class SipConfiguration {
 		this.internalTransport = internalTransport;
 	}
 
-	public Integer getCyclePeriod() {
-		return cyclePeriod;
+	public Integer getTrafficRampupCyclePeriod() {
+		return trafficRampupCyclePeriod;
 	}
 
-	public void setCyclePeriod(Integer cyclePeriod) {
-		this.cyclePeriod = cyclePeriod;
+	public void setTrafficRampupCyclePeriod(Integer trafficRampupCyclePeriod) {
+		this.trafficRampupCyclePeriod = trafficRampupCyclePeriod;
 	}
 
 	public Integer getMaxWeightIndex() {

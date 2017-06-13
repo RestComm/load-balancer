@@ -125,8 +125,8 @@ public class XmlConfigurationLoader{
         dst.setIsFilterSubdomain(src.getBoolean("isFilterSubdomain", SipConfiguration.IS_FILTER_SUBDOMAIN));
         if(src.getString("internalTransport")!=null&&!src.getString("internalTransport").equals(""))
         	dst.setInternalTransport(src.getString("internalTransport", SipConfiguration.INTERNAL_TRANSPORT));
-        if(src.getString("cyclePeriod")!=null&&!src.getString("cyclePeriod").equals(""))
-        	dst.setCyclePeriod(src.getInteger("cyclePeriod", SipConfiguration.CYCLE_PERIOD));
+        if(src.getString("trafficRampupCyclePeriod")!=null&&!src.getString("trafficRampupCyclePeriod").equals(""))
+        	dst.setTrafficRampupCyclePeriod(src.getInteger("trafficRampupCyclePeriod", SipConfiguration.TRAFFIC_RAMPUP_CYCLE_PERIOD));
         if(src.getString("maxWeightIndex")!=null&&!src.getString("maxWeightIndex").equals(""))
         	dst.setMaxWeightIndex(src.getInteger("maxWeightIndex", SipConfiguration.MAX_WEIGHT_INDEX));
         if(src.getString("maxRequestNumberWithoutResponse") != null && !src.getString("maxRequestNumberWithoutResponse").equals(""))

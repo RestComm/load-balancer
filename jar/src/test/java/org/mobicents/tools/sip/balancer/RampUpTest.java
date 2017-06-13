@@ -54,7 +54,7 @@ public class RampUpTest {
 			balancer = new BalancerRunner();
 			LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 			lbConfig.getSipConfiguration().getInternalLegConfiguration().setUdpPort(5065);
-			lbConfig.getSipConfiguration().setCyclePeriod(70000);
+			lbConfig.getSipConfiguration().setTrafficRampupCyclePeriod(70000);
 			lbConfig.getSipConfiguration().setMaxWeightIndex(2);
 			balancer.start(lbConfig);
 			

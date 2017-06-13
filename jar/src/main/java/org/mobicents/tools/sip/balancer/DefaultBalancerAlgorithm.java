@@ -109,7 +109,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		else
 			currTime=cycleStartTimeIpV4.get();
 		
-		if(System.currentTimeMillis() > (lbConfig.getSipConfiguration().getCyclePeriod() + currTime))
+		if(System.currentTimeMillis() > (lbConfig.getSipConfiguration().getTrafficRampupCyclePeriod() + currTime))
 		{
 			ArrayList<Node> currList= new ArrayList<Node>();
 			for(Entry<KeySip, Node> entry : invocationContext.sipNodeMap(isIpv6).entrySet())
@@ -326,7 +326,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
 	public void nodeAdded(Node node) 
 	{
-		if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
+		if(lbConfig.getSipConfiguration().getTrafficRampupCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 		{
 			boolean isIpV6 = false;
 			try {
@@ -348,7 +348,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 
 	public void nodeRemoved(Node node) 
 	{
-		if(lbConfig.getSipConfiguration().getCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
+		if(lbConfig.getSipConfiguration().getTrafficRampupCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 		{
 			boolean isIpV6 = false;
 			try {
