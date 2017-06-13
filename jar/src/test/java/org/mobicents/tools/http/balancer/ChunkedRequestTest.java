@@ -21,8 +21,24 @@ package org.mobicents.tools.http.balancer;
 
 import static org.junit.Assert.assertEquals;
 
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
+import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.handler.codec.http.DefaultHttpChunk;
+import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
+import org.jboss.netty.handler.codec.http.HttpChunk;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpMethod;
+import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -30,6 +46,7 @@ import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.smpp.balancer.ClientListener;
 
+import com.meterware.httpunit.GetMethodWebRequest;
 import com.meterware.httpunit.PostMethodWebRequest;
 import com.meterware.httpunit.WebConversation;
 import com.meterware.httpunit.WebRequest;
@@ -40,30 +57,23 @@ import com.meterware.httpunit.WebResponse;
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
 
-public class HttpBadResponseNodeRemovalTest
+public class ChunkedRequestTest
 {
 	private static BalancerRunner balancerRunner;
-	private static int numberNodes = 2;
-	private static int numberUsers = 4;
-	private static HttpServer [] serverArray;
-	private static HttpUser [] userArray;
+	private static HttpServer server;
+	private static HttpUser user;
+	private static ExecutorService executor;
 	
 	@BeforeClass
 	public static void initialization() 
 	{
-		serverArray = new HttpServer[numberNodes];
-		for(int i = 0; i < numberNodes; i++)
-		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i, ""+i, 2222+i);
-			if(i==0)
-				serverArray[i].setBadSever(true);
-			serverArray[i].start();	
-		}
+		executor = Executors.newCachedThreadPool();
+		server = new HttpServer(8080, 4444, 2222);
+		server.start();	
 		balancerRunner = new BalancerRunner();
 		LoadBalancerConfiguration lbConfig = new LoadBalancerConfiguration();
 		lbConfig.getSipConfiguration().getInternalLegConfiguration().setTcpPort(5065);
 		lbConfig.getSipConfiguration().getExternalLegConfiguration().setTcpPort(5060);
-		lbConfig.getHttpConfiguration().setRequestCheckPattern("(/Accounts/)");
 		balancerRunner.start(lbConfig);
 		try 
 		{
@@ -79,19 +89,9 @@ public class HttpBadResponseNodeRemovalTest
 	@Test
     public void testHttpBalancer() 
     {  
-		userArray = new HttpUser[numberUsers];
-		Locker locker = new Locker(numberUsers);
-		
-		for(int i = 0; i < numberUsers;i++)
-		{
-			userArray[i] = new HttpUser(i,locker);
-			userArray[i].start();
-			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+		Locker locker = new Locker(1);
+		user = new HttpUser(locker);
+		user.start();
 		locker.waitForClients();
 
 		try 
@@ -103,19 +103,13 @@ public class HttpBadResponseNodeRemovalTest
 			e.printStackTrace();
 		}
 		
-		assertEquals(1 ,serverArray[0].getRequstCount().get());
-		assertEquals(3 ,serverArray[1].getRequstCount().get());
-		assertEquals(0, userArray[0].codeResponse);
-		assertEquals(200, userArray[1].codeResponse);
-		assertEquals(200, userArray[2].codeResponse);
-		assertEquals(200, userArray[3].codeResponse);
+		assertEquals(1,server.getRequstCount().get());
     }
 	
 	@AfterClass
 	public static void finalization()
 	{
-		for(int i = 0; i < serverArray.length; i++)
-			serverArray[i].stop();
+		server.stop();
 		
 		balancerRunner.stop();
 	}
@@ -123,30 +117,53 @@ public class HttpBadResponseNodeRemovalTest
 	{
 		int codeResponse;
 		ClientListener listener;
-		int accountSid;
-		public HttpUser(int accountSid, ClientListener listener)
+		public HttpUser(ClientListener listener)
 		{
 		 this.listener = listener;
-		 this.accountSid = accountSid;
 		}
 
 		public void run()
 		{
 			try 
 			{ 
-				WebConversation conversation = new WebConversation();
-				WebRequest request = new PostMethodWebRequest(
-						"http://user:password@127.0.0.1:2080/restcomm/2012-04-24/Accounts/"+accountSid+"/Calls.json/0-CAccccfd3a0c3");
-				WebResponse response = conversation.getResponse(request);
-				codeResponse = response.getResponseCode();
+				String responseString = ""; 
+				for(int i = 0; i < 1000; i++)
+					responseString+="HOW MUCH IS THE FISH";
+			
+				ChannelBuffer buf = ChannelBuffers.copiedBuffer(responseString, Charset.forName("UTF-8"));
+				
+				ClientBootstrap inboundBootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(executor, executor));
+				inboundBootstrap.setPipelineFactory(new HttpClientPipelineFactory(balancerRunner, false));
+				ChannelFuture future = inboundBootstrap.connect(new InetSocketAddress("127.0.0.1", 2080));
+				future.awaitUninterruptibly();
+				DefaultHttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/app?fName=Konstantin&lName=Nosach");
+				request.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+				request.setHeader(HttpHeaders.Names.TRANSFER_ENCODING, "chunked");
+				future.getChannel().write(request);
+				
+				
+				
+				while(buf.readableBytes()>0)
+	        	{
+	        		int maxBytes=1000;
+	        		if(buf.readableBytes()<1000)
+	        			maxBytes=buf.readableBytes();
+	        	
+	        		HttpChunk currChunk=new DefaultHttpChunk(buf.readBytes(maxBytes));
+	        		future.getChannel().write(currChunk);
+	        	}
+	        
+	        	HttpChunk currChunk=new DefaultHttpChunk(buf);
+	        	future.getChannel().write(currChunk);
+	        	
+				
+	        	Thread.sleep(3000);
+	        	listener.clientCompleted();
 			} 
 			catch (Exception e) 
 			{
-				
-			}
-			finally
-			{
 				listener.clientCompleted();
+				e.printStackTrace();
 			}
 		}
 	}
