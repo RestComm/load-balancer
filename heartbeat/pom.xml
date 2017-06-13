@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.mobicents.tools</groupId>
     <artifactId>sip-balancer</artifactId>
-    <version>10.0.0-SNAPSHOT</version>
+    <version>10.1.0-SNAPSHOT</version>
   </parent>
   
   <artifactId>heartbeat</artifactId>
@@ -49,7 +49,7 @@
 	<dependency>
         <groupId>org.mobicents.tools</groupId>
         <artifactId>heartbeat-api</artifactId>
-        <version>10.0.0-SNAPSHOT</version>
+        <version>10.1.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
   <build>
