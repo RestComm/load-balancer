@@ -22,15 +22,23 @@
 
 package org.mobicents.tools.sip.balancer;
 
+import gov.nist.javax.sip.header.SIPHeader;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
+import java.util.Iterator;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.validator.routines.InetAddressValidator;
+import javax.sip.address.SipURI;
+import javax.sip.header.FromHeader;
+import javax.sip.header.ToHeader;
+import javax.sip.message.Request;
+
 import org.apache.log4j.Logger;
 import org.infinispan.Cache;
 import org.infinispan.manager.DefaultCacheManager;
@@ -53,7 +61,12 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	private static Logger logger = Logger.getLogger(PersistentConsistentHashBalancerAlgorithm.class.getCanonicalName());
 	
 	
-	protected Cache<Node,String> cache;
+
+
+	protected Cache<String, Node> cache;
+	protected ConcurrentHashMap<String, Long> cacheTimestamps = new ConcurrentHashMap<String, Long>();
+	protected Timer cacheEvictionTimer = new Timer();
+	protected int maxCallIdleTime = 600;
 	
 	public PersistentConsistentHashBalancerAlgorithm() {
 	}
@@ -66,39 +79,55 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 	public void modified(Event <Node,String> event) {
 		logger.debug(event.toString());
 	}
-
-	public synchronized void nodeAdded(Node node) {
-		Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());		
-		addNode(node,isIpV6);
-		syncNodes(isIpV6);
-	}
 	
-	private void addNode(Node node,Boolean isIpV6) {	
-		cache.put(node, "");
-		dumpNodes();
-	}
+	public Node processExternalRequest(Request request,Boolean isIpV6) {
 
-	public synchronized void nodeRemoved(Node node) {
-		dumpNodes();
-	}
-	
-	private void dumpNodes() {
-		String nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now(IPV6 and IPv4) (" + (nodesArrayV6 +""+ nodesArrayV4) + "):\n";
-		if(nodesArrayV4!=null)
-		for(Object object : nodesArrayV4) {
-			Node node = (Node) object;
-			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]\n";
-		}
-		if(nodesArrayV6!=null)
-		for(Object object : nodesArrayV6) {
-			Node node = (Node) object;
-			nodes += node.toString() + " [ALIVE:" + isAlive(node) + "]\n";
-		}
+		Integer nodeIndex = null;
+		String headerValue = null;
+		if(sipHeaderAffinityKey.equals("From")) 
+			headerValue = ((SipURI)((FromHeader) request.getHeader(FromHeader.NAME)).getAddress().getURI()).getUser();
+		else if(sipHeaderAffinityKey.equals("To")) 
+			headerValue = ((SipURI)((ToHeader) request.getHeader(ToHeader.NAME)).getAddress().getURI()).getUser();
+		else
+			headerValue = ((SIPHeader) request.getHeader(sipHeaderAffinityKey)).getValue();
+
+		Node cachedNode = cache.get(headerValue);
+		if(cachedNode!=null&&isAlive(cachedNode))
+			return cachedNode;
 		
-		logger.info(nodes);
-	}
-	
+		if(nodesArray(isIpV6).length == 0)
+			throw new RuntimeException("No Application Servers registered. All servers are dead.");
+		
+		int currNodeIndex = hashAffinityKeyword(headerValue,isIpV6);
+		
+		if(isAlive((Node)nodesArray(isIpV6)[currNodeIndex])) 
+			nodeIndex = currNodeIndex;
+		else 
+			nodeIndex = -1;
 
+		if(nodeIndex<0) {
+			return null;
+		} else 
+		{
+			try {
+				Node node = (Node) nodesArray(isIpV6)[nodeIndex];
+				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown())
+				{
+					cache.put(headerValue, node);
+					
+					if(logger.isDebugEnabled())
+			    		logger.debug("No node found in the cache. Put to cache : headerValue=" + headerValue + " node="+node);
+					
+					cacheTimestamps.put(headerValue, System.currentTimeMillis());
+					return node;
+				}
+				else
+					return null;
+			} catch (Exception e) {
+				return null;
+			}
+		}
+	}
 	
 	@ViewChanged
 	public void viewChanged(ViewChangedEvent event) {
@@ -132,33 +161,54 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		cache = manager.getCache();
 		cache.addListener(this);
 		cache.start();
-		/*
-		for (Node node : getBalancerContext().nodes) {
-			addNode(node);
-		}
-		syncNodes(context);*/
 
 		this.httpAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getHttpAffinityKey();
 		this.sipHeaderAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();
+		
+		if(getConfiguration() != null) {
+			Integer maxTimeInCache = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getCallIdAffinityMaxTimeInCache();
+			if(maxTimeInCache != null) {
+				this.maxCallIdleTime = maxTimeInCache;
+			}
+		}
+		logger.info("Call Idle Time is " + this.maxCallIdleTime + " seconds. Inactive calls will be evicted.");
+
+		final PersistentConsistentHashBalancerAlgorithm thisAlgorithm = this;
+		this.cacheEvictionTimer.schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				try {
+					synchronized (thisAlgorithm) {
+						ArrayList<String> oldCalls = new ArrayList<String>();
+						Iterator<String> keys = cacheTimestamps.keySet().iterator();
+						while(keys.hasNext()) {
+							String key = keys.next();
+							long time = cacheTimestamps.get(key);
+							if(System.currentTimeMillis() - time > 1000*maxCallIdleTime) {
+								oldCalls.add(key);
+							}
+						}
+						for(String key : oldCalls) {
+							Node remNode = cache.remove(key);
+							if(logger.isDebugEnabled())
+					    		logger.debug("Remove from cache : header(key)=" + key + " node="+remNode);
+							cacheTimestamps.remove(key);
+						}
+						if(oldCalls.size()>0) {
+							logger.info("Reaping idle calls... Evicted " + oldCalls.size() + " calls.");
+						}}
+				} catch (Exception e) {
+					logger.warn("Failed to clean up old calls. If you continue to se this message frequestly and the memory is growing, report this problem.", e);
+				}
+			}
+		}, 0, 6000);
+		
 	}
 	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@Override
-	protected void syncNodes(Boolean isIpV6) {
-		
-		Set nodes = cache.keySet();
-
-		if(nodes != null) {
-			ArrayList nodeList = new ArrayList();
-			nodeList.addAll(nodes);
-			Collections.sort(nodeList);
-			
-			if(isIpV6)
-				this.nodesArrayV6 = nodeList.toArray();
-			else
-				this.nodesArrayV4 = nodeList.toArray();
-		}
-		dumpNodes();
+	public void assignToNode(String id, Node node) {
+		cache.put(id, node);
+		cacheTimestamps.put(id, System.currentTimeMillis());
 	}
 
 }
