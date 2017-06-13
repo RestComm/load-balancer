@@ -975,6 +975,9 @@ public class SIPBalancerForwarder implements SipListener {
             } else {
 
             }
+            if(balancerRunner.balancerContext.maxRequestNumberWithoutResponse!=null 
+            		&& balancerRunner.balancerContext.maxResponseTime!=null)
+            	nodeHealthcheck(ctx, nextNode);
         }
         if(logger.isDebugEnabled()) {
             logger.debug("Next node " + nextNode);
@@ -1936,7 +1939,15 @@ public class SIPBalancerForwarder implements SipListener {
 
         if(fromServer) {
         	if(senderNode!=null&&senderNode.getIp()!=null)
+        	{
+        		if(balancerRunner.balancerContext.maxRequestNumberWithoutResponse!=null
+      			&& balancerRunner.balancerContext.maxResponseTime!=null)
+        		{
+        			senderNode.setLastTimeResponse(System.currentTimeMillis());
+        			senderNode.setRequestNumberWithoutResponse(0);
+        		}
         		mediaFailureDetection(response, ctx, senderNode);
+        	}
             /*
 			if("true".equals(balancerRunner.balancerContext.properties.getProperty("removeNodesOn500Response")) && response.getStatusCode() == 500) {
 				// If the server is broken remove it from the list and try another one with the next retransmission
@@ -2037,9 +2048,23 @@ public class SIPBalancerForwarder implements SipListener {
     		if(ctx.sipNodeMap(isIpV6).get(keySip) != null && 
     				ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
-					ctx.sipNodeMap(isIpV6).remove(keySip);
+					ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
 					ctx.balancerAlgorithm.nodeRemoved(node);
     		}
+    }
+    
+    private void nodeHealthcheck(InvocationContext ctx, Node node)
+    {
+    	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	        
+    	KeySip keySip = new KeySip(node,isIpV6);
+      	if(node.getRequestNumberWithoutResponse().incrementAndGet() > balancerRunner.balancerContext.maxRequestNumberWithoutResponse
+      			&& balancerRunner.balancerContext.maxResponseTime < System.currentTimeMillis()-
+      			node.getLastTimeResponse().get())
+      	{
+      		logger.error("health check failed for " + keySip + ", removing node " + node);
+      		ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
+			ctx.balancerAlgorithm.nodeRemoved(node);
+      	}
     }
 
     //need to verify that comes from external in case of single leg
@@ -2560,6 +2585,8 @@ public class SIPBalancerForwarder implements SipListener {
     	balancerRunner.balancerContext.isFilterSubdomain = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsFilterSubdomain();
     	balancerRunner.balancerContext.internalTransport = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalTransport();
     	balancerRunner.balancerContext.blockedList = new ArrayList<String>(Arrays.asList(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getBlockedValues().split(",")));
+    	balancerRunner.balancerContext.maxRequestNumberWithoutResponse = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMaxRequestNumberWithoutResponse();
+    	balancerRunner.balancerContext.maxResponseTime = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMaxResponseTime();
 	}
     
     private void setViaHostsPorts()

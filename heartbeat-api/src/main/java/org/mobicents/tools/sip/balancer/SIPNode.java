@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <p>
@@ -55,6 +57,8 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	private long timeStamp = System.currentTimeMillis();
 	private HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
 	private int failCounter = 0;
+    private AtomicInteger requestNumberWithoutResponse = new AtomicInteger(0);
+    private AtomicLong lastTimeResponse = new AtomicLong(System.currentTimeMillis());
 
 
 	public SIPNode(){}
@@ -91,6 +95,18 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 		this.failCounter = failCounter;
 	}
 
+	public AtomicInteger getRequestNumberWithoutResponse() {
+		return requestNumberWithoutResponse;
+	}
+	public void setRequestNumberWithoutResponse(int requestNumberWithoutResponse) {
+		this.requestNumberWithoutResponse.set(requestNumberWithoutResponse);
+	}
+	public AtomicLong getLastTimeResponse() {
+		return lastTimeResponse;
+	}
+	public void setLastTimeResponse(long lastTimeResponse) {
+		this.lastTimeResponse.set(lastTimeResponse);
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;

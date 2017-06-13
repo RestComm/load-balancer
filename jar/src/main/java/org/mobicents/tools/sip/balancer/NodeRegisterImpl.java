@@ -163,43 +163,6 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
         }
         return isDeregistered;
     }
-    
-
-    // ********* CLASS TO BE EXPOSED VIA RMI
-    private class RegisterRMIStub extends UnicastRemoteObject implements NodeRegisterRMIStub {
-
-        /**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		protected RegisterRMIStub(int port) throws RemoteException {
-            super(port);
-        }
-
-        /*
-         * (non-Javadoc)
-         * @see org.mobicents.tools.sip.balancer.NodeRegisterRMIStub#handlePing(java.util.ArrayList)
-         */
-        public void handlePing(ArrayList<Node> ping) throws RemoteException {
-            handlePingInRegister(ping);
-        }
-
-        /*
-         * (non-Javadoc)
-         * @see org.mobicents.tools.sip.balancer.NodeRegisterRMIStub#forceRemoval(java.util.ArrayList)
-         */
-        public void forceRemoval(ArrayList<Node> ping)
-                throws RemoteException {
-            forceRemovalInRegister(ping);
-        }
-
-        public void switchover(String fromJvmRoute, String toJvmRoute) throws RemoteException {
-            jvmRouteSwitchover(fromJvmRoute, toJvmRoute);
-
-        }
-
-    }
    
     // ***** NODE MGMT METHODS
 

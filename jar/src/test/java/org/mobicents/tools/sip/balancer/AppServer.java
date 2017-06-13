@@ -83,6 +83,7 @@ public class AppServer implements IClientListener{
 	boolean isMediaFailure;
 	boolean isFirstStart = true;
 	boolean isIpv6 = false;
+	public boolean isSendResponse = true;
 	
 	ClientController clientController;
 	ClientController [] clientControllers;
@@ -142,8 +143,13 @@ public class AppServer implements IClientListener{
 	
 		ExecutorService executor = Executors.newCachedThreadPool();
 		protocolObjects = new ProtocolObjects(name,	"gov.nist", transport, false, false, true);
-
-			if(!isDummy)
+		
+		if(!isSendResponse)
+		{
+			sipListener = new TestSipListener(isIpv6,port, lbSIPint, protocolObjects, false);
+			sipListener.abortProcessing = true;
+		}
+		else if(!isDummy)
 			{
 				if(!isMediaFailure||!isFirstStart)
 				{
@@ -154,11 +160,11 @@ public class AppServer implements IClientListener{
 					sipListener = new TestSipListener(isIpv6,port, lbSIPint, protocolObjects, false);
 					sipListener.setRespondWithError(Response.SERVICE_UNAVAILABLE);
 				}
-			}
-			else
-			{
-				sipListener = new TestSipListener(isIpv6,port+1, lbSIPint, protocolObjects, false);
-			}
+		}
+		else
+		{
+			sipListener = new TestSipListener(isIpv6,port+1, lbSIPint, protocolObjects, false);
+		}
 
 		sipListener.appServer = this;
 		try 

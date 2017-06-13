@@ -84,6 +84,8 @@ public class BalancerContext {
 	public boolean isFilterSubdomain;
 	public String internalTransport;
 	public int shutdownTimeout;
+	public Integer maxRequestNumberWithoutResponse;
+	public Long maxResponseTime;
 	
 	public Object parameters;
 	

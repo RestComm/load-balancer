@@ -271,7 +271,7 @@ public class TestSipListener implements SipListener {
 	
 	private boolean reinviteSent;
 	
-	private boolean abortProcessing;
+	public boolean abortProcessing;
 	
 	private boolean recordRoutingProxyTesting;
 	

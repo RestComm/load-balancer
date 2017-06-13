@@ -27,6 +27,8 @@ public class SipConfiguration {
 	public static final String INTERNAL_TRANSPORT = null;
 	public static final Integer CYCLE_PERIOD = null;
 	public static final Integer MAX_WEIGHT_INDEX = null;
+	public static final Integer MAX_REQUEST_NUMBER_WITHOUT_RESPONSE = null;
+	public static final Long MAX_RESPONSE_TIME = null;
 
 	private Boolean isSendTrying;
 	private String publicIp;
@@ -46,6 +48,8 @@ public class SipConfiguration {
 	private String internalTransport;
 	private Integer cyclePeriod;
 	private Integer maxWeightIndex;
+	private Integer maxRequestNumberWithoutResponse;
+	private Long maxResponseTime;
 	
 	public SipConfiguration() 
     {
@@ -71,6 +75,8 @@ public class SipConfiguration {
         this.internalTransport = INTERNAL_TRANSPORT;
         this.cyclePeriod = CYCLE_PERIOD;
         this.maxWeightIndex = MAX_WEIGHT_INDEX;
+        this.maxRequestNumberWithoutResponse = MAX_REQUEST_NUMBER_WITHOUT_RESPONSE;
+        this.maxResponseTime = MAX_RESPONSE_TIME;
     }
 
 	public AlgorithmConfiguration getAlgorithmConfiguration() {
@@ -241,4 +247,20 @@ public class SipConfiguration {
 		this.maxWeightIndex = maxWeightIndex;
 	}
 
+	public Integer getMaxRequestNumberWithoutResponse() {
+		return maxRequestNumberWithoutResponse;
+	}
+
+	public void setMaxRequestNumberWithoutResponse(Integer maxRequestNumberWithoutResponse) {
+		this.maxRequestNumberWithoutResponse = maxRequestNumberWithoutResponse;
+	}
+
+	public Long getMaxResponseTime() {
+		return maxResponseTime;
+	}
+
+	public void setMaxResponseTime(Long maxResponseTime) {
+		this.maxResponseTime = maxResponseTime;
+	}
+	
 }

@@ -25,6 +25,8 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author Konstantin Nosach (kostyantyn.nosach@telestax.com)
  */
@@ -38,6 +40,8 @@ public class Node implements Comparable<Node> {
 	private boolean bad;
 	private int failCounter = 0;
 	private int weightIndex = 0;
+    private AtomicInteger requestNumberWithoutResponse = new AtomicInteger(0);
+    private AtomicLong lastTimeResponse = new AtomicLong(System.currentTimeMillis());
 	
 	public Node(){}
 	public Node(String hostName, String ip) {
@@ -114,6 +118,18 @@ public class Node implements Comparable<Node> {
 				properties.get(Protocol.SMPP_PORT);
 	}
 	
+	public AtomicInteger getRequestNumberWithoutResponse() {
+		return requestNumberWithoutResponse;
+	}
+	public void setRequestNumberWithoutResponse(int requestNumberWithoutResponse) {
+		this.requestNumberWithoutResponse.set(requestNumberWithoutResponse);
+	}
+	public AtomicLong getLastTimeResponse() {
+		return lastTimeResponse;
+	}
+	public void setLastTimeResponse(long lastTimeResponse) {
+		this.lastTimeResponse.set(lastTimeResponse);
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;

@@ -121,6 +121,44 @@ When the Node gets stop request from the Load balancer,
 it will start send the start request to the Load balancer until will not get
 start response.
 
+=== Additional health check of the Nodes by the {this-platform} Load Balancer
+
+Sometimes we face the situation when the server goes down but LB considers
+it is alive since ping packets are sent in the normal way.
+This problem arises because the processing of keep alive and SIP messages
+takes place on different levels and even if SIP is not responding, the ping
+packets still can be sent. On client side this situation looks as follows:
+a client sends messages to LB, LB forwards the messages to the dead server
+and no response is received. In such way a client tries and fails to
+connect to the server, because LB is not aware that the server is dead.
+The snag is that it is not possible to identify this issue via keep alive since
+the keep alive message flow is not interrupted in this case.
+
+So we need to identify the dead server by its ability to process the messages.
+It implemented by recording the number of requests (which remain without any
+response) and storing the timestamp of last packet sent by server. If maxRequestNumberWithoutResponse
+and maxResponseTime values are exceeded then LB removes the node.
+It is important to note that the node is considered dead only when both
+these values are exceeded. If only one value is exceeded, the node is
+still considered as alive. By monitoring these two values we can insure
+that LB does not send any packets to the dead server while we do not remove
+the node which is active but coincidentally exceeded maxResponseTime or
+ maxRequestNumberWithoutResponse. Below you can find more details on how it works.
+
+Counter stores the number of requests which were sent to the server till the
+server response was received. When LB sends request to the server – the
+counter increments by one. As soon as LB receives any packet from the server –
+the counter sets to zero. The “maxRequestNumberWithoutResponse” is a configurable
+value. If maxRequestNumberWithoutResponse without response is exceeded but the
+server response does not take too long (it keeps within maxResponseTime limits),
+the node is still considered active. The “maxResponseTime” parameter also configurable.
+The maxResponseTime will allow to identify the server which fails to respond
+within specific time frame. The timestamp of last packet sent by server is
+stored and if the server response takes too long (the maxResponseTime value is
+exceeded) but the number of requests without response is small, then LB considers
+the server is active. In case both maxResponseTime and maxRequestNumberWithoutResponse
+are exceeded, LB considers the server is dead and stops sending messages to the server.
+
 === {this-platform} Load Balancer supports SIP Over Websockets
 
 The websocket client (e.g. TelScale Olympus) can connect to Load balancer
@@ -756,6 +794,14 @@ Uses if rump-up needed. Max weight of node.
 Uses if rump-up needed.
 isSendTrying::
 if true LB will send own Trying to sender after requests (INVITE,SUBSCRIBE,NOTIFY,MESSAGE,REFER,PUBLISH,UPDATE)
+
+maxRequestNumberWithoutResponse::
+  Used in additional health check. It sets max request number which LB can send
+  to the Node from which did not get any response. Work only with "maxResponseTime"
+
+maxResponseTime::
+  Used in additional health check. It sets max time in which LB can send request to the Node
+  from which did not get any response.
 
 extraServerNodes::
   Comma-separated list of hosts that are server nodes.

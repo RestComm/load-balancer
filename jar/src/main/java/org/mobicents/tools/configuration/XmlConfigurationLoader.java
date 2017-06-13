@@ -129,6 +129,11 @@ public class XmlConfigurationLoader{
         	dst.setCyclePeriod(src.getInteger("cyclePeriod", SipConfiguration.CYCLE_PERIOD));
         if(src.getString("maxWeightIndex")!=null&&!src.getString("maxWeightIndex").equals(""))
         	dst.setMaxWeightIndex(src.getInteger("maxWeightIndex", SipConfiguration.MAX_WEIGHT_INDEX));
+        if(src.getString("maxRequestNumberWithoutResponse") != null && !src.getString("maxRequestNumberWithoutResponse").equals(""))
+        	dst.setMaxRequestNumberWithoutResponse(src.getInteger("maxRequestNumberWithoutResponse", SipConfiguration.MAX_REQUEST_NUMBER_WITHOUT_RESPONSE));
+        if(src.getString("maxResponseTime") != null && !src.getString("maxResponseTime").equals(""))
+        	dst.setMaxResponseTime(src.getLong("maxResponseTime", SipConfiguration.MAX_RESPONSE_TIME));
+
         //Algorithm configuration
         if(src.getString("algorithm.algorithmClass") != null && !src.getString("algorithm.algorithmClass").equals(""))
         	alg.setAlgorithmClass(src.getString("algorithm.algorithmClass",AlgorithmConfiguration.ALGORITHM_CLASS));
