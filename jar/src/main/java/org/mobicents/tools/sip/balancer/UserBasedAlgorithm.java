@@ -316,7 +316,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		{
 			pair = currIt.next();
 			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
-					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown())
+					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown()
+					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isBad())
 				return pair.getValue();
 		}
 		currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
@@ -327,7 +328,8 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 		if(currIt.hasNext())
 		{
 			pair = currIt.next();
-			if(!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown())
+			if(!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown()
+					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isBad())
 				return pair.getValue();
 			else
 				return null;

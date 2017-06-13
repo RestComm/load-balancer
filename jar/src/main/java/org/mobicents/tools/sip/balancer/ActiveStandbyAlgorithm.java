@@ -146,7 +146,9 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 		if(node!=null)
 		{
 			KeySip keyNode = new KeySip(node,isIpV6);
-			if(invocationContext.sipNodeMap(isIpV6).containsKey(keyNode)&&!invocationContext.sipNodeMap(isIpV6).get(keyNode).isGracefulShutdown())
+			if(invocationContext.sipNodeMap(isIpV6).containsKey(keyNode)
+					&&!invocationContext.sipNodeMap(isIpV6).get(keyNode).isGracefulShutdown()
+					&&!invocationContext.sipNodeMap(isIpV6).get(keyNode).isBad())
 				return node;
 		}
 		try

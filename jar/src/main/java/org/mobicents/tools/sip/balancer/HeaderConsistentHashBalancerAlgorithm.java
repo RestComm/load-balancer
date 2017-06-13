@@ -99,7 +99,8 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 			try {
 				Node node = (Node) nodesArray(isIpV6)[nodeIndex];
 //				if(!invocationContext.gracefulShutdownSipNodeMap(isIpV6).containsKey(new KeySip(node)))
-				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown())
+				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown()
+						&&!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isBad())
 					return node;
 				else
 					return null;

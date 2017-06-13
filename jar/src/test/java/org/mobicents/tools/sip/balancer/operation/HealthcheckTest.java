@@ -67,8 +67,9 @@ public class HealthcheckTest {
 		badServer = new AppServer("node1",4061 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, 2223);
 		badServer.isSendResponse = false;
 		goodServer.start();
+		Thread.sleep(2000);
 		badServer.start();
-		Thread.sleep(5000);
+		Thread.sleep(2000);
 	}
 	
 	@After

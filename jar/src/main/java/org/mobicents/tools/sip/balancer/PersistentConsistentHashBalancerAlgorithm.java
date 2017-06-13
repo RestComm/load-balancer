@@ -111,7 +111,8 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		{
 			try {
 				Node node = (Node) nodesArray(isIpV6)[nodeIndex];
-				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown())
+				if(!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isGracefulShutdown()
+						&&!invocationContext.sipNodeMap(isIpV6).get(new KeySip(node,isIpV6)).isBad())
 				{
 					cache.put(headerValue, node);
 					
