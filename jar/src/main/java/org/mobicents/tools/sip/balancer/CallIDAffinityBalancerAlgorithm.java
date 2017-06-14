@@ -280,30 +280,33 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 				ipv4It = currIt;
 			}
 		Entry<KeySip, Node> pair = null;
-		while(currIt.hasNext())
+		int count = invocationContext.sipNodeMap(isIpV6).size();
+		while(count>0)
 		{
-			pair = currIt.next();
-			if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
-					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown()
-					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isBad())
-				return pair.getValue();
+			while(currIt.hasNext() && count > 0)
+			{
+				pair = currIt.next();
+				if(invocationContext.sipNodeMap(isIpV6).containsKey(pair.getKey())
+						&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown()
+						&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isBad())
+				{
+					return pair.getValue();
+				}
+				else
+				{
+					count--;
+				}
+			}
+			
+			if(!currIt.hasNext())
+				currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
+			
+			if(isIpV6)
+				 ipv6It = currIt;
+			else
+				 ipv4It = currIt;
 		}
-		currIt = invocationContext.sipNodeMap(isIpV6).entrySet().iterator();
-		if(isIpV6)
-			 ipv6It = currIt;
-		else
-			 ipv4It = currIt;
-		if(currIt.hasNext())
-		{
-			pair = currIt.next();
-			if(!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown()
-					&&!invocationContext.sipNodeMap(isIpV6).get(pair.getKey()).isBad())
-				return pair.getValue();
-			else 
-				return null;
-		}
-		else
-			return null;
+		return null;
 	}
 	
 	protected synchronized Node leastBusyTargetNode(Node deadNode) {
