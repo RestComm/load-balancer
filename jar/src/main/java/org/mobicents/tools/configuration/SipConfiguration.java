@@ -243,8 +243,9 @@ public class SipConfiguration {
 		return maxWeightIndex;
 	}
 
-	public void setMaxWeightIndex(Integer maxWeightIndex) {
-		this.maxWeightIndex = maxWeightIndex;
+	public void setTrafficPercentageIncrease(Integer trafficPercentageIncrease) {
+		//convert percentage to weight based system
+		this.maxWeightIndex = 100/trafficPercentageIncrease;
 	}
 
 	public Integer getMaxRequestNumberWithoutResponse() {

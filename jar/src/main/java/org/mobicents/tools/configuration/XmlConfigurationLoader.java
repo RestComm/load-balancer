@@ -127,8 +127,8 @@ public class XmlConfigurationLoader{
         	dst.setInternalTransport(src.getString("internalTransport", SipConfiguration.INTERNAL_TRANSPORT));
         if(src.getString("trafficRampupCyclePeriod")!=null&&!src.getString("trafficRampupCyclePeriod").equals(""))
         	dst.setTrafficRampupCyclePeriod(src.getInteger("trafficRampupCyclePeriod", SipConfiguration.TRAFFIC_RAMPUP_CYCLE_PERIOD));
-        if(src.getString("maxWeightIndex")!=null&&!src.getString("maxWeightIndex").equals(""))
-        	dst.setMaxWeightIndex(src.getInteger("maxWeightIndex", SipConfiguration.MAX_WEIGHT_INDEX));
+        if(src.getString("trafficPercentageIncrease")!=null&&!src.getString("trafficPercentageIncrease").equals(""))
+        	dst.setTrafficPercentageIncrease(src.getInteger("trafficPercentageIncrease", SipConfiguration.MAX_WEIGHT_INDEX));
         if(src.getString("maxRequestNumberWithoutResponse") != null && !src.getString("maxRequestNumberWithoutResponse").equals(""))
         	dst.setMaxRequestNumberWithoutResponse(src.getInteger("maxRequestNumberWithoutResponse", SipConfiguration.MAX_REQUEST_NUMBER_WITHOUT_RESPONSE));
         if(src.getString("maxResponseTime") != null && !src.getString("maxResponseTime").equals(""))
