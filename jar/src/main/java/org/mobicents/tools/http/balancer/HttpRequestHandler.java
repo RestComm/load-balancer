@@ -360,7 +360,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 			semaphoreMap.remove(associatedChannel.getRemoteAddress().toString());
 
 			try {
-				HttpChannelAssociations.channels.remove(associatedChannel);
+				HttpChannelAssociations.channels.remove(new AdvancedChannel(associatedChannel));
 				if (!associatedChannel.isConnected()) {
 					associatedChannel.disconnect();
 					associatedChannel.close();
@@ -372,7 +372,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 			}
 		}
 
-		HttpChannelAssociations.channels.remove(channel);
+		HttpChannelAssociations.channels.remove(new AdvancedChannel(channel));
 		// logger.info("Channel closed. Channels remaining: " +
 		// HttpChannelAssocialtions.channels.size());
 		if (logger.isDebugEnabled()) {
