@@ -1228,7 +1228,10 @@ public class SIPBalancerForwarder implements SipListener {
         }
         catch (SipException e) 
         {
-        	logger.error("Unexpected exception while forwarding the request \n" + request, e);
+        	if(request.getMethod().equalsIgnoreCase(Request.OPTIONS)&&isRequestFromServer)
+        			logger.warn("Problem with sending OPTIONS to external side possibly due to closed window in broweser");
+        		else
+        			logger.error("Unexpected exception while forwarding the request \n" + request, e);
         	if(balancerRunner.balancerContext.isSend5xxResponse)
         		try {
         			Response response = balancerRunner.balancerContext.messageFactory.createResponse(Response.SERVICE_UNAVAILABLE, request);

@@ -375,15 +375,15 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 		HttpChannelAssociations.channels.remove(new AdvancedChannel(channel));
 		// logger.info("Channel closed. Channels remaining: " +
 		// HttpChannelAssocialtions.channels.size());
-		if (logger.isDebugEnabled()) {
+		if (logger.isTraceEnabled()) {
 			try {
-				logger.debug("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
+				logger.trace("Channel closed " + HttpChannelAssociations.channels.size() + " " + channel);
 				Enumeration<AdvancedChannel> ac = HttpChannelAssociations.channels.keys();
 				while (ac.hasMoreElements()) {
-					logger.debug(ac.nextElement().getChannel().toString());
+					logger.trace(ac.nextElement().getChannel().toString());
 				}
 			} catch (Exception e) {
-				logger.debug("error", e);
+				logger.error("error", e);
 			}
 		}
 	}
@@ -449,7 +449,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	public void logIssue(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-		logger.info("Channel closed possibly due to no activity or " + e.getCause().getMessage());
+		logger.info("Channel closed possibly due to no activity");
 		e.getCause().printStackTrace();
 		e.getChannel().close();
 	}
