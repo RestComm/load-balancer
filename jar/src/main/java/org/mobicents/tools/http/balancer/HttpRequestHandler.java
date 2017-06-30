@@ -355,7 +355,12 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	private void closeChannelPair(Channel channel) {
-		Channel associatedChannel = HttpChannelAssociations.channels.get(new AdvancedChannel(channel)).getChannel();
+		Channel associatedChannel = null;
+		AdvancedChannel advancedChannel = HttpChannelAssociations.channels.get(new AdvancedChannel(channel));
+		
+		if(advancedChannel!=null)
+			associatedChannel = advancedChannel.getChannel();
+		
 		if (associatedChannel != null) {
 			semaphoreMap.remove(associatedChannel.getRemoteAddress().toString());
 
