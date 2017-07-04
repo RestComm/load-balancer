@@ -34,8 +34,13 @@ RestComm is licensed under dual license policy. The default license is the Free 
 Continuous Integration and Delivery
 ========
 [![RestComm Continuous Job](http://www.cloudbees.com/sites/default/files/Button-Built-on-CB-1.png)](https://mobicents.ci.cloudbees.com/job/RestComm-LoadBalancer/)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2FRestComm%2Fload-balancer.svg?type=shield)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2FRestComm%2Fload-balancer?ref=badge_shield)
 
 Acknowledgements
 ========
 [See who has been contributing to RestComm](http://www.telestax.com/opensource/acknowledgments/)
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2FRestComm%2Fload-balancer.svg?type=large)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2FRestComm%2Fload-balancer?ref=badge_large)
