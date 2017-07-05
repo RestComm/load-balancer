@@ -78,6 +78,7 @@ public class MClientConnectionImpl implements ClientConnection{
     private Channel channel;
 	private ClientBootstrap clientBootstrap;
     private MClientConnectionHandlerImpl clientConnectionHandler;
+    private NioClientSocketChannelFactory factory;
     private SmppSessionConfiguration config;
     private Node node;
     private String localSmppAddress;
@@ -145,8 +146,9 @@ public class MClientConnectionImpl implements ClientConnection{
 		  this.config = new SmppSessionConfiguration();	
 		  this.transcoder = new DefaultPduTranscoder(new DefaultPduTranscoderContext());
 		  this.userSpace = userSpace;
-		  this.clientConnectionHandler = new MClientConnectionHandlerImpl(this);	
-          this.clientBootstrap = new ClientBootstrap(new NioClientSocketChannelFactory());
+		  this.clientConnectionHandler = new MClientConnectionHandlerImpl(this);
+		  this.factory = new NioClientSocketChannelFactory();
+          this.clientBootstrap = new ClientBootstrap(this.factory);
           this.clientBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_PDU_DECODER_NAME, new SmppSessionPduDecoder(transcoder));
           this.clientBootstrap.getPipeline().addLast(SmppChannelConstants.PIPELINE_CLIENT_CONNECTOR_NAME, this.clientConnectionHandler);
           
@@ -622,7 +624,12 @@ public class MClientConnectionImpl implements ClientConnection{
 			logger.info("Connection to client closed " + channel.getRemoteAddress().toString() + ". client session ID : " + serverSessionID);
 		
 		channel.close();	
-		
+		new Thread(new Runnable() {
+		       public void run() {
+		       	factory.releaseExternalResources();
+		       }
+		}).start();
+
 	}
 	
 	@Override
