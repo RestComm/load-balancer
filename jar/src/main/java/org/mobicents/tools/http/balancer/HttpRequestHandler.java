@@ -366,7 +366,7 @@ public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 			try {
 				HttpChannelAssociations.channels.remove(new AdvancedChannel(associatedChannel));
-				if (!associatedChannel.isConnected()) {
+				if (associatedChannel.isConnected()) {
 					associatedChannel.disconnect();
 					associatedChannel.close();
 					associatedChannel.getCloseFuture().awaitUninterruptibly();
