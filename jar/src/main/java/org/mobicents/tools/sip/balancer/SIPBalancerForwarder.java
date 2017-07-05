@@ -2049,7 +2049,7 @@ public class SIPBalancerForwarder implements SipListener {
     	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode()))
     		// adding null check for https://github.com/RestComm/load-balancer/issues/83
     		if(ctx.sipNodeMap(isIpV6).get(keySip) != null && 
-    				ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>2) {
+    				ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>balancerRunner.balancerContext.maxNumberResponsesWithError) {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
 					ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
 					ctx.balancerAlgorithm.nodeRemoved(node);
@@ -2508,7 +2508,7 @@ public class SIPBalancerForwarder implements SipListener {
             HashMap<String, String> properties = new HashMap<String, String>();
             properties.put("udpPort",""+ extraServerPorts[q]);
             properties.put("tcpPort",""+ extraServerPorts[q]);
-            properties.put("httpPort", 8080+q);
+            properties.put("httpPort", "808"+q);
             properties.put("version","0");
             extraServerNode.setProperties(properties);
             extraServerNodes.add(extraServerNode);
@@ -2585,6 +2585,7 @@ public class SIPBalancerForwarder implements SipListener {
     	}
     	balancerRunner.balancerContext.isUseWithNexmo = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsUseWithNexmo();
     	balancerRunner.balancerContext.responsesStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesStatusCodeNodeRemoval();
+    	balancerRunner.balancerContext.maxNumberResponsesWithError = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMaxNumberResponsesWithError();
     	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMatchingHostnameForRoute();
     	balancerRunner.balancerContext.isFilterSubdomain = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsFilterSubdomain();
     	balancerRunner.balancerContext.internalTransport = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalTransport();

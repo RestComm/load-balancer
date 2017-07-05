@@ -80,6 +80,7 @@ public class BalancerContext {
 	public boolean isUseWithNexmo;
 	public String responsesReasonNodeRemoval;
 	public List<Integer> responsesStatusCodeNodeRemoval;
+	public int maxNumberResponsesWithError;
 	public String matchingHostnameForRoute;
 	public boolean isFilterSubdomain;
 	public String internalTransport;

@@ -62,6 +62,7 @@ public class MediaFailureTest {
 		ArrayList <Integer> statusRemoval = new ArrayList <Integer>();
 		statusRemoval.add(503);
 		lbConfig.getSipConfiguration().setResponseStatusCodeNodeRemoval(statusRemoval);
+		lbConfig.getSipConfiguration().setMaxNumberResponsesWithError(2);
 		balancer.start(lbConfig);
 		
 		goodServer = new AppServer("node0",4060 , "127.0.0.1", 2000, 5060, 5065, "0", ListeningPoint.TCP, 2223);

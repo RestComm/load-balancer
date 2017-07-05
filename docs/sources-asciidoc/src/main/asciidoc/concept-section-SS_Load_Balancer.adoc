@@ -520,6 +520,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <isSend5xxResponseReasonHeader>Destination not available</isSend5xxResponseReasonHeader>
   <isSend5xxResponseSatusCode>503</isSend5xxResponseSatusCode>
   <responsesStatusCodeNodeRemoval>503,504</responseStatusCodeNodeRemoval>
+  <maxNumberResponsesWithError>10</maxNumberResponsesWithError>
   <matchingHostnameForRoute>restcomm.com</matchingHostnameForRoute>
   <isFilterSubdomain>true</isFilterSubdomain>
   <internalTransport></internalTransport>
@@ -773,8 +774,12 @@ isSend5xxResponseSatusCode::
   Code of error. You can manage it.
 
 responsesStatusCodeNodeRemoval::
-  if LB gets response from the node with this status code more than three times,
-  it removes this node from the node's map until the node will be restarted
+  if LB gets response from the node with this status code more than
+  <maxNumberResponsesWithError> times, it removes this node from the node's map until the node will be restarted
+
+maxNumberResponsesWithError::
+if <responsesStatusCodeNodeRemoval> is set, than LB after getting this number of
+errors from server will remove node
 
 matchingHostnameForRoute::
 if request comes with a matching hostname in the route header it should be removed
