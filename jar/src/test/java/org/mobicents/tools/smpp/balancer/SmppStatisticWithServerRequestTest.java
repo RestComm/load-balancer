@@ -174,6 +174,7 @@ public class SmppStatisticWithServerRequestTest{
 		     byte[] textBytes = CharsetUtil.encode(text160, CharsetUtil.CHARSET_GSM);
 			 packet.setShortMessage(textBytes);
 			 packet.setSequenceNumber(i+2);
+			 sleep(1000);
 			 serverArray[0].sendData(packet);
 			 sleep(1000);
 		     session.unbind(5000);

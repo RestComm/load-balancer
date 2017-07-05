@@ -211,5 +211,12 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		cache.put(id, node);
 		cacheTimestamps.put(id, System.currentTimeMillis());
 	}
+	
+	@Override
+	public void stop() {
+		cacheEvictionTimer.cancel();
+		cache.stop();
+		logger.info("Cached stopped in algorithm");
+	}
 
 }

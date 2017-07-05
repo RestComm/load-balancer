@@ -91,9 +91,11 @@ public class BindingWithIncorrectSystemidTest {
 	public void testThreadsNumberBindWithErrorFromServer() {
 		Locker locker = new Locker(1);
 		// start client
+		int threadsBeforeTest = Thread.activeCount();
 		new Load(locker).start();
 		locker.waitForClients();
-		assertTrue(90 > Thread.activeCount());
+		int threadsAfterTest = Thread.activeCount();
+		assertTrue(20 > (threadsAfterTest-threadsBeforeTest));
 		assertEquals(5, server.getBindRequested());
 	}
 
