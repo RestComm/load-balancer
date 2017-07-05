@@ -326,6 +326,10 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	
 	public void nodeAdded(Node node) 
 	{
+		ipv4It = null;
+		ipv6It = null;
+		instanceIdIterator = null;
+		httpRequestIterator = null;
 		if(lbConfig.getSipConfiguration().getTrafficRampupCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 		{
 			boolean isIpV6 = false;
@@ -348,6 +352,10 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 
 	public void nodeRemoved(Node node) 
 	{
+		ipv4It = null;
+		ipv6It = null;
+		instanceIdIterator = null;
+		httpRequestIterator = null;
 		if(lbConfig.getSipConfiguration().getTrafficRampupCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 		{
 			boolean isIpV6 = false;
