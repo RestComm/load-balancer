@@ -521,6 +521,7 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <isSend5xxResponseSatusCode>503</isSend5xxResponseSatusCode>
   <responsesStatusCodeNodeRemoval>503,504</responseStatusCodeNodeRemoval>
   <maxNumberResponsesWithError>10</maxNumberResponsesWithError>
+  <maxErrorTime>300000</maxErrorTime>
   <matchingHostnameForRoute>restcomm.com</matchingHostnameForRoute>
   <isFilterSubdomain>true</isFilterSubdomain>
   <internalTransport></internalTransport>
@@ -780,6 +781,10 @@ responsesStatusCodeNodeRemoval::
 maxNumberResponsesWithError::
 if <responsesStatusCodeNodeRemoval> is set, than LB after getting this number of
 errors from server will remove node
+
+maxErrorTime::
+  works with <responsesStatusCodeNodeRemoval>. If duration in ms between responses with
+  error is more than this parameter then LB will set counter of errors to 0.
 
 matchingHostnameForRoute::
 if request comes with a matching hostname in the route header it should be removed

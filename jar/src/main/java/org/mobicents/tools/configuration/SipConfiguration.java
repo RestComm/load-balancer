@@ -22,6 +22,7 @@ public class SipConfiguration {
 	public static final Integer IS_SEND_5XX_RESPONSE_STATUS_CODE = 503;
 	public static final String RESPONSES_STATUS_CODE_NODE_REMOVAL = "503";
 	public static final Integer MAX_NUMBER_RESPONSES_WITH_ERROR = 5;
+	public static final Long MAX_ERROR_TIME = 300000l;
 	public static final Boolean IS_USE_WITH_NEXMO = false;
 	public static final String MATCHING_HOSTNAME_FOR_ROUTE = null;
 	public static final Boolean IS_FILTER_SUBDOMAIN = false;
@@ -44,6 +45,7 @@ public class SipConfiguration {
 	private Integer isSend5xxResponseSatusCode;
 	private List<Integer> responsesStatusCodeNodeRemoval;
 	private Integer maxNumberResponsesWithError;
+	private Long maxErrorTime;
 	private Boolean isUseWithNexmo;
 	private String matchingHostnameForRoute;
 	private Boolean isFilterSubdomain;
@@ -72,6 +74,7 @@ public class SipConfiguration {
         this.isSend5xxResponseSatusCode = IS_SEND_5XX_RESPONSE_STATUS_CODE;
         this.responsesStatusCodeNodeRemoval = new ArrayList<Integer>();
         this.maxNumberResponsesWithError = MAX_NUMBER_RESPONSES_WITH_ERROR;
+        this.maxErrorTime = MAX_ERROR_TIME;
         this.isUseWithNexmo = IS_USE_WITH_NEXMO;
         this.matchingHostnameForRoute = MATCHING_HOSTNAME_FOR_ROUTE;
         this.isFilterSubdomain = IS_FILTER_SUBDOMAIN;
@@ -208,6 +211,14 @@ public class SipConfiguration {
 
 	public void setMaxNumberResponsesWithError(Integer maxNumberResponsesWithError) {
 		this.maxNumberResponsesWithError = maxNumberResponsesWithError;
+	}
+
+	public Long getMaxErrorTime() {
+		return maxErrorTime;
+	}
+
+	public void setMaxErrorTime(Long maxErrorTime) {
+		this.maxErrorTime = maxErrorTime;
 	}
 
 	public Boolean getIsUseWithNexmo() {

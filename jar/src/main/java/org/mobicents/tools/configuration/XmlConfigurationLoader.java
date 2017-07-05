@@ -122,6 +122,8 @@ public class XmlConfigurationLoader{
         }
         if(src.getString("maxNumberResponsesWithError") != null && !src.getString("maxNumberResponsesWithError").equals(""))
         	dst.setMaxNumberResponsesWithError(src.getInteger("maxNumberResponsesWithError", SipConfiguration.MAX_NUMBER_RESPONSES_WITH_ERROR));
+        if(src.getString("maxErrorTime") != null && !src.getString("maxErrorTime").equals(""))
+        	dst.setMaxErrorTime(src.getLong("maxErrorTime", SipConfiguration.MAX_ERROR_TIME));
         dst.setIsUseWithNexmo(src.getBoolean("isUseWithNexmo",SipConfiguration.IS_USE_WITH_NEXMO));
         dst.setMatchingHostnameForRoute(src.getString("matchingHostnameForRoute", SipConfiguration.MATCHING_HOSTNAME_FOR_ROUTE));
         dst.setIsFilterSubdomain(src.getBoolean("isFilterSubdomain", SipConfiguration.IS_FILTER_SUBDOMAIN));

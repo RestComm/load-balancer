@@ -38,10 +38,11 @@ public class Node implements Comparable<Node> {
 	private HashMap<String, String> properties = new HashMap<String, String>();
 	private boolean gracefulShutdown;
 	private boolean bad;
-	private int failCounter = 0;
+	private AtomicInteger failCounter = new AtomicInteger(0);
 	private int weightIndex = 0;
     private AtomicInteger requestNumberWithoutResponse = new AtomicInteger(0);
     private AtomicLong lastTimeResponse = new AtomicLong(System.currentTimeMillis());
+    private AtomicLong lastTimeError = new AtomicLong(System.currentTimeMillis());
 	
 	public Node(){}
 	public Node(String hostName, String ip) {
@@ -85,11 +86,11 @@ public class Node implements Comparable<Node> {
 		this.timeStamp = System.currentTimeMillis();
 	}
 
-	public int getAndIncrementFailCounter() {
-		return ++failCounter;
+	public AtomicInteger getFailCounter() {
+		return failCounter;
 	}
 	public void setFailCounter(int failCounter) {
-		this.failCounter = failCounter;
+		this.failCounter.set(failCounter);
 	}
 
 	public boolean isGracefulShutdown() {
@@ -130,6 +131,13 @@ public class Node implements Comparable<Node> {
 	public void setLastTimeResponse(long lastTimeResponse) {
 		this.lastTimeResponse.set(lastTimeResponse);
 	}
+	public AtomicLong getLastTimeError() {
+		return lastTimeError;
+	}
+	public void setLastTimeError(long lastTimeError) {
+		this.lastTimeError.set(lastTimeError);
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

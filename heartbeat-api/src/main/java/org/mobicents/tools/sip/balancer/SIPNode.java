@@ -56,9 +56,10 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	private String ip = null;
 	private long timeStamp = System.currentTimeMillis();
 	private HashMap<String, Serializable> properties = new HashMap<String, Serializable>();
-	private int failCounter = 0;
+	private AtomicInteger failCounter = new AtomicInteger(0);
     private AtomicInteger requestNumberWithoutResponse = new AtomicInteger(0);
     private AtomicLong lastTimeResponse = new AtomicLong(System.currentTimeMillis());
+    private AtomicLong lastTimeError = new AtomicLong(System.currentTimeMillis());
 
 
 	public SIPNode(){}
@@ -87,14 +88,12 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	public void updateTimerStamp() {
 		this.timeStamp = System.currentTimeMillis();
 	}
-
-	public int getAndIncrementFailCounter() {
-		return ++failCounter;
+	public AtomicInteger getFailCounter() {
+		return failCounter;
 	}
 	public void setFailCounter(int failCounter) {
-		this.failCounter = failCounter;
+		this.failCounter.set(failCounter);
 	}
-
 	public AtomicInteger getRequestNumberWithoutResponse() {
 		return requestNumberWithoutResponse;
 	}
@@ -107,6 +106,13 @@ public class SIPNode implements Serializable, Comparable<SIPNode> {
 	public void setLastTimeResponse(long lastTimeResponse) {
 		this.lastTimeResponse.set(lastTimeResponse);
 	}
+	public AtomicLong getLastTimeError() {
+		return lastTimeError;
+	}
+	public void setLastTimeError(long lastTimeError) {
+		this.lastTimeError.set(lastTimeError);
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

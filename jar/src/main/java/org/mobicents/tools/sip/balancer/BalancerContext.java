@@ -81,6 +81,7 @@ public class BalancerContext {
 	public String responsesReasonNodeRemoval;
 	public List<Integer> responsesStatusCodeNodeRemoval;
 	public int maxNumberResponsesWithError;
+	public long maxErrorTime;
 	public String matchingHostnameForRoute;
 	public boolean isFilterSubdomain;
 	public String internalTransport;

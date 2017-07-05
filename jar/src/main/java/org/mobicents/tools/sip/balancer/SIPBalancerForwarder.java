@@ -2046,14 +2046,25 @@ public class SIPBalancerForwarder implements SipListener {
     {
     	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	        
     	KeySip keySip = new KeySip(node,isIpV6);
-    	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode()))
-    		// adding null check for https://github.com/RestComm/load-balancer/issues/83
-    		if(ctx.sipNodeMap(isIpV6).get(keySip) != null && 
-    				ctx.sipNodeMap(isIpV6).get(keySip).getAndIncrementFailCounter()>balancerRunner.balancerContext.maxNumberResponsesWithError) {
-					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + node);
+    	// adding null check for https://github.com/RestComm/load-balancer/issues/83
+    	Node currNode = ctx.sipNodeMap(isIpV6).get(keySip);
+    	if(balancerRunner.balancerContext.responsesStatusCodeNodeRemoval.contains(response.getStatusCode())&&currNode != null)
+    	{
+    		if(currNode.getFailCounter().get()!=0&&(currNode.getLastTimeError().get()+balancerRunner.balancerContext.maxErrorTime) < System.currentTimeMillis())
+    		{
+    			logger.warn("mediaFailureDetection on keysip " + keySip + ", last time of error from this node : "
+    					+ " was long time ago ms: " + (System.currentTimeMillis() - currNode.getLastTimeError().get()) + ". Max error time keeping: " 
+    					+balancerRunner.balancerContext.maxErrorTime+ ". LB will set error counter to 0");
+    			currNode.setFailCounter(0);
+    		}
+    		if(currNode.getFailCounter().incrementAndGet() > balancerRunner.balancerContext.maxNumberResponsesWithError) 
+    		{
+					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + currNode);
+					currNode.setLastTimeError(System.currentTimeMillis());
 					ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
 					ctx.balancerAlgorithm.nodeRemoved(node);
     		}
+    	}
     }
     
     private void nodeHealthcheck(InvocationContext ctx, Node node)
@@ -2586,6 +2597,7 @@ public class SIPBalancerForwarder implements SipListener {
     	balancerRunner.balancerContext.isUseWithNexmo = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsUseWithNexmo();
     	balancerRunner.balancerContext.responsesStatusCodeNodeRemoval = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getResponsesStatusCodeNodeRemoval();
     	balancerRunner.balancerContext.maxNumberResponsesWithError = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMaxNumberResponsesWithError();
+    	balancerRunner.balancerContext.maxErrorTime = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMaxErrorTime();
     	balancerRunner.balancerContext.matchingHostnameForRoute = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMatchingHostnameForRoute();
     	balancerRunner.balancerContext.isFilterSubdomain = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getIsFilterSubdomain();
     	balancerRunner.balancerContext.internalTransport = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getInternalTransport();
