@@ -490,5 +490,10 @@ public class UserBasedAlgorithm extends DefaultBalancerAlgorithm {
 			}
 		}
 	}
+
+	@Override
+	public Integer getNumberOfActiveCalls() {
+		return userToMap.size();
+	}
 	
 }

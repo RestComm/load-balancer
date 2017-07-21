@@ -27,6 +27,7 @@ public class StatisticObject
 	private Long NumberOfSmppBytesToServer;
 	private Long NumberOfSmppRequestsToClient;
 	private Long NumberOfSmppRequestsToServer;
+	private Integer NumberOfActiveCalls;
 	
 	public StatisticObject(BalancerRunner balancerRunner){
 		
@@ -58,6 +59,7 @@ public class StatisticObject
 		this.NumberOfSmppBytesToServer = balancerRunner.getNumberOfSmppBytesToServer();
 		this.NumberOfSmppRequestsToClient = balancerRunner.getNumberOfSmppRequestsToClient();
 		this.NumberOfSmppRequestsToServer = balancerRunner.getNumberOfSmppRequestsToServer();
+		this.NumberOfActiveCalls = balancerRunner.getNumberOfActiveCalls();
 		this.activeNodes = balancerRunner.getLatestInvocationContext().sipNodeMap(false).size() + 
 				balancerRunner.getLatestInvocationContext().sipNodeMap(true).size();
 	}
@@ -182,6 +184,14 @@ public class StatisticObject
 
 	public void setNumberOfSmppRequestsToServer(Long numberOfSmppRequestsToServer) {
 		NumberOfSmppRequestsToServer = numberOfSmppRequestsToServer;
+	}
+
+	public Integer getNumberOfActiveCalls() {
+		return NumberOfActiveCalls;
+	}
+
+	public void setNumberOfActiveCalls(Integer numberOfActiveCalls) {
+		NumberOfActiveCalls = numberOfActiveCalls;
 	}
 
 	public String getReleaseName() {

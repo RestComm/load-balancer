@@ -453,5 +453,10 @@ public class CallIDAffinityBalancerAlgorithm extends DefaultBalancerAlgorithm {
 			}
 		}
 	}
+
+	@Override
+	public Integer getNumberOfActiveCalls() {
+		return callIdMap.size();
+	}
 	
 }

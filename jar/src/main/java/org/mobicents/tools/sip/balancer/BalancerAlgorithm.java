@@ -142,4 +142,6 @@ public interface BalancerAlgorithm {
 	void assignToNode(String id, Node node);
 	
 	void configurationChanged();
+	
+	public Integer getNumberOfActiveCalls();
 }

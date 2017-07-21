@@ -2469,6 +2469,11 @@ public class SIPBalancerForwarder implements SipListener {
         return balancerRunner.balancerContext.responsesProcessedByStatusCode;
     }
 
+    public Integer getNumberOfActiveCalls()
+    {
+    	return balancerRunner.getInvocationContext("0").balancerAlgorithm.getNumberOfActiveCalls();
+    }
+
     public BalancerContext getBalancerAlgorithmContext() {
         return balancerRunner.balancerContext;
     }

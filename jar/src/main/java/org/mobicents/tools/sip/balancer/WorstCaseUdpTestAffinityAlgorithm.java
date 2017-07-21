@@ -486,5 +486,9 @@ public class WorstCaseUdpTestAffinityAlgorithm extends DefaultBalancerAlgorithm 
 			}
 		}
 	}
+	@Override
+	public Integer getNumberOfActiveCalls() {
+		return callIdMap.size();
+	}
 	
 }

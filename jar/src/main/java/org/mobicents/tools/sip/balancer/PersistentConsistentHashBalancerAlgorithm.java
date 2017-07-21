@@ -219,4 +219,9 @@ public class PersistentConsistentHashBalancerAlgorithm extends HeaderConsistentH
 		logger.info("Cached stopped in algorithm");
 	}
 
+	@Override
+	public Integer getNumberOfActiveCalls() {
+
+		return cache.size();
+	}
 }

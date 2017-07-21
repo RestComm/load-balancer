@@ -215,5 +215,9 @@ public class ActiveStandbyAlgorithm extends DefaultBalancerAlgorithm {
 	public void init() 
 	{
 	}
+	@Override
+	public Integer getNumberOfActiveCalls() {
+		return -1;
+	}
 	
 }

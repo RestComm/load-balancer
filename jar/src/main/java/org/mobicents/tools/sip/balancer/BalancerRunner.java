@@ -421,7 +421,10 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	{
 		return StatsRetreiver.getOpenConnections(balancerContext.sipStack);
 	}
-	
+	public int getNumberOfActiveCalls()
+	{
+		return sipForwarder.getNumberOfActiveCalls();
+	}
 	//HTTP balancer
 	
 	public long getNumberOfHttpRequests() 

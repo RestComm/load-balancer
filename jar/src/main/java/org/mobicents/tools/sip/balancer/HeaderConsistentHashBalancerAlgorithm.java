@@ -304,4 +304,10 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		
 		nodesAreDirty = false;
 	}
+
+	@Override
+	public Integer getNumberOfActiveCalls() {
+
+		return -1;
+	}
 }
