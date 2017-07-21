@@ -21,6 +21,7 @@ import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.mobicents.tools.sip.balancer.RoutingRule;
 
 public class XmlConfigurationLoader{
     
@@ -49,7 +50,7 @@ public class XmlConfigurationLoader{
             configureCommon(xml.configurationAt("common"), configuration.getCommonConfiguration());
             configureHttp(xml, configuration.getHttpConfiguration());
             configureSmpp(xml.configurationAt("smpp"), configuration.getSmppConfiguration());
-            configureSip(xml.configurationAt("sip"), configuration.getSipConfiguration());
+            configureSip(xml, configuration.getSipConfiguration());
             configureSsl(xml.configurationAt("ssl"), configuration.getSslConfiguration());
             configureSipStack(xml.configurationsAt("sipStack.property"), configuration.getSipStackConfiguration(), xml.configurationAt("ssl"));
         } catch (ConfigurationException | IllegalArgumentException e) 
@@ -94,10 +95,14 @@ public class XmlConfigurationLoader{
         dst.setCacheConfigFile(src.getString("cacheConfigFile",CommonConfiguration.CACHE_CONFIG_FILE));
     }
 
-    private static void configureSip(HierarchicalConfiguration<ImmutableNode> src, SipConfiguration dst) {
+    private static void configureSip(XMLConfiguration xml, SipConfiguration dst) {
+    	HierarchicalConfiguration<ImmutableNode> src = xml.configurationAt("sip");
+    	List<HierarchicalConfiguration<ImmutableNode>> srcRoutingRulesIpv4 = xml.configurationsAt("sip.routingRulesIpv4.rule");
+    	List<HierarchicalConfiguration<ImmutableNode>> srcRoutingRulesIpv6 = xml.configurationsAt("sip.routingRulesIpv6.rule");
     	ExternalLegConfiguration ex = dst.getExternalLegConfiguration();
     	InternalLegConfiguration in = dst.getInternalLegConfiguration();
     	AlgorithmConfiguration alg = dst.getAlgorithmConfiguration();
+    	
     	// Basic SIP configuration
         dst.setPublicIp(src.getString("publicIp", SipConfiguration.PUBLIC_IP));
         dst.setPublicIpv6(src.getString("publicIpv6", SipConfiguration.PUBLIC_IPV6));
@@ -138,6 +143,22 @@ public class XmlConfigurationLoader{
         if(src.getString("maxResponseTime") != null && !src.getString("maxResponseTime").equals(""))
         	dst.setMaxResponseTime(src.getLong("maxResponseTime", SipConfiguration.MAX_RESPONSE_TIME));
 
+        //Routing rules
+        if(srcRoutingRulesIpv4!=null)
+        {
+        	ArrayList <RoutingRule> routingRulesIpv4 = new ArrayList<RoutingRule>();
+            for(HierarchicalConfiguration<ImmutableNode> property : srcRoutingRulesIpv4) 
+            	routingRulesIpv4.add(new RoutingRule(property.getString("ipPattern"), property.getBoolean("patch")));
+            dst.setRoutingRulesIpv4(routingRulesIpv4);
+        }
+        if(srcRoutingRulesIpv6!=null)
+        {
+        	ArrayList <RoutingRule> routingRulesIpv6 = new ArrayList<RoutingRule>();
+            for(HierarchicalConfiguration<ImmutableNode> property : srcRoutingRulesIpv6) 
+            	routingRulesIpv6.add(new RoutingRule(property.getString("ipPattern"), property.getBoolean("patch")));
+            dst.setRoutingRulesIpv6(routingRulesIpv6);
+        }
+        
         //Algorithm configuration
         if(src.getString("algorithm.algorithmClass") != null && !src.getString("algorithm.algorithmClass").equals(""))
         	alg.setAlgorithmClass(src.getString("algorithm.algorithmClass",AlgorithmConfiguration.ALGORITHM_CLASS));

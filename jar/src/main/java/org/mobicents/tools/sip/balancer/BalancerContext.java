@@ -88,6 +88,8 @@ public class BalancerContext {
 	public int shutdownTimeout;
 	public Integer maxRequestNumberWithoutResponse;
 	public Long maxResponseTime;
+	public ArrayList <RoutingRule> routingRulesIpv4;
+	public ArrayList <RoutingRule> routingRulesIpv6;
 	
 	public Object parameters;
 	
@@ -174,6 +176,10 @@ public class BalancerContext {
 	public RecordRouteHeader[] activeInternalHeader = new RecordRouteHeader[5];
 	public RecordRouteHeader[] activeExternalIpv6Header = new RecordRouteHeader[5];
 	public RecordRouteHeader[] activeInternalIpv6Header = new RecordRouteHeader[5];
+	public RecordRouteHeader[] activePrivateExternalHeader = new RecordRouteHeader[5];
+	public RecordRouteHeader[] activePrivateInternalHeader = new RecordRouteHeader[5];
+	public RecordRouteHeader[] activePrivateExternalIpv6Header = new RecordRouteHeader[5];
+	public RecordRouteHeader[] activePrivateInternalIpv6Header = new RecordRouteHeader[5];
     
 	//SIP balancer variables for monitoring
 	public boolean gatherStatistics = true;

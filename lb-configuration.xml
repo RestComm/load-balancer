@@ -20,6 +20,26 @@
   <isSend5xxResponseSatusCode>503</isSend5xxResponseSatusCode>
   <responseStatusCodeNodeRemoval>503</responseStatusCodeNodeRemoval>
   <responseReasonNodeRemoval>Unable to setup media services</responseReasonNodeRemoval>
+  <routingRulesIpv4>
+    <rule>
+  		<ipPattern>default</ipPattern>
+  		<patch>true</patch> 
+  	</rule>
+  	<rule>
+  		<ipPattern>10.0.0.*</ipPattern>
+  		<patch>false</patch> 
+  	</rule>
+  	<rule>
+  		<ipPattern>172.0.0.*</ipPattern>
+  		<patch>false</patch> 
+  	</rule>
+  </routingRulesIpv4>
+  <routingRulesIpv6>
+  	<rule>
+  		<ipPattern>fd30:*</ipPattern>
+  		<patch>false</patch> 
+  	</rule>
+  </routingRulesIpv6>
   <algorithm>
     <algorithmClass></algorithmClass>
     <sipHeaderAffinityKey></sipHeaderAffinityKey>

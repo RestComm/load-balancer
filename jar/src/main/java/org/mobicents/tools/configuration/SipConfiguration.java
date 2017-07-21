@@ -2,6 +2,7 @@ package org.mobicents.tools.configuration;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.mobicents.tools.sip.balancer.RoutingRule;
 
 public class SipConfiguration {
 	
@@ -54,6 +55,8 @@ public class SipConfiguration {
 	private Integer maxWeightIndex;
 	private Integer maxRequestNumberWithoutResponse;
 	private Long maxResponseTime;
+	private ArrayList<RoutingRule> routingRulesIpv4;
+	private ArrayList<RoutingRule> routingRulesIpv6;
 	
 	public SipConfiguration() 
     {
@@ -285,5 +288,22 @@ public class SipConfiguration {
 	public void setMaxResponseTime(Long maxResponseTime) {
 		this.maxResponseTime = maxResponseTime;
 	}
+
+	public ArrayList<RoutingRule> getRoutingRulesIpv4() {
+		return routingRulesIpv4;
+	}
+
+	public void setRoutingRulesIpv4(ArrayList<RoutingRule> routingRulesIpv4) {
+		this.routingRulesIpv4 = routingRulesIpv4;
+	}
+
+	public ArrayList<RoutingRule> getRoutingRulesIpv6() {
+		return routingRulesIpv6;
+	}
+
+	public void setRoutingRulesIpv6(ArrayList<RoutingRule> routingRulesIpv6) {
+		this.routingRulesIpv6 = routingRulesIpv6;
+	}
 	
+
 }

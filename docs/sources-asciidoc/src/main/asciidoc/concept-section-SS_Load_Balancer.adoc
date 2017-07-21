@@ -527,6 +527,24 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <internalTransport></internalTransport>
   <trafficRampupCyclePeriod></trafficRampupCyclePeriod>
   <trafficPercentageIncrease></trafficPercentageIncrease>
+  <cyclePeriod></cyclePeriod>
+  <maxWeightIndex></maxWeightIndex>
+  <routingRulesIpv4>
+  <rule>
+    <ipPattern>10.0.0.*</ipPattern>
+    <patch>false</patch>
+  </rule>
+  <rule>
+    <ipPattern>172.0.0.*</ipPattern>
+    <patch>false</patch>
+  </rule>
+</routingRulesIpv4>
+<routingRulesIpv6>
+  <rule>
+    <ipPattern>fd30:*</ipPattern>
+    <patch>false</patch>
+  </rule>
+</routingRulesIpv6>
   <algorithm>
     <algorithmClass></algorithmClass>
     <sipHeaderAffinityKey></sipHeaderAffinityKey>
@@ -822,6 +840,19 @@ extraServerNodes::
   You can put here alternative names of the application servers here and they will be recognized.
   Names are important, because they might be used for direction-analysis.
   Requests coming from these server will go in the direction of the clients and will not be routed back to the cluster.
+
+routingRulesIpv4::
+routingRulesIpv6::
+  Rules for detection from which network LB should not patch RecordRouter and Via
+  headers. So for example if we have next rule :
+
+  <rule>
+    <ipPattern>10.0.0.*</ipPattern>
+    <patch>false</patch>
+  </rule>
+
+The Load balancer will not patch headers for initial requests for IP which will
+be match regex `10.0.0.*` i.e. from 10.0.0.0-10.0.0.255
 
 algorithmClass::
   The fully-qualified Java class name of the balancing algorithm to be used.

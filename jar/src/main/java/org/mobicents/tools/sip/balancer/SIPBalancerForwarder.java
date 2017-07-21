@@ -166,6 +166,9 @@ public class SIPBalancerForwarder implements SipListener {
             {
             	createRecordRouteHeaders(balancerRunner.balancerContext.externalIpLoadBalancerPorts, balancerRunner.balancerContext.externalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeExternalHeader);
             	createRecordRouteHeaders(balancerRunner.balancerContext.externalIpv6LoadBalancerPorts, balancerRunner.balancerContext.externalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeExternalIpv6Header);
+            	createRecordRouteHeaders(listeningPoints, balancerRunner.balancerContext.activePrivateExternalHeader);
+            	createRecordRouteHeaders(listeningPointsIpv6, balancerRunner.balancerContext.activePrivateExternalIpv6Header);
+            	
             }
             else
             {
@@ -187,6 +190,8 @@ public class SIPBalancerForwarder implements SipListener {
             	{
             		createRecordRouteHeaders(balancerRunner.balancerContext.internalIpLoadBalancerPorts, balancerRunner.balancerContext.internalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeInternalHeader);
                 	createRecordRouteHeaders(balancerRunner.balancerContext.internalIpv6LoadBalancerPorts, balancerRunner.balancerContext.internalIpLoadBalancerAddresses.get(0), balancerRunner.balancerContext.activeInternalIpv6Header);
+                	createRecordRouteHeaders(listeningPoints, balancerRunner.balancerContext.activePrivateInternalHeader);
+                	createRecordRouteHeaders(listeningPointsIpv6, balancerRunner.balancerContext.activePrivateInternalIpv6Header);
             	}
                 else
                  	if(balancerRunner.balancerContext.isTwoEntrypoints())
@@ -1038,15 +1043,62 @@ public class SIPBalancerForwarder implements SipListener {
 		ViaHeader viaHeaderInternal = null;
 		String externalViaHost = null;
 		String internalViaHost = null;
+		
+		String received = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getReceived();
+		
 		if(!isIpv6)
 		{
-			externalViaHost = balancerRunner.balancerContext.externalViaHost;
-			internalViaHost = balancerRunner.balancerContext.internalViaHost;
+			if(balancerRunner.balancerContext.routingRulesIpv4!=null&&received!=null)
+			{
+				boolean found = false;
+				for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv4)
+				{
+					if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+					{
+						found = true;
+						externalViaHost = balancerRunner.balancerContext.externalHost;
+						internalViaHost = balancerRunner.balancerContext.internalHost;
+						break;
+					}
+				}
+				if(!found)
+				{
+					externalViaHost = balancerRunner.balancerContext.externalViaHost;
+					internalViaHost = balancerRunner.balancerContext.internalViaHost;
+				}
+			}
+			else
+			{
+				externalViaHost = balancerRunner.balancerContext.externalViaHost;
+				internalViaHost = balancerRunner.balancerContext.internalViaHost;
+			}
 		}
 		else
 		{
-			externalViaHost = balancerRunner.balancerContext.externalIpv6ViaHost;
-			internalViaHost = balancerRunner.balancerContext.internalIpv6ViaHost;
+			if(balancerRunner.balancerContext.routingRulesIpv6!=null&&received!=null)
+			{
+				boolean found = false;
+				for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv6)
+				{
+					if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+					{
+						found = true;
+						externalViaHost = balancerRunner.balancerContext.externalIpv6Host;
+						internalViaHost = balancerRunner.balancerContext.internalIpv6Host;
+						break;
+					}
+				}
+				if(!found)
+				{
+					externalViaHost = balancerRunner.balancerContext.externalIpv6ViaHost;
+					internalViaHost = balancerRunner.balancerContext.internalIpv6ViaHost;
+				}
+			}
+			else
+			{
+				externalViaHost = balancerRunner.balancerContext.externalIpv6ViaHost;
+				internalViaHost = balancerRunner.balancerContext.internalIpv6ViaHost;
+			}
 		}
 
 		if (!isRequestFromServer) {
@@ -1416,14 +1468,64 @@ public class SIPBalancerForwarder implements SipListener {
 				}
 			}
 			// comes from client
+			String received = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getReceived();
+			RecordRouteHeader currExternalRR = null;
+			RecordRouteHeader currInternalRR = null;
 			if(!isIpv6)
-				addTwoRecordRoutes(request,balancerRunner.balancerContext.activeExternalHeader[transportIndex],
-						balancerRunner.balancerContext.activeInternalHeader[internalTransportIndex],
-						hints, transport);
+			{
+				if(balancerRunner.balancerContext.routingRulesIpv4!=null&&received!=null)
+				{
+					boolean found = false;
+					for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv4)
+					{
+						if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+						{
+							found = true;
+							currExternalRR = balancerRunner.balancerContext.activePrivateExternalHeader[transportIndex];
+							currInternalRR = balancerRunner.balancerContext.activePrivateInternalHeader[internalTransportIndex];
+							break;
+						}
+					}
+					if(!found)
+					{
+						currExternalRR = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
+						currInternalRR = balancerRunner.balancerContext.activeInternalHeader[internalTransportIndex];
+					}
+				}
+				else
+				{
+					currExternalRR = balancerRunner.balancerContext.activeExternalHeader[transportIndex];
+					currInternalRR = balancerRunner.balancerContext.activeInternalHeader[internalTransportIndex];
+				}
+			}
 			else
-				addTwoRecordRoutes(request,balancerRunner.balancerContext.activeExternalIpv6Header[transportIndex],
-						balancerRunner.balancerContext.activeInternalIpv6Header[internalTransportIndex],
-						hints, transport);
+			{
+				if(balancerRunner.balancerContext.routingRulesIpv6!=null&&received!=null)
+				{
+					boolean found = false;
+					for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv6)
+					{
+						if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+						{
+							found = true;
+							currExternalRR = balancerRunner.balancerContext.activePrivateExternalIpv6Header[transportIndex];
+							currInternalRR = balancerRunner.balancerContext.activePrivateInternalIpv6Header[internalTransportIndex];
+							break;
+						}
+					}
+					if(!found)
+					{
+						currExternalRR = balancerRunner.balancerContext.activeExternalIpv6Header[transportIndex];
+						currInternalRR = balancerRunner.balancerContext.activeInternalIpv6Header[internalTransportIndex];
+					}
+				}
+				else
+				{
+					currExternalRR = balancerRunner.balancerContext.activeExternalIpv6Header[transportIndex];
+					currInternalRR = balancerRunner.balancerContext.activeInternalIpv6Header[internalTransportIndex];
+				}
+			}
+			addTwoRecordRoutes(request,currExternalRR,	currInternalRR,	hints, transport);
 		} else {
 			int transportIndex = TLS;
 			int externalTransportIndex = TLS;
@@ -1453,17 +1555,65 @@ public class SIPBalancerForwarder implements SipListener {
 				externalTransportIndex = WSS;
 
 			// comes from app server
+			String received = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getReceived();
+			RecordRouteHeader currExternalRR = null;
+			RecordRouteHeader currInternalRR = null;
 			if(!isIpv6)
-				addTwoRecordRoutes(	request,
-					balancerRunner.balancerContext.activeInternalHeader[transportIndex],
-					balancerRunner.balancerContext.activeExternalHeader[externalTransportIndex],
-					hints, transport);
+			{
+				if(balancerRunner.balancerContext.routingRulesIpv4!=null&&received!=null)
+				{
+					boolean found = false;
+					for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv4)
+					{
+						if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+						{
+							found = true;
+							currExternalRR = balancerRunner.balancerContext.activePrivateExternalHeader[externalTransportIndex];
+							currInternalRR = balancerRunner.balancerContext.activePrivateInternalHeader[transportIndex];
+							break;
+						}
+					}
+					if(!found)
+					{
+						currExternalRR = balancerRunner.balancerContext.activeExternalHeader[externalTransportIndex];
+						currInternalRR = balancerRunner.balancerContext.activeInternalHeader[transportIndex];
+					}
+				}
+				else
+				{
+					currExternalRR = balancerRunner.balancerContext.activeExternalHeader[externalTransportIndex];
+					currInternalRR = balancerRunner.balancerContext.activeInternalHeader[transportIndex];
+				}
+			}
 			else
-				addTwoRecordRoutes(	request,
-						balancerRunner.balancerContext.activeInternalIpv6Header[transportIndex],
-						balancerRunner.balancerContext.activeExternalIpv6Header[externalTransportIndex],
-						hints, transport);
-				
+			{
+				if(balancerRunner.balancerContext.routingRulesIpv6!=null&&received!=null)
+				{
+					boolean found = false;
+					for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv6)
+					{
+						if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+						{
+							found = true;
+							currExternalRR = balancerRunner.balancerContext.activePrivateExternalIpv6Header[externalTransportIndex];
+							currInternalRR = balancerRunner.balancerContext.activePrivateInternalIpv6Header[transportIndex];
+							break;
+						}
+					}
+					if(!found)
+					{
+						currExternalRR = balancerRunner.balancerContext.activeExternalIpv6Header[externalTransportIndex];
+						currInternalRR = balancerRunner.balancerContext.activeInternalIpv6Header[transportIndex];
+					}
+				}
+				else
+				{
+					currExternalRR = balancerRunner.balancerContext.activeExternalIpv6Header[externalTransportIndex];
+					currInternalRR = balancerRunner.balancerContext.activeInternalIpv6Header[transportIndex];
+				}
+			}
+			addTwoRecordRoutes(request,currInternalRR,	currExternalRR,	hints, transport);
+
 			if(logger.isInfoEnabled()) {
 				logger.info("Will patch Request : \"" + request.getRequestURI()	+ "\" to provide public IP address for the RecordRoute header");
 			}
@@ -2604,6 +2754,9 @@ public class SIPBalancerForwarder implements SipListener {
     	balancerRunner.balancerContext.blockedList = new ArrayList<String>(Arrays.asList(balancerRunner.balancerContext.lbConfig.getSipConfiguration().getBlockedValues().split(",")));
     	balancerRunner.balancerContext.maxRequestNumberWithoutResponse = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMaxRequestNumberWithoutResponse();
     	balancerRunner.balancerContext.maxResponseTime = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getMaxResponseTime();
+    	balancerRunner.balancerContext.routingRulesIpv4 = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getRoutingRulesIpv4();
+    	balancerRunner.balancerContext.routingRulesIpv6 = balancerRunner.balancerContext.lbConfig.getSipConfiguration().getRoutingRulesIpv6();
+    	
 	}
     
     private void setViaHostsPorts()
