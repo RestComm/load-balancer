@@ -75,8 +75,8 @@
   <nonBlockingSocketsEnabled>true</nonBlockingSocketsEnabled>
   <defaultSessionCountersEnabled>true</defaultSessionCountersEnabled>
   <timeoutResponse>10000</timeoutResponse>
-  <timeoutConnection>1000</timeoutConnection>
-  <timeoutEnquire>2000000</timeoutEnquire>
+  <timeoutConnection>7200000</timeoutConnection>
+  <timeoutEnquire>7200000</timeoutEnquire>
   <reconnectPeriod>1000</reconnectPeriod>
   <timeoutConnectionCheckClientSide>1000</timeoutConnectionCheckClientSide>
   <timeoutConnectionCheckServerSide>1000</timeoutConnectionCheckServerSide>
