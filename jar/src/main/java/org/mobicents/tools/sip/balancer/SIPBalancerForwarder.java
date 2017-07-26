@@ -1565,7 +1565,10 @@ public class SIPBalancerForwarder implements SipListener {
 
 			// comes from app server
 			
-			String routeHost  = ((SipURI)((RouteHeader) request.getHeader(RouteHeader.NAME)).getAddress().getURI()).getHost();
+			Header routeHeader = request.getHeader(RouteHeader.NAME);
+			String routeHost  = null;
+			if(routeHeader!=null)
+				routeHost  = ((SipURI)((RouteHeader) routeHeader).getAddress().getURI()).getHost();
 			RecordRouteHeader currExternalRR = null;
 			RecordRouteHeader currInternalRR = null;
 			if(!isIpv6)
