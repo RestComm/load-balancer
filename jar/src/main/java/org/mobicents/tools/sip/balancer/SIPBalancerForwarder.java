@@ -1044,16 +1044,25 @@ public class SIPBalancerForwarder implements SipListener {
 		String externalViaHost = null;
 		String internalViaHost = null;
 		
-		String received = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getReceived();
+		String meantHost = null;
+		if(!isRequestFromServer)
+			meantHost = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getReceived();
+		else 
+		{
+			Header routeHeader = request.getHeader(RouteHeader.NAME);
+			if(routeHeader!=null)
+				meantHost = ((SipURI)((RouteHeader)routeHeader).getAddress().getURI()).getHost();
+
+		}
 		
 		if(!isIpv6)
 		{
-			if(balancerRunner.balancerContext.routingRulesIpv4!=null&&received!=null)
+			if(balancerRunner.balancerContext.routingRulesIpv4!=null&&meantHost!=null)
 			{
 				boolean found = false;
 				for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv4)
 				{
-					if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+					if(rule.getIpPattern().matcher(meantHost).matches()&&!rule.isPatch)
 					{
 						found = true;
 						externalViaHost = balancerRunner.balancerContext.externalHost;
@@ -1075,12 +1084,12 @@ public class SIPBalancerForwarder implements SipListener {
 		}
 		else
 		{
-			if(balancerRunner.balancerContext.routingRulesIpv6!=null&&received!=null)
+			if(balancerRunner.balancerContext.routingRulesIpv6!=null&&meantHost!=null)
 			{
 				boolean found = false;
 				for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv6)
 				{
-					if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+					if(rule.getIpPattern().matcher(meantHost).matches()&&!rule.isPatch)
 					{
 						found = true;
 						externalViaHost = balancerRunner.balancerContext.externalIpv6Host;
@@ -1555,17 +1564,18 @@ public class SIPBalancerForwarder implements SipListener {
 				externalTransportIndex = WSS;
 
 			// comes from app server
-			String received = ((ViaHeader) request.getHeader(ViaHeader.NAME)).getReceived();
+			
+			String routeHost  = ((SipURI)((RouteHeader) request.getHeader(RouteHeader.NAME)).getAddress().getURI()).getHost();
 			RecordRouteHeader currExternalRR = null;
 			RecordRouteHeader currInternalRR = null;
 			if(!isIpv6)
 			{
-				if(balancerRunner.balancerContext.routingRulesIpv4!=null&&received!=null)
+				if(balancerRunner.balancerContext.routingRulesIpv4!=null&&routeHost!=null)
 				{
 					boolean found = false;
 					for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv4)
 					{
-						if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+						if(rule.getIpPattern().matcher(routeHost).matches()&&!rule.isPatch)
 						{
 							found = true;
 							currExternalRR = balancerRunner.balancerContext.activePrivateExternalHeader[externalTransportIndex];
@@ -1587,12 +1597,12 @@ public class SIPBalancerForwarder implements SipListener {
 			}
 			else
 			{
-				if(balancerRunner.balancerContext.routingRulesIpv6!=null&&received!=null)
+				if(balancerRunner.balancerContext.routingRulesIpv6!=null&&routeHost!=null)
 				{
 					boolean found = false;
 					for(RoutingRule rule : balancerRunner.balancerContext.routingRulesIpv6)
 					{
-						if(rule.getIpPattern().matcher(received).matches()&&!rule.isPatch)
+						if(rule.getIpPattern().matcher(routeHost).matches()&&!rule.isPatch)
 						{
 							found = true;
 							currExternalRR = balancerRunner.balancerContext.activePrivateExternalIpv6Header[externalTransportIndex];
