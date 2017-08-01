@@ -226,7 +226,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 			}
 		} else {
 			String unavailaleHost = getConfiguration().getHttpConfiguration().getUnavailableHost();
-			if(unavailaleHost != null) {
+			if(unavailaleHost != null && unavailaleHost != "") {
 				Node node = new Node(unavailaleHost, unavailaleHost);
 				node.getProperties().put("httpPort", "" + 80);
 				return node;
