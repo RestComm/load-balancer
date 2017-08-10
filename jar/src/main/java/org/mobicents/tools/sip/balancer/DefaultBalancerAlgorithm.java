@@ -57,7 +57,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected Iterator<Entry<KeySip, Node>> ipv4It = null;
 	protected Iterator<Entry<KeySip, Node>> ipv6It = null;
 	protected Iterator<Node> httpRequestIterator = null;
-	protected Iterator <Node> instanceIdIterator = null;
 	protected LoadBalancerConfiguration lbConfig; 
 	protected ArrayList <Node> cycleListIpV4 = new ArrayList<Node>();
 	protected ArrayList <Node> cycleListIpV6 = new ArrayList<Node>();
@@ -191,39 +190,33 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 						}
 					}
 				}
-
-				logger.warn("As a failsafe if there is no jvmRoute. LB will send request to node accordingly RR algorithm");
-				if(httpRequestIterator==null)
-					httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
-				if(httpRequestIterator.hasNext())
-				{
-					return httpRequestIterator.next();
-				}
-				else
-				{
-					httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
-					if(httpRequestIterator.hasNext())
-					{
-						return httpRequestIterator.next();
-					}
-					else
-						return null;
-				}
-				
 			}
-			//if request doesn't have jsessionid (very first request), we choose next node using round robin algorithm
+			if(logger.isDebugEnabled())
+				logger.debug("LB will send request to node accordingly RR algorithm");
 			if(httpRequestIterator==null)
-				httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
-			if(httpRequestIterator.hasNext())
-				return httpRequestIterator.next();
-			else
 			{
 				httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
-				if(httpRequestIterator.hasNext())
-					return httpRequestIterator.next();
-				else
-					return null;
 			}
+			Node node = null;
+			int count = invocationContext.sipNodeMap(false).size();
+			while(count>0)
+			{
+				while(httpRequestIterator.hasNext() && count > 0)
+				{
+					node = httpRequestIterator.next();
+					if(node!=null&&!node.isGracefulShutdown()&&!node.isBad())
+					{
+						return node;
+					}
+					else
+					{
+						count--;
+					}
+				}
+				if(!httpRequestIterator.hasNext())
+					httpRequestIterator = invocationContext.sipNodeMap(false).values().iterator();
+			}
+			return null;
 		} else {
 			String unavailaleHost = getConfiguration().getHttpConfiguration().getUnavailableHost();
 			if(unavailaleHost != null && unavailaleHost != "") {
@@ -268,7 +261,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
     	return parameters;
     }
 	
-	private String getInstanceId(HttpRequest request)
+	protected String getInstanceId(HttpRequest request)
 	{
 		String url = request.getUri();
 		String[] tokens = url.split("/");
@@ -281,12 +274,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 				request.setUri(url);
 				return instanceId;
 			}
-//			else
-//			{
-//				url = url.replace("/"+tokens[6], "");
-//				request.setUri(url);
-//				return tokens[6];
-//			}
 		}	
 		return null;
 	}
@@ -328,7 +315,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	{
 		ipv4It = null;
 		ipv6It = null;
-		instanceIdIterator = null;
 		httpRequestIterator = null;
 		if(lbConfig.getSipConfiguration().getTrafficRampupCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 		{
@@ -354,7 +340,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	{
 		ipv4It = null;
 		ipv6It = null;
-		instanceIdIterator = null;
 		httpRequestIterator = null;
 		if(lbConfig.getSipConfiguration().getTrafficRampupCyclePeriod()!=null&&lbConfig.getSipConfiguration().getMaxWeightIndex()!=null)
 		{
@@ -383,30 +368,20 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}	
 	
-	private Node getNodeByInstanceId(String instanceId)
+	protected Node getNodeByInstanceId(String instanceId)
 	{
 		if(logger.isDebugEnabled())
 			logger.debug("Node by instanceId("+instanceId+") getting");
 		Node node = invocationContext.httpNodeMap.get(new KeyHttp(instanceId));
-		if(node!=null)
+		if(node!=null&&!node.isBad()&&!node.isGracefulShutdown())
 		{
 			return node;
 		}
 		else
 		{
-			if(instanceIdIterator==null)
-				instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
-			logger.warn("instanceId exists in HTTP request but doesn't match to any node. LB will send request to node accordingly RR algorithm");
-			if(instanceIdIterator.hasNext())
-				return instanceIdIterator.next();
-			else
-			{
-				instanceIdIterator = invocationContext.httpNodeMap.values().iterator();
-				if(instanceIdIterator.hasNext())
-					return instanceIdIterator.next();
-				else
-					return null;
-			}
+			logger.warn("instanceId exists in HTTP request but doesn't match to any node or Node is bad or graceful shudown."
+					+ " Node: "+ node);
+			return null;
 		}
 	}
 	

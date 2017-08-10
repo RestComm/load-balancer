@@ -92,6 +92,8 @@ import javax.sip.message.Response;
 import org.apache.log4j.Logger;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Protocol;
+
 
 /**
  * A transaction stateful UDP Forwarder that listens at a port and forwards to multiple
@@ -2240,7 +2242,7 @@ public class SIPBalancerForwarder implements SipListener {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + currNode);
 					currNode.setLastTimeError(System.currentTimeMillis());
 					ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
-					ctx.balancerAlgorithm.nodeRemoved(node);
+					ctx.httpNodeMap.get(currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(true);
     		}
     	}
     }
@@ -2262,7 +2264,7 @@ public class SIPBalancerForwarder implements SipListener {
       		logger.error("time difference : " + (currentTime - node.getLastTimeResponse().get())
       				+ " max is :" + balancerRunner.balancerContext.maxResponseTime);
       		ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
-			ctx.balancerAlgorithm.nodeRemoved(node);
+      		ctx.httpNodeMap.get(node.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(true);
       	}
     }
 

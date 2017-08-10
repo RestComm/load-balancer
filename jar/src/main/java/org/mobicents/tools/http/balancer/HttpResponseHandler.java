@@ -51,8 +51,8 @@ import org.mobicents.tools.sip.balancer.BalancerRunner;
 import org.mobicents.tools.sip.balancer.InvocationContext;
 import org.mobicents.tools.sip.balancer.KeyHttp;
 import org.mobicents.tools.sip.balancer.KeySip;
-
 import org.mobicents.tools.heartbeat.api.Node;
+import org.mobicents.tools.heartbeat.api.Protocol;
 
 /**
  * @author Vladimir Ralev (vladimir.ralev@jboss.org)
@@ -134,6 +134,7 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 					if( currNode!= null) 
 					{
 						currNode.setBad(true);
+						invocationContext.httpNodeMap.get(currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(true);
 						logger.error("Error code [" + stsusCode + "] detected in HTTP response. From  node : " + currNode +". This node will marked as bad.");
 						String currInstanceId = (String) currNode.getProperties().get("Restcomm-Instance-Id");
 						if(currInstanceId!=null)
