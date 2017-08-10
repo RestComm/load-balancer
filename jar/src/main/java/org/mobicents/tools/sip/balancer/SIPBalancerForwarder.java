@@ -2106,15 +2106,26 @@ public class SIPBalancerForwarder implements SipListener {
         if(fromServer) {
         	if(senderNode!=null&&senderNode.getIp()!=null)
         	{
+        		
         		if(balancerRunner.balancerContext.maxRequestNumberWithoutResponse!=null
       			&& balancerRunner.balancerContext.maxResponseTime!=null)
         		{
-        			if(logger.isDebugEnabled())
-            			logger.debug("We are going to reset counters of health check" + senderNode.getRequestNumberWithoutResponse()+ " : "+senderNode.getLastTimeResponse());
-        			senderNode.setLastTimeResponse(System.currentTimeMillis());
-        			senderNode.setRequestNumberWithoutResponse(0);
-        			if(logger.isDebugEnabled())
-            			logger.debug("Counter of request without responses is : " + senderNode.getRequestNumberWithoutResponse()+ " : "+senderNode.getLastTimeResponse());
+        	    	KeySip keySip = new KeySip(senderNode,isIpv6);
+        	    	// adding null check for https://github.com/RestComm/load-balancer/issues/83
+        	    	Node currNode = ctx.sipNodeMap(isIpv6).get(keySip);
+        	    	if(currNode!=null)
+        	    	{
+        	    		if(logger.isDebugEnabled())
+        	    			logger.debug("We are going to reset counters of health check" + currNode.getRequestNumberWithoutResponse()+ " : "+currNode.getLastTimeResponse());
+        	    		currNode.setLastTimeResponse(System.currentTimeMillis());
+        	    		currNode.setRequestNumberWithoutResponse(0);
+        	    		if(logger.isDebugEnabled())
+        	    			logger.debug("Counter of request without responses is : " + currNode.getRequestNumberWithoutResponse()+ " : "+currNode.getLastTimeResponse());
+        	    	}
+        	    	else
+        	    	{
+        	    		logger.warn("Node is null, we will not reset counters");
+        	    	}
         		}
         		mediaFailureDetection(response, ctx, senderNode);
         	}
