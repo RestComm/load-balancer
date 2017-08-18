@@ -134,7 +134,9 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 					if( currNode!= null) 
 					{
 						currNode.setBad(true);
-						invocationContext.httpNodeMap.get(currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(true);
+						String instanseId = currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+						if(instanseId!=null)
+							invocationContext.httpNodeMap.get(new KeyHttp(currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID))).setBad(true);
 						logger.error("Error code [" + stsusCode + "] detected in HTTP response. From  node : " + currNode +". This node will marked as bad.");
 						String currInstanceId = (String) currNode.getProperties().get("Restcomm-Instance-Id");
 						if(currInstanceId!=null)

@@ -310,7 +310,9 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 	                	else
 	                	{
 	                		ctx.sipNodeMap(isIpV6).get(keySip).setBad(false);
-	                		ctx.httpNodeMap.get(pingNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(false);
+	                		String instanseId = pingNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+							if(instanseId!=null)
+	                			ctx.httpNodeMap.get(new KeyHttp(instanseId)).setBad(false);
 	                	}
 	                }
 	                pingNode.updateTimerStamp();
@@ -337,7 +339,9 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 	                    {
 	                    	logger.info("LB will exclude node " + nodePresent + " for new calls because of GRACEFUL_SHUTDOWN");
 	                    	ctx.sipNodeMap(isIpV6).get(keySip).setGracefulShutdown(true);
-	                    	ctx.httpNodeMap.get(pingNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setGracefulShutdown(true);
+	                    	String instanseId = pingNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+							if(instanseId!=null)
+	                    		ctx.httpNodeMap.get(new KeyHttp(instanseId)).setGracefulShutdown(true);
 	                    }
 	                } 
 	                else if(pingNode.getProperties().get("GRACEFUL_SHUTDOWN")!=null&&
@@ -525,7 +529,9 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 	            {
 	            	logger.info("LB got start request from restarted node " + nodePresent);
 	            	nodePresent.setBad(false);
-	            	ctx.httpNodeMap.get(nodePresent.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(false);
+	            	String instanseId = nodePresent.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+					if(instanseId!=null)
+	            		ctx.httpNodeMap.get(new KeyHttp(instanseId)).setBad(false);
 	            	nodePresent.setFailCounter(0);
 	            }
 	            else
@@ -599,7 +605,9 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 			{
 				logger.info("LB will exclude node "+ nodePresentIPv4 +"for new calls because of shutdown request");
 				nodePresentIPv4.setGracefulShutdown(true);
-				ctx.httpNodeMap.get(nodePresentIPv4.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setGracefulShutdown(true);
+				String instanseId = nodePresentIPv4.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+				if(instanseId!=null)
+					ctx.httpNodeMap.get(new KeyHttp(instanseId)).setGracefulShutdown(true);
 				was = true;
 			}
 			else if((nodePresentIPv6 = balancerRunner.getLatestInvocationContext().sessionNodeMap(true).get(keySession))!=null)

@@ -2242,7 +2242,9 @@ public class SIPBalancerForwarder implements SipListener {
 					logger.error("mediaFailureDetection on keysip " + keySip + ", removing node " + currNode);
 					currNode.setLastTimeError(System.currentTimeMillis());
 					ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
-					ctx.httpNodeMap.get(currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(true);
+					String instanseId = currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+					if(instanseId!=null)
+						ctx.httpNodeMap.get(new KeyHttp(instanseId)).setBad(true);
     		}
     	}
     }
@@ -2264,7 +2266,9 @@ public class SIPBalancerForwarder implements SipListener {
       		logger.error("time difference : " + (currentTime - node.getLastTimeResponse().get())
       				+ " max is :" + balancerRunner.balancerContext.maxResponseTime);
       		ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
-      		ctx.httpNodeMap.get(node.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID)).setBad(true);
+      		String instanseId = node.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+			if(instanseId!=null)
+      			ctx.httpNodeMap.get(new KeyHttp(instanseId)).setBad(true);
       	}
     }
 

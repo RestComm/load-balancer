@@ -170,7 +170,11 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		if(invocationContext.sipNodeMap(false).size()>0) {
 			String instanceId = getInstanceId(request);
 			if(instanceId!=null)
-				return getNodeByInstanceId(instanceId);
+			{
+				Node node = getNodeByInstanceId(instanceId);
+				if(node!=null)
+					return node;
+			}
 			
 			String httpSessionId = null;
 			httpSessionId = getUrlParameters(request.getUri()).get("jsessionid");
