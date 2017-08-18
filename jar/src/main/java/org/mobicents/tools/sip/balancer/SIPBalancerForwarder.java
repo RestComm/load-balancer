@@ -553,7 +553,8 @@ public class SIPBalancerForwarder implements SipListener {
         	{
         		if(uri.getHost().equals(balancerRunner.balancerContext.externalHost) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIP) 
-        				|| uri.getHost().equals(balancerRunner.balancerContext.externalIpLoadBalancerAddresses))
+        				|| (balancerRunner.balancerContext.externalIpLoadBalancerAddresses!=null 
+        				&& balancerRunner.balancerContext.externalIpLoadBalancerAddresses.contains(uri.getHost())))
         		{
         			int port = uri.getPort();
         			for(int externalPort : balancerRunner.balancerContext.externalPorts)
@@ -563,7 +564,8 @@ public class SIPBalancerForwarder implements SipListener {
                 
         		if(uri.getHost().equals(balancerRunner.balancerContext.internalHost) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIP)
-        				|| uri.getHost().equals(balancerRunner.balancerContext.internalIpLoadBalancerAddresses))
+        				|| (balancerRunner.balancerContext.internalIpLoadBalancerAddresses!=null 
+        				&& balancerRunner.balancerContext.internalIpLoadBalancerAddresses.contains(uri.getHost())))
         		{
         			int port = uri.getPort();
         			for(int internalPort : balancerRunner.balancerContext.internalPorts)
@@ -575,7 +577,8 @@ public class SIPBalancerForwarder implements SipListener {
         	{
         		if(uri.getHost().equals(balancerRunner.balancerContext.externalIpv6Host) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIPv6) 
-        				|| uri.getHost().equals(balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses))
+        				|| (balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses!=null
+        				&& balancerRunner.balancerContext.externalIpv6LoadBalancerAddresses.contains(uri.getHost())))
         		{
         			int port = uri.getPort();
         			for(int externalIpv6Port : balancerRunner.balancerContext.externalIpv6Ports)
@@ -585,7 +588,8 @@ public class SIPBalancerForwarder implements SipListener {
                 
         		if(uri.getHost().equals(balancerRunner.balancerContext.internalIpv6Host) 
         				|| uri.getHost().equals(balancerRunner.balancerContext.publicIPv6)
-        				|| uri.getHost().equals(balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses))
+        				|| (balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses!=null
+        				&& balancerRunner.balancerContext.internalIpv6LoadBalancerAddresses.contains(uri.getHost())))
         		{
         			int port = uri.getPort();
         			for(int internalIpv6Port : balancerRunner.balancerContext.internalIpv6Ports)
