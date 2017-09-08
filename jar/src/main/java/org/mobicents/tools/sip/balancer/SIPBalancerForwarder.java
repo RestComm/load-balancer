@@ -2257,20 +2257,21 @@ public class SIPBalancerForwarder implements SipListener {
     {
     	Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	        
     	KeySip keySip = new KeySip(node,isIpV6);
+    	Node currNode = ctx.sipNodeMap(isIpV6).get(keySip);
     	long currentTime = System.currentTimeMillis();
     	if(logger.isDebugEnabled())
-			logger.debug("Health check: current counters of requests without responses is : " + node.getRequestNumberWithoutResponse()+ " : " + node.getLastTimeResponse());
-      	if(node.getRequestNumberWithoutResponse().incrementAndGet() > balancerRunner.balancerContext.maxRequestNumberWithoutResponse
+			logger.debug("Health check: current counters of requests without responses is : " + currNode.getRequestNumberWithoutResponse()+ " : " + currNode.getLastTimeResponse());
+      	if(currNode.getRequestNumberWithoutResponse().incrementAndGet() > balancerRunner.balancerContext.maxRequestNumberWithoutResponse
       			&& balancerRunner.balancerContext.maxResponseTime < currentTime-
-      			node.getLastTimeResponse().get())
+      			currNode.getLastTimeResponse().get())
       	{
-      		logger.error("health check failed for " + keySip + ", removing node " + node);
-      		logger.error("requests to server without responses: " + node.getRequestNumberWithoutResponse().get()
+      		logger.error("health check failed for " + keySip + ", removing node " + currNode);
+      		logger.error("requests to server without responses: " + currNode.getRequestNumberWithoutResponse().get()
       				+ " max is :" + balancerRunner.balancerContext.maxRequestNumberWithoutResponse);
-      		logger.error("time difference : " + (currentTime - node.getLastTimeResponse().get())
+      		logger.error("time difference : " + (currentTime - currNode.getLastTimeResponse().get())
       				+ " max is :" + balancerRunner.balancerContext.maxResponseTime);
       		ctx.sipNodeMap(isIpV6).get(keySip).setBad(true);
-      		String instanseId = node.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
+      		String instanseId = currNode.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
 			if(instanseId!=null)
       			ctx.httpNodeMap.get(new KeyHttp(instanseId)).setBad(true);
       	}
