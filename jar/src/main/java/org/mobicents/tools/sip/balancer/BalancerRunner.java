@@ -53,6 +53,7 @@ import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
 import org.mobicents.tools.heartbeat.api.Node;
 import org.mobicents.tools.heartbeat.impl.HeartbeatConfigHttp;
 import org.mobicents.tools.http.balancer.HttpBalancerForwarder;
+import org.mobicents.tools.mgcp.balancer.MgcpBalancerRunner;
 import org.mobicents.tools.smpp.balancer.core.SmppBalancerRunner;
 import org.restcomm.commons.statistics.reporter.RestcommStatsReporter;
 
@@ -114,6 +115,7 @@ public class BalancerRunner implements BalancerRunnerMBean {
 	protected NodeRegisterImpl reg = null;
 	HttpBalancerForwarder httpBalancerForwarder;
 	public SmppBalancerRunner smppBalancerRunner;
+	public MgcpBalancerRunner mgcpBalancerRunner;
 	public BalancerContext balancerContext = new BalancerContext();
 	
 	/**
@@ -249,6 +251,12 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			smppBalancerRunner = new SmppBalancerRunner(this);
 			smppBalancerRunner.start();
 		}	
+		if(lbConfig.getMgcpConfiguration().getMgcpExternalPort()!=null&&
+				lbConfig.getMgcpConfiguration().getMgcpInternalPort()!=null)
+		{
+			mgcpBalancerRunner = new MgcpBalancerRunner(this);
+			mgcpBalancerRunner.start();
+		}
 	}
 	//start Jboss cache
 //			String cacheConfigFile = lbConfig.getCommonConfiguration().getCacheConfigFile();
@@ -320,14 +328,14 @@ public class BalancerRunner implements BalancerRunnerMBean {
 		
 		if(sipForwarder!=null)
 		{
-			logger.info("Stopping the sip forwarder");		
+			logger.info("Stopping the SIP forwarder");		
 			sipForwarder.stop();
 			sipForwarder=null;
 		}
 		
 		if(httpBalancerForwarder!=null)
 		{
-			logger.info("Stopping the http forwarder");
+			logger.info("Stopping the HTTP forwarder");
 			httpBalancerForwarder.stop();
 			httpBalancerForwarder=null;
 		}
@@ -337,6 +345,13 @@ public class BalancerRunner implements BalancerRunnerMBean {
 			logger.info("Stopping the SMPP balancer");
 			smppBalancerRunner.stop();
 			smppBalancerRunner=null;
+		}
+		
+		if(mgcpBalancerRunner != null)
+		{
+			logger.info("Stopping the MGCP balancer");
+			mgcpBalancerRunner.stop();
+			mgcpBalancerRunner=null;
 		}
 					
 		MBeanServer server = ManagementFactory.getPlatformMBeanServer();		

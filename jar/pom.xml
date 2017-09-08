@@ -192,6 +192,11 @@
             <artifactId>heartbeat-kube</artifactId>
            	<version>10.1.0-SNAPSHOT</version>
         </dependency>
+		<dependency>
+    		<groupId>org.restcomm.media.client.mgcp</groupId>
+    		<artifactId>mgcp-driver</artifactId>
+    		<version>6.0.42</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<resources>

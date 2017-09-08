@@ -59,6 +59,7 @@ import org.mobicents.tools.heartbeat.packets.HeartbeatResponsePacket;
 import org.mobicents.tools.heartbeat.packets.ShutdownResponsePacket;
 import org.mobicents.tools.heartbeat.packets.StartResponsePacket;
 import org.mobicents.tools.heartbeat.packets.StopResponsePacket;
+import org.mobicents.tools.mgcp.balancer.KeyMgcp;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -259,7 +260,13 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
                     {
                       	ctx.smppNodeMap.remove(new KeySmpp(node));
                     }
-                    Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());        	                    
+                    Boolean isIpV6=LbUtils.isValidInet6Address(node.getIp());     
+                    if(node.getProperties().get("mgcpPort")!=null)
+                    {
+                    	logger.warn("MGCP node was removed");
+                      	Node removedMgcpNode = ctx.mgcpNodeMap(isIpV6).remove(new KeyMgcp(node));
+                      	balancerRunner.mgcpBalancerRunner.getMgcpBalancerDispatcher().mgcpNodeRemoved(removedMgcpNode);
+                    }
                     ctx.sipNodeMap(isIpV6).remove(new KeySip(node,isIpV6));
                     ctx.sessionNodeMap(isIpV6).remove(new KeySession(node.getProperties().get(Protocol.SESSION_ID)));
                     ctx.balancerAlgorithm.nodeRemoved(node);
@@ -514,12 +521,13 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 	            InvocationContext ctx = balancerRunner.getInvocationContext(version);
 	            KeySip keySip = new KeySip(node,isIpV6);
 	            KeySession keySession = new KeySession(node.getProperties().get(Protocol.SESSION_ID));
+	            KeyMgcp keyMgcp = new KeyMgcp(node);
 	            node.updateTimerStamp();
 	            if(node.getProperties().get("jvmRoute") != null) 
 	                balancerRunner.balancerContext.jvmRouteToSipNode.put(node.getProperties().get("jvmRoute"), node);				
 
-	            //Node nodePresent = ctx.sipNodeMap(isIpV6).get(keySip);
-	            Node nodePresent = ctx.sessionNodeMap(isIpV6).get(keySession);
+	            Node nodePresent = ctx.sipNodeMap(isIpV6).get(keySip);
+	            //Node nodePresent = ctx.sessionNodeMap(isIpV6).get(keySession);
 	                
 	            if(nodePresent != null&&!nodePresent.isBad()) 
 	            {
@@ -543,6 +551,12 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 	                balancerRunner.balancerContext.aliveNodes.add(node);
 	                ctx.sessionNodeMap(isIpV6).put(keySession, node);
 	                ctx.sipNodeMap(isIpV6).put(keySip, node);
+	                String mgcpPort = node.getProperties().get(Protocol.MGCP_PORT);
+	                if(mgcpPort!=null)
+	                {
+	                	logger.info("Node added to MGCP node map");
+	                	ctx.mgcpNodeMap(isIpV6).put(keyMgcp, node);
+	                }
 	                String instanceId = node.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
 	                if(instanceId!=null)
 	                  	ctx.httpNodeMap.put(new KeyHttp(instanceId), node);
@@ -657,6 +671,14 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 				String instanceId = nodePresent.getProperties().get(Protocol.RESTCOMM_INSTANCE_ID);
 				if(instanceId!=null)
 					ctx.httpNodeMap.remove(instanceId);
+				String mgcpPort = nodePresent.getProperties().get(Protocol.MGCP_PORT);
+				if(mgcpPort!=null)
+				{
+					
+					Node removedMgcpNode = ctx.mgcpNodeMap(isIpV6).remove(new KeyMgcp(nodePresent));
+					balancerRunner.mgcpBalancerRunner.getMgcpBalancerDispatcher().mgcpNodeRemoved(removedMgcpNode);
+					logger.info("Node removed from MGCP node map: " + removedMgcpNode);
+				}
 				String smppPort = nodePresent.getProperties().get(Protocol.SMPP_PORT);
 				if(smppPort!=null)
 					ctx.smppNodeMap.remove(new KeySmpp(nodePresent));
@@ -669,7 +691,7 @@ public class NodeRegisterImpl  implements NodeRegister, IServerListener {
 		}
 		if(!was)
 		{
-			logger.error("LB got shutdown request ( " + json + " ) from node which not pesent in maps : " + 
+			logger.error("LB got stop request ( " + json + " ) from node which not pesent in maps : " + 
 					balancerRunner.getLatestInvocationContext().sipNodeMap(isIpV6));
 		}
 		if(e!=null)

@@ -347,6 +347,45 @@ Client part of SMPP load balancer has next states:
 * UNBINDING - it can receive unbind response from server only, after which state changes to closed state;
 * CLOSED - it can't receive any messages, this is the last state of the life cycle, which indicates that the connection is closed.
 
+== MGCP Load Balancing
+
+Restcomm load balancer has MGCP load balancing module. MGCP load balancer allows
+balance MGCP traffic. For balancing it uses round robin algorithm. For correct
+balancing all Call Agents (CA) must use call identifiers from common namespace.
+From the gateway's perspective, the Call identifier is thus unique.
+
+All MGCP commands related to same call go to same Media Gateway (MG).
+This is based on checking the Call identifier in CRCX commands.
+
+.MGCP load balancer diagram
+image::images/MGCP-lb-diagram.png[]
+
+MGCP load balancer can transfer commands from CA side:
+
+  CRCX - create connection
+  MDCX - modify connection
+  DLCX - delete connection
+  AUEP - audit endpoint
+  AUCX - audit connection
+  RQNT - notification request
+  EPCF - endpoint configuration
+
+from GW side:
+
+  NTFY - notify
+  RSIP - restart in progress
+  DLCX - delete connection
+
+The MGCP load balancer uses ping from MG nodes for discovering them. This ping
+should have mgcpPort, then LB will know that this node can handle MGCP traffic.
+So GW nodes must send heartbeats to the LB. After getting ping from GW node,
+LB will add this node to the map of MGCP nodes. If MG node will removed in some
+way, LB will remove all calls which was related to this node.
+
+For enabling MGCP load balancer you should add tag `<mgcp>` in configuration.
+Example of mgcp configuration you can find <<_sslb_binary_sip_load_balancer_configuring>>.
+
+
 == Pluggable balancer algorithms
 
 The {this-platform} Load Balancer exposes an interface to allow users to customize the routing decision making for special purposes.
@@ -482,11 +521,11 @@ Configuring the {this-platform} Load Balancer and the two SIP Servlets-enabled S
 .Procedure: Configuring the {this-platform}  {this-platform} Load Balancer and SIPServer Nodes
 . Configure lb-configuration.xml Configuration Properties File
 +
-Configure the {this-platform} Load Balancer's Configuration Properties file by substituting valid values for your personal setup. <<_sslb_complete_sample_lb.properties_file>>          shows a sample [path]_lb-configuration.xml_ file, with key element descriptions provided after the example.
+Configure the {this-platform} Load Balancer's Configuration Properties file by substituting valid values for your personal setup. <<sample_lb.properties_file>>          shows a sample [path]_lb-configuration.xml_ file, with key element descriptions provided after the example.
 The lines beginning with the pound sign are comments.
 +
-[[_sslb_complete_sample_lb.properties_file]]
-.Complete Sample lb-configuration.xml File
+[[sample_lb.properties_file]]
+.Sample of lb-configuration.xml file
 ====
 [source]
 ----
@@ -630,6 +669,12 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
   <toProviderAlgorithmClass></toProviderAlgorithmClass>
   <muxMode>true</muxMode>
 </smpp>
+<mgcp>
+  <mgcpExternalHost>50.17.127.170</mgcpExternalHost>
+  <mgcpInternalHost>172.21.0.105</mgcpInternalHost>
+  <mgcpExternalPort>2727</mgcpExternalPort>
+  <mgcpInternalPort>2727</mgcpInternalPort>
+</mgcp>
 <ssl>
   <terminateTLSTraffic>true</terminateTLSTraffic>
   <keyStore>/opt/loadbalancer/config/keystore</keyStore>

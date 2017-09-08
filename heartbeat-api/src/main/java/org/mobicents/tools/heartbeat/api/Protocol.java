@@ -43,6 +43,7 @@ public class Protocol
 	public static final String SCTP_PORT = "sctpPort";
 	public static final String SMPP_PORT = "smppPort";
 	public static final String SMPP_SSL_PORT = "smppSslPort";
+	public static final String MGCP_PORT = "mgcpPort";
 	public static final String VERSION = "version";
 	public static final String SESSION_ID = "sessionId";
 	public static final String RESTCOMM_INSTANCE_ID = "Restcomm-Instance-Id";

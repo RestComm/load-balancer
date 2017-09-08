@@ -30,6 +30,7 @@ public class StartRequestPacket implements Packet{
 	private String hostName;
 	private String ip;
 	private String httpPort;
+	private String mgcpPort;
 	private String sslPort;
 	private String udpPort;
 	private String tcpPort;
@@ -52,7 +53,9 @@ public class StartRequestPacket implements Packet{
 			switch (key) 
 			{
             	case Protocol.HTTP_PORT: httpPort = node.getProperties().get(key);
-                     			 break;
+                     			break;
+            	case Protocol.MGCP_PORT: mgcpPort = node.getProperties().get(key);
+    			 				break;
             	case Protocol.SSL_PORT: sslPort = node.getProperties().get(key);
                 				break;
             	case Protocol.UDP_PORT: udpPort = node.getProperties().get(key);
@@ -87,7 +90,9 @@ public class StartRequestPacket implements Packet{
 			switch (key) 
 			{
             	case Protocol.HTTP_PORT: httpPort = ((Integer)sipNode.getProperties().get(key)).toString();
-                     			 break;
+                     			break;
+            	case Protocol.MGCP_PORT: mgcpPort = ((Integer)sipNode.getProperties().get(key)).toString();
+    			 				break;
             	case Protocol.SSL_PORT: sslPort = ((Integer)sipNode.getProperties().get(key)).toString();
                 				break;
             	case Protocol.UDP_PORT: udpPort = ((Integer)sipNode.getProperties().get(key)).toString();
@@ -134,6 +139,14 @@ public class StartRequestPacket implements Packet{
 
 	public void setHttpPort(String httpPort) {
 		this.httpPort = httpPort;
+	}
+
+	public String getMgcpPort() {
+		return mgcpPort;
+	}
+
+	public void setMgcpPort(String mgcpPort) {
+		this.mgcpPort = mgcpPort;
 	}
 
 	public String getSslPort() {
