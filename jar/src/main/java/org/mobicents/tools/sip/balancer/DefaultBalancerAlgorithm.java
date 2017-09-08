@@ -273,9 +273,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		{
 			if(tokens[6].split("-").length>1)
 			{
-				String instanceId = tokens[6].split("-")[0];
-				url = url.replace(instanceId+"-", "");
-				request.setUri(url);
+				String instanceId = tokens[6].substring(0,34);
 				return instanceId;
 			}
 		}	

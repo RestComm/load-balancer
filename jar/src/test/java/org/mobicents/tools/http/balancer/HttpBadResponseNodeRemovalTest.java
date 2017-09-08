@@ -54,7 +54,12 @@ public class HttpBadResponseNodeRemovalTest
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < numberNodes; i++)
 		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i, ""+i, 2222+i);
+			String id = null;
+			if(i==0)
+				id = "ID1f2a2222772f4195948d040a2ccc648c";
+			else
+				id = "ID1f2a2222772f4195948d040a2ccc648"+i;
+			serverArray[i] = new HttpServer(8080+i, 4444+i, id, 2222+i);
 			if(i==0)
 				serverArray[i].setBadSever(true);
 			serverArray[i].start();	
@@ -136,7 +141,7 @@ public class HttpBadResponseNodeRemovalTest
 			{ 
 				WebConversation conversation = new WebConversation();
 				WebRequest request = new PostMethodWebRequest(
-						"http://user:password@127.0.0.1:2080/restcomm/2012-04-24/Accounts/"+accountSid+"/Calls.json/0-CAccccfd3a0c3");
+						"http://user:password@127.0.0.1:2080/restcomm/2012-04-24/Accounts/"+accountSid+"/Calls.json/ID1f2a2222772f4195948d040a2ccc648c-CA00af667a6a2cbfda0c07d923e78194cd");
 				WebResponse response = conversation.getResponse(request);
 				codeResponse = response.getResponseCode();
 			} 

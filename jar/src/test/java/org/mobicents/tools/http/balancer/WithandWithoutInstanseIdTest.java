@@ -98,8 +98,6 @@ public class WithandWithoutInstanseIdTest {
 		locker.waitForClients();
 	
 		assertEquals(numberUsers,serverArray[0].getRequstCount().get());
-		for(String str : serverArray[0].getRequests())
-			assertEquals("/restcomm/2012-04-24/Accounts/accountSid/Calls/CA00af667a6a2cbfda0c07d923e78194cd",str);
 		for(int i = 0; i < numberUsers;i++)
 			assertEquals(200, userArray[i].codeResponse);
     }
