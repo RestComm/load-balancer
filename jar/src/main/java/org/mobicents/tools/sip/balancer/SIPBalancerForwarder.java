@@ -1385,7 +1385,7 @@ public class SIPBalancerForwarder implements SipListener {
         }
         catch(Exception ex)
         {
-        	//should not occure
+        	logger.error("Exception in adding first RR header : " + ex.getMessage());
         }
         
         if(logger.isDebugEnabled()) {
@@ -1398,7 +1398,7 @@ public class SIPBalancerForwarder implements SipListener {
         }
         catch(Exception ex)
         {
-        	//should not occure
+        	logger.error("Exception in adding second RR header : " + ex.getMessage());
         }
     }
 
@@ -1540,7 +1540,7 @@ public class SIPBalancerForwarder implements SipListener {
 					currInternalRR = balancerRunner.balancerContext.activeInternalIpv6Header[internalTransportIndex];
 				}
 			}
-			addTwoRecordRoutes(request,currExternalRR,	currInternalRR,	hints, transport);
+			addTwoRecordRoutes(request,currExternalRR,	currInternalRR,	hints, getTransportById(internalTransportIndex));
 		} else {
 			int transportIndex = TLS;
 			int externalTransportIndex = TLS;
@@ -1631,7 +1631,7 @@ public class SIPBalancerForwarder implements SipListener {
 					currInternalRR = balancerRunner.balancerContext.activeInternalIpv6Header[transportIndex];
 				}
 			}
-			addTwoRecordRoutes(request,currInternalRR,	currExternalRR,	hints, transport);
+			addTwoRecordRoutes(request,currInternalRR,	currExternalRR,	hints, getTransportById(transportIndex));
 
 			if(logger.isInfoEnabled()) {
 				logger.info("Will patch Request : \"" + request.getRequestURI()	+ "\" to provide public IP address for the RecordRoute header");
