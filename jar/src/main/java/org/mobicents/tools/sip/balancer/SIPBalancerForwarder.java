@@ -1162,21 +1162,21 @@ public class SIPBalancerForwarder implements SipListener {
 								externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(transport,isIpv6),transport, newBranch + "zsd" + "_" + version);
 
 			// https://github.com/RestComm/load-balancer/issues/67
-			if (balancerRunner.balancerContext.terminateTLSTraffic) {
-				if(logger.isDebugEnabled()) {
-	         		logger.debug("Terminate TLS traffic, isRequestFromServer: " + isRequestFromServer + 
-	         				" transport before " + outerTransport);
-	         	}
-			
-				if (outerTransport.equalsIgnoreCase(ListeningPoint.TCP))
-					outerTransport = ListeningPoint.TLS;
-				else if (outerTransport.equalsIgnoreCase(ListeningPointExt.WS))
-					outerTransport = ListeningPointExt.WSS;
-				
-				if(logger.isDebugEnabled()) {
-	         		logger.debug("Terminate TLS traffic, transport after " + outerTransport);
-	         	}
-			}
+//			if (balancerRunner.balancerContext.terminateTLSTraffic) {
+//				if(logger.isDebugEnabled()) {
+//	         		logger.debug("Terminate TLS traffic, isRequestFromServer: " + isRequestFromServer + 
+//	         				" transport before " + outerTransport);
+//	         	}
+//			
+//				if (outerTransport.equalsIgnoreCase(ListeningPoint.TCP))
+//					outerTransport = ListeningPoint.TLS;
+//				else if (outerTransport.equalsIgnoreCase(ListeningPointExt.WS))
+//					outerTransport = ListeningPointExt.WSS;
+//				
+//				if(logger.isDebugEnabled()) {
+//	         		logger.debug("Terminate TLS traffic, transport after " + outerTransport);
+//	         	}
+//			}
 			viaHeaderExternal = balancerRunner.balancerContext.headerFactory.createViaHeader(
 							externalViaHost,balancerRunner.balancerContext.getExternalViaPortByTransport(outerTransport,isIpv6),outerTransport, newBranch + "_" + version);
 		}
@@ -1209,7 +1209,7 @@ public class SIPBalancerForwarder implements SipListener {
 	        	        }
 	                    
 	                    if(contactURI instanceof SipUri) {
-	                    	((SipUri) contactURI).setTransportParam(transport);
+	                    	((SipUri) contactURI).setTransportParam(outerTransport);
 	                    	logger.debug("new transport " + contactURI +
 	        	            		" so that requests coming out of nodes will use the non secure protocol");
 	                    }
@@ -1258,32 +1258,32 @@ public class SIPBalancerForwarder implements SipListener {
         		if(viaHeaderInternal != null) request.addHeader(viaHeaderInternal); 
         		if(viaHeaderExternal != null) request.addHeader(viaHeaderExternal);
         		
-        		if(balancerRunner.balancerContext.terminateTLSTraffic) {
-        			// https://github.com/RestComm/load-balancer/issues/67
-        			if(logger.isDebugEnabled()) {
-        	            logger.debug("terminateTLSTraffic, Patching the request URI and Route Header if present");
-        	        }
-        			if(request.getRequestURI() instanceof SipUri) {
-        				if(logger.isDebugEnabled()) {
-            	            logger.debug("terminateTLSTraffic, Patching the request URI to use transport " + outerTransport);
-            	        }
-        				((SipUri)request.getRequestURI()).setTransportParam(outerTransport);
-        			}
-        			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
-        			if(routeHeader != null && routeHeader.getAddress().getURI() instanceof SipUri) {
-        				if(logger.isDebugEnabled()) {
-            	            logger.debug("terminateTLSTraffic, Patching the Route Header to use transport " + outerTransport);
-            	        }
-        				((SipUri)routeHeader.getAddress().getURI()).setTransportParam(outerTransport);
-        			}
-        			ContactHeader contactHeader = (ContactHeader) request.getHeader(ContactHeader.NAME);
-        			if(contactHeader != null && contactHeader.getAddress().getURI() instanceof SipUri) {
-        				if(logger.isDebugEnabled()) {
-            	            logger.debug("terminateTLSTraffic, Patching the Contact Header to use transport " + outerTransport);
-            	        }
-        				((SipUri)contactHeader.getAddress().getURI()).setTransportParam(outerTransport);
-        			}
-        		}
+//        		if(balancerRunner.balancerContext.terminateTLSTraffic) {
+//        			// https://github.com/RestComm/load-balancer/issues/67
+//        			if(logger.isDebugEnabled()) {
+//        	            logger.debug("terminateTLSTraffic, Patching the request URI and Route Header if present");
+//        	        }
+//        			if(request.getRequestURI() instanceof SipUri) {
+//        				if(logger.isDebugEnabled()) {
+//            	            logger.debug("terminateTLSTraffic, Patching the request URI to use transport " + outerTransport);
+//            	        }
+//        				((SipUri)request.getRequestURI()).setTransportParam(outerTransport);
+//        			}
+//        			RouteHeader routeHeader = (RouteHeader) request.getHeader(RouteHeader.NAME);
+//        			if(routeHeader != null && routeHeader.getAddress().getURI() instanceof SipUri) {
+//        				if(logger.isDebugEnabled()) {
+//            	            logger.debug("terminateTLSTraffic, Patching the Route Header to use transport " + outerTransport);
+//            	        }
+//        				((SipUri)routeHeader.getAddress().getURI()).setTransportParam(outerTransport);
+//        			}
+//        			ContactHeader contactHeader = (ContactHeader) request.getHeader(ContactHeader.NAME);
+//        			if(contactHeader != null && contactHeader.getAddress().getURI() instanceof SipUri) {
+//        				if(logger.isDebugEnabled()) {
+//            	            logger.debug("terminateTLSTraffic, Patching the Contact Header to use transport " + outerTransport);
+//            	        }
+//        				((SipUri)contactHeader.getAddress().getURI()).setTransportParam(outerTransport);
+//        			}
+//        		}
         		if(logger.isDebugEnabled()) {
                     logger.debug("Sending the request:\n" + request);
                 }
