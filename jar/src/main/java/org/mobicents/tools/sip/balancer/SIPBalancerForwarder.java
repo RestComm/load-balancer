@@ -1293,9 +1293,10 @@ public class SIPBalancerForwarder implements SipListener {
         			balancerRunner.balancerContext.externalIpv6SipProvider.sendRequest(request);
         	}
         }
-        catch (SipException e) 
+        catch (Exception e) 
         {
-        	if(request.getMethod().equalsIgnoreCase(Request.OPTIONS)&&isRequestFromServer)
+        	if((request.getMethod().equalsIgnoreCase(Request.OPTIONS)||e.getMessage().equals("Operation not permitted (sendto failed)"))
+        			&&isRequestFromServer)
         			logger.warn("Problem with sending OPTIONS to external side possibly due to closed window in broweser");
         		else
         			logger.error("Unexpected exception while forwarding the request \n" + request, e);
