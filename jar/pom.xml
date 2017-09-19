@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>org.mobicents.tools</groupId>
 		<artifactId>sip-balancer</artifactId>
-		<version>11.0.0-SNAPSHOT</version>
+		<version>10.2.0-9</version>
 	</parent>
 
 	<artifactId>sip-balancer-jar</artifactId>
@@ -165,17 +165,17 @@
 		<dependency>
             <groupId>org.mobicents.tools</groupId>
             <artifactId>heartbeat-rmi</artifactId>
-           	<version>11.0.0-SNAPSHOT</version>
+           	<version>10.2.0-9</version>
         </dependency>
 	    <dependency>
             <groupId>org.mobicents.tools</groupId>
             <artifactId>heartbeat</artifactId>
-            <version>11.0.0-SNAPSHOT</version>
+            <version>10.2.0-9</version>
         </dependency>
         <dependency>
             <groupId>org.mobicents.tools</groupId>
             <artifactId>heartbeat-api</artifactId>
-            <version>11.0.0-SNAPSHOT</version>
+            <version>10.2.0-9</version>
         </dependency>
 		<dependency>
     		<groupId>org.tuckey</groupId>
@@ -190,7 +190,7 @@
         <dependency>
             <groupId>org.mobicents.tools</groupId>
             <artifactId>heartbeat-kube</artifactId>
-           	<version>11.0.0-SNAPSHOT</version>
+           	<version>10.2.0-9</version>
         </dependency>
 		<dependency>
     		<groupId>org.restcomm.media.client.mgcp</groupId>
