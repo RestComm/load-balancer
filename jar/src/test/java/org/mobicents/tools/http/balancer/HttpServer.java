@@ -115,12 +115,6 @@ public class HttpServer implements IClientListener
 
 	public void stop() {
 		clientController.stopClient(false);
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-
-			e.printStackTrace();
-		}
 		if(executor == null) return; // already stopped
 		serverChannel.unbind();
 		serverSecureChannel.unbind();
@@ -168,10 +162,5 @@ public class HttpServer implements IClientListener
 	}
 	public void setBadSever(boolean badSever) {
 		this.badSever = badSever;
-	}
-	@Override
-	public String toString()
-	{
-		return "127.0.0.1"+ httpPort;
 	}
 }

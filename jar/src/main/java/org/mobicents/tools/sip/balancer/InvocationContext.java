@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 import org.mobicents.tools.heartbeat.api.Node;
-import org.mobicents.tools.mgcp.balancer.KeyMgcp;
 import org.mobicents.tools.smpp.multiplexer.DefaultSmppAlgorithm;
 import org.mobicents.tools.smpp.multiplexer.MServerConnectionImpl;
 
@@ -95,9 +94,6 @@ public class InvocationContext {
 	public ConcurrentHashMap<KeyHttp, Node> httpNodeMap = new ConcurrentHashMap<KeyHttp, Node>();
 	public ConcurrentHashMap<KeySmpp, Node> smppNodeMap = new ConcurrentHashMap<KeySmpp, Node>();
 	
-	private ConcurrentHashMap<KeyMgcp, Node> mgcpNodeMap = new ConcurrentHashMap<KeyMgcp, Node>();
-	private ConcurrentHashMap<KeyMgcp, Node> mgcpNodeMapV6 = new ConcurrentHashMap<KeyMgcp, Node>();
-	
 	public KeySmpp activeNodeKey = null;
 	
 	public String version;
@@ -118,14 +114,6 @@ public class InvocationContext {
 			return sipNodeMapV6;
 		else
 			return sipNodeMap;
-	}
-	
-	public ConcurrentHashMap<KeyMgcp, Node> mgcpNodeMap(Boolean isIpV6)
-	{
-		if(isIpV6)
-			return mgcpNodeMapV6;
-		else
-			return mgcpNodeMap;
 	}
 	
 	public ConcurrentHashMap<KeySession, Node> sessionNodeMap(Boolean isIpV6)

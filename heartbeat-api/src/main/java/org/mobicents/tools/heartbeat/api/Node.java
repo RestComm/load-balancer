@@ -116,8 +116,7 @@ public class Node implements Comparable<Node> {
 				properties.get(Protocol.WSS_PORT) +
 				properties.get(Protocol.HTTP_PORT) + 
 				properties.get(Protocol.SSL_PORT) + 
-				properties.get(Protocol.SMPP_PORT)+
-				properties.get(Protocol.MGCP_PORT);
+				properties.get(Protocol.SMPP_PORT);
 	}
 	
 	public AtomicInteger getRequestNumberWithoutResponse() {

@@ -2,14 +2,12 @@ package org.mobicents.tools.configuration;
 
 import org.mobicents.tools.heartbeat.api.HeartbeatConfig;
 
-
 public class LoadBalancerConfiguration {
 
     private final CommonConfiguration commonConfiguration;
     private final SipConfiguration sipConfiguration;
     private final HttpConfiguration httpConfiguration;
     private final SmppConfiguration smppConfiguration;
-    private final MgcpConfiguration mgcpConfiguration;
     private final SslConfiguration sslConfiguration;
     private final SipStackConfiguration sipStackConfiguration;
     private HeartbeatConfig heartbeatConfiguration;
@@ -20,7 +18,6 @@ public class LoadBalancerConfiguration {
         this.sipConfiguration = new SipConfiguration();
         this.httpConfiguration = new HttpConfiguration();
         this.smppConfiguration = new SmppConfiguration();
-        this.mgcpConfiguration = new MgcpConfiguration();
         this.sslConfiguration = new SslConfiguration();
         this.sipStackConfiguration = new SipStackConfiguration();
       }
@@ -40,10 +37,6 @@ public class LoadBalancerConfiguration {
     public SmppConfiguration getSmppConfiguration() {
         return smppConfiguration;
     }
-
-	public MgcpConfiguration getMgcpConfiguration() {
-		return mgcpConfiguration;
-	}
 
 	public SslConfiguration getSslConfiguration() {
 		return sslConfiguration;

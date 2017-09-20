@@ -22,8 +22,6 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import jain.protocol.ip.mgcp.JainMgcpCommandEvent;
-
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -48,7 +46,6 @@ import org.jboss.netty.handler.codec.http.CookieDecoder;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.mobicents.tools.configuration.LoadBalancerConfiguration;
 import org.mobicents.tools.heartbeat.api.Node;
-import org.mobicents.tools.mgcp.balancer.KeyMgcp;
 
 
 public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
@@ -59,8 +56,6 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 	protected InvocationContext invocationContext;
 	protected Iterator<Entry<KeySip, Node>> ipv4It = null;
 	protected Iterator<Entry<KeySip, Node>> ipv6It = null;
-	protected Iterator<Entry<KeyMgcp, Node>> mgcpIpv4It = null;
-	protected Iterator<Entry<KeyMgcp, Node>> mgcpIpv6It = null;
 	protected Iterator<Node> httpRequestIterator = null;
 	protected LoadBalancerConfiguration lbConfig; 
 	protected ArrayList <Node> cycleListIpV4 = new ArrayList<Node>();
@@ -171,55 +166,7 @@ public abstract class DefaultBalancerAlgorithm implements BalancerAlgorithm {
 		
 	}
 	
-	
-	public synchronized Node processMgcpRequest(JainMgcpCommandEvent event, boolean isIpV6) 
-	{
-		if(invocationContext.mgcpNodeMap(isIpV6).size() == 0) return null;
-		Iterator<Entry<KeyMgcp, Node>> currIt = null; 
-		if(isIpV6)
-			currIt = mgcpIpv6It;
-		else
-			currIt = mgcpIpv4It;
-		if(currIt==null)
-		{
-			currIt = invocationContext.mgcpNodeMap(isIpV6).entrySet().iterator();
-			if(isIpV6)
-				mgcpIpv6It = currIt;
-			else
-				mgcpIpv4It = currIt;
-		}
-		Entry<KeyMgcp, Node> pair = null;
-		int count = invocationContext.mgcpNodeMap(isIpV6).size();
-		while(count>0)
-		{
-			while(currIt.hasNext() && count > 0)
-			{
-				pair = currIt.next();
-				if(invocationContext.mgcpNodeMap(isIpV6).containsKey(pair.getKey())
-						&&!invocationContext.mgcpNodeMap(isIpV6).get(pair.getKey()).isGracefulShutdown()
-						&&!invocationContext.mgcpNodeMap(isIpV6).get(pair.getKey()).isBad())
-				{
-					return pair.getValue();
-				}
-				else
-				{
-					count--;
-				}
-			}
-			
-			if(!currIt.hasNext())
-				currIt = invocationContext.mgcpNodeMap(isIpV6).entrySet().iterator();
-			
-			if(isIpV6)
-				mgcpIpv6It = currIt;
-			else
-				mgcpIpv4It = currIt;
-		}
-		return null;
-	}
-	
 	public synchronized Node processHttpRequest(HttpRequest request) {
-		System.out.println("Process http request");
 		if(invocationContext.sipNodeMap(false).size()>0) {
 			String instanceId = getInstanceId(request);
 			if(instanceId!=null)

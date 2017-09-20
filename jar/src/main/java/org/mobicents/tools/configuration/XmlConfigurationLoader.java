@@ -51,7 +51,6 @@ public class XmlConfigurationLoader{
             configureHttp(xml, configuration.getHttpConfiguration());
             configureSmpp(xml.configurationAt("smpp"), configuration.getSmppConfiguration());
             configureSip(xml, configuration.getSipConfiguration());
-            configureMgcp(xml.configurationAt("mgcp"), configuration.getMgcpConfiguration());
             configureSsl(xml.configurationAt("ssl"), configuration.getSslConfiguration());
             configureSipStack(xml.configurationsAt("sipStack.property"), configuration.getSipStackConfiguration(), xml.configurationAt("ssl"));
         } catch (ConfigurationException | IllegalArgumentException e) 
@@ -356,20 +355,6 @@ public class XmlConfigurationLoader{
     	    if(src.getString("toProviderAlgorithmClass") != null && !src.getString("toProviderAlgorithmClass").equals(""))
     	    	dst.setSmppToProviderAlgorithmClass(src.getString("toProviderAlgorithmClass",SmppConfiguration.SMPP_TO_PROVIDER_ALGORITHM_CLASS));
     	}
-    }
-    
-    private static void configureMgcp(HierarchicalConfiguration<ImmutableNode> src, MgcpConfiguration dst)
-    {
-    	if (src.getString("mgcpHost") != null && !src.getString("mgcpHost").equals(""))
-    		dst.setMgcpHost(src.getString("mgcpHost", MgcpConfiguration.MGCP_HOST));
-    	if (src.getString("mgcpInternalHost") != null && !src.getString("mgcpInternalHost").equals(""))
-    		dst.setMgcpInternalHost(src.getString("mgcpInternalHost", MgcpConfiguration.MGCP_INTERNAL_HOST));
-    	if (src.getString("mgcpExternalHost") != null && !src.getString("mgcpExternalHost").equals(""))
-    		dst.setMgcpExternalHost(src.getString("mgcpExternalHost", MgcpConfiguration.MGCP_EXTERNAL_HOST));
-    	if(src.getString("mgcpExternalPort") != null && !src.getString("mgcpExternalPort").equals(""))
-    		dst.setMgcpExternalPort(src.getInteger("mgcpExternalPort", MgcpConfiguration.MGCP_EXTERNAL_PORT));
-    	if(src.getString("mgcpInternalPort") != null && !src.getString("mgcpInternalPort").equals(""))
-    		dst.setMgcpInternalPort(src.getInteger("mgcpInternalPort", MgcpConfiguration.MGCP_INTERNAL_PORT));
     }
     private static void configureSsl(HierarchicalConfiguration<ImmutableNode> src, SslConfiguration dst) 
     {
