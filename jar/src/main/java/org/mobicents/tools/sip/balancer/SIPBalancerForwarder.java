@@ -1831,7 +1831,8 @@ public class SIPBalancerForwarder implements SipListener {
         if(logger.isDebugEnabled()) {
             logger.debug("Number of removed Route headers is " + numberOfRemovedRouteHeaders);
         }
-        if(numberOfRemovedRouteHeaders != 2 && subsequent) {
+        //https://github.com/RestComm/load-balancer/issues/128
+        if(numberOfRemovedRouteHeaders != 2 && subsequent && !request.getMethod().equalsIgnoreCase(Request.ACK)) {
             logger.warn("A subsequent request should have two Route headers. Number of removed Route headers is " + numberOfRemovedRouteHeaders
                     + ". This indicates a client is removing important headers.");
         }
