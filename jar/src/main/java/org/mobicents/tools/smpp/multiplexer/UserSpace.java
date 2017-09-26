@@ -343,7 +343,7 @@ public class UserSpace {
 	public void reconnectSuccesful(Long serverSessionID, MClientConnectionImpl connection)
 	{
 
-		mapReconnectionSchedule.get(serverSessionID).cancel(true);
+		mapReconnectionSchedule.remove(serverSessionID).cancel(true);
 		for(Long key:customers.keySet())
 			customers.get(key).reconnectState(false);
 		connectionsToServers.put(serverSessionID,connection);
