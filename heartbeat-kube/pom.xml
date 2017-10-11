@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.mobicents.tools</groupId>
     <artifactId>sip-balancer</artifactId>
-    <version>10.1.0-SNAPSHOT</version>
+    <version>10.2.0-30</version>
   </parent>
   <artifactId>heartbeat-kube</artifactId>
   <name>Restcomm Converged Load Balancer Heartbeat Kubernetes</name>
@@ -13,7 +13,7 @@
   	<dependency>
     	<groupId>org.mobicents.tools</groupId>
     	<artifactId>heartbeat-api</artifactId>
-    	<version>10.1.0-SNAPSHOT</version>
+    	<version>10.2.0-30</version>
     </dependency>
   	<dependency>
 		<groupId>log4j</groupId>
