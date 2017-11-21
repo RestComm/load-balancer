@@ -60,7 +60,7 @@ public class HttpNodeRemovalTest
 		balancerRunner.start(lbConfig);
 		for(int i = 0; i < numberNodes; i++)
 		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i, 2222+i);
+			serverArray[i] = new HttpServer(7080+i, 4444+i, 2222+i);
 			serverArray[i].start();	
 			Helper.sleep(1000);
 		}

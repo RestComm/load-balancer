@@ -58,7 +58,7 @@ public class WithandWithoutInstanseIdTest {
 		for(int i = 0; i < numberNodes; i++)
 		{
 			
-			serverArray[i] = new HttpServer(8080+i, 4444+i, instanceId,2222);
+			serverArray[i] = new HttpServer(7080+i, 4444+i, instanceId,2222);
 			serverArray[i].start();	
 		}
 		

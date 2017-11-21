@@ -59,7 +59,7 @@ public class HttpBadResponseNodeRemovalTest
 				id = "ID1f2a2222772f4195948d040a2ccc648c";
 			else
 				id = "ID1f2a2222772f4195948d040a2ccc648"+i;
-			serverArray[i] = new HttpServer(8080+i, 4444+i, id, 2222+i);
+			serverArray[i] = new HttpServer(7080+i, 4444+i, id, 2222+i);
 			if(i==0)
 				serverArray[i].setBadSever(true);
 			serverArray[i].start();	

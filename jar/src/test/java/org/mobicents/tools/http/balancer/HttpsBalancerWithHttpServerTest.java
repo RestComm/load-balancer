@@ -67,7 +67,7 @@ public class HttpsBalancerWithHttpServerTest
 		serverArray = new HttpServer[numberNodes];
 		for(int i = 0; i < serverArray.length; i++)
 		{
-			serverArray[i] = new HttpServer(8080+i, 4444+i, 2222+i);
+			serverArray[i] = new HttpServer(7080+i, 4444+i, 2222+i);
 			serverArray[i].start();	
 			Helper.sleep(1000);
 		}
