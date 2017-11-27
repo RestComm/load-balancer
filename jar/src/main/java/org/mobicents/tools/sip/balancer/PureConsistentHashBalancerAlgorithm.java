@@ -22,9 +22,6 @@
 
 package org.mobicents.tools.sip.balancer;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -34,7 +31,6 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 import org.mobicents.tools.heartbeat.api.Node;
 
@@ -132,9 +128,9 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	private void dumpNodes() {
 		String nodes = null;
 		if(nodesArrayV6!=null)
-			nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + (nodesArrayV4.length + nodesArrayV6.length) + "):\n";
+			nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are right now (" + (nodesArrayV4.length + nodesArrayV6.length) + "):\n";
 		else
-			nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are in cache right now (" + (nodesArrayV4.length) + "):\n";
+			nodes = "I am " + getBalancerContext().externalHost + ". I see the following nodes are right now (" + (nodesArrayV4.length) + "):\n";
 		
 		for(Object object : nodesArrayV4) {
 			Node node = (Node) object;
@@ -168,22 +164,6 @@ public class PureConsistentHashBalancerAlgorithm extends HeaderConsistentHashBal
 	}
 	
 	public void init() {
-		InputStream configurationInputStream = null;
-		String configFile = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getPersistentConsistentHashCacheConfiguration();
-		if(configFile != null) {
-			logger.info("Try to use cache configuration from " + configFile);
-			try {
-				configurationInputStream = new FileInputStream(configFile);
-			} catch (FileNotFoundException e1) {
-				logger.error("File not found", e1);
-				throw new RuntimeException(e1);
-			}
-		} else {
-			logger.info("Using default cache settings");
-			configurationInputStream = this.getClass().getClassLoader().getResourceAsStream("META-INF/PHA-balancer-cache.xml");
-			if(configurationInputStream == null) throw new RuntimeException("Problem loading resource META-INF/PHA-balancer-cache.xml");
-		}
-		
 
 		this.httpAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getHttpAffinityKey();
 		this.sipHeaderAffinityKey = getConfiguration().getSipConfiguration().getAlgorithmConfiguration().getSipHeaderAffinityKey();

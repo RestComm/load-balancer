@@ -9,7 +9,6 @@
   <heartbeatInterval>150</heartbeatInterval>
   <apiPort>2006</apiPort>
   <jmxHtmlAdapterPort>8000</jmxHtmlAdapterPort>
-  <cacheConfigFile>/home/konstantinnosach/tmp/infinispan-cache.xml</cacheConfigFile>
   
   <securityRequired>true</securityRequired>
   <login>daddy</login>

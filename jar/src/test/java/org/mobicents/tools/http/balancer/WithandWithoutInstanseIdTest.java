@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.Semaphore;
 
-import org.infinispan.configuration.global.GlobalConfigurationBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -82,7 +81,6 @@ public class WithandWithoutInstanseIdTest {
 	@Test
     public void testInstanceId() 
     {  
-		new GlobalConfigurationBuilder().globalJmxStatistics().allowDuplicateDomains(true);
 		userArray = new HttpUser[numberUsers];
 		Locker locker = new Locker(numberUsers);
 

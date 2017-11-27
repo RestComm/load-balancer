@@ -9,7 +9,6 @@ public class AlgorithmConfiguration {
 	public static final Boolean CALL_ID_AFFINITY_GROUP_FAILOVER = false;
 	public static final String SIP_HEADER_AFFINITY_KEY = "Call-ID";
 	public static final String HTTP_AFFINITY_KEY = "appsession";
-	public static final String PERSISTENT_CONSISTENT_HASH_CACHE_CONFIG = null;
 	public static final String SUBCLUSTER_MAP = null;
 	public static final Boolean EARLY_DIALOG_WORST_CASE = false;
 	
@@ -20,7 +19,6 @@ public class AlgorithmConfiguration {
 	private String sipHeaderAffinityKeyExclusionPattern;
 	private String sipHeaderAffinityFallbackKey;
 	private String httpAffinityKey;
-	private String persistentConsistentHashCacheConfiguration;
 	private String subclusterMap;
 	private Boolean earlyDialogWorstCase;
 	
@@ -32,7 +30,6 @@ public class AlgorithmConfiguration {
 		this.sipHeaderAffinityKey = SIP_HEADER_AFFINITY_KEY;
 		this.setSipHeaderAffinityFallbackKey(SIP_HEADER_AFFINITY_KEY);
 		this.httpAffinityKey = HTTP_AFFINITY_KEY;
-		this.persistentConsistentHashCacheConfiguration = PERSISTENT_CONSISTENT_HASH_CACHE_CONFIG;
 		this.subclusterMap = SUBCLUSTER_MAP;
 		this.earlyDialogWorstCase = EARLY_DIALOG_WORST_CASE;
 	}
@@ -84,16 +81,6 @@ public class AlgorithmConfiguration {
 	public void setHttpAffinityKey(String httpAffinityKey) 
 	{
 		this.httpAffinityKey = httpAffinityKey;
-	}
-
-	public String getPersistentConsistentHashCacheConfiguration() 
-	{
-		return persistentConsistentHashCacheConfiguration;
-	}
-
-	public void setPersistentConsistentHashCacheConfiguration(String persistentConsistentHashCacheConfiguration) 
-	{
-		this.persistentConsistentHashCacheConfiguration = persistentConsistentHashCacheConfiguration;
 	}
 
 	public String getSubclusterMap() 

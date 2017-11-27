@@ -390,12 +390,6 @@ org.mobicents.tools.sip.balancer.HeaderConsistentHashBalancerAlgorithm::
   It extracts the hash value of specific headers from SIP and HTTP messages to decide which application server node will handle the request.
   Information about the options in this algorithms is available in the balancer configuration file comments.
 
-org.mobicents.tools.sip.balancer.PersistentConsistentHashBalancerAlgorithm::
-  This algorithm is distributable and is similar to the previous algorithm,
-  but it attempts to keep session affinity even when the cluster nodes are removed or
-  added. It implemented by storing "header value" <-> "SIP Node" to cache. So this
-  cache can be shared between LBs.
-
 org.mobicents.tools.sip.balancer.ClusterSubdomainAffinityAlgorithm::
   This algorithm is not distributable, but supports grouping server nodes to act as a subcluster.
   Any call of a node that belongs to a cluster group will be preferentially failed over to a node from the same group.
@@ -551,7 +545,6 @@ http://docs.google.com/present/view?id=dc5jp5vx_89cxdvtxcm-->
     <callIdAffinityGroupFailover>false</callIdAffinityGroupFailover>
     <callIdAffinityMaxTimeInCache>0</callIdAffinityMaxTimeInCache>
     <httpAffinityKey></httpAffinityKey>
-    <persistentConsistentHashCacheConfiguration></persistentConsistentHashCacheConfiguration>
     <earlyDialogWorstCase>false</earlyDialogWorstCase>
   </algorithm>
   <external>

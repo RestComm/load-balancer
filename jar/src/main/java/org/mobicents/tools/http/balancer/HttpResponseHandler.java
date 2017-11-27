@@ -22,24 +22,16 @@
 
 package org.mobicents.tools.http.balancer;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.handler.codec.http.HttpChunkedInput;
-
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Enumeration;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.infinispan.commons.equivalence.EquivalentHashMap.EntrySet;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.channel.WriteCompletionEvent;
 import org.jboss.netty.handler.codec.http.DefaultHttpChunk;
 import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpChunkTrailer;
@@ -179,16 +171,6 @@ public class HttpResponseHandler extends SimpleChannelUpstreamHandler {
 					ChannelPipeline p = channel.getPipeline();
 					websocketModifyServerPipelineFactory = new WebsocketModifyServerPipelineFactory();
 					websocketModifyServerPipelineFactory.upgradeServerPipelineFactory(p, wsVersion);
-					
-//					ChannelPipeline p = channel.getPipeline();
-//					if (p.get(HttpChunkAggregator.class) != null) {
-//						p.remove(HttpChunkAggregator.class);
-//					}
-//
-//					p.get(HttpRequestDecoder.class).replace("wsdecoder",
-//							new WebSocket13FrameDecoder(true, true, Long.MAX_VALUE));
-//					p.replace(HttpResponseEncoder.class, "wsencoder", new WebSocket13FrameEncoder(false));
-
 				}
 			}
 		} 

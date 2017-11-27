@@ -171,7 +171,6 @@ public class XmlConfigurationLoader{
         alg.setCallIdAffinityGroupFailover(src.getBoolean("algorithm.callIdAffinityGroupFailover",AlgorithmConfiguration.CALL_ID_AFFINITY_GROUP_FAILOVER));
         alg.setCallIdAffinityMaxTimeInCache(src.getInteger("algorithm.callIdAffinityMaxTimeInCache",AlgorithmConfiguration.CALL_ID_AFFINITY_MAX_TIME_IN_CACHE));
         alg.setHttpAffinityKey(src.getString("algorithm.httpAffinityKey",AlgorithmConfiguration.HTTP_AFFINITY_KEY));
-        alg.setPersistentConsistentHashCacheConfiguration(src.getString("algorithm.persistentConsistentHashCacheConfiguration",AlgorithmConfiguration.PERSISTENT_CONSISTENT_HASH_CACHE_CONFIG));
         alg.setSubclusterMap(src.getString("subclusterMap",AlgorithmConfiguration.SUBCLUSTER_MAP));
         alg.setEarlyDialogWorstCase(src.getBoolean("earlyDialogWorstCase",AlgorithmConfiguration.EARLY_DIALOG_WORST_CASE));
         //external leg configuration
