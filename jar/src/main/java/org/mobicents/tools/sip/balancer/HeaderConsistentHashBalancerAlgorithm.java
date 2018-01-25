@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.log4j.Logger;
 
 import javax.sip.ListeningPoint;
@@ -174,7 +173,7 @@ public class HeaderConsistentHashBalancerAlgorithm extends DefaultBalancerAlgori
 		return false;
 	}
 	
-	public Node processHttpRequest(HttpRequest request, InvocationContext context) {
+	public Node processHttpRequest(HttpRequest request) {
 		String affinityKeyword = getUrlParameters(request.getUri()).get(this.httpAffinityKey);
 		if(affinityKeyword == null) {
 			return super.processHttpRequest(request);
