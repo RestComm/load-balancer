@@ -391,38 +391,29 @@ Example of mgcp configuration you can find <<_sslb_binary_sip_load_balancer_conf
 
 NOTE: SS7 Load Balancing is a https://www.restcomm.com/on-premise/[RestcommONE] feature, available only in our commercial version.
 
-The Load balancer has SS7 load balancing module. SS7 load balancer allows
-balance SS7 traffic on level the level of SCCP protocol. For balancing it uses
-round robin algorithm. For routing on internal side the Load balancer use routing
-based on the point code, for routing on external side global title. After getting
-very first SCCP request (BEGIN) LB gets dialogId and global title from request, choose point code
-of available internal nodes via algorithm and stores it in map (or infinispan cache)
-< dialogId,GT -> PointCode >. Each entity of map has time stamp, this stamp updates
-after gating subsequence request. So the next sub requests which will be belong to
-same dialog will be send to same node. All requests from internal side will be send
-accordingly to the global title. All entity of the map will be removed after getting
-ABORT/END request or after expiration time.
+RestcommONE Load Balancer (LB) has an SS7 traffic load balancing module, through which, via a round robin algorithm, SS7 traffic is load balanced over M3UA/SCCP/TCAP layers of the SS7 protocol stack.
+For routing within the Internal Side (where RestcommONE nodes reside, i.e. SMSC, USSD Gateway, GMLC or CAMEL Gateway), the LB uses routing
+based on Signaling Point Code (PC), while for routing to the External Side (Circuit-Switched Core Network), the LB bases on Global Title (GT).
+
+After getting the very first dialog request (TCAP BEGIN), the LB gathers the dialogId and GT from this initial message signaling unit, then, via the algorithm, selects the corresponding PC of available internal RestcommONE nodes, and stores these parameters in Map < dialogId,GT -> PointCode > (or infinispan cache). Each entity of the Map has a timestamp, which is updated
+after gathering the subsequent request. Then, next sub-requests belonging to the same dialog, will be sent to the corresponding RestcommONE node. All outgoing requests from RestcommONE nodes (Internal Side) will be sent
+accordingly to the corresponding GT. Every entity of the Map will be removed after receiving a TC ABORT/END request or due to timeout.
 
 .SS7 load balancer diagram
 image::images/SS7-lb-diagram.png[]
 
-Configuration of the SS7 Balancer can be split on three main parts:
+Configuration of the SS7 Load Balancer can be split in three main parts:
 
  * common part
-  - nodeExpirationTaskInterval - period in msec in which LB checks is node alive.
-  - nodeExpiration - max period in msec in which LB may not get ping from the Node
-  and not remove it from available
-  - periodCheckAlgoMap - period in msec in which LB checks old entity in map
-  < dialogId,GT -> PointCode >.
-  - maxIdleTime - max expiration time in sec in which entity can be stored in map without update
-  of time stamp.
-  - ss7AlgorithmClass - by default it is round robin.
- * external configuration - it is static configuration of SS7 external stack
- and will not change during all work of the Load balancer
- * internal cinfiguration - has some basic configuration for starting SS7 internal stack.
- After start and getting ping from internal SS7 Nodes LB modifies configuration of internal stack.
+  - nodeExpirationTaskInterval - period in msec in which LB checks if the node is alive.
+  - nodeExpiration - max period in msec in which the LB may not get a ping from the node and keep it as available.
+  - periodCheckAlgoMap - period in msec in which LB checks old entity in Map < dialogId,GT -> PointCode >.
+  - maxIdleTime - max expiration time in sec in which the entity can be stored in Map without timestamp update.
+  - ss7AlgorithmClass - SS7 load balancing algorithm (round robin by default).
+ * external configuration - the static configuration of the SS7 external stack which will not change during the whole work of the Load Balancer.
+ * internal configuration - it provides some basic configuration for starting the SS7 internal stack. After starting and getting ping from internal RestcommONE SS7 Nodes, the LB modifies the configuration of the internal stack.
 
-Here is example of configuration of the Load Balancer with SS7 module:
+A configuration example of the Load Balancer with SS7 module is shown below:
 
   <?xml version="1.0" encoding="UTF-8"?>
   <load-balancer-properties>
