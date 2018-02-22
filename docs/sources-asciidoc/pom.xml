@@ -79,6 +79,7 @@
 					    <this.release.source.code.url>https://github.com/Restcomm/load-balancer</this.release.source.code.url>
 					    <this.trunk.source.code.url>https://github.com/Restcomm/load-balancer</this.trunk.source.code.url>
 					    <this.release.binary.url>https://github.com/Restcomm/load-balancer</this.release.binary.url>
+					    <toclevels-value>2</toclevels-value>
 					</attributes>
 					<preserveDirectories>true</preserveDirectories>
 				    </configuration>
@@ -111,6 +112,7 @@
 					    <this.release.source.code.url>https://github.com/Restcomm/load-balancer</this.release.source.code.url>
 					    <this.trunk.source.code.url>https://github.com/Restcomm/load-balancer</this.trunk.source.code.url>
 					    <this.release.binary.url>https://github.com/Restcomm/load-balancer</this.release.binary.url>
+					    <toclevels-value>2</toclevels-value>
 					</attributes>
 					<preserveDirectories>true</preserveDirectories>
 				    </configuration>
@@ -142,6 +144,7 @@
 					    	<this.release.source.code.url>https://github.com/Restcomm/load-balancer</this.release.source.code.url>
 					    	<this.trunk.source.code.url>https://github.com/Restcomm/load-balancer</this.trunk.source.code.url>
 					    	<this.release.binary.url>https://github.com/Restcomm/load-balancer</this.release.binary.url>
+					    	<toclevels-value>3</toclevels-value>
 				            </attributes>
 				        </configuration>
 				    </execution>
