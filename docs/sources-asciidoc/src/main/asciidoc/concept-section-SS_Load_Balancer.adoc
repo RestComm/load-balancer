@@ -822,7 +822,9 @@ We need to configure at USSD/SMSC GW side following:
 * FEP side PointCode (PC) must match to FEP config `<internal>` - `<pointCode>`
 * SCCP settings must allows loadsharing to both configured FEPs with corresponded point codes
 * TCAP config for both USSD/SMSC GW nodes must contain unintersected ranges of `dialogidrangestart` - `dialogidrangeend`. This is needed for FEP will be able to make of proper dialog delivering between USSD/SMSC GW nodes based on TCAP dialogID value. We can assign for USSD/SMSC GW node 1 a range 1 - 999999999 and for node 2 a range 1000000000 - 1999999999.
+* You need to update clustering settings for SMSC GW only, check SMSC GW User guide chapter "Managing - SMSC Gateway Server Settings - Clustering Settings".
 * You need to configure server level parameters of USSD/SMSC GW like GT, SSNs and others as usual.
+
 
 Find CLI commands for configuring of USSD/SMSC GW node 1 SS7 part below:
 
