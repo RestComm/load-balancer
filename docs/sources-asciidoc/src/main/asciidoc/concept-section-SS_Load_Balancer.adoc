@@ -731,6 +731,245 @@ A configuration example of the Load Balancer with SS7 module is shown below:
 	</module>
 </load-balancer-properties>
 
+
+[[_fep_ussd_smsc]]
+== Integration of Load Balancer SS7 (FEP) with USSD and SMSC servers
+
+.Note
+[NOTE]
+====
+SS7 Active-Active mode is a RestcommONE feature, available only in our commercial version.
+====
+
+USSD GW and SMSC GW servers can use FEP instances (Front-End-Processors that play a role of SS7 load-balancing before FEP) as intermediate nodes with connecting to SS7 network.
+
+You can see below configuring examples of USSD / SMSC usage with a FEP.
+
+image::images/USSD-FEP-schema.png[]
+
+image::images/SMSC-FEP-schema.png[]
+
+We will describe configuring details for a case when FEP1 and SMSC / USSD 1 are deployed to a physical server 1 (with IP address `IP1`) and FEP2 and SMSC / USSD 2 are deployed to a physical server 2 (with IP address `IP2`). `IP1` and `IP2` will be of cause different for different deployments. We will use in our  example follownf IP values:
+
+* `IP1` - 172.30.1.8
+* `IP2` - 172.30.1.180
+
+You need to replace the mentioned IP values in configs to your actual values. You can reuse point codes at a leg between FEP and USSD/SMSC GW from an example because this part point codes are not exposed to a SS7 network provider. Point codes, IPs, ports between FEP and a remote SS7 node must be replaced to provided by a SS7 provider values.
+
+Point codes that are used in our example:
+
+* USSD/SMSC GW 1 - 10
+* USSD/SMSC GW 2 - 40
+* FEP 1 internal side - 11
+* FEP 2 internal side - 41
+* FEP 1 external side - 111
+* FEP 2 external side - 411
+* SS7 Simulator - 110
+
+Configuring of servers includes configuring of several layers:
+
+* MAP RA (MAP protocol Resource Adaptor) configuring
+* SMSC GW / USSD SS7 part configuring
+* FEP SS7 internal part configuring
+* FEP SS7 external part configuring
+
+If you just want to make end-to-end testing with SS7 Simulator at a place of an external SS7 node (external STP) we provide a config example of SS7 Simulator that allows to deploy one SS7 Simulator instance that will connect to both FEP nodes.
+
+
+[[_fep_ussd_smsc_map_ra]]
+=== MAP RA configuring
+
+MAP RA is deployed at a USSD/SMSC GW side and contains configuring of connection(s) to FEP(s) that are deployed between USSD/SMSC GWs and a SS7 network. MAP RA config is responsible for a functionality when a USSD/SMSC GW informs FEP side that a GW has started / stopped or a graceful shutdown has initiated. This is needed in order to a FEP node will create a SS7 connection to a started USSD/SMSC GW node and stop of sending of new dialogs to a shutting down USSD/SMSC GW node.
+
+For configuring of MAP RA we need to perform follow steps:
+
+* MAP RA file has a name like `restcomm-slee-ra-map-du-jboss-7.4.1-30.jar` (for jboss 5 server) and `restcomm-slee-ra-map-du-7.4.1-30.jar` (for wildfly server). We can find this file in a folder `<jboss>/server/default/deploy` (for jboss 5 server) or in a folder `<jboss>/standalone/deployments` (for wildfly server). This file is actually a zip archive, we need to unzip it.
+* An unzipped folder contains a file like `jars/restcomm-slee-ra-map-ra-7.4.1-30.jar`, this is also a zip archive, we need to unzip it too.
+* New unzipped folder contains `META-INF/resource-adaptor-jar.xml` file that contains several `config-property` entries that we need to update
+* Then we need to zip `restcomm-slee-ra-map-ra-7.4.1-30.jar` and `restcomm-slee-ra-map-du-7.4.1-30.jar` files and deploy them into an original jboss / wildfly folder.
+
+.The list of configurable properties
+[cols="1,1,1,1,1", frame="all", options="header"]
+|===
+| config-property-name | config-property-type | config-property-value | value in a configuring example for FEP1 | value in a configuring example for FEP2
+| org.mobicents.resources.restcomm-slee-ra-map-ra.POINTCODE | Integer | Point code of USSD/SMSC GW at connection to FEP (must fit to a local sccp point code) | 10 | 40
+| org.mobicents.resources.restcomm-slee-ra-map-ra.SCTP_PORT | Integer | Port of ss7 m3ua association at a USSD/SMSC side | 8071 | 8061
+| org.mobicents.resources.restcomm-slee-ra-map-ra.SCTP_LB_PORT | Integer | Port of ss7 m3ua association at a FEP side | 8070 | 8060
+| org.mobicents.resources.restcomm-slee-ra-map-ra.LOCAL_ADDRESS | String | Local IP address of a USSD/SMSC side | 172.30.1.8 | 172.30.1.180
+| org.mobicents.resources.restcomm-slee-ra-map-ra.BALANCERS | String | A list of FEP side `IP:port` with a delimiter between FEP nodes - `;` | 172.30.1.8:2000;172.30.1.180:2000 | 172.30.1.8:2000;172.30.1.180:2000
+| org.mobicents.resources.restcomm-slee-ra-map-ra.LoadBalancerHeartBeatingServiceClassName | String | A class name of a LoadBalancer HeartBeatingService | org.mobicents.slee.resource.map.heartbeat.MAPLoadBalancerHeartBeatingServiceImpl | org.mobicents.slee.resource.map.heartbeat.MAPLoadBalancerHeartBeatingServiceImpl
+| org.mobicents.resources.restcomm-slee-ra-map-ra.HEARTBEAT_INTERVAL | Integer | Interval of sending of heartbeat requests in milliseconds | 5000 | 5000
+|===
+
+In the case when USSD/SMSC GW does not communicate with a FEP you need to configure `BALANCERS` value to an empty value. MAP RA in USSD/SMSC GW is provided originally with no support for FEP and such RA may be safety used for a no FEP case.
+
+You can find example extraction from `resource-adaptor-jar.xml` in a folder `config-examples/configSS7-ussd-smsc/MAP_RA_1-conf-files` for USSD/SMSC GW 1 and in a folder `config-examples/configSS7-ussd-smsc/MAP_RA_2-conf-files` for USSD/SMSC GW 2. You can take these files, update IP addresses and copy-paste of config extractions into MAP RAs.
+
+
+[[_fep_ussd_smsc_smsc_ussd]]
+=== SMSC GW / USSD SS7 part configuring
+
+You can configure of USSD/SMSC GW SS7 part via JSS7 CLI or GUI console.
+
+SS7 setting of must match FEP internal side SS7 setting (we will describe them below). We will describe here needed settings that match to FEP settings in the described confiuring example.
+
+We need to configure at USSD/SMSC GW side following:
+
+* FEP always uses m3ua connection between FEP and USSD/SMSC GW node
+* FEP initiates an SCTP connection so USSD/SMSC GW part must configure SCTP server(s) and server association(s) (one association per a FEP)
+* FEP prepares m3ua links with follow options: functionality=IPSP, exchangeType=SE, ipspType=CLIENT, networkAppearance=102, RoutingContext=100.
+* Local PointCode (PC), sctp associations ports, local IP address must match to MAP RA config (as described above)
+* FEP side PointCode (PC) must match to FEP config `<internal>` - `<pointCode>`
+* SCCP settings must allows loadsharing to both configured FEPs with corresponded point codes
+* TCAP config for both USSD/SMSC GW nodes must contain unintersected ranges of `dialogidrangestart` - `dialogidrangeend`. This is needed for FEP will be able to make of proper dialog delivering between USSD/SMSC GW nodes based on TCAP dialogID value. We can assign for USSD/SMSC GW node 1 a range 1 - 999999999 and for node 2 a range 1000000000 - 1999999999.
+* You need to configure server level parameters of USSD/SMSC GW like GT, SSNs and others as usual.
+
+Find CLI commands for configuring of USSD/SMSC GW node 1 SS7 part below:
+
+[source]
+----
+sctp server create serv1 172.30.1.8 8071 sockettype SCTP
+sctp server start serv1
+sctp association create ass1 SERVER serv1 172.30.1.8 8070 sockettype SCTP
+sctp association create ass2 SERVER serv2 172.30.1.180 8070 sockettype SCTP
+
+m3ua as create as1 IPSP mode SE ipspType server rc 100 traffic-mode loadsharing network-appearance 102
+m3ua as create as2 IPSP mode SE ipspType server rc 100 traffic-mode loadsharing network-appearance 102
+m3ua asp create asp1 ass1
+m3ua asp create asp2 ass2
+m3ua as add as1 asp1
+m3ua as add as2 asp2
+m3ua asp start asp1
+m3ua asp start asp2
+m3ua route add as1 11 10 3
+m3ua route add as1 41 10 3
+
+sccp sap create 1 1 10 2
+sccp dest create 1 1 11 41 0 255 255
+sccp address create 1 83 11 0 0 1 4 000
+sccp address create 2 83 41 0 0 1 4 000
+sccp address create 21 83 10 0 0 1 4 000
+sccp rule create 1 K 82 0 0 0 1 4 * loadshared 1 backup-addressid 2 loadsharing-algo bit0 origination-type localOriginated
+sccp rule create 2 K 82 0 0 0 1 4 * solitary 21 origination-type remoteOriginated
+sccp rsp create 1 11 0 0
+sccp rsp create 2 41 0 0
+sccp rss create 1 11 8 0
+sccp rss create 2 11 6 0
+sccp rss create 3 41 8 0
+sccp rss create 4 41 6 0
+
+tcap set dialogidrangestart 1
+tcap set dialogidrangeend 999999999
+----
+
+Find CLI commands for configuring of USSD/SMSC GW node 2 SS7 part below
+
+[source]
+----
+sctp server create serv1 172.30.1.180 8061 sockettype SCTP
+sctp server start serv1
+sctp association create ass1 SERVER serv1 172.30.1.180 8060 sockettype SCTP
+sctp association create ass2 SERVER serv2 172.30.1.8 8060 sockettype SCTP
+
+m3ua as create as1 IPSP mode SE ipspType server rc 100 traffic-mode loadsharing network-appearance 102
+m3ua as create as2 IPSP mode SE ipspType server rc 100 traffic-mode loadsharing network-appearance 102
+m3ua asp create asp1 ass1
+m3ua asp create asp2 ass2
+m3ua as add as1 asp1
+m3ua as add as2 asp2
+m3ua asp start asp1
+m3ua asp start asp2
+m3ua route add as1 11 40 3
+m3ua route add as1 41 40 3
+
+sccp sap create 1 1 40 2
+sccp dest create 1 1 11 41 0 255 255
+sccp address create 1 83 11 0 0 1 4 000
+sccp address create 2 83 41 0 0 1 4 000
+sccp address create 21 83 40 0 0 1 4 000
+sccp rule create 1 K 82 0 0 0 1 4 * loadshared 1 backup-addressid 2 loadsharing-algo bit0 origination-type localOriginated
+sccp rule create 2 K 82 0 0 0 1 4 * solitary 21 origination-type remoteOriginated
+sccp rsp create 1 11 0 0
+sccp rsp create 2 41 0 0
+sccp rss create 1 11 8 0
+sccp rss create 2 11 6 0
+sccp rss create 3 41 8 0
+sccp rss create 4 41 6 0
+
+tcap set dialogidrangestart 1000000000
+tcap set dialogidrangeend 1999999999
+----
+
+You can find extracted info from `data` folder of USSD/SMSC GW in a folder  `config-examples/configSS7-ussd-smsc/USSD_SMSC_1/data` for configuring of USSD/SMSC GW 1 and in a folder `config-examples/configSS7-ussd-smsc/USSD_SMSC_2/data` for USSD/SMSC GW 2. You can take these files, update IP addresses and copy them into `data` folders of USSD/SMSC GWs.
+
+
+[[_fep_ussd_smsc_fep_internal]]
+=== FEP SS7 internal part configuring
+
+We can configure FEP SS7 internal part in `lb-configuration.xml` in a section `<load-balancer-properties>` - `<module moduleclass="org.mobicents.tools.balancer.protocols.ss7.Ss7BalancerRunner"` - `<balancerConfig>` - `<internal>`
+
+.The list of properties for FEP internal part configuring
+[cols="1,3,1,1", frame="all", options="header"]
+|===
+| Property name | Description | value in a configuring example for FEP1 | value in a configuring example for FEP2
+| pointCode | Local point code of FEP for internal part | 11 | 41
+| sctpFixedParams | Parameters for configuing of SCTP associations. Main parameter is `internalIp`| 172.30.1.8 | 172.30.1.180
+| m3uaFixedParams | Configurable parameters for m3ua connections | We can leave default parameters | We can leave default parameters
+| sccpManagement | Configurable general parameters for sccp stack | We can leave default parameters | We can leave default parameters
+| sccpResourceFixedParams | Configurable parameters for sccp stack resources. We may need to configure `remoteSsns` subparameter that means SSNs that USSD/SMSC listens | remoteSsns parameter by default may have 2 values `8` and `6` | Same as FEP1
+| sccpRouterFixedParams | Configurable parameters for sccp stack routing control. We need to update `opc` parameter to a point code of FEP internal side | 11 | 41
+| tcapFixedParams | Configurable parameters for tcap stack. We need to update `ssns` parameter to a list of SSNs that USSD/SMSC GW listens and that a remote SS7 node listens | ssns parameter by default may have 2 values `8` and `6` | Same as FEP1
+| tcapConfig | Parameters for TCAP stack. We do not need to update it usually | We can leave default parameters | We can leave default parameters
+|===
+
+You can find extracted info from `<internal>` section in a folder  `config-examples/configSS7-ussd-smsc/FEP1_internal` for configuring of FEP 1 and in a folder `config-examples/configSS7-ussd-smsc/FEP2_internal` for FEP 2. You can take these files, update IP addresses and may be other needed parameters and copy them into `lb-configuration.xml` of FEP.
+
+
+[[_fep_ussd_smsc_fep_external]]
+=== FEP SS7 external part configuring
+
+We can configure FEP SS7 internal part in `lb-configuration.xml` in a section `<load-balancer-properties>` - `<module moduleclass="org.mobicents.tools.balancer.protocols.ss7.Ss7BalancerRunner"` - `<balancerConfig>` - `<external>`
+
+This config contains data from JSS7 stack config `data` folder for all JSS7 stacks assembled into one section. A set of these parameters must match to parameters that a SS7 network operator provided.
+
+There is no CLI or GUI interface of configuring of JSS7 external part so far. You can use two options:
+
+* update config values directly in `lb-configuration.xml`
+* if a USSD/SMSC GW is located at a same physical server as FEP you can stop FEP, configure USSD/SMSC GW SS7 part by CLI / GUI in a way USSD/SMSC GW connects directly to a remore SS7 node without FEP, test SS7 connects from USSD/SMSC GW and then copy generated by USSD/SMSC GW config files from `data` folder (a list is in a table below) into `lb-configuration.xml`.
+
+.The list of sections for FEP external part configuring
+[cols="1,1,1", frame="all", options="header"]
+|===
+| FEP config subsection | Description | Corresponded file in `data` folder
+| sctpConfig | Configuring of SCTP stack | SCTPManagement_sctp.xml
+| m3uaConfig | Configuring of M3UA stack | Mtp3UserPart_m3ua1.xml
+| sccpManagement | Configuring of SCCP stack general parameters | SccpStack_management2.xml
+| sccpResource | Configuring of SCCP stack resource parameters | SccpStack_sccpresource2.xml
+| sccpRouter | Configuring of SCCP stack routing control parameters | SccpStack_sccprouter2.xml
+| tcapConfig | Configuring of TCAP stack | TcapStack_management.xml
+| tcapFixedParams | Configuring of TCAP stack extra parameters | There is no configuring file. We must put here a list of SSNs that USSD/SMSC GW listens
+|===
+
+You can find extracted info from `<external>` section in a folder  `config-examples/configSS7-ussd-smsc/FEP1_external` for configuring of FEP 1 and in a folder `config-examples/configSS7-ussd-smsc/FEP2_external` for FEP 2. These files demand significant updates manually or by getting of config files from ss7 stack before of putting into `lb-configuration.xml` of FEP. If a target is to make end-to-end testing with SS7 Simulator you can reuse of these configs and make only IP address changing.
+
+A full `lb-configuration.xml` config for FEP1 can be found in `config-examples/configSS7-ussd-smsc/FEP1` folder. A full `lb-configuration.xml` config for FEP2 can be found in `config-examples/configSS7-ussd-smsc/FEP2` folder.
+
+[[_fep_ussd_smsc_ss7_sim]]
+=== Confiruging of SS7 Simulator for local testing
+
+If we want to make end-to-end testing with SS7 Simulator at a place of an external SS7 node (external STP) we provide confid examples for USSD and SMSC GW cases in a folder `config-examples/configSS7-ussd-smsc/SS7_Simulator`.
+
+We need for testing:
+
+* download of a last version from github master (that contains needed updates)
+* deploy files `ussd_simulator2.xml` and `smsc_simulator2.xml` into SS7 Simulator `data` folder
+* run SS7 Simulator with "Host name" `ussd` or `smsc` (depending of what we want to test)
+* update `m3ua` config for proper IP addresses
+* start tests (FEP and USSD/SMSC GW must be already run)
+
+You can send SS7 message from SS7 Simualtor to FEP - USSD/SMSC GW and terminate USSD dialogs to HTTP Simulator and SMSs to SMPP Simualtors for example.
+
+
 == Pluggable balancer algorithms
 
 The {this-platform} Load Balancer exposes an interface to allow users to customize the routing decision making for special purposes.
