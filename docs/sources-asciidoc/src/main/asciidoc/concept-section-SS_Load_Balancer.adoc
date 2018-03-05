@@ -349,7 +349,7 @@ Client part of SMPP load balancer has next states:
 
 == MGCP Load Balancing
 
-NOTE: MGCP Load Balancing is a https://www.restcomm.com/on-premise/[RestcommONE] feature, available only in our commercial version.
+NOTE: MGCP Load Balancing is a https://www.restcomm.com/on-premise/[RestcommONE] feature, available only in our commercial version. Please https://www.restcomm.com/contact/[contact us] for more information.
 
 Restcomm load balancer has MGCP load balancing module. MGCP load balancer allows
 balance MGCP traffic. For balancing it uses round robin algorithm. For correct
@@ -389,7 +389,7 @@ Example of mgcp configuration you can find <<_sslb_binary_sip_load_balancer_conf
 
 == SS7 Load Balancing
 
-NOTE: SS7 Load Balancing is a https://www.restcomm.com/on-premise/[RestcommONE] feature, available only in our commercial version.
+NOTE: SS7 Load Balancing is a https://www.restcomm.com/on-premise/[RestcommONE] feature, available only in our commercial version. Please https://www.restcomm.com/contact/[contact us] for more information.
 
 RestcommONE Load Balancer (LB) has an SS7 traffic load balancing module, through which, via a round robin algorithm, SS7 traffic is load balanced over M3UA/SCCP/TCAP layers of the SS7 protocol stack.
 For routing within the Internal Side (where RestcommONE nodes reside, i.e. SMSC, USSD Gateway, GMLC or CAMEL Gateway), the LB uses routing
@@ -735,11 +735,7 @@ A configuration example of the Load Balancer with SS7 module is shown below:
 [[_fep_ussd_smsc]]
 == Integration of Load Balancer SS7 (FEP) with USSD and SMSC servers
 
-.Note
-[NOTE]
-====
-SS7 Active-Active mode is a RestcommONE feature, available only in our commercial version.
-====
+NOTE: SS7 Active-Active mode is a https://www.restcomm.com/on-premise/[RestcommONE] feature, available only in our commercial version. Please https://www.restcomm.com/contact/[contact us] for more information.
 
 USSD GW and SMSC GW servers can use FEP instances (Front-End-Processors that play a role of SS7 load-balancing before FEP) as intermediate nodes with connecting to SS7 network.
 
