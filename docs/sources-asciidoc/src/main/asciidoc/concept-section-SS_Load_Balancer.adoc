@@ -400,7 +400,7 @@ after gathering the subsequent request. Then, next sub-requests belonging to the
 accordingly to the corresponding GT. Every entity of the Map will be removed after receiving a TC ABORT/END request or due to timeout.
 
 .SS7 load balancer diagram
-image::images/SS7-LB-diagram.png[]
+image::images/SS7-lb-diagram.png[]
 
 Configuration of the SS7 Load Balancer can be split in three main parts:
 
