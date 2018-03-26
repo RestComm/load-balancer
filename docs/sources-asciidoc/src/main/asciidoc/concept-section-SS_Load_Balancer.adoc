@@ -907,8 +907,57 @@ tcap set dialogidrangeend 1999999999
 You can find extracted info from `data` folder of SMSC/USSD GW in `config-examples/configSS7-ussd-smsc/USSD_SMSC_1/data` path for configuring SMSC/USSD GW 01, while in `config-examples/configSS7-ussd-smsc/USSD_SMSC_2/data` path for SMSC/USSD GW 02. You can take these files, update IP addresses and copy them into `data` folders of correspondent SMSC/USSD GWs.
 
 
+[[_fep_ussd_smsc_fep]]
+=== FEP SS7 common configuration
+
+Before configuring of internal and external side of FEP you need to check/set next:
+
+- versions of FEP, SMSC/USSD. A minimal version that can be used for FEP (12.0.1 release),
+USSD (7.1.1 release) and SMSC (7.4.1 release);
+
+- in config file of FEP MUST be present `noderegistermodule`:
+
+  <noderegistermodule moduleclass="org.mobicents.tools.balancer.register.NodeRegisterRunner"
+	configclass="org.mobicents.tools.heartbeat.rmi.HeartbeatConfigRmi">
+		<heartbeatConfig>
+			<ProtocolClassName>org.mobicents.tools.heartbeat.rmi.ServerControllerRmi</ProtocolClassName>
+            <heartbeatHost>172.30.1.8</heartbeatHost>
+       		<rmiRegistryPort>2000</rmiRegistryPort>
+       		<rmiRemoteObjectPort>2001</rmiRemoteObjectPort>
+		</heartbeatConfig>
+	</noderegistermodule>
+
+- if you need statistic, you need to set `statisticmodule` :
+
+  <statisticmodule moduleclass="org.mobicents.tools.balancer.statistic.StatisticRunner" configclass="org.mobicents.tools.balancer.statistic.StatisticConfig">
+    <statisticConfig>
+      <statisticPort>2006</statisticPort>
+    </statisticConfig>
+  </statisticmodule>
+
+- for Active-Active mode you need to have well configured infinispan cache file (it depends from environment)
+and set path to this file in FEP configuration file.
+
+  <module moduleclass="org.mobicents.tools.balancer.protocols.ss7.Ss7BalancerRunner"
+		configclass="org.mobicents.tools.balancer.protocols.ss7.config.Ss7BalancerConfig">
+    <balancerConfig>
+      <nodeExpirationTaskInterval>1000</nodeExpirationTaskInterval>
+      <nodeExpiration>8100</nodeExpiration>
+      <cacheConfig>path/to/file/infinispan-cache.xml</cacheConfig>
+      <external>
+      ...
+      </external>
+      <internal>
+      ...
+      </internal>
+    </balancerConfig>
+	</module>
+
+Example of infinispan configuration file you can find in `config-examples` folder
+in zip file with binary.
+
 [[_fep_ussd_smsc_fep_internal]]
-=== FEP SS7 internal part configuration
+==== FEP SS7 internal part configuration
 
 You can configure FEP SS7 internal part in `lb-configuration.xml` in a section `<load-balancer-properties>` - `<module moduleclass="org.mobicents.tools.balancer.protocols.ss7.Ss7BalancerRunner"` - `<balancerConfig>` - `<internal>`
 
@@ -930,7 +979,7 @@ You can find extracted info from `<internal>` section within `config-examples/co
 
 
 [[_fep_ussd_smsc_fep_external]]
-=== FEP SS7 external part configuration
+==== FEP SS7 external part configuration
 
 You can configure FEP SS7 external part in `lb-configuration.xml` in a section `<load-balancer-properties>` - `<module moduleclass="org.mobicents.tools.balancer.protocols.ss7.Ss7BalancerRunner"` - `<balancerConfig>` - `<external>`
 
