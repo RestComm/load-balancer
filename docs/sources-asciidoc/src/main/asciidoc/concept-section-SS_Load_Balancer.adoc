@@ -747,6 +747,14 @@ image::images/STP-FEP-SMSC-schema.png[]
 .STP-FEP-USSD SS7 load balance diagram example
 image::images/STP-FEP-USSD-schema.png[]
 
+Minimal SMSC GW version that is available for usage in cluster is 7.4.1-88. Minimal USSD GW version that is available for usage in cluster is 7.1.1-35.
+
+Before configuring of FEPs and SMSC/USSD cluster you need to download and install proper SMSC/USSD GW instances and configure them as for Installation and User Guides of products.
+It makes sense to configure (and test) servers in a standalone mode and get sure that SMSC/USSD GW is configured properly before bringing them into cluster and adding of FEP nodes in front of them.   
+
+[[_fep_ussd_smsc_server]]
+=== Servers configuring, IP addreses, point codes
+
 We will describe configuration details for a case when FEP01 and SMSC / USSD GWs 01 instances are deployed within a physical server 1 (with IP address `IP1`) while FEP02 and SMSC / USSD GWs 02 are deployed within a physical server 2 (with IP address `IP2`).
 `IP1` and `IP2` will naturally be unequal for different deployments. In our example, we will use the following IP values:
 
@@ -768,6 +776,7 @@ Signaling Point Codes used in our example are described next:
 
 Configuration of SMSC / USSD GWs includes configuration of several layers:
 
+* Configuring of extra shared cassandra database KeySpace
 * MAP RA (MAP protocol Resource Adaptor)
 * SMSC GW / USSD SS7 part
 * FEP SS7 internal part
@@ -775,6 +784,14 @@ Configuration of SMSC / USSD GWs includes configuration of several layers:
 
 If you just want to make End-to-End testing with jSS7 Simulator at a place of an external SS7 node (external STP), we provide a configuration example of jSS7 Simulator that allows deploying one jSS7 Simulator instance which will connect to both FEP instances.
 
+
+[[_fep_ussd_smsc_shared_keyspace]]
+=== Configuring of extra shared cassandra database KeySpace (SMSC GW only)
+
+For a smooth support of HR (Home Routing) and AlertCerviceCenter operations between SMSC GW nodes an extra cassandra KeySpace is introduced ss an addition to a dedicated cassandra KeySpace (default name is "Shared").
+Before of starting of cluster we need to configure an empty shared KeySpace (one per a cluster), SMSC GW will add needed tables into the KeySpace itseft. How to configure an extra KeySpace you can see in SMSC GW User Guide in chapter "Clustering Settings".
+
+An extra shared KeySpace may be configured in either at a separate cassandra database instance or in a one of databases that contains a dedicated KeySpace. 
 
 [[_fep_ussd_smsc_map_ra]]
 === MAP RA configuration
@@ -1021,6 +1038,25 @@ We need the following for testing:
 * Start tests (FEP and SMSC/USSD GW must be already running).
 
 You can send SS7 messages from jSS7 Simulator to FEP - SMSC/USSD GW and, for example, terminate USSD dialogs along with HTTP Simulator, while SMSs along with SMPP Simulator.
+
+[[_fep_ussd_smsc_maint]]
+=== Maintenance of nodes
+
+We can safely bring any of FEP or/and SMSC/USSD GW node down for some time for maintenance procedures. In this case another node of FEP or/and SMSC/USSD GW will process all traffic. 
+
+For bringing of a SMSC/USSD GW node down we need to follow of a procedure "Graceful shutdown", check for extra info SMSC/USSD GW User Guide chapter "Graceful shutdown".
+This procedure will wait till all initiated dialogs will be processed to end and only then stop the server.
+
+Note that messages for SMSC GW in storeAndForward mode that were stored into a dedicated cassandra database KeySpace for SMSC GW 1/2 will not be processed by another SMSC GW node when a first node is down. We need to bring the node up to be able to delivery those messages. 
+
+When working of SMSC GW we need to have both dedicated and shared cassandra KeySpaces up. This means that we can stop of a dedicated KeySpace when a corresponded SMSC GW is down.
+If we need to turn down a database with a shared keyspace and some SMSC GWs are up that time then we need to follow this order:
+
+
+* turn `InCLuster` option to `false` (you can check it in SMSC GW User Guide in chapter "Clustering Settings")
+* stop a database with shared KeySpace    
+* start a database with shared KeySpace    
+* turn `InCLuster` option to `true`
 
 
 == Plugable balancer algorithms
@@ -2117,7 +2153,7 @@ in package $RESTCOMM_HOME/standalone/configuration/
 
 . Add your VoiceRSS API key to the variable
 
-  VOICERSS_KEY=‘f4840af6675b4d20a8d96dea8466296b‘
+  VOICERSS_KEY='f4840af6675b4d20a8d96dea8466296b'
 
 . Also edit next lines
 
