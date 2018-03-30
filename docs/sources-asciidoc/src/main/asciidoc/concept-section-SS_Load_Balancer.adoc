@@ -793,6 +793,32 @@ Before of starting of cluster we need to configure an empty shared KeySpace (one
 
 An extra shared KeySpace may be configured in either at a separate cassandra database instance or in a one of databases that contains a dedicated KeySpace. 
 
+Here is a script example for database creation in case when we put a Shared KeySpace to cassandra 1.
+
+[source]
+----
+> at cassandra 1
+CREATE KEYSPACE "RestCommSMSC" WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};
+CREATE KEYSPACE "Shared" WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};
+
+> at cassandra 2
+CREATE KEYSPACE "RestCommSMSC" WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};
+----
+
+Here is a CLI script example for settings a shared KeySpace options.
+
+[source]
+----
+smsc set shareddbhosts <IP>
+smsc set shareddbport 9042
+smsc set shareddbkeyspace Shared
+smsc set shareddbuser cassandra
+smsc set shareddbpass cassandra
+
+smsc set incluster true
+----
+
+
 [[_fep_ussd_smsc_map_ra]]
 === MAP RA configuration
 
@@ -845,8 +871,10 @@ The following shall be configured at SMSC/USSD GW side:
 * You need to configure server level parameters of SMSC/USSD GW like GT, SSNs and others as usual.
 
 
-Find CLI commands for configuring SS7 part of SMSC/USSD GW node 01 next:
+Find CLI commands for configuring SS7 part of SMSC/USSD GW nodes further. Note that you need remove existing configure items from SS7 part if a SS7 conenction to an operator is already present.
+It may be done with CLI or web GUI. There is also a simplier way: stop SMSC GW server and then remove from data folder corresponded SS7 xml files: `Mtp3UserPart_m3ua**.xml`, `SccpStack_**.xml`, `SCTPManagement_sctp.xml`, `TcapStack_**.xml`.
 
+.CLI commands for configuring SS7 part of SMSC/USSD GW node 01 next.
 [source]
 ----
 sctp server create serv1 172.30.1.8 8071 sockettype SCTP
@@ -883,8 +911,7 @@ tcap set dialogidrangestart 1
 tcap set dialogidrangeend 999999999
 ----
 
-Find CLI commands for configuring SS7 part of SMSC/USSD GW node 02 next:
-
+.CLI commands for configuring SS7 part of SMSC/USSD GW node 02 next:
 [source]
 ----
 sctp server create serv1 172.30.1.180 8061 sockettype SCTP
@@ -922,6 +949,310 @@ tcap set dialogidrangeend 1999999999
 ----
 
 You can find extracted info from `data` folder of SMSC/USSD GW in `config-examples/configSS7-ussd-smsc/USSD_SMSC_1/data` path for configuring SMSC/USSD GW 01, while in `config-examples/configSS7-ussd-smsc/USSD_SMSC_2/data` path for SMSC/USSD GW 02. You can take these files, update IP addresses and copy them into `data` folders of correspondent SMSC/USSD GWs.
+
+You can find here ss7 xml files examples for server 1:
+
+.SCTPManagement_sctp.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<connectdelay value="5000"/>
+<servers>
+	<server name="serv1" started="true" hostAddress="172.30.1.8" hostPort="8071" ipChannelType="0" acceptAnonymousConnections="false" maxConcurrentConnectionsCount="0" extraHostAddresseSize="0">
+		<associations>
+			<string value="ass1"/>
+			<string value="ass2"/>
+		</associations>
+	</server>
+</servers>
+<associations>
+	<name value="ass1"/>
+	<association name="ass1" assoctype="SERVER" hostAddress="" hostPort="0" peerAddress="172.30.1.8" peerPort="8070" serverName="serv1" ipChannelType="0" extraHostAddresseSize="0"/>
+	<name value="ass2"/>
+	<association name="ass2" assoctype="SERVER" hostAddress="" hostPort="0" peerAddress="172.30.1.180" peerPort="8070" serverName="serv1" ipChannelType="0" extraHostAddresseSize="0"/>
+</associations>
+----
+
+.Mtp3UserPart_m3ua1.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<heartbeattime value="10000"/>
+<aspFactoryList>
+	<aspFactory name="asp1" assocName="ass1" started="true" maxseqnumber="256" aspid="4" heartbeat="false"/>
+	<aspFactory name="asp2" assocName="ass2" started="true" maxseqnumber="256" aspid="4" heartbeat="false"/>
+</aspFactoryList>
+<asList>
+	<as name="as1" minAspActiveForLb="1" functionality="IPSP" exchangeType="SE" ipspType="SERVER">
+		<routingContext size="1">
+			<rc value="100"/>
+		</routingContext>
+		<networkAppearance value="102"/>
+		<trafficMode mode="2"/>
+		<defTrafficMode mode="2"/>
+		<asps>
+			<asp name="asp1"/>
+		</asps>
+	</as>
+	<as name="as2" minAspActiveForLb="1" functionality="IPSP" exchangeType="SE" ipspType="SERVER">
+		<routingContext size="1">
+			<rc value="100"/>
+		</routingContext>
+		<networkAppearance value="102"/>
+		<trafficMode mode="2"/>
+		<defTrafficMode mode="2"/>
+		<asps>
+			<asp name="asp2"/>
+		</asps>
+	</as>
+</asList>
+<route>
+	<key value="11:10:3"/>
+	<routeAs trafficModeType="2" as="as1"/>
+	<key value="41:10:3"/>
+	<routeAs trafficModeType="2" as="as2"/>
+</route>
+----
+
+.SccpStack_sccpresource2.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<remoteSsns>
+	<id value="1"/>
+	<value remoteSpc="11" remoteSsn="8" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+	<id value="2"/>
+	<value remoteSpc="11" remoteSsn="6" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+	<id value="3"/>
+	<value remoteSpc="41" remoteSsn="8" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+	<id value="4"/>
+	<value remoteSpc="41" remoteSsn="6" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+</remoteSsns>
+<remoteSpcs>
+	<id value="1"/>
+	<value remoteSpc="11" remoteSpcFlag="0" mask="0"/>
+	<id value="2"/>
+	<value remoteSpc="41" remoteSpcFlag="0" mask="0"/>
+</remoteSpcs>
+<concernedSpcs/>
+----
+
+.SccpStack_sccprouter2.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<rule>
+	<id value="1"/>
+	<value ruleType="Loadshared" loadSharingAlgo="Bit0" originatingType="LocalOriginated" mask="K" paddress="1" saddress="2" networkId="0">
+		<patternSccpAddress pc="-1" ssn="0">
+			<ai value="82"/>
+			<gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="*"/>
+		</patternSccpAddress>
+	</value>
+	<id value="2"/>
+	<value ruleType="Solitary" loadSharingAlgo="Undefined" originatingType="RemoteOriginated" mask="K" paddress="21" saddress="-1" networkId="0">
+		<patternSccpAddress pc="-1" ssn="0">
+			<ai value="82"/>
+			<gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="*"/>
+		</patternSccpAddress>
+	</value>
+</rule>
+<routingAddress>
+	<id value="1"/>
+	<sccpAddress pc="11" ssn="0">
+		<ai value="83"/>
+		<gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="100000"/>
+	</sccpAddress>
+	<id value="2"/>
+	<sccpAddress pc="41" ssn="0">
+		<ai value="83"/>
+		<gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="100000"/>
+	</sccpAddress>
+	<id value="21"/>
+	<sccpAddress pc="10" ssn="0">
+		<ai value="83"/>
+		<gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="200000"/>
+	</sccpAddress>
+</routingAddress>
+<longMessageRule/>
+<sap>
+	<id value="1"/>
+	<value mtp3Id="1" opc="10" ni="2" networkId="0">
+		<mtp3DestinationMap>
+			<id value="1"/>
+			<value firstDpc="11" lastDpc="41" firstSls="0" lastSls="255" slsMask="255"/>
+		</mtp3DestinationMap>
+	</value>
+</sap>
+----
+
+.TcapStack_management.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<dialogidletimeout value="60000"/>
+<invoketimeout value="30000"/>
+<maxdialogs value="5000"/>
+<dialogidrangestart value="1"/>
+<dialogidrangeend value="999999999"/>
+<donotsendprotocolversion value="false"/>
+<slsrange value="All"/>
+<statisticsenabled value="false"/>
+----
+
+
+You can find here ss7 xml files examples for server 2:
+
+.SCTPManagement_sctp.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<connectdelay value="5000"/>
+<servers>
+	<server name="serv1" started="true" hostAddress="172.30.1.180" hostPort="8061" ipChannelType="0" acceptAnonymousConnections="false" maxConcurrentConnectionsCount="0" extraHostAddresseSize="0">
+		<associations>
+			<string value="ass1"/>
+			<string value="ass2"/>
+		</associations>
+	</server>
+</servers>
+<associations>
+	<name value="ass1"/>
+	<association name="ass1" assoctype="SERVER" hostAddress="" hostPort="0" peerAddress="172.30.1.180" peerPort="8060" serverName="serv1" ipChannelType="0" extraHostAddresseSize="0"/>
+	<name value="ass2"/>
+	<association name="ass2" assoctype="SERVER" hostAddress="" hostPort="0" peerAddress="172.30.1.8" peerPort="8060" serverName="serv1" ipChannelType="0" extraHostAddresseSize="0"/>
+</associations>
+----
+
+.Mtp3UserPart_m3ua1.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<heartbeattime value="10000"/>
+<aspFactoryList>
+	<aspFactory name="asp1" assocName="ass1" started="true" maxseqnumber="256" aspid="4" heartbeat="false"/>
+	<aspFactory name="asp2" assocName="ass2" started="true" maxseqnumber="256" aspid="4" heartbeat="false"/>
+</aspFactoryList>
+<asList>
+	<as name="as1" minAspActiveForLb="1" functionality="IPSP" exchangeType="SE" ipspType="SERVER">
+		<routingContext size="1">
+			<rc value="100"/>
+		</routingContext>
+		<networkAppearance value="102"/>
+		<trafficMode mode="2"/>
+		<defTrafficMode mode="2"/>
+		<asps>
+			<asp name="asp1"/>
+		</asps>
+	</as>
+	<as name="as2" minAspActiveForLb="1" functionality="IPSP" exchangeType="SE" ipspType="SERVER">
+		<routingContext size="1">
+			<rc value="100"/>
+		</routingContext>
+		<networkAppearance value="102"/>
+		<trafficMode mode="2"/>
+		<defTrafficMode mode="2"/>
+		<asps>
+			<asp name="asp2"/>
+		</asps>
+	</as>
+</asList>
+<route>
+	<key value="11:40:3"/>
+	<routeAs trafficModeType="2" as="as1"/>
+	<key value="41:40:3"/>
+	<routeAs trafficModeType="2" as="as2"/>
+</route>
+----
+
+.SccpStack_sccpresource2.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<remoteSsns>
+    <id value="1"/>
+    <value remoteSpc="11" remoteSsn="8" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+    <id value="2"/>
+    <value remoteSpc="11" remoteSsn="6" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+    <id value="3"/>
+    <value remoteSpc="41" remoteSsn="8" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+    <id value="4"/>
+    <value remoteSpc="41" remoteSsn="6" remoteSsnFlag="0" markProhibitedWhenSpcResuming="false"/>
+</remoteSsns>
+<remoteSpcs>
+    <id value="1"/>
+    <value remoteSpc="11" remoteSpcFlag="0" mask="0"/>
+    <id value="2"/>
+    <value remoteSpc="41" remoteSpcFlag="0" mask="0"/>
+</remoteSpcs>
+<concernedSpcs/>
+----
+
+.SccpStack_sccprouter2.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<rule>
+	<id value="1"/>
+	<value ruleType="Solitary" loadSharingAlgo="Bit0" originatingType="LocalOriginated" mask="K" paddress="1" saddress="2" networkId="0">
+		<patternSccpAddress pc="-1" ssn="0">
+			<ai value="82"/>
+			<gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="*"/>
+		</patternSccpAddress>
+	</value>
+	<id value="2"/>
+	<value ruleType="Solitary" loadSharingAlgo="Undefined" originatingType="RemoteOriginated" mask="K" paddress="21" saddress="-1" networkId="0">
+		<patternSccpAddress pc="-1" ssn="0">
+			<ai value="82"/>
+			<gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="*"/>
+		</patternSccpAddress>
+	</value>
+</rule>
+
+<routingAddress>
+    <id value="1"/>
+    <sccpAddress pc="11" ssn="0">
+        <ai value="83"/>
+        <gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="100000"/>
+    </sccpAddress>
+    <id value="2"/>
+    <sccpAddress pc="41" ssn="0">
+        <ai value="83"/>
+        <gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="100000"/>
+    </sccpAddress>
+    <id value="21"/>
+    <sccpAddress pc="40" ssn="0">
+        <ai value="83"/>
+        <gt type="GT0100" tt="0" es="1" np="1" nai="4" digits="200000"/>
+    </sccpAddress>
+</routingAddress>
+<longMessageRule/>
+<sap>
+	<id value="1"/>
+	<value mtp3Id="1" opc="40" ni="2" networkId="0">
+		<mtp3DestinationMap>
+			<id value="1"/>
+			<value firstDpc="11" lastDpc="41" firstSls="0" lastSls="255" slsMask="255"/>
+		</mtp3DestinationMap>
+	</value>
+</sap>
+----
+
+.TcapStack_management.xml
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<dialogidletimeout value="60000"/>
+<invoketimeout value="30000"/>
+<maxdialogs value="5000"/>
+<dialogidrangestart value="1000000000"/>
+<dialogidrangeend value="1999999999"/>
+<donotsendprotocolversion value="false"/>
+<slsrange value="All"/>
+<statisticsenabled value="false"/>
+----
+
+
 
 
 [[_fep_ussd_smsc_fep]]
